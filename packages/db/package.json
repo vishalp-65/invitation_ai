@@ -1,0 +1,35 @@
+{
+  "name": "@cardai/db",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Drizzle ORM schema, client, migrations and seed for PostgreSQL.",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "drizzle"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "generate": "drizzle-kit generate",
+    "migrate": "node --env-file-if-exists=../../.env dist/migrate.js",
+    "seed": "node --env-file-if-exists=../../.env dist/seed.js",
+    "studio": "drizzle-kit studio"
+  },
+  "dependencies": {
+    "@cardai/shared": "0.1.0",
+    "drizzle-orm": "^0.45.4",
+    "pg": "^8.23.1"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.23.1",
+    "drizzle-kit": "^0.31.11"
+  }
+}

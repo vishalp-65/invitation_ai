@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.next/
+out/
+.turbo/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+/tmp/
+apps/worker/.remotion-cache/
+apps/worker/renders/

@@ -1,0 +1,39 @@
+{
+  "name": "cardai",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI invitation platform: image cards, video invites and invitation websites for India.",
+  "packageManager": "npm@12.0.2",
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "turbo run dev --parallel --filter=@cardai/api --filter=@cardai/worker --filter=@cardai/web",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "infra:up": "docker compose up -d postgres redis minio minio-init",
+    "infra:down": "docker compose down",
+    "db:generate": "npm run generate -w @cardai/db",
+    "db:migrate": "npm run migrate -w @cardai/db",
+    "db:seed": "npm run seed -w @cardai/db"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^10.14.0",
+    "globals": "^16.0.0",
+    "prettier": "^3.10.1",
+    "turbo": "^2.11.11",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.72.2",
+    "@types/node": "^24.0.0"
+  }
+}

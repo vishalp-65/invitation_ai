@@ -1,0 +1,53 @@
+{
+  "nav": {
+    "templates": "Designs",
+    "pricing": "Pricing",
+    "myInvites": "My invitations",
+    "login": "Log in",
+    "create": "Create invite",
+    "logout": "Log out"
+  },
+  "hero": {
+    "kicker": "Now in 12 Indian languages",
+    "title": "Invitations as beautiful as the occasion.",
+    "body": "Write once in Hindi, Tamil, Marathi or any of 12 languages. Get a printed-quality card, a WhatsApp-ready video and an RSVP website — in two minutes.",
+    "cta": "Create your invitation",
+    "whatsapp": "Make it on WhatsApp",
+    "free": "Free to try. HD from ₹79."
+  },
+  "how": {
+    "title": "From names to a ready invite in three steps",
+    "s1": "Tell us about the function",
+    "s1b": "Names, dates, venue. Type or speak. AI writes the wording in your language.",
+    "s2": "Pick a design",
+    "s2b": "Your own names on every design, instantly. Switch colours with one tap.",
+    "s3": "Share everywhere",
+    "s3b": "Card for WhatsApp, video with music, and a website link with RSVP."
+  },
+  "outputs": {
+    "title": "One form. Three invitations.",
+    "card": "Image card",
+    "cardBody": "Multi-page, print-quality card. Ready for WhatsApp, status and the press.",
+    "video": "Video invite",
+    "videoBody": "Animated with music, always under 16 MB so WhatsApp never blurs it.",
+    "site": "Website & RSVP",
+    "siteBody": "Schedule, maps, countdown and an RSVP for each function — with every guest greeted by name."
+  },
+  "languages": { "title": "Your words, in your script" },
+  "wizard": {
+    "stepEvent": "Occasion",
+    "stepDetails": "Details",
+    "stepFunctions": "Functions",
+    "stepDesign": "Design",
+    "back": "Back",
+    "next": "Continue",
+    "create": "Create invitation",
+    "preview": "Preview"
+  },
+  "common": {
+    "loading": "Loading…",
+    "save": "Save changes",
+    "saved": "Saved",
+    "retry": "Try again"
+  }
+}

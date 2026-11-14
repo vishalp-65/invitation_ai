@@ -1,0 +1,31 @@
+{
+  "name": "@cardai/templates",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Remotion layouts: one source of truth for live preview, image cards, PDFs and video invites.",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./remotion-entry": "./src/remotion/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint src",
+    "studio": "remotion studio src/remotion/index.ts"
+  },
+  "dependencies": {
+    "@cardai/shared": "0.1.0",
+    "@remotion/google-fonts": "4.0.543",
+    "remotion": "4.0.543"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@remotion/cli": "4.0.543",
+    "@types/react": "^19.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1"
+  }
+}

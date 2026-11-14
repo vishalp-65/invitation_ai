@@ -1,0 +1,93 @@
+name: cardai
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: cardai
+      POSTGRES_PASSWORD: cardai
+      POSTGRES_DB: cardai
+    ports: ['5432:5432']
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cardai']
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports: ['6379:6379']
+    volumes: [redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+  # S3-compatible object storage for local dev (production uses Cloudflare R2 / AWS S3).
+  # Service is still called "minio" so existing env/URLs keep working.
+  minio:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: cardai
+      RUSTFS_SECRET_KEY: cardai-secret
+      RUSTFS_CONSOLE_ENABLE: 'true'
+    ports: ['9000:9000', '9001:9001']
+    volumes: [miniodata:/data]
+
+  # Creates the bucket, makes objects publicly readable (keys are unguessable UUIDs) and
+  # allows browser PUT uploads from the web app.
+  minio-init:
+    image: amazon/aws-cli:latest
+    depends_on: [minio]
+    environment:
+      AWS_ACCESS_KEY_ID: cardai
+      AWS_SECRET_ACCESS_KEY: cardai-secret
+      AWS_DEFAULT_REGION: us-east-1
+    volumes: ['./infra/storage:/init:ro']
+    entrypoint: ['/bin/sh', '/init/init-bucket.sh']
+
+  # ---- Application containers (production-like). For local dev use `npm run dev` instead. ----
+  api:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/api.Dockerfile }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://cardai:cardai@postgres:5432/cardai
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    ports: ['4000:4000']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  worker:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/worker.Dockerfile }
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://cardai:cardai@postgres:5432/cardai
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+    shm_size: 1gb
+    deploy:
+      replicas: 1
+      resources:
+        limits: { cpus: '4', memory: 6g }
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+
+  web:
+    profiles: [app]
+    build: { context: ., dockerfile: infra/docker/web.Dockerfile }
+    env_file: .env
+    environment:
+      API_INTERNAL_URL: http://api:4000
+    ports: ['3000:3000']
+    depends_on: [api]
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

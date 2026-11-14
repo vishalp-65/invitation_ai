@@ -1,0 +1,503 @@
+import { getLanguage, type LanguageCode } from '../constants/languages.js';
+import type { EventCategory } from '../constants/event-types.js';
+import type { Theme } from '../templates/types.js';
+import { resolveBinding, type DesignData } from './bindings.js';
+import { readableOn } from './color.js';
+import { EDITOR_FONTS } from './fonts.js';
+import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
+
+export type Palette = Theme['palette'];
+
+export interface RecipeCtx {
+  p: Palette;
+  data: DesignData;
+  language: LanguageCode;
+  script: string;
+  latin: boolean;
+  langFonts: { display: string; body: string };
+  eventType: string;
+  category: EventCategory;
+  people: 0 | 1 | 2;
+}
+
+export type Role =
+  | 'invocation'
+  | 'eyebrow'
+  | 'headline'
+  | 'names'
+  | 'name'
+  | 'connector'
+  | 'detail'
+  | 'host'
+  | 'body'
+  | 'date'
+  | 'venue'
+  | 'small'
+  | 'big';
+
+export interface RoleStyle {
+  font: string;
+  /** Font used when the invitation language isn't Latin script. */
+  indic?: 'display' | 'body';
+  size: number;
+  weight?: number;
+  italic?: boolean;
+  upper?: boolean;
+  ls?: number;
+  lh?: number;
+  tone?: Tone;
+  effect?: TextEffect;
+}
+export type Tone = 'ink' | 'accent' | 'muted';
+export type TypeSet = Record<Role, RoleStyle>;
+export interface Tones {
+  ink: string;
+  accent: string;
+  muted: string;
+}
+
+export type Band =
+  | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect }
+  | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade' }
+  | { t: 'divider'; style?: string; w?: number; gap?: number }
+  | { t: 'date'; style: 'strip' | 'line' | 'stack' | 'boxed'; gap?: number }
+  | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded'; gap?: number }
+  | { t: 'gap'; h: number };
+
+export interface Zone {
+  top: number;
+  bottom: number;
+  left: number;
+  right: number;
+}
+
+// ---------------------------------------------------------------- type sets
+
+const r = (font: string, size: number, rest: Partial<RoleStyle> = {}): RoleStyle => ({ font, size, ...rest });
+
+export const TYPE_SETS = {
+  /** Gold calligraphy names, Cinzel caps, Cormorant body. */
+  royal: {
+    invocation: r('Cinzel', 30, { tone: 'accent', ls: 0.12, indic: 'display' }),
+    eyebrow: r('Cinzel', 30, { upper: true, ls: 0.32, tone: 'accent', indic: 'body' }),
+    headline: r('Cinzel', 44, { upper: true, ls: 0.22, tone: 'accent', weight: 600, indic: 'display' }),
+    names: r('Great Vibes', 150, { tone: 'accent', effect: 'gold', lh: 1.05, indic: 'display' }),
+    name: r('Great Vibes', 170, { tone: 'accent', effect: 'gold', lh: 1.05, indic: 'display' }),
+    connector: r('Cormorant Garamond', 54, { italic: true, tone: 'ink', indic: 'body' }),
+    detail: r('Cormorant Garamond', 30, { italic: true, tone: 'muted', lh: 1.3, indic: 'body' }),
+    host: r('Cormorant Garamond', 38, { tone: 'ink', lh: 1.35, indic: 'body' }),
+    body: r('Cormorant Garamond', 34, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Cinzel', 34, { tone: 'accent', ls: 0.12, weight: 600, indic: 'display' }),
+    venue: r('Cormorant Garamond', 38, { tone: 'ink', weight: 600, lh: 1.3, indic: 'body' }),
+    small: r('Cormorant Garamond', 28, { tone: 'muted', lh: 1.35, indic: 'body' }),
+    big: r('Cinzel', 96, { tone: 'accent', weight: 600, indic: 'display' }),
+  },
+  /** Timeless serif: Playfair names, Lora body. */
+  classic: {
+    invocation: r('Lora', 30, { italic: true, tone: 'accent', indic: 'display' }),
+    eyebrow: r('Lora', 28, { upper: true, ls: 0.28, tone: 'muted', indic: 'body' }),
+    headline: r('Playfair Display', 52, { tone: 'accent', italic: true, indic: 'display' }),
+    names: r('Playfair Display', 112, { tone: 'ink', lh: 1.05, indic: 'display' }),
+    name: r('Playfair Display', 140, { tone: 'ink', lh: 1.05, indic: 'display' }),
+    connector: r('Playfair Display', 50, { italic: true, tone: 'accent', indic: 'body' }),
+    detail: r('Lora', 28, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('Lora', 34, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    body: r('Lora', 32, { tone: 'ink', lh: 1.45, indic: 'body' }),
+    date: r('Playfair Display', 38, { tone: 'accent', indic: 'display' }),
+    venue: r('Lora', 34, { tone: 'ink', weight: 600, lh: 1.3, indic: 'body' }),
+    small: r('Lora', 27, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('Playfair Display', 100, { tone: 'accent', indic: 'display' }),
+  },
+  /** Fine copperplate script + Garamond: soft, romantic. */
+  script: {
+    invocation: r('EB Garamond', 30, { tone: 'accent', italic: true, indic: 'display' }),
+    eyebrow: r('EB Garamond', 28, { upper: true, ls: 0.3, tone: 'muted', indic: 'body' }),
+    headline: r('Pinyon Script', 72, { tone: 'accent', indic: 'display' }),
+    names: r('Pinyon Script', 132, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    name: r('Pinyon Script', 160, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    connector: r('EB Garamond', 46, { italic: true, tone: 'accent', indic: 'body' }),
+    detail: r('EB Garamond', 28, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('EB Garamond', 34, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    body: r('EB Garamond', 33, { tone: 'ink', lh: 1.45, indic: 'body' }),
+    date: r('EB Garamond', 36, { tone: 'accent', upper: true, ls: 0.18, indic: 'display' }),
+    venue: r('EB Garamond', 34, { tone: 'ink', weight: 600, lh: 1.3, indic: 'body' }),
+    small: r('EB Garamond', 27, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('EB Garamond', 104, { tone: 'accent', indic: 'display' }),
+  },
+  /** Editorial modern: Bodoni names, Montserrat spaced caps. */
+  modern: {
+    invocation: r('Montserrat', 22, { upper: true, ls: 0.4, tone: 'accent', indic: 'body' }),
+    eyebrow: r('Montserrat', 24, { upper: true, ls: 0.42, tone: 'accent', weight: 500, indic: 'body' }),
+    headline: r('Montserrat', 30, { upper: true, ls: 0.4, tone: 'ink', weight: 500, indic: 'display' }),
+    names: r('Bodoni Moda', 112, { tone: 'ink', lh: 1, indic: 'display' }),
+    name: r('Bodoni Moda', 140, { tone: 'ink', lh: 1, indic: 'display' }),
+    connector: r('Bodoni Moda', 46, { italic: true, tone: 'accent', indic: 'body' }),
+    detail: r('Montserrat', 22, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    host: r('Montserrat', 27, { tone: 'ink', lh: 1.6, indic: 'body' }),
+    body: r('Montserrat', 26, { tone: 'ink', lh: 1.6, indic: 'body' }),
+    date: r('Montserrat', 30, { upper: true, ls: 0.3, tone: 'ink', weight: 600, indic: 'display' }),
+    venue: r('Montserrat', 27, { tone: 'ink', weight: 600, upper: true, ls: 0.16, lh: 1.5, indic: 'body' }),
+    small: r('Montserrat', 23, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    big: r('Bodoni Moda', 110, { tone: 'accent', indic: 'display' }),
+  },
+  /** Art-deco caps: Marcellus + Tenor Sans, Italiana names. */
+  deco: {
+    invocation: r('Marcellus', 28, { tone: 'accent', ls: 0.14, indic: 'display' }),
+    eyebrow: r('Tenor Sans', 26, { upper: true, ls: 0.4, tone: 'accent', indic: 'body' }),
+    headline: r('Marcellus', 40, { upper: true, ls: 0.3, tone: 'accent', indic: 'display' }),
+    names: r('Italiana', 116, { tone: 'ink', lh: 1.05, effect: 'gold', indic: 'display' }),
+    name: r('Italiana', 140, { tone: 'ink', lh: 1.05, effect: 'gold', indic: 'display' }),
+    connector: r('Marcellus', 40, { tone: 'accent', indic: 'body' }),
+    detail: r('Tenor Sans', 24, { tone: 'muted', lh: 1.45, indic: 'body' }),
+    host: r('Tenor Sans', 29, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    body: r('Tenor Sans', 28, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    date: r('Marcellus', 34, { upper: true, ls: 0.2, tone: 'accent', indic: 'display' }),
+    venue: r('Tenor Sans', 29, { tone: 'ink', upper: true, ls: 0.14, lh: 1.45, indic: 'body' }),
+    small: r('Tenor Sans', 24, { tone: 'muted', lh: 1.45, indic: 'body' }),
+    big: r('Marcellus', 104, { tone: 'accent', indic: 'display' }),
+  },
+  /** Kids and parties: rounded, bouncy. */
+  playful: {
+    invocation: r('Fredoka', 30, { tone: 'accent', weight: 500, indic: 'body' }),
+    eyebrow: r('Fredoka', 34, { tone: 'accent', weight: 600, ls: 0.06, indic: 'body' }),
+    headline: r('Fredoka', 64, { tone: 'accent', weight: 700, lh: 1.05, indic: 'display' }),
+    names: r('Pacifico', 104, { tone: 'ink', lh: 1.2, indic: 'display' }),
+    name: r('Pacifico', 128, { tone: 'ink', lh: 1.2, effect: 'shadow', indic: 'display' }),
+    connector: r('Fredoka', 44, { tone: 'accent', weight: 500, indic: 'body' }),
+    detail: r('Fredoka', 32, { tone: 'muted', weight: 500, lh: 1.3, indic: 'body' }),
+    host: r('Fredoka', 34, { tone: 'ink', lh: 1.35, indic: 'body' }),
+    body: r('Fredoka', 32, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Fredoka', 38, { tone: 'accent', weight: 600, indic: 'display' }),
+    venue: r('Fredoka', 34, { tone: 'ink', weight: 600, lh: 1.3, indic: 'body' }),
+    small: r('Fredoka', 28, { tone: 'muted', lh: 1.35, indic: 'body' }),
+    big: r('Fredoka', 150, { tone: 'accent', weight: 700, effect: 'shadow', indic: 'display' }),
+  },
+  /** Desi festive: Rozha One headings, Yatra One accents, Mukta body. */
+  desi: {
+    invocation: r('Yatra One', 34, { tone: 'accent', indic: 'display' }),
+    eyebrow: r('Mukta', 30, { tone: 'accent', weight: 600, ls: 0.1, indic: 'body' }),
+    headline: r('Rozha One', 76, { tone: 'accent', lh: 1.1, effect: 'gold', indic: 'display' }),
+    names: r('Rozha One', 100, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    name: r('Rozha One', 120, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    connector: r('Yatra One', 46, { tone: 'accent', indic: 'body' }),
+    detail: r('Mukta', 30, { tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('Mukta', 34, { tone: 'ink', lh: 1.45, indic: 'body' }),
+    body: r('Mukta', 32, { tone: 'ink', lh: 1.45, indic: 'body' }),
+    date: r('Yatra One', 40, { tone: 'accent', indic: 'display' }),
+    venue: r('Mukta', 34, { tone: 'ink', weight: 700, lh: 1.35, indic: 'body' }),
+    small: r('Mukta', 28, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('Rozha One', 110, { tone: 'accent', indic: 'display' }),
+  },
+  /** Corporate: clean sans, strong hierarchy. */
+  corporate: {
+    invocation: r('Montserrat', 24, { upper: true, ls: 0.3, tone: 'accent', weight: 600, indic: 'body' }),
+    eyebrow: r('Montserrat', 26, { upper: true, ls: 0.34, tone: 'accent', weight: 600, indic: 'body' }),
+    headline: r('DM Serif Display', 92, { tone: 'ink', lh: 1.05, indic: 'display' }),
+    names: r('DM Serif Display', 96, { tone: 'ink', lh: 1.05, indic: 'display' }),
+    name: r('DM Serif Display', 110, { tone: 'ink', lh: 1.05, indic: 'display' }),
+    connector: r('Montserrat', 34, { tone: 'accent', indic: 'body' }),
+    detail: r('Montserrat', 26, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    host: r('Montserrat', 30, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    body: r('Montserrat', 29, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    date: r('Montserrat', 32, { tone: 'accent', weight: 700, upper: true, ls: 0.14, indic: 'display' }),
+    venue: r('Montserrat', 30, { tone: 'ink', weight: 600, lh: 1.45, indic: 'body' }),
+    small: r('Montserrat', 25, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    big: r('DM Serif Display', 110, { tone: 'accent', indic: 'display' }),
+  },
+} satisfies Record<string, TypeSet>;
+export type TypeSetKey = keyof typeof TYPE_SETS;
+
+// ---------------------------------------------------------------- helpers
+
+export function tonesFor(bg: string, p: Palette): Tones {
+  const ink = readableOn(bg, [p.text, p.primary, p.background]);
+  return {
+    ink,
+    accent: readableOn(bg, [p.primary, p.accent, ink], 3),
+    muted: readableOn(bg, [p.muted, ink], 3.2),
+  };
+}
+
+export function makeCtx(input: {
+  p: Palette;
+  data: DesignData;
+  language: LanguageCode;
+  eventType: string;
+  category: EventCategory;
+  people: 0 | 1 | 2;
+}): RecipeCtx {
+  const lang = getLanguage(input.language);
+  return { ...input, script: lang.script, latin: lang.script === 'Latn', langFonts: lang.fonts };
+}
+
+const GROUP_WIDTH: Record<string, number> = { script: 0.38, serif: 0.5, display: 0.56, sans: 0.58, fun: 0.56, indic: 0.6 };
+const SCRIPT_LIKE = new Set(['Great Vibes', 'Pinyon Script', 'Parisienne', 'Allura', 'Alex Brush', 'Tangerine', 'Sacramento', 'Pacifico', 'Italiana']);
+
+/** Rough average glyph width as a fraction of font size (for layout estimates only). */
+function glyphWidth(font: string, upper: boolean, ls: number): number {
+  const g = EDITOR_FONTS.find((f) => f.family === font)?.group ?? 'serif';
+  let k = SCRIPT_LIKE.has(font) ? GROUP_WIDTH.script! : (GROUP_WIDTH[g] ?? 0.52);
+  if (upper) k *= 1.22;
+  return k + ls;
+}
+
+export function estimateTextHeight(text: string, size: number, width: number, font: string, upper = false, ls = 0, lh = 1.2): number {
+  const k = glyphWidth(font, upper, ls);
+  const perLine = Math.max(1, Math.floor(width / (size * k)));
+  const lines = text.split('\n').reduce((n, para) => n + Math.max(1, Math.ceil([...para].length / perLine)), 0);
+  return lines * size * lh;
+}
+
+let seq = 0;
+export const resetIds = () => {
+  seq = 0;
+};
+export const nextId = (prefix = 'e') => `${prefix}${(seq++).toString(36)}`;
+
+export function textEl(
+  style: RoleStyle,
+  ctx: RecipeCtx,
+  tones: Tones,
+  o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right' },
+): TextElement {
+  const font = ctx.latin ? style.font : style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
+  return {
+    id: nextId('t'),
+    type: 'text',
+    x: o.x,
+    y: o.y,
+    w: o.w,
+    h: o.h,
+    rot: 0,
+    opacity: 1,
+    auto: true,
+    text: o.text,
+    bind: o.bind,
+    font,
+    size: Math.round(o.size ?? style.size),
+    weight: style.weight ?? 400,
+    italic: ctx.latin ? (style.italic ?? false) : false,
+    color: tones[o.tone ?? style.tone ?? 'ink'],
+    align: o.align ?? 'center',
+    lh: style.lh ?? 1.25,
+    ls: ctx.latin ? (style.ls ?? 0) : 0,
+    upper: ctx.latin ? (style.upper ?? false) : false,
+    effect: o.effect ?? style.effect ?? 'none',
+    fit: true,
+  };
+}
+
+export function artEl(asset: string, x: number, y: number, w: number, h: number, colors: string[] = [], extra: Partial<Extract<DesignElement, { type: 'art' }>> = {}): DesignElement {
+  return { id: nextId('a'), type: 'art', asset, x, y, w, h, rot: 0, opacity: 1, colors, auto: true, ...extra };
+}
+
+export function shapeEl(shape: 'rect' | 'ellipse' | 'line', x: number, y: number, w: number, h: number, o: { fill?: string | null; fillOpacity?: number; stroke?: string | null; strokeW?: number; radius?: number; opacity?: number } = {}): DesignElement {
+  return {
+    id: nextId('s'),
+    type: 'shape',
+    shape,
+    x,
+    y,
+    w,
+    h,
+    rot: 0,
+    opacity: o.opacity ?? 1,
+    fill: o.fill ?? null,
+    fillOpacity: o.fillOpacity ?? 1,
+    stroke: o.stroke ?? null,
+    strokeW: o.strokeW ?? 0,
+    radius: o.radius ?? 0,
+    auto: true,
+  };
+}
+
+export const fullPage = (asset: string, colors: string[] = [], opts?: Record<string, string | number | boolean>, extra: Partial<Extract<DesignElement, { type: 'art' }>> = {}) =>
+  artEl(asset, 0, 0, DESIGN_W, DESIGN_H, colors, { opts, locked: true, ...extra });
+
+export function solidBg(color: string, color2?: string, gradient: PageBackground['gradient'] = color2 ? 'radial' : 'none', pattern: PageBackground['pattern'] = 'none', patternColor?: string, patternOpacity = 0.14): PageBackground {
+  return { color, color2, gradient, pattern, patternColor, patternAccent: patternColor, patternOpacity, image: null };
+}
+
+// ---------------------------------------------------------------- stacking
+
+interface Placed {
+  h: number;
+  gap: number;
+  make: (y: number) => DesignElement[];
+}
+
+/**
+ * Lays bands out top-to-bottom inside `zone`, shrinking everything proportionally when it
+ * doesn't fit and spreading leftover space so the card always looks composed.
+ */
+export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, tones: Tones, dividerColors?: string[]): DesignElement[] {
+  const zw = DESIGN_W - zone.left - zone.right;
+  const avail = DESIGN_H - zone.top - zone.bottom;
+  const cx = zone.left + zw / 2;
+
+  const visible = bands.filter((b) => {
+    if (b.t !== 'text') return true;
+    const value = b.bind ? resolveBinding(b.bind, ctx.data) : b.text;
+    return Boolean(value && value.trim());
+  });
+
+  const plan = (k: number): Placed[] =>
+    visible.map((b): Placed => {
+      const gap = ('gap' in b && b.gap !== undefined ? b.gap : 26) * Math.min(1, k + 0.15);
+      switch (b.t) {
+        case 'gap':
+          return { h: b.h * k, gap: 0, make: () => [] };
+        case 'text': {
+          const style = ts[b.role];
+          const value = (b.bind ? resolveBinding(b.bind, ctx.data) : b.text) ?? '';
+          const w = zw * (b.width ?? 1);
+          const font = ctx.latin ? style.font : style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
+          const upper = ctx.latin && (style.upper ?? false);
+          const ls = ctx.latin ? (style.ls ?? 0) : 0;
+          let size = (b.size ?? style.size) * k;
+          // Names should stay on one line where possible.
+          if (b.role === 'names' || b.role === 'name' || b.role === 'big') {
+            const one = w / (Math.max(1, [...value].length) * glyphWidth(font, upper, ls));
+            size = Math.max(size * 0.55, Math.min(size, one));
+          }
+          const lh = style.lh ?? 1.25;
+          const h = estimateTextHeight(value, size, w, font, upper, ls, lh) * 1.08;
+          return {
+            h,
+            gap,
+            make: (y) => [textEl(style, ctx, tones, { x: cx - w / 2, y, w, h, text: value, bind: b.bind, size, tone: b.tone, effect: b.effect })],
+          };
+        }
+        case 'art': {
+          const w = b.w * k;
+          const h = b.h * k;
+          return { h, gap, make: (y) => [artEl(b.asset, cx - w / 2, y, w, h, b.colors, { opts: b.opts, anim: b.anim })] };
+        }
+        case 'photo': {
+          const w = b.w * k;
+          const h = b.h * k;
+          return {
+            h,
+            gap,
+            make: (y) => [
+              {
+                id: nextId('i'),
+                type: 'image',
+                x: cx - w / 2,
+                y,
+                w,
+                h,
+                rot: 0,
+                opacity: 1,
+                src: null,
+                bind: 'photo.0',
+                mask: b.mask,
+                border: tones.accent,
+                borderW: 8,
+                auto: true,
+              },
+            ],
+          };
+        }
+        case 'divider': {
+          const w = (b.w ?? 420) * Math.min(1, k + 0.1);
+          const h = 46 * Math.min(1, k + 0.1);
+          return { h, gap, make: (y) => [artEl('divider', cx - w / 2, y, w, h, dividerColors ?? [tones.accent], { opts: { style: b.style ?? 'ornate' } })] };
+        }
+        case 'date':
+          return dateBand(b.style, ctx, ts, tones, zone, k, gap);
+      }
+    });
+
+  let k = 1;
+  let items = plan(k);
+  const total = (list: Placed[]) => list.reduce((s, it, i) => s + it.h + (i ? it.gap : 0), 0);
+  for (let i = 0; i < 6 && total(items) > avail; i++) {
+    k *= Math.max(0.7, avail / total(items));
+    items = plan(k);
+  }
+  // Spread leftover space: first into gaps (up to 2×), then centre the block.
+  const free = avail - total(items);
+  const gapCount = Math.max(1, items.length - 1);
+  const extra = Math.max(0, Math.min(free * 0.55, items.reduce((s, it, i) => s + (i ? it.gap : 0), 0))) / gapCount;
+  let y = zone.top + Math.max(0, (free - extra * gapCount) / 2);
+  const out: DesignElement[] = [];
+  items.forEach((it, i) => {
+    if (i) y += it.gap + extra;
+    out.push(...it.make(y));
+    y += it.h;
+  });
+  return out;
+}
+
+function dateBand(style: 'strip' | 'line' | 'stack' | 'boxed', ctx: RecipeCtx, ts: TypeSet, tones: Tones, zone: Zone, k: number, gap: number): Placed {
+  const zw = DESIGN_W - zone.left - zone.right;
+  const cx = zone.left + zw / 2;
+  const fn = ctx.data.functions[ctx.data.mainFunction];
+  if (!fn) return { h: 0, gap: 0, make: () => [] };
+  const t = (role: Role, o: Parameters<typeof textEl>[3]) => textEl(ts[role], ctx, tones, o);
+
+  if (style === 'line') {
+    const size = ts.date.size * k;
+    const w = zw;
+    const h1 = estimateTextHeight(fn.dateLabel, size, w, ts.date.font, ts.date.upper, ts.date.ls, 1.3);
+    const size2 = ts.small.size * k * 1.1;
+    return {
+      h: h1 + size2 * 1.5,
+      gap,
+      make: (y) => [
+        t('date', { x: cx - w / 2, y, w, h: h1, text: fn.dateLabel, bind: 'fnM.date', size }),
+        t('small', { x: cx - w / 2, y: y + h1 + 4, w, h: size2 * 1.4, text: fn.timeLabel, bind: 'fnM.time', size: size2 }),
+      ],
+    };
+  }
+
+  if (style === 'stack') {
+    // Big day number with month above and weekday + time below.
+    const big = ts.big.size * 1.1 * k;
+    const small = ts.date.size * 0.9 * k;
+    const w = zw * 0.8;
+    const h = small * 1.4 + big * 1.05 + small * 1.4;
+    return {
+      h,
+      gap,
+      make: (y) => [
+        t('date', { x: cx - w / 2, y, w, h: small * 1.4, text: fn.parts.month, bind: 'fnM.monthYear', size: small }),
+        t('big', { x: cx - w / 2, y: y + small * 1.4, w, h: big * 1.05, text: fn.parts.day, bind: 'fnM.day', size: big }),
+        t('date', { x: cx - w / 2, y: y + small * 1.4 + big * 1.05, w, h: small * 1.4, text: `${fn.parts.weekday}, ${fn.timeLabel}`, bind: 'fnM.weekday', size: small }),
+      ],
+    };
+  }
+
+  // strip / boxed: WEEKDAY | 14 | MONTH YEAR, with time underneath
+  const big = ts.big.size * k;
+  const side = ts.date.size * 0.82 * k;
+  const colW = zw * 0.32;
+  const midW = zw * 0.24;
+  const rowH = big * 1.12;
+  const timeS = ts.small.size * k;
+  const h = rowH + timeS * 1.6;
+  const lineW = Math.max(2, 2.5 * k);
+  return {
+    h,
+    gap,
+    make: (y) => {
+      const out: DesignElement[] = [];
+      const lx = cx - midW / 2 - colW;
+      const rx = cx + midW / 2;
+      if (style === 'boxed') {
+        out.push(shapeEl('rect', cx - zw * 0.44, y - 10, zw * 0.88, rowH + 20, { stroke: tones.accent, strokeW: lineW, radius: 18 }));
+      } else {
+        for (const x of [lx + 20, rx]) {
+          out.push(shapeEl('line', x, y + rowH * 0.22, colW - 20, lineW, { fill: tones.accent, opacity: 0.8 }));
+          out.push(shapeEl('line', x, y + rowH * 0.78, colW - 20, lineW, { fill: tones.accent, opacity: 0.8 }));
+        }
+      }
+      out.push(t('date', { x: lx, y: y + rowH * 0.3, w: colW, h: rowH * 0.4, text: fn.parts.weekday, bind: 'fnM.weekday', size: side }));
+      out.push(t('big', { x: cx - midW / 2, y, w: midW, h: rowH, text: fn.parts.day, bind: 'fnM.day', size: big }));
+      out.push(t('date', { x: rx, y: y + rowH * 0.3, w: colW, h: rowH * 0.4, text: `${fn.parts.month} ${fn.parts.year}`, bind: 'fnM.monthYear', size: side }));
+      out.push(t('small', { x: cx - zw / 2, y: y + rowH + timeS * 0.25, w: zw, h: timeS * 1.35, text: fn.timeLabel, bind: 'fnM.time', size: timeS }));
+      return out;
+    },
+  };
+}

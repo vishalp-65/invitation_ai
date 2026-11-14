@@ -1,0 +1,36 @@
+{
+  "name": "@cardai/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start --port 3000",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src"
+  },
+  "dependencies": {
+    "@cardai/shared": "0.1.0",
+    "@cardai/templates": "0.1.0",
+    "@remotion/player": "4.0.543",
+    "@tanstack/react-query": "^5.107.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.72.0",
+    "next": "16.4.6",
+    "next-intl": "^4.15.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "4.0.543",
+    "sonner": "^2.0.8",
+    "zustand": "^5.1.0"
+  },
+  "devDependencies": {
+    "@next/eslint-plugin-next": "^16.4.6",
+    "@tailwindcss/postcss": "^4.3.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.2.0",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "tailwindcss": "^4.3.5"
+  }
+}

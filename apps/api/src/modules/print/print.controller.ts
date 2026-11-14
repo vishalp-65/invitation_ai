@@ -1,0 +1,39 @@
+import { createPrintOrderSchema, PRINT_ORDER_STATUSES, updatePrintOrderSchema, type CreatePrintOrderInput } from '@cardai/shared';
+import { Controller, Get, Patch, Post } from '@nestjs/common';
+import { z } from 'zod';
+import { CurrentUser, Public, Roles, type AuthUser } from '../../common/auth.decorators.js';
+import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
+import { PrintService } from './print.service.js';
+
+@Controller()
+export class PrintController {
+  constructor(private readonly print: PrintService) {}
+
+  @Public()
+  @Get('print/partners')
+  partners() {
+    return this.print.partners();
+  }
+
+  @Post('print/orders')
+  create(@CurrentUser() user: AuthUser, @ZBody(createPrintOrderSchema) body: CreatePrintOrderInput) {
+    return this.print.create(user, body);
+  }
+
+  @Get('print/orders')
+  mine(@CurrentUser() user: AuthUser) {
+    return this.print.mine(user);
+  }
+
+  @Roles('admin')
+  @Get('admin/print-orders')
+  adminList(@ZQuery(z.object({ status: z.enum(PRINT_ORDER_STATUSES).optional() })) q: { status?: string }) {
+    return this.print.adminList(q.status);
+  }
+
+  @Roles('admin')
+  @Patch('admin/print-orders/:id')
+  adminUpdate(@UuidParam('id') id: string, @ZBody(updatePrintOrderSchema) body: z.infer<typeof updatePrintOrderSchema>) {
+    return this.print.adminUpdate(id, body);
+  }
+}
