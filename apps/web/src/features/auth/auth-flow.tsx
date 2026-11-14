@@ -218,13 +218,15 @@ function CodeStep({
           title="Check your email"
           subtitle={
             <>
-              Enter the 6-digit code we sent to <strong className="break-all font-semibold text-ink">{email}</strong>
+              Enter the 6-digit code we sent to
+              <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
             </>
           }
         />
       ) : (
         <p className="mb-5 text-ink-soft">
-          Enter the 6-digit code we sent to <strong className="break-all font-semibold text-ink">{email}</strong>
+          Enter the 6-digit code we sent to
+              <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
         </p>
       )}
 
@@ -259,7 +261,7 @@ function CodeStep({
         )}
       </form>
 
-      <div className="mt-6 flex items-center justify-between gap-3 text-sm">
+      <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 whitespace-nowrap text-sm">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-semibold text-ink-soft transition-colors hover:text-ink">
           <ArrowLeft className="size-4" aria-hidden />
           Use a different email

@@ -124,6 +124,11 @@ export function loadFamily(family: string, script?: string): Promise<void> {
   })();
 
   loaded.set(key, promise);
+  // Don't cache a failure: a transient network error would otherwise pin the fallback font for the session.
+  promise.catch((err) => {
+    console.warn(`[fonts] failed to load "${family}"`, err);
+    loaded.delete(key);
+  });
   return promise;
 }
 

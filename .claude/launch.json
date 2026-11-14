@@ -12,6 +12,17 @@
       ],
       "port": 3100,
       "autoPort": true
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@cardai/api"
+      ],
+      "port": 4000
     }
   ]
 }

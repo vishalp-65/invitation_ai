@@ -3,7 +3,7 @@ import type { EventCategory } from '../constants/event-types.js';
 import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
-import { EDITOR_FONTS } from './fonts.js';
+import { EDITOR_FONTS, fontSupports } from './fonts.js';
 import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
 
 export type Palette = Theme['palette'];
@@ -252,6 +252,12 @@ let seq = 0;
 export const resetIds = () => {
   seq = 0;
 };
+/** The template's own font when it can draw the invitation's script; otherwise the language's font. */
+function roleFont(style: RoleStyle, ctx: RecipeCtx): string {
+  if (ctx.latin || fontSupports(style.font, ctx.script)) return style.font;
+  return style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
+}
+
 export const nextId = (prefix = 'e') => `${prefix}${(seq++).toString(36)}`;
 
 export function textEl(
@@ -260,7 +266,7 @@ export function textEl(
   tones: Tones,
   o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right' },
 ): TextElement {
-  const font = ctx.latin ? style.font : style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
+  const font = roleFont(style, ctx);
   return {
     id: nextId('t'),
     type: 'text',
@@ -351,7 +357,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           const style = ts[b.role];
           const value = (b.bind ? resolveBinding(b.bind, ctx.data) : b.text) ?? '';
           const w = zw * (b.width ?? 1);
-          const font = ctx.latin ? style.font : style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
+          const font = roleFont(style, ctx);
           const upper = ctx.latin && (style.upper ?? false);
           const ls = ctx.latin ? (style.ls ?? 0) : 0;
           let size = (b.size ?? style.size) * k;
