@@ -10,10 +10,11 @@ export const FEATURES = [
   'personalized_links', // per-guest links with name + view tracking
   'print_pdf', // print-ready PDF with bleed and crop marks
   'ai_clip', // AI-generated cinematic intro clip (credits)
+  'ai_background', // extra AI backgrounds beyond the included allowance (credits)
 ] as const;
 export type Feature = (typeof FEATURES)[number];
 
-export const PRODUCT_CODES = ['card', 'video', 'website', 'combo', 'ai_clip', 'print'] as const;
+export const PRODUCT_CODES = ['card', 'video', 'website', 'combo', 'ai_clip', 'print', 'ai_backgrounds'] as const;
 export type ProductCode = (typeof PRODUCT_CODES)[number];
 
 export interface Product {
@@ -72,6 +73,14 @@ export const PRODUCTS: Record<ProductCode, Product> = {
     features: ['ai_clip'],
     credits: { ai_clip: 1 },
   },
+  ai_backgrounds: {
+    code: 'ai_backgrounds',
+    name: 'AI Background Pack',
+    description: '10 more AI-generated backgrounds for this invitation',
+    pricePaise: 4900,
+    features: ['ai_background'],
+    credits: { ai_background: 10 },
+  },
   print: {
     code: 'print',
     name: 'Print-ready PDF',
@@ -83,6 +92,14 @@ export const PRODUCTS: Record<ProductCode, Product> = {
 
 /** Share of the order value paid to the template designer (marketplace). */
 export const DEFAULT_DESIGNER_REVENUE_SHARE_PCT = 30;
+
+/**
+ * AI backgrounds included per invitation: a few free, more once any HD/website product is bought.
+ * Beyond that, each one spends an `ai_background` credit (AI Background Pack).
+ */
+export const AI_BACKGROUNDS_PER_EVENT = { free: 3, paid: 30 } as const;
+/** Features that count as an "upgraded" invitation (credit-only add-ons don't). */
+export const UPGRADE_FEATURES = ['image_hd', 'video_hd', 'website_premium'] as const;
 
 /** Free-tier daily AI quotas per user (cost guardrails). */
 export const FREE_AI_QUOTA_PER_DAY = {

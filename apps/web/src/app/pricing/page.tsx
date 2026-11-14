@@ -40,7 +40,7 @@ export default function PricingPage() {
             {ORDER.map((code) => {
               const p = PRODUCTS[code];
               return (
-                <div key={code} className={`flex flex-col rounded-[var(--radius-card)] p-7 ${p.highlight ? 'bg-ink text-white shadow-lift' : 'panel'}`}>
+                <div key={code} className={`flex flex-col rounded-[var(--radius-card)] p-7 ${p.highlight ? 'bg-primary text-on-primary shadow-lift' : 'panel'}`}>
                   <h2 className="text-2xl">{p.name}</h2>
                   <p className="mt-2 flex items-baseline gap-2">
                     <span className="font-display text-5xl">{formatINR(p.pricePaise)}</span>
@@ -57,7 +57,7 @@ export default function PricingPage() {
           <div>
             <h2 className="text-2xl">Add-ons</h2>
             <ul className="mt-4 flex flex-col gap-3">
-              {(['ai_clip', 'print'] as const).map((c) => (
+              {(['ai_clip', 'ai_backgrounds', 'print'] as const).map((c) => (
                 <li key={c} className="flex justify-between gap-4 border-b border-line pb-3">
                   <span>
                     <strong>{PRODUCTS[c].name}</strong>

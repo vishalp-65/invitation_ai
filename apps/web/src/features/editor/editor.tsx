@@ -6,17 +6,22 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CloudOff,
+  Download,
   FileImage,
   Images,
   LayoutTemplate,
   Layers,
   ListChecks,
   Loader2,
+  Maximize,
+  Minus,
   PaintBucket,
   Play,
   Plus,
   Redo2,
+  RefreshCw,
   Shapes,
   Type,
   Undo2,
@@ -31,15 +36,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { useBrowserDesignFonts } from '@/components/design/design-view';
 import { Dialog } from '@/components/ui/dialog';
+import { tip } from '@/components/ui/tooltip';
 import { useEventMedia } from '@/features/event/use-event-props';
 import { api, ApiError } from '@/lib/api';
 import { qk, useEvent, useTemplates } from '@/lib/hooks';
+import { ThemeToggle } from '@/lib/theme';
 import { uploadPhoto } from '@/lib/upload';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { EditorCanvas } from './canvas';
-import { InspectorPanel, useInspectorSections, type InspectorCtx } from './inspector';
+import { InspectorPanel, useInspectorSections, useMultiSections, type InspectorCtx } from './inspector';
+import { DownloadDialog, MoreMenu, SaveTemplateDialog } from './header-actions';
 import { ToolPanel, type ToolId } from './panels';
-import { currentPage, useEditor } from './store';
+import { ShortcutsDialog } from './shortcuts';
+import { currentPage, useEditor, ZOOM_MAX, ZOOM_MIN, zoomBy, zoomTo } from './store';
 import { splitIso, useDesignData, useEventWriter } from './use-event-data';
 
 const DesignPlayer = dynamic(() => import('@/components/design/design-player').then((m) => m.DesignPlayer), {
@@ -47,20 +56,21 @@ const DesignPlayer = dynamic(() => import('@/components/design/design-player').t
   loading: () => <div className="skeleton aspect-[9/16] w-full rounded-[18px]" />,
 });
 
-const TOOLS: Array<{ id: ToolId; label: string; icon: LucideIcon }> = [
-  { id: 'templates', label: 'Designs', icon: LayoutTemplate },
-  { id: 'text', label: 'Text', icon: Type },
-  { id: 'elements', label: 'Stickers', icon: Shapes },
-  { id: 'photos', label: 'Photos', icon: Images },
-  { id: 'background', label: 'Background', icon: PaintBucket },
-  { id: 'details', label: 'Details', icon: ListChecks },
-  { id: 'pages', label: 'Pages', icon: FileImage },
-  { id: 'layers', label: 'Layers', icon: Layers },
+const TOOLS: Array<{ id: ToolId; label: string; icon: LucideIcon; hint: string }> = [
+  { id: 'templates', label: 'Designs', icon: LayoutTemplate, hint: 'Switch design' },
+  { id: 'text', label: 'Text', icon: Type, hint: 'Add text and event details' },
+  { id: 'elements', label: 'Stickers', icon: Shapes, hint: 'Stickers, ornaments and shapes' },
+  { id: 'photos', label: 'Photos', icon: Images, hint: 'Upload and place photos' },
+  { id: 'background', label: 'Background', icon: PaintBucket, hint: 'Colours, images and AI backgrounds' },
+  { id: 'details', label: 'Details', icon: ListChecks, hint: 'Names, dates and venues' },
+  { id: 'pages', label: 'Pages', icon: FileImage, hint: 'Add, reorder and duplicate pages' },
+  { id: 'layers', label: 'Layers', icon: Layers, hint: 'Show, hide and lock layers' },
 ];
 
 type SaveState = 'saved' | 'saving' | 'pending' | 'error';
+const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl+';
 
-/** Debounced autosave of the design document. */
+/** Debounced autosave of the design document, with save-on-hide and retry. */
 function useAutosave(eventId: string | undefined) {
   const version = useEditor((s) => s.version);
   const [state, setState] = useState<SaveState>('saved');
@@ -73,13 +83,21 @@ function useAutosave(eventId: string | undefined) {
     timer.current = null;
     const doc = useEditor.getState().doc;
     if (!eventId || !doc) return;
+    // Serialise saves so an older document can never land after a newer one.
+    if (inflight.current) await inflight.current.catch(() => undefined);
     setState('saving');
     const run = api(`/events/${eventId}/design`, { method: 'PUT', json: { design: doc } })
       .then(() => {
         qc.setQueryData<EventDto>(qk.event(eventId), (cur) => (cur ? { ...cur, design: doc } : cur));
         setState(useEditor.getState().doc === doc ? 'saved' : 'pending');
       })
-      .catch(() => setState('error'));
+      .catch((e: unknown) => {
+        setState('error');
+        throw e;
+      })
+      .finally(() => {
+        if (inflight.current === run) inflight.current = null;
+      });
     inflight.current = run;
     await run;
   }, [eventId, qc]);
@@ -88,12 +106,19 @@ function useAutosave(eventId: string | undefined) {
     if (version === 0) return;
     setState('pending');
     if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => void flush(), 900);
+    timer.current = setTimeout(() => void flush().catch(() => undefined), 800);
   }, [version, flush]);
+
+  // Save right away when the tab is hidden (phone lock, app switch).
+  useEffect(() => {
+    const onHide = () => document.visibilityState === 'hidden' && timer.current && void flush().catch(() => undefined);
+    document.addEventListener('visibilitychange', onHide);
+    return () => document.removeEventListener('visibilitychange', onHide);
+  }, [flush]);
 
   useEffect(() => {
     const warn = (e: BeforeUnloadEvent) => {
-      if (state === 'pending' || state === 'saving') e.preventDefault();
+      if (state === 'pending' || state === 'saving' || state === 'error') e.preventDefault();
     };
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
@@ -115,15 +140,22 @@ export function Editor({ eventId }: { eventId: string }) {
   const writer = useEventWriter(event);
   const doc = useEditor((s) => s.doc);
   const pageIdx = useEditor((s) => s.page);
-  const selected = useEditor((s) => s.selected);
+  const selKey = useEditor((s) => s.selection.join(','));
   const canUndo = useEditor((s) => s.past.length > 0);
   const canRedo = useEditor((s) => s.future.length > 0);
   const { state: saveState, flush } = useAutosave(event?.id);
-  const isDesktop = useMediaQuery('(min-width: 1024px)');
+  // wide: inline panels · medium: rail + floating panels · narrow (phones): bottom bar + sheets
+  const wide = useMediaQuery('(min-width: 1280px)');
+  const medium = useMediaQuery('(min-width: 768px)');
+  const layout: 'wide' | 'medium' | 'narrow' = wide ? 'wide' : medium ? 'medium' : 'narrow';
   const [tool, setTool] = useState<ToolId | null>(null);
   const [section, setSection] = useState<string | null>(null);
+  const [sheetFull, setSheetFull] = useState(false);
   const [dateFor, setDateFor] = useState<number | null>(null);
   const [preview, setPreview] = useState(false);
+  const [shortcuts, setShortcuts] = useState(false);
+  const [download, setDownload] = useState(false);
+  const [saveTpl, setSaveTpl] = useState(false);
   const [finishing, setFinishing] = useState(false);
 
   // Load (or build) the document once per event.
@@ -140,13 +172,45 @@ export function Editor({ eventId }: { eventId: string }) {
     loadedFor.current = event.id;
     useEditor.getState().load(buildDesign({ template, data, language: event.language, eventType: event.type }));
   }, [event, data, templates]);
-  useEffect(() => () => useEditor.setState({ doc: null, past: [], future: [], selected: null, editing: null, version: 0 }), []);
+  useEffect(() => () => useEditor.setState({ doc: null, past: [], future: [], selected: null, selection: [], editing: null, version: 0, zoom: 1, pan: { x: 0, y: 0 } }), []);
 
   const pages = useMemo(() => doc?.pages ?? [], [doc]);
   const fontsReady = useBrowserDesignFonts(pages, data);
 
-  // A new selection starts with no property sheet open (mobile).
-  useEffect(() => setSection(null), [selected]);
+  // A new selection starts with no property sheet open (phones); on tablets it closes the tool panel.
+  useEffect(() => {
+    setSection(null);
+    setSheetFull(false);
+    if (selKey && layout === 'medium') setTool(null);
+  }, [selKey, layout]);
+
+  const save = useCallback(async () => {
+    try {
+      await flush();
+      toast.success('Saved', { duration: 1200 });
+    } catch {
+      toast.error('Could not save. Check your connection and try again.');
+    }
+  }, [flush]);
+
+  // App-level shortcuts (canvas handles the editing ones).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const mod = e.metaKey || e.ctrlKey;
+      if (mod && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        void save();
+        return;
+      }
+      const typing = e.target instanceof HTMLElement && e.target.closest('input, textarea, select, [contenteditable]');
+      if (!typing && e.key === '?') {
+        e.preventDefault();
+        setShortcuts(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [save]);
 
   // ---- image picking (hidden input, promise-based)
   const fileInput = useRef<HTMLInputElement>(null);
@@ -210,9 +274,13 @@ export function Editor({ eventId }: { eventId: string }) {
     [data, writer],
   );
 
-  const ctx: InspectorCtx = { data, language: event?.language ?? 'en', commitText, editDate, pickImage };
+  const ctx: InspectorCtx = { eventId, data, language: event?.language ?? 'en', commitText, editDate, pickImage };
   const sections = useInspectorSections(ctx);
   const selEl = useEditor((s) => currentPage(s)?.elements.find((e) => e.id === s.selected) ?? null);
+  const multi = useMultiSections();
+  const selTitle = multi.count ? (multi.grouped ? `Group · ${multi.count} items` : `${multi.count} items selected`) : selEl ? (selEl.type === 'text' ? 'Text' : selEl.type === 'art' ? 'Artwork' : selEl.type === 'image' ? 'Photo' : 'Shape') : '';
+  const activeSections = multi.count ? multi.sections : sections;
+  const hasSelection = Boolean(selEl) || multi.count > 0;
 
   async function finish() {
     if (!event) return;
@@ -230,69 +298,86 @@ export function Editor({ eventId }: { eventId: string }) {
   if (isLoading) return <EditorSkeleton />;
   if (error || !event) return <p className="p-8 text-sindoor">This invitation could not be found.</p>;
 
-  const panelProps = { event, data, writer, pickImage, close: () => !isDesktop && setTool(null) };
-  const openSheet = !isDesktop && (section || tool);
+  const panelProps = { event, data, writer, pickImage, close: () => layout === 'narrow' && setTool(null) };
+  const openSheet = layout === 'narrow' && (section || tool);
+  const toolMeta = TOOLS.find((t) => t.id === tool);
+
+  const toolPanel = tool && (
+    <>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface-2/95 px-4 py-3 backdrop-blur">
+        <h2 className="font-sans text-base font-semibold">{toolMeta!.label}</h2>
+        <button type="button" onClick={() => setTool(null)} className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Close panel', 'Esc')}>
+          <X className="size-4" />
+        </button>
+      </div>
+      <ToolPanel tool={tool} {...panelProps} />
+    </>
+  );
 
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-[#ECEEF3] text-ink">
+    <div className="fixed inset-0 z-30 flex flex-col bg-workspace text-ink">
       <input ref={fileInput} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={(e) => void onFile(e.target.files?.[0]).finally(() => (e.target.value = ''))} />
 
       {/* Top bar */}
-      <header className="flex h-14 shrink-0 items-center gap-1 border-b border-hairline bg-white px-2 sm:px-3">
-        <Link href={`/dashboard/events/${event.id}`} className="grid size-10 place-items-center rounded-full hover:bg-mist" aria-label="Back to invitation">
+      <header className="flex h-14 shrink-0 items-center gap-0.5 border-b border-hairline bg-surface px-1.5 sm:gap-1 sm:px-3">
+        <Link href={`/dashboard/events/${event.id}`} className="grid size-10 place-items-center rounded-full hover:bg-mist" {...tip('Back to invitation')}>
           <ChevronLeft className="size-5" />
         </Link>
         <div className="min-w-0 flex-1">
           <p className="truncate font-semibold leading-tight" lang={event.language}>
             {event.title}
           </p>
-          <SaveBadge state={saveState} writing={writer.saving} />
+          <SaveBadge state={saveState} writing={writer.saving} onRetry={() => void save()} />
         </div>
-        <button type="button" onClick={() => useEditor.getState().undo()} disabled={!canUndo} className="grid size-10 place-items-center rounded-full hover:bg-mist disabled:opacity-30" aria-label="Undo">
-          <Undo2 className="size-5" />
-        </button>
-        <button type="button" onClick={() => useEditor.getState().redo()} disabled={!canRedo} className="grid size-10 place-items-center rounded-full hover:bg-mist disabled:opacity-30" aria-label="Redo">
-          <Redo2 className="size-5" />
-        </button>
-        <button type="button" onClick={() => setPreview(true)} className="ml-1 hidden h-10 items-center gap-1.5 rounded-full border border-hairline px-4 font-semibold hover:bg-mist sm:flex">
+        <div className="flex items-center gap-0.5 rounded-full sm:bg-mist/60 sm:p-0.5">
+          <button type="button" onClick={() => useEditor.getState().undo()} disabled={!canUndo} className="grid size-10 place-items-center rounded-full transition-colors hover:bg-surface disabled:opacity-30" {...tip('Undo', `${MOD}Z`)}>
+            <Undo2 className="size-[1.15rem]" />
+          </button>
+          <button type="button" onClick={() => useEditor.getState().redo()} disabled={!canRedo} className="grid size-10 place-items-center rounded-full transition-colors hover:bg-surface disabled:opacity-30" {...tip('Redo', `${MOD}⇧Z`)}>
+            <Redo2 className="size-[1.15rem]" />
+          </button>
+        </div>
+        <ThemeToggle className="hidden sm:grid" />
+        <button type="button" onClick={() => setPreview(true)} className="ml-1 hidden h-10 items-center gap-1.5 rounded-full border border-hairline px-4 font-semibold transition-colors hover:bg-mist lg:flex" {...tip('Preview the video invite')}>
           <Play className="size-4" /> Video
         </button>
-        <button type="button" onClick={finish} disabled={finishing} className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-ink px-4 font-semibold text-white hover:bg-night disabled:opacity-60">
+        <button type="button" onClick={() => setDownload(true)} className="ml-1 flex h-10 items-center gap-1.5 rounded-full border border-hairline px-3 font-semibold transition-colors hover:bg-mist sm:px-4" {...tip('Download as image or PDF')}>
+          <Download className="size-4" /> <span className="hidden sm:inline">Download</span>
+        </button>
+        <MoreMenu onVideo={() => setPreview(true)} onShortcuts={() => setShortcuts(true)} onSaveTemplate={() => setSaveTpl(true)} />
+        <button type="button" onClick={finish} disabled={finishing} className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60" {...tip('Save and finish')}>
           {finishing ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
           Done
         </button>
       </header>
 
-      <div className="flex min-h-0 flex-1">
-        {/* Desktop: tool rail + panel */}
-        {isDesktop && (
-          <>
-            <nav className="flex w-[84px] shrink-0 flex-col gap-1 border-r border-hairline bg-white py-2" aria-label="Tools">
-              {TOOLS.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTool(tool === t.id ? null : t.id)}
-                  aria-pressed={tool === t.id}
-                  className="mx-1.5 flex flex-col items-center gap-1 rounded-xl py-2.5 text-[0.72rem] font-semibold text-ink-soft hover:bg-mist hover:text-ink aria-pressed:bg-ink aria-pressed:text-white"
-                >
-                  <t.icon className="size-5" />
-                  {t.label}
-                </button>
-              ))}
-            </nav>
-            {tool && (
-              <aside className="w-[340px] shrink-0 overflow-y-auto border-r border-hairline bg-[#FAFAFB] [scrollbar-width:thin]">
-                <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-[#FAFAFB]/95 px-4 py-3 backdrop-blur">
-                  <h2 className="font-semibold">{TOOLS.find((t) => t.id === tool)!.label}</h2>
-                  <button type="button" onClick={() => setTool(null)} className="grid size-8 place-items-center rounded-full hover:bg-mist" aria-label="Close panel">
-                    <X className="size-4" />
-                  </button>
-                </div>
-                <ToolPanel tool={tool} {...panelProps} />
-              </aside>
-            )}
-          </>
+      <div className="relative flex min-h-0 flex-1">
+        {/* Tool rail (tablet + desktop) */}
+        {layout !== 'narrow' && (
+          <nav className="thin-scroll z-20 flex w-[76px] shrink-0 flex-col gap-0.5 overflow-y-auto border-r border-hairline bg-surface py-2" aria-label="Tools">
+            {TOOLS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTool(tool === t.id ? null : t.id)}
+                aria-pressed={tool === t.id}
+                data-tip={t.hint}
+                data-tip-side="right"
+                className="mx-1.5 flex flex-col items-center gap-1 rounded-xl py-2.5 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 hover:bg-mist hover:text-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
+              >
+                <t.icon className="size-5" />
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        )}
+
+        {/* Tool panel: inline on wide screens, floating over the canvas on tablets */}
+        {tool && layout === 'wide' && <aside className="thin-scroll w-[340px] shrink-0 animate-[panel-in_0.16s_var(--ease-out-quint)] overflow-y-auto border-r border-hairline bg-surface-2">{toolPanel}</aside>}
+        {tool && layout === 'medium' && (
+          <aside className="thin-scroll absolute bottom-3 left-[84px] top-3 z-20 w-[340px] max-w-[calc(100%-100px)] animate-[panel-in_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-2xl border border-hairline bg-surface-2 shadow-[0_20px_50px_-20px_rgb(0_0_0/0.45)]">
+            {toolPanel}
+          </aside>
         )}
 
         {/* Canvas */}
@@ -304,44 +389,61 @@ export function Editor({ eventId }: { eventId: string }) {
               <div className="skeleton aspect-[9/16] h-[70%] rounded-xl" />
             </div>
           )}
-          {doc && <Pager count={doc.pages.length} index={pageIdx} />}
+          {doc && <CanvasBar count={doc.pages.length} index={pageIdx} compact={layout !== 'wide'} />}
         </main>
 
-        {/* Desktop inspector */}
-        {isDesktop && selEl && (
-          <aside className="w-[320px] shrink-0 overflow-y-auto border-l border-hairline bg-white [scrollbar-width:thin]">
-            <InspectorPanel sections={sections} title={selEl.type === 'text' ? 'Text' : selEl.type === 'art' ? 'Artwork' : selEl.type === 'image' ? 'Photo' : 'Shape'} />
+        {/* Inspector: inline on wide screens, floating on tablets */}
+        {layout === 'wide' && hasSelection && (
+          <aside className="thin-scroll w-[320px] shrink-0 animate-[panel-in-right_0.16s_var(--ease-out-quint)] overflow-y-auto border-l border-hairline bg-surface">
+            <InspectorPanel sections={activeSections} title={selTitle} onClose={() => useEditor.getState().select(null)} />
+          </aside>
+        )}
+        {layout === 'medium' && hasSelection && (
+          <aside className="thin-scroll absolute bottom-3 right-3 top-3 z-20 w-[320px] max-w-[calc(100%-100px)] animate-[panel-in-right_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-2xl border border-hairline bg-surface shadow-[0_20px_50px_-20px_rgb(0_0_0/0.45)]">
+            <InspectorPanel sections={activeSections} title={selTitle} onClose={() => useEditor.getState().select(null)} />
           </aside>
         )}
       </div>
 
-      {/* Mobile: sheet + bottom toolbar */}
-      {!isDesktop && (
+      {/* Phones: sheet + bottom toolbar */}
+      {layout === 'narrow' && (
         <>
           {openSheet && (
-            <div className="max-h-[46dvh] shrink-0 animate-[sheet-up_0.3s_var(--ease-out-quint)] overflow-y-auto rounded-t-[22px] border-t border-hairline bg-white shadow-[0_-12px_30px_-18px_rgb(15_18_51/0.35)]">
-              <div className="sticky top-0 z-10 flex items-center justify-between bg-white/95 px-4 pb-2 pt-3 backdrop-blur">
-                <span className="mx-auto mb-1 block h-1 w-10 rounded-full bg-hairline" aria-hidden />
-              </div>
-              <div className="flex items-center justify-between px-4 pb-1">
-                <h2 className="font-semibold">{section ? sections.find((s) => s.id === section)?.label : TOOLS.find((t) => t.id === tool)?.label}</h2>
-                <button type="button" onClick={() => (section ? setSection(null) : setTool(null))} className="grid size-9 place-items-center rounded-full bg-mist" aria-label="Close">
-                  <X className="size-4" />
+            <div
+              className={clsx(
+                'thin-scroll shrink-0 animate-[sheet-up_0.18s_var(--ease-out-quint)] overflow-y-auto overscroll-contain rounded-t-[22px] border-t border-hairline bg-surface shadow-[0_-12px_30px_-18px_rgb(0_0_0/0.4)] transition-[max-height] duration-200',
+                sheetFull ? 'max-h-[82dvh]' : 'max-h-[46dvh]',
+              )}
+            >
+              <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur">
+                <button type="button" onClick={() => setSheetFull((f) => !f)} className="flex w-full justify-center pb-1 pt-2.5" aria-label={sheetFull ? 'Shrink panel' : 'Expand panel'}>
+                  <span className="block h-1 w-10 rounded-full bg-ink/20" aria-hidden />
                 </button>
+                <div className="flex items-center justify-between px-4 pb-2">
+                  <h2 className="font-sans text-base font-semibold">{section ? activeSections.find((s) => s.id === section)?.label : toolMeta?.label}</h2>
+                  <div className="flex items-center gap-1">
+                    <button type="button" onClick={() => setSheetFull((f) => !f)} className="grid size-9 place-items-center rounded-full bg-mist" aria-label={sheetFull ? 'Shrink panel' : 'Expand panel'}>
+                      <ChevronUp className={clsx('size-4 transition-transform', sheetFull && 'rotate-180')} />
+                    </button>
+                    <button type="button" onClick={() => (section ? setSection(null) : setTool(null))} className="grid size-9 place-items-center rounded-full bg-mist" aria-label="Close">
+                      <X className="size-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              {section ? <div className="p-4 pt-2">{sections.find((s) => s.id === section)?.render()}</div> : tool ? <ToolPanel tool={tool} {...panelProps} /> : null}
+              {section ? <div className="flex flex-col gap-3 p-4 pt-1">{activeSections.find((s) => s.id === section)?.render()}</div> : tool ? <ToolPanel tool={tool} {...panelProps} /> : null}
             </div>
           )}
-          <nav className="shrink-0 border-t border-hairline bg-white pb-[env(safe-area-inset-bottom)]" aria-label={selEl ? 'Edit selection' : 'Tools'}>
+          <nav className="shrink-0 border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)]" aria-label={hasSelection ? 'Edit selection' : 'Tools'}>
             <div className="flex overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
-              {selEl ? (
+              {hasSelection ? (
                 <>
                   <button type="button" onClick={() => useEditor.getState().select(null)} className="flex w-16 shrink-0 flex-col items-center gap-1 rounded-xl py-2 text-[0.7rem] font-semibold text-ink-soft" aria-label="Done editing">
                     <Check className="size-5" />
                     Done
                   </button>
                   <span className="my-2 w-px shrink-0 bg-hairline" />
-                  {sections.map((s) => (
+                  {activeSections.map((s) => (
                     <BarButton key={s.id} icon={s.icon} label={s.label} active={section === s.id} onClick={() => setSection(section === s.id ? null : s.id)} />
                   ))}
                 </>
@@ -359,6 +461,9 @@ export function Editor({ eventId }: { eventId: string }) {
       )}
 
       <DateDialog event={event} index={dateFor} onClose={() => setDateFor(null)} onSave={(i, d, t) => writer.setFunctionDate(i, d, t)} />
+      <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
+      <DownloadDialog open={download} onClose={() => setDownload(false)} event={event} flush={flush} />
+      <SaveTemplateDialog open={saveTpl} onClose={() => setSaveTpl(false)} event={event} />
       <Dialog open={preview} onClose={() => setPreview(false)} title="Video invite preview">
         <div className="mx-auto max-w-[300px] p-4">{preview && doc && data && <DesignPlayer design={doc as DesignDoc} data={data} language={event.language} />}</div>
         <p className="px-6 pb-6 text-center text-sm text-ink-soft">Your card animates layer by layer. Change animations from Animate on any selected item.</p>
@@ -373,7 +478,7 @@ function BarButton({ icon: Icon, label, active, onClick }: { icon: LucideIcon; l
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1 rounded-xl py-2 text-[0.7rem] font-semibold text-ink-soft transition-colors aria-pressed:bg-ink aria-pressed:text-white"
+      className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1 rounded-xl py-2 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 active:scale-95 aria-pressed:bg-primary aria-pressed:text-on-primary"
     >
       <Icon className="size-5" />
       {label}
@@ -381,42 +486,92 @@ function BarButton({ icon: Icon, label, active, onClick }: { icon: LucideIcon; l
   );
 }
 
-function SaveBadge({ state, writing }: { state: SaveState; writing: boolean }) {
+function SaveBadge({ state, writing, onRetry }: { state: SaveState; writing: boolean; onRetry: () => void }) {
   const busy = state === 'saving' || state === 'pending' || writing;
+  if (state === 'error')
+    return (
+      <button type="button" onClick={onRetry} className="flex items-center gap-1 whitespace-nowrap text-xs font-semibold text-sindoor" aria-live="polite">
+        <CloudOff className="size-3" /> Not saved · <RefreshCw className="size-3" /> Retry
+      </button>
+    );
   return (
-    <p className={clsx('flex items-center gap-1 text-xs', state === 'error' ? 'text-sindoor' : 'text-ink-soft')} aria-live="polite">
-      {state === 'error' ? (
+    <p className="flex items-center gap-1 whitespace-nowrap text-xs text-ink-soft" aria-live="polite">
+      {busy ? (
         <>
-          <CloudOff className="size-3" /> Not saved. Check your connection.
+          <Loader2 className="size-3 animate-spin" /> Saving…
         </>
-      ) : busy ? (
-        'Saving…'
       ) : (
         <>
-          <Check className="size-3" /> All changes saved
+          <Check className="size-3 text-leaf" />
+          <span className="sm:hidden">Saved</span>
+          <span className="hidden sm:inline">All changes saved</span>
         </>
       )}
     </p>
   );
 }
 
-function Pager({ count, index }: { count: number; index: number }) {
+const ZOOM_STEPS = [0.5, 0.75, 1, 1.5, 2, 3, 4];
+
+/** Page switcher + zoom controls under the canvas. */
+function CanvasBar({ count, index, compact }: { count: number; index: number; compact: boolean }) {
   const s = useEditor.getState;
+  const zoom = useEditor((st) => st.zoom);
+  const [open, setOpen] = useState(false);
+  const pill = 'pointer-events-auto flex items-center gap-0.5 rounded-full border border-hairline bg-surface/95 p-1 shadow-md backdrop-blur';
+  const ib = 'grid size-8 place-items-center rounded-full transition-colors hover:bg-mist disabled:opacity-30';
   return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-3 flex justify-center">
-      <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-hairline bg-white/95 p-1 shadow-md backdrop-blur">
-        <button type="button" disabled={index === 0} onClick={() => s().setPage(index - 1)} className="grid size-8 place-items-center rounded-full hover:bg-mist disabled:opacity-30" aria-label="Previous page">
+    <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-end justify-center gap-2 px-3">
+      <div className={pill}>
+        <button type="button" disabled={index === 0} onClick={() => s().setPage(index - 1)} className={ib} {...tip('Previous page', 'PgUp', 'top')}>
           <ChevronLeft className="size-4" />
         </button>
-        <span className="min-w-14 text-center text-sm font-semibold tabular-nums">
+        <span className="min-w-12 text-center text-sm font-semibold tabular-nums">
           {index + 1} / {count}
         </span>
-        <button type="button" disabled={index >= count - 1} onClick={() => s().setPage(index + 1)} className="grid size-8 place-items-center rounded-full hover:bg-mist disabled:opacity-30" aria-label="Next page">
+        <button type="button" disabled={index >= count - 1} onClick={() => s().setPage(index + 1)} className={ib} {...tip('Next page', 'PgDn', 'top')}>
           <ChevronRight className="size-4" />
         </button>
-        <button type="button" disabled={count >= 8} onClick={() => s().addPage('blank')} className="grid size-8 place-items-center rounded-full hover:bg-mist disabled:opacity-30" aria-label="Add page">
+        <button type="button" disabled={count >= 8} onClick={() => s().addPage('blank')} className={ib} {...tip('Add page', undefined, 'top')}>
           <Plus className="size-4" />
         </button>
+      </div>
+
+      <div className={clsx(pill, compact ? 'relative' : 'absolute bottom-0 right-3')}>
+        <button type="button" disabled={zoom <= ZOOM_MIN} onClick={() => zoomBy(0.8)} className={ib} {...tip('Zoom out', `${MOD}−`, 'top')}>
+          <Minus className="size-4" />
+        </button>
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="h-8 min-w-14 rounded-full px-1.5 text-sm font-semibold tabular-nums transition-colors hover:bg-mist" {...tip('Zoom level', `${MOD}0 to fit`, 'top')}>
+          {zoom === 1 ? 'Fit' : `${Math.round(zoom * 100)}%`}
+        </button>
+        <button type="button" disabled={zoom >= ZOOM_MAX} onClick={() => zoomBy(1.25)} className={ib} {...tip('Zoom in', `${MOD}+`, 'top')}>
+          <Plus className="size-4" />
+        </button>
+        {!compact && (
+          <button type="button" onClick={() => s().resetView()} className={ib} {...tip('Fit to screen', `${MOD}0`, 'top')}>
+            <Maximize className="size-4" />
+          </button>
+        )}
+        {open && (
+          <div className="absolute bottom-full right-0 mb-2 w-32 origin-bottom-right animate-[pop-in_0.1s_ease-out] rounded-xl border border-hairline bg-surface p-1 shadow-lg" onMouseLeave={() => setOpen(false)}>
+            {ZOOM_STEPS.map((z) => (
+              <button
+                key={z}
+                type="button"
+                onClick={() => {
+                  if (z === 1) s().resetView();
+                  else zoomTo(z);
+                  setOpen(false);
+                }}
+                aria-pressed={Math.abs(zoom - z) < 0.01}
+                className="flex h-8 w-full items-center justify-between rounded-lg px-2.5 text-sm hover:bg-mist aria-pressed:font-semibold"
+              >
+                {z === 1 ? 'Fit to screen' : `${z * 100}%`}
+                {Math.abs(zoom - z) < 0.01 && <Check className="size-3.5" />}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
@@ -444,15 +599,15 @@ function DateDialog({ event, index, onClose, onSave }: { event: EventDto; index:
         <div className="grid grid-cols-[1.4fr_1fr] gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-soft">Date</span>
-            <input type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} className="h-12 rounded-xl border border-hairline px-3" />
+            <input type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} className="h-12 rounded-xl border border-hairline bg-surface px-3" />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-soft">Time</span>
-            <input type="time" value={v.time} onChange={(e) => setV({ ...v, time: e.target.value })} className="h-12 rounded-xl border border-hairline px-3" />
+            <input type="time" value={v.time} onChange={(e) => setV({ ...v, time: e.target.value })} className="h-12 rounded-xl border border-hairline bg-surface px-3" />
           </label>
         </div>
         <p className="text-sm text-ink-soft">The card, video, website and reminders all use this date.</p>
-        <button type="submit" className="h-12 rounded-full bg-ink font-semibold text-white">
+        <button type="submit" className="h-12 rounded-full bg-primary font-semibold text-on-primary hover:bg-primary-hover">
           Save date
         </button>
       </form>
@@ -462,10 +617,13 @@ function DateDialog({ event, index, onClose, onSave }: { event: EventDto; index:
 
 function EditorSkeleton() {
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-[#ECEEF3]">
-      <div className="h-14 border-b border-hairline bg-white" />
-      <div className="grid flex-1 place-items-center">
-        <div className="skeleton aspect-[9/16] h-[78%] rounded-xl" />
+    <div className="fixed inset-0 z-30 flex flex-col bg-workspace">
+      <div className="h-14 border-b border-hairline bg-surface" />
+      <div className="flex flex-1">
+        <div className="hidden w-[76px] border-r border-hairline bg-surface md:block" />
+        <div className="grid flex-1 place-items-center">
+          <div className="skeleton aspect-[9/16] h-[78%] rounded-xl" />
+        </div>
       </div>
     </div>
   );

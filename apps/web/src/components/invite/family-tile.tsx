@@ -59,7 +59,7 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority 
         </span>
       )}
       {isSelected && (
-        <span className="absolute left-2 top-2 grid size-7 place-items-center rounded-full bg-ink text-marigold">
+        <span className="absolute left-2 top-2 grid size-7 place-items-center rounded-full bg-primary text-marigold">
           <Check className="size-4" aria-label="Selected" />
         </span>
       )}

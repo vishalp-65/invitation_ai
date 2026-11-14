@@ -128,7 +128,7 @@ export function StepQuick() {
         </>
       )}
 
-      <div className="rounded-2xl border border-hairline bg-white">
+      <div className="rounded-2xl border border-hairline bg-surface">
         <button type="button" onClick={() => setMore(!more)} aria-expanded={more} className="flex w-full items-center justify-between px-4 py-3.5 font-semibold">
           {hi ? 'और जानकारी (वैकल्पिक)' : 'More (optional)'}
           <ChevronDown className={`size-5 transition-transform ${more ? 'rotate-180' : ''}`} />

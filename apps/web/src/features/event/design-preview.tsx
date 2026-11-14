@@ -40,7 +40,7 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
       ) : (
         <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-[18px] shadow-[var(--shadow-lift)]" aria-label="Edit the card">
           <DesignView page={doc.pages[current]!} data={data} language={event.language} />
-          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-full bg-white/95 font-semibold text-ink opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-full bg-surface/95 font-semibold text-ink opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <Brush className="size-4" /> Edit the card
           </span>
         </Link>
@@ -48,7 +48,7 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
       {mode === 'card' && doc.pages.length > 1 && (
         <div className="mt-3 flex items-center justify-center gap-2">
           {doc.pages.map((p, i) => (
-            <button key={p.id} type="button" onClick={() => setPage(i)} aria-label={`Page ${i + 1}`} aria-current={i === current} className="size-3 rounded-full bg-line aria-[current=true]:bg-ink" />
+            <button key={p.id} type="button" onClick={() => setPage(i)} aria-label={`Page ${i + 1}`} aria-current={i === current} className="size-3 rounded-full bg-line aria-[current=true]:bg-primary" />
           ))}
         </div>
       )}

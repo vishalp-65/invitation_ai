@@ -9,6 +9,7 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { ButtonLink } from '@/components/ui/button';
 import { useMe } from '@/lib/hooks';
+import { ThemeToggle } from '@/lib/theme';
 
 export function Logo({ className = '', tone = 'dark' }: { className?: string; tone?: 'dark' | 'light' }) {
   return (
@@ -46,7 +47,7 @@ export function LocaleSwitch({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
       }}
       className={clsx(
         'inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-sm font-semibold transition-colors',
-        tone === 'light' ? 'text-white/90 hover:bg-white/10' : 'hover:bg-ink/5',
+        tone === 'light' ? 'text-white/90 hover:bg-surface/10' : 'hover:bg-ink/5',
       )}
       aria-label={next === 'hi' ? 'हिन्दी में देखें' : 'View in English'}
     >
@@ -97,7 +98,7 @@ export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
           <span
             aria-hidden
             className={clsx(
-              'pointer-events-none absolute inset-0 -z-10 rounded-full border border-hairline bg-white/95 transition-opacity duration-300',
+              'pointer-events-none absolute inset-0 -z-10 rounded-full border border-hairline bg-surface/95 transition-opacity duration-300',
               scrolled || open || tone === 'dark' ? 'opacity-100' : 'opacity-0',
               (scrolled || open) && 'shadow-[0_1px_2px_rgb(30_34_80/0.04),0_10px_30px_-14px_rgb(30_34_80/0.25)]',
             )}
@@ -111,7 +112,7 @@ export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
                 aria-current={pathname === n.href ? 'page' : undefined}
                 className={clsx(
                   'rounded-full px-3.5 py-2 text-[0.95rem] font-medium transition-colors',
-                  light ? 'text-white/85 hover:bg-white/10 hover:text-white' : 'text-ink/80 hover:bg-ink/5 hover:text-ink',
+                  light ? 'text-white/85 hover:bg-surface/10 hover:text-white' : 'text-ink/80 hover:bg-ink/5 hover:text-ink',
                   'aria-[current=page]:font-semibold',
                 )}
               >
@@ -121,9 +122,10 @@ export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
           </nav>
           <div className="ml-auto hidden items-center gap-1 sm:flex">
             <LocaleSwitch tone={light ? 'light' : 'dark'} />
+            <ThemeToggle />
             <Link
               href={me ? '/dashboard' : '/login'}
-              className={clsx('rounded-full px-3.5 py-2 text-[0.95rem] font-semibold', light ? 'text-white hover:bg-white/10' : 'hover:bg-ink/5')}
+              className={clsx('rounded-full px-3.5 py-2 text-[0.95rem] font-semibold', light ? 'text-white hover:bg-surface/10' : 'hover:bg-ink/5')}
             >
               {me ? t('myInvites') : t('login')}
             </Link>
@@ -157,6 +159,7 @@ export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
           </nav>
           <div className="mt-2 flex items-center gap-2 border-t border-hairline px-1 pt-3">
             <LocaleSwitch />
+            <ThemeToggle />
             <ButtonLink href="/create" variant="solid" className="ml-auto">
               {t('create')}
             </ButtonLink>

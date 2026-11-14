@@ -1,5 +1,5 @@
 import { and, eq, isNotNull, sql, users, type Database } from '@cardai/db';
-import type { MeResponse, OtpTarget, UpdateProfileInput, UserRole } from '@cardai/shared';
+import type { MeResponse, UpdateProfileInput, UserRole } from '@cardai/shared';
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DB } from '../../infra/infra.module.js';
 import { GoogleService, type GoogleProfile } from './google.service.js';
@@ -22,15 +22,23 @@ export class AuthService {
     private readonly tokens: TokenService,
   ) {}
 
-  requestLoginOtp(target: OtpTarget) {
-    return this.otp.request('login', target);
+  requestLoginOtp(email: string) {
+    return this.otp.request(email);
   }
 
-  /** Sign in (or sign up) by proving control of a phone number or email address. */
-  async verifyLoginOtp(target: OtpTarget, code: string, userAgent?: string): Promise<SignInResult> {
-    await this.otp.verify('login', target, code);
-    const { user, isNew } = target.channel === 'phone' ? await this.upsertUserByPhone(target.phone) : await this.upsertUserByEmail(target.email);
-    return this.finish(user, isNew, userAgent);
+  /**
+   * Sign in, or sign up on first use, by proving control of an email address. `name` is applied
+   * only to brand-new accounts (or ones that never had a name), never overwriting an existing one.
+   */
+  async verifyLoginOtp(email: string, code: string, name?: string, userAgent?: string): Promise<SignInResult> {
+    await this.otp.verify(email, code);
+    const found = await this.upsertUserByEmail(email);
+    let user = found.user;
+    if (name && !user.name) {
+      const [named] = await this.db.update(users).set({ name }).where(eq(users.id, user.id)).returning();
+      if (named) user = toMe(named);
+    }
+    return this.finish(user, found.isNew, userAgent);
   }
 
   /**
@@ -73,39 +81,7 @@ export class AuthService {
     return this.finish(toMe(raced), false, userAgent);
   }
 
-  /** Signed-in user adds (and proves) a second contact: step 1, send the code. */
-  async requestContactOtp(userId: string, target: OtpTarget) {
-    await this.assertContactFree(userId, target);
-    return this.otp.request('link', target);
-  }
-
-  /** Step 2: verify the code, then attach the contact to the account. */
-  async verifyContactOtp(userId: string, target: OtpTarget, code: string): Promise<MeResponse> {
-    await this.assertContactFree(userId, target);
-    await this.otp.verify('link', target, code);
-    try {
-      const patch = target.channel === 'phone' ? { phone: target.phone } : { email: target.email, emailVerifiedAt: new Date() };
-      const [user] = await this.db.update(users).set(patch).where(eq(users.id, userId)).returning();
-      if (!user) throw new NotFoundException('User not found');
-      return toMe(user);
-    } catch (err) {
-      if (isUniqueViolation(err)) throw new ConflictException(contactTakenMessage(target));
-      throw err;
-    }
-  }
-
-  private async assertContactFree(userId: string, target: OtpTarget) {
-    const [other] =
-      target.channel === 'phone'
-        ? await this.db.select({ id: users.id }).from(users).where(eq(users.phone, target.phone))
-        : await this.db
-            .select({ id: users.id })
-            .from(users)
-            .where(and(sql`lower(${users.email}) = ${target.email}`, isNotNull(users.emailVerifiedAt)));
-    if (other && other.id !== userId) throw new ConflictException(contactTakenMessage(target));
-  }
-
-  /** Also used by the WhatsApp bot: Meta has already verified the sender's number. */
+  /** WhatsApp bot only (Meta has already verified the sender's number); the website signs in by email. */
   async upsertUserByPhone(phone: string): Promise<{ user: MeResponse; isNew: boolean }> {
     const [existing] = await this.db.select().from(users).where(eq(users.phone, phone));
     if (existing) return { user: toMe(existing), isNew: false };
@@ -148,15 +124,6 @@ export class AuthService {
     if (!user) throw new ForbiddenException();
     return toMe(user);
   }
-}
-
-function contactTakenMessage(t: OtpTarget) {
-  return t.channel === 'phone' ? 'This mobile number is already linked to another account.' : 'This email is already linked to another account.';
-}
-
-function isUniqueViolation(err: unknown): boolean {
-  const e = err as { code?: string; cause?: { code?: string } };
-  return e?.code === '23505' || e?.cause?.code === '23505';
 }
 
 function toMe(u: UserRow): MeResponse {

@@ -36,7 +36,7 @@ export function StepOccasion() {
               type="button"
               aria-pressed={d.type === e.id}
               onClick={() => d.setType(e.id)}
-              className="press flex min-h-16 items-center gap-3 rounded-2xl border border-hairline bg-white px-3.5 py-2.5 text-left font-medium transition-[border-color,background-color,color] duration-200 hover:border-ink/30 aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
+              className="press flex min-h-16 items-center gap-3 rounded-2xl border border-hairline bg-surface px-3.5 py-2.5 text-left font-medium transition-[border-color,background-color,color] duration-200 hover:border-ink/30 aria-pressed:border-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
             >
               <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sand text-lg" aria-hidden>
                 {e.emoji}

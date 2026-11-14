@@ -87,7 +87,7 @@ export function GoogleButton({
         });
         setReady(true);
       } catch {
-        if (!cancelled) cb.current.onError('Google sign-in is unavailable right now. Use your mobile or email instead.');
+        if (!cancelled) cb.current.onError('Google sign-in is unavailable right now. Continue with your email instead.');
       }
     }
 

@@ -35,7 +35,7 @@ export function FamilyShowcase({ limit = 8 }: { limit?: number }) {
             onClick={() => setTab(t.id)}
             className={clsx(
               'h-10 shrink-0 rounded-full px-4 text-[0.95rem] font-medium transition-colors',
-              tab === t.id ? 'bg-ink text-white' : 'bg-mist text-ink hover:bg-line',
+              tab === t.id ? 'bg-primary text-on-primary' : 'bg-mist text-ink hover:bg-line',
             )}
           >
             {t.label}

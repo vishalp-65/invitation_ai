@@ -54,7 +54,7 @@ export function RsvpForm({ site, guestToken }: { site: PublicSiteDto; guestToken
     );
   }
 
-  const field = 'h-12 w-full rounded-[12px] border-2 border-[#2b1a12]/20 bg-white px-3 text-[#2b1a12] focus:border-[#2b1a12] focus:outline-none';
+  const field = 'h-12 w-full rounded-[12px] border-2 border-[#2b1a12]/20 bg-surface px-3 text-[#2b1a12] focus:border-[#2b1a12] focus:outline-none';
 
   return (
     <section aria-labelledby="rsvp" className="my-10 rounded-[20px] bg-[var(--inv-surface)] p-6 text-[#2b1a12] sm:p-8">

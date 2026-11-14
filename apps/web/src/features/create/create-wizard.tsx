@@ -132,7 +132,7 @@ export function CreateWizard() {
                   >
                     <span className="h-1 w-full overflow-hidden rounded-full bg-hairline">
                       <span
-                        className="block h-full origin-left rounded-full bg-ink transition-transform duration-500 ease-[var(--ease-out-quint)]"
+                        className="block h-full origin-left rounded-full bg-primary transition-transform duration-500 ease-[var(--ease-out-quint)]"
                         style={{ transform: `scaleX(${done || current ? 1 : 0})` }}
                       />
                     </span>
@@ -226,7 +226,7 @@ function LivePreview() {
               onClick={() => setPage(i)}
               aria-label={`Page ${i + 1}`}
               aria-current={i === current}
-              className="size-3 rounded-full bg-line aria-[current=true]:bg-ink"
+              className="size-3 rounded-full bg-line aria-[current=true]:bg-primary"
             />
           ))}
         </div>

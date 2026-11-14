@@ -35,7 +35,7 @@ export function MobileDock({ label, whatsappHref }: { label: string; whatsappHre
       aria-hidden={!show}
     >
       <div className="panel flex items-center gap-2 rounded-full p-1.5 shadow-lift">
-        <Link href="/create" tabIndex={show ? 0 : -1} className="press flex h-12 flex-1 items-center justify-center rounded-full bg-ink font-semibold text-white">
+        <Link href="/create" tabIndex={show ? 0 : -1} className="press flex h-12 flex-1 items-center justify-center rounded-full bg-primary font-semibold text-on-primary">
           {label}
         </Link>
         <a

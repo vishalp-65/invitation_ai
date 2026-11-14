@@ -181,7 +181,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                 type="button"
                 aria-pressed={t.id === event.templateId}
                 onClick={() => save.mutate({ templateId: t.id })}
-                className="flex items-center gap-2 rounded-full border border-hairline py-1.5 pl-1.5 pr-4 text-[0.95rem] font-medium hover:border-ink aria-pressed:border-ink aria-pressed:bg-ink aria-pressed:text-white"
+                className="flex items-center gap-2 rounded-full border border-hairline py-1.5 pl-1.5 pr-4 text-[0.95rem] font-medium hover:border-ink aria-pressed:border-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
               >
                 <span className="size-7 rounded-full border-2 border-white" style={{ background: t.theme.palette.background }} aria-hidden />
                 {t.name}

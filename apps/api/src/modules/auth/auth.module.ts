@@ -6,7 +6,6 @@ import { AuthService } from './auth.service.js';
 import { createEmailProvider, EMAIL_PROVIDER } from './email.provider.js';
 import { GoogleService } from './google.service.js';
 import { OtpService } from './otp.service.js';
-import { createSmsProvider, SMS_PROVIDER } from './sms.provider.js';
 import { TokenService } from './token.service.js';
 
 @Global()
@@ -17,7 +16,6 @@ import { TokenService } from './token.service.js';
     OtpService,
     GoogleService,
     TokenService,
-    { provide: SMS_PROVIDER, inject: [ENV], useFactory: (env: Env) => createSmsProvider(env) },
     { provide: EMAIL_PROVIDER, inject: [ENV], useFactory: (env: Env) => createEmailProvider(env, BRAND.name) },
   ],
   exports: [AuthService, TokenService],

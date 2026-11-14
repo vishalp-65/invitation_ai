@@ -2,8 +2,10 @@ import {
   DESIGN_H,
   DESIGN_W,
   detectScript,
+  curvedTextPath,
   displayText,
   getLanguage,
+  imageFilterCss,
   resolveBinding,
   type DesignData,
   type DesignElement,
@@ -135,6 +137,56 @@ function goldSpan(color: string, children: ReactNode): ReactNode {
   );
 }
 
+/** Text bent along an arc (SVG textPath): single line, same effects as flat text. */
+function CurvedText({ el, text, language }: { el: TextElement; text: string; language?: string }) {
+  const { d, height } = curvedTextPath(el.w, el.size, el.curve!);
+  const pid = `curve-${el.id}`;
+  const gid = `curve-gold-${el.id}`;
+  const fx = el.effectColor ?? el.color;
+  const line = text.replace(/\s*\n\s*/g, ' ');
+  const anchor = el.align === 'left' ? 'start' : el.align === 'right' ? 'end' : 'middle';
+  const shadow =
+    el.effect === 'shadow'
+      ? `0 ${el.size * 0.05}px ${el.size * 0.16}px rgba(0,0,0,0.35)`
+      : el.effect === 'glow'
+        ? `0 0 ${el.size * 0.18}px ${withAlpha(fx, 0.85)}, 0 0 ${el.size * 0.4}px ${withAlpha(fx, 0.45)}`
+        : undefined;
+  return (
+    <svg width={el.w} height={Math.max(height, el.h)} style={{ display: 'block', overflow: 'visible' }} aria-label={line}>
+      <defs>
+        <path id={pid} d={d} />
+        {el.effect === 'gold' && (
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={lighten(el.color, 0.45)} />
+            <stop offset="0.45" stopColor={el.color} />
+            <stop offset="0.6" stopColor={darken(el.color, 0.28)} />
+            <stop offset="1" stopColor={lighten(el.color, 0.3)} />
+          </linearGradient>
+        )}
+      </defs>
+      <text
+        fill={el.effect === 'gold' ? `url(#${gid})` : el.color}
+        stroke={el.effect === 'outline' ? fx : undefined}
+        strokeWidth={el.effect === 'outline' ? Math.max(1.5, el.size * 0.03) : undefined}
+        paintOrder="stroke fill"
+        style={{
+          fontFamily: fontStack(el.font, line, language),
+          fontSize: el.size,
+          fontWeight: el.weight,
+          fontStyle: el.italic ? 'italic' : 'normal',
+          letterSpacing: `${el.ls}em`,
+          textTransform: el.upper ? 'uppercase' : 'none',
+          textShadow: shadow,
+        }}
+      >
+        <textPath href={`#${pid}`} startOffset={anchor === 'start' ? '0%' : anchor === 'end' ? '100%' : '50%'} textAnchor={anchor}>
+          {line}
+        </textPath>
+      </text>
+    </svg>
+  );
+}
+
 function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: TextElement; data: DesignData | null; language?: string; gate?: RenderGate; onMeasure?: (id: string, h: number) => void; fontsReady: boolean }) {
   const text = displayText(el, data);
   const inner = useRef<HTMLDivElement>(null);
@@ -149,7 +201,14 @@ function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: Te
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     const node = inner.current;
-    if (!node) return;
+    if (!node) {
+      // Curved text has a fixed box (no wrapping to measure).
+      if (handle !== null && !released.current) {
+        released.current = true;
+        requestAnimationFrame(() => gate!.release(handle));
+      }
+      return;
+    }
     if (el.fit && node.scrollHeight > el.h + 1 && k > 0.36) {
       setFit({ signature, k: Math.max(0.35, k * Math.max(0.8, Math.min(0.98, el.h / node.scrollHeight))) });
       return;
@@ -160,6 +219,8 @@ function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: Te
       requestAnimationFrame(() => gate!.release(handle));
     }
   });
+
+  if (el.curve) return <CurvedText el={el} text={text} language={language} />;
 
   const style = textStyle(el, el.size * k, language, text);
   return (
@@ -207,7 +268,21 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
   return (
     <div style={frame}>
       {/* eslint-disable-next-line @next/next/no-img-element -- also rendered by Remotion */}
-      <img src={src} alt="" crossOrigin="anonymous" style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      <img
+        src={src}
+        alt=""
+        crossOrigin="anonymous"
+        style={{
+          width: '100%',
+          height: '100%',
+          objectFit: 'cover',
+          objectPosition: `${el.fx ?? 50}% ${el.fy ?? 50}%`,
+          display: 'block',
+          filter: imageFilterCss(el),
+          transform: el.zoom && el.zoom !== 1 ? `scale(${el.flipX ? -el.zoom : el.zoom}, ${el.zoom})` : el.flipX ? 'scaleX(-1)' : undefined,
+          transformOrigin: `${el.fx ?? 50}% ${el.fy ?? 50}%`,
+        }}
+      />
     </div>
   );
 }
@@ -281,7 +356,7 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
     bg.gradient === 'radial' && bg.color2
       ? `radial-gradient(120% 80% at 50% 30%, ${bg.color} 0%, ${bg.color2} 100%)`
       : bg.gradient === 'linear' && bg.color2
-        ? `linear-gradient(180deg, ${bg.color} 0%, ${bg.color2} 100%)`
+        ? `linear-gradient(${bg.angle ?? 180}deg, ${bg.color} 0%, ${bg.color2} 100%)`
         : bg.color;
   const zoom = t === undefined ? 1 : 1 + Math.min(t, 8) * 0.006;
   const visible = page.elements.filter((e) => !e.hidden && !hidden?.has(e.id));
@@ -292,8 +367,24 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
         <div style={{ position: 'absolute', inset: 0, background, transform: `scale(${zoom})` }} />
         {bg.image && (
           // eslint-disable-next-line @next/next/no-img-element -- also rendered by Remotion
-          <img src={bg.image} alt="" crossOrigin="anonymous" style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${zoom})` }} />
+          <img
+            src={bg.image}
+            alt=""
+            crossOrigin="anonymous"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              opacity: bg.imageOpacity ?? 1,
+              filter: bg.imageBlur ? `blur(${bg.imageBlur}px)` : undefined,
+              // Slight over-scale hides the soft edge a blur leaves.
+              transform: `scale(${zoom * (bg.imageBlur ? 1 + bg.imageBlur / 400 : 1)})`,
+            }}
+          />
         )}
+        {bg.overlay && (bg.overlayOpacity ?? 0) > 0 && <div style={{ position: 'absolute', inset: 0, background: bg.overlay, opacity: bg.overlayOpacity }} />}
         {bg.pattern !== 'none' && (
           <div style={{ position: 'absolute', inset: 0 }}>
             <Pattern pattern={bg.pattern} color={bg.patternColor ?? '#C9973F'} accent={bg.patternAccent ?? bg.patternColor ?? '#C9973F'} opacity={bg.patternOpacity} width={DESIGN_W} height={DESIGN_H} seed={page.id} />

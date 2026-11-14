@@ -9,17 +9,17 @@ const base =
   'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-pill)] font-semibold transition-[color,background-color,transform,filter] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none';
 const variants: Record<Variant, string> = {
   // Flat indigo ink: the primary action everywhere.
-  primary: 'bg-ink text-white hover:bg-night',
+  primary: 'bg-primary text-on-primary hover:bg-primary-hover',
   brand: 'bg-sindoor text-white hover:bg-sindoor-deep',
   quiet: 'bg-transparent text-ink hover:bg-mist',
-  outline: 'border-2 border-ink text-ink hover:bg-ink hover:text-white',
+  outline: 'border-2 border-ink text-ink hover:bg-primary hover:text-on-primary',
   danger: 'bg-transparent text-sindoor hover:bg-sindoor/10',
   // Kept for compatibility: same flat ink look as `solid`.
-  gloss: 'bg-ink text-white hover:bg-night',
-  glass: 'glass text-white hover:bg-white/15 active:scale-[0.98] transition-transform',
+  gloss: 'bg-primary text-on-primary hover:bg-primary-hover',
+  glass: 'glass text-white hover:bg-surface/15 active:scale-[0.98] transition-transform',
   // Editorial surfaces: flat ink and hairline buttons.
-  solid: 'bg-ink text-white shadow-[0_1px_2px_rgb(15_18_51/0.2),0_8px_20px_-10px_rgb(30_34_80/0.6)] hover:bg-night',
-  line: 'border border-hairline bg-white text-ink hover:border-ink/30 hover:bg-ivory',
+  solid: 'bg-primary text-on-primary shadow-[0_1px_2px_rgb(15_18_51/0.2),0_8px_20px_-10px_rgb(30_34_80/0.6)] hover:bg-primary-hover',
+  line: 'border border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-ivory',
 };
 const sizes: Record<Size, string> = {
   sm: 'h-9 px-4 text-sm',

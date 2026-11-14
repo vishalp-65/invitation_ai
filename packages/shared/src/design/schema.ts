@@ -17,6 +17,8 @@ export const ELEMENT_ANIMS = ['auto', 'fade', 'rise', 'zoom', 'drop', 'none'] as
 export const TEXT_EFFECTS = ['none', 'shadow', 'glow', 'gold', 'outline'] as const;
 export const IMAGE_MASKS = ['rect', 'rounded', 'circle', 'arch'] as const;
 export const SHAPES = ['rect', 'ellipse', 'line'] as const;
+/** One-tap photo looks (CSS filter presets, see imageFilterCss). */
+export const IMAGE_FILTERS = ['none', 'warm', 'cool', 'vivid', 'fade', 'mono', 'sepia', 'noir'] as const;
 
 const base = {
   id,
@@ -32,6 +34,8 @@ const base = {
   anim: z.enum(ELEMENT_ANIMS).optional(),
   /** Template-generated layer the user hasn't touched (may be re-laid out). */
   auto: z.boolean().optional(),
+  /** Layers sharing a group id select and move together. */
+  group: z.string().max(40).optional(),
 };
 
 export const textElementSchema = z.object({
@@ -55,6 +59,8 @@ export const textElementSchema = z.object({
   effectColor: hex.optional(),
   /** Shrink the font so the text never overflows its box (template text). */
   fit: z.boolean().default(false),
+  /** Bend the text along an arc: + arches up (rainbow), − curves down (smile). 100 = half circle. */
+  curve: num(-100, 100).optional(),
 });
 
 export const artElementSchema = z.object({
@@ -79,6 +85,16 @@ export const imageElementSchema = z.object({
   mask: z.enum(IMAGE_MASKS).default('rect'),
   border: hex.optional(),
   borderW: num(0, 80).default(0),
+  filter: z.enum(IMAGE_FILTERS).optional(),
+  /** Manual adjustments, 1 = unchanged. */
+  bright: num(0.2, 2).optional(),
+  contrast: num(0.2, 2).optional(),
+  sat: num(0, 2.5).optional(),
+  /** Crop: zoom inside the frame (1 = fill) and focal point in % (object-position). */
+  zoom: num(1, 4).optional(),
+  fx: num(0, 100).optional(),
+  fy: num(0, 100).optional(),
+  flipX: z.boolean().optional(),
 });
 
 export const shapeElementSchema = z.object({
@@ -103,7 +119,15 @@ export const pageBackgroundSchema = z.object({
   patternColor: hex.optional(),
   patternAccent: hex.optional(),
   patternOpacity: num(0, 1).default(0.16),
+  /** Linear gradient direction in degrees (180 = top → bottom). */
+  angle: num(0, 360).optional(),
   image: z.string().max(2000).nullable().optional(),
+  imageOpacity: num(0, 1).optional(),
+  /** px blur on the 1080-wide canvas. */
+  imageBlur: num(0, 40).optional(),
+  /** Colour wash over the image so text stays readable. */
+  overlay: hex.optional(),
+  overlayOpacity: num(0, 1).optional(),
 });
 
 export const designPageSchema = z.object({
@@ -119,6 +143,41 @@ export const designDocSchema = z.object({
   pages: z.array(designPageSchema).min(1).max(8),
 });
 
+/** "Save as my template": a design the user can start other invitations from. */
+export const saveUserTemplateSchema = z.object({
+  name: z.string().trim().min(1).max(60),
+  design: designDocSchema,
+});
+export type SaveUserTemplateInput = z.infer<typeof saveUserTemplateSchema>;
+
+export interface UserTemplateDto {
+  id: string;
+  name: string;
+  eventType: string | null;
+  design: DesignDoc;
+  createdAt: string;
+}
+
+/**
+ * Geometry for curved text: an arc whose chord spans the box width.
+ * Returns the SVG path (box-local coords, text sits on it) and the box height it needs.
+ */
+export function curvedTextPath(w: number, size: number, curve: number): { d: string; height: number } {
+  const theta = (Math.min(100, Math.abs(curve)) / 100) * Math.PI; // up to a half circle
+  const chord = w;
+  const r = chord / (2 * Math.sin(theta / 2));
+  const sag = r * (1 - Math.cos(theta / 2));
+  const pad = size * 0.25;
+  if (curve > 0) {
+    // Arch (∩): glyph tops at the box top, ends lower.
+    const y = pad + size + sag;
+    return { d: `M 0 ${y} A ${r} ${r} 0 0 1 ${chord} ${y}`, height: y + pad };
+  }
+  // Smile (∪): the middle dips; text sits on the curve.
+  const y = pad + size;
+  return { d: `M 0 ${y} A ${r} ${r} 0 0 0 ${chord} ${y}`, height: y + sag + pad };
+}
+
 export type TextElement = z.infer<typeof textElementSchema>;
 export type ArtElement = z.infer<typeof artElementSchema>;
 export type ImageElement = z.infer<typeof imageElementSchema>;
@@ -129,3 +188,24 @@ export type DesignPage = z.infer<typeof designPageSchema>;
 export type DesignDoc = z.infer<typeof designDocSchema>;
 export type ElementAnim = (typeof ELEMENT_ANIMS)[number];
 export type TextEffect = (typeof TEXT_EFFECTS)[number];
+export type ImageFilter = (typeof IMAGE_FILTERS)[number];
+
+/** CSS filter for a photo layer (shared by editor preview, stills and video). */
+export function imageFilterCss(el: { filter?: ImageFilter; bright?: number; contrast?: number; sat?: number }): string | undefined {
+  const preset: Record<ImageFilter, string> = {
+    none: '',
+    warm: 'sepia(0.18) saturate(1.25) hue-rotate(-8deg)',
+    cool: 'saturate(1.05) hue-rotate(12deg) brightness(1.03)',
+    vivid: 'saturate(1.5) contrast(1.08)',
+    fade: 'contrast(0.85) brightness(1.08) saturate(0.8)',
+    mono: 'grayscale(1)',
+    sepia: 'sepia(0.75)',
+    noir: 'grayscale(1) contrast(1.35) brightness(0.92)',
+  };
+  const parts = [preset[el.filter ?? 'none']];
+  if (el.bright !== undefined && el.bright !== 1) parts.push(`brightness(${el.bright})`);
+  if (el.contrast !== undefined && el.contrast !== 1) parts.push(`contrast(${el.contrast})`);
+  if (el.sat !== undefined && el.sat !== 1) parts.push(`saturate(${el.sat})`);
+  const out = parts.filter(Boolean).join(' ');
+  return out || undefined;
+}

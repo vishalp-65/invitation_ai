@@ -46,7 +46,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
 
   return (
     <div className="flex flex-col gap-10">
-      <section className="rounded-[var(--radius-card)] bg-ink p-6 text-white">
+      <section className="rounded-[var(--radius-card)] bg-primary p-6 text-on-primary">
         <h2 className="text-2xl">Your invitation website</h2>
         {live ? (
           <>
@@ -63,13 +63,13 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
               </ButtonLink>
               <Button
                 variant="outline"
-                className="border-white text-white hover:bg-white hover:text-ink"
+                className="border-white text-white hover:bg-surface hover:text-ink"
                 onClick={() => navigator.clipboard.writeText(siteUrl).then(() => toast.success('Link copied'))}
               >
                 <Copy className="size-4" />
                 Copy link
               </Button>
-              <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="quiet" className="text-white hover:bg-white/10">
+              <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="quiet" className="text-white hover:bg-surface/10">
                 Open website
               </ButtonLink>
             </div>

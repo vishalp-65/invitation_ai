@@ -22,7 +22,7 @@ export function TemplateGallery() {
 
   return (
     <>
-      <div className="sticky top-[76px] z-20 -mx-5 mt-8 bg-white/85 px-5 py-3 backdrop-blur-md">
+      <div className="sticky top-[76px] z-20 -mx-5 mt-8 bg-surface/85 px-5 py-3 backdrop-blur-md">
         <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]" role="group" aria-label="Filter by occasion">
           {FILTERS.map((f) => {
             const ev = EVENT_TYPES.find((e) => e.id === f);
@@ -34,7 +34,7 @@ export function TemplateGallery() {
                 onClick={() => setFilter(f)}
                 className={clsx(
                   'h-10 shrink-0 rounded-full px-4 text-[0.95rem] font-medium transition-colors',
-                  filter === f ? 'bg-ink text-white' : 'bg-mist hover:bg-line',
+                  filter === f ? 'bg-primary text-on-primary' : 'bg-mist hover:bg-line',
                 )}
               >
                 {f === 'all' ? (locale === 'hi' ? 'सभी' : 'All') : locale === 'hi' ? ev?.labelHi : ev?.label}

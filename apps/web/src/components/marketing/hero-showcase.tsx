@@ -65,7 +65,7 @@ export function HeroShowcase() {
               <button
                 type="button"
                 onClick={() => setPlaying(true)}
-                className="press absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-ink shadow-lg hover:bg-ivory"
+                className="press absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-lg hover:bg-ivory"
               >
                 <Play className="size-3.5 fill-current" aria-hidden />
                 Play video invite

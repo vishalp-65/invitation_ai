@@ -16,7 +16,7 @@ One form → three outputs: a multi-page **image card**, an animated **video inv
 | Storage | S3-compatible (RustFS locally, Cloudflare R2 / S3 in prod) | Presigned browser uploads, CDN-served outputs |
 | Data | PostgreSQL 17 | |
 | Payments | Razorpay (UPI, cards, wallets) with idempotent fulfilment + webhook | |
-| Messaging | WhatsApp Cloud API bot + MSG91 OTP | |
+| Messaging | WhatsApp Cloud API bot + email OTP (Resend) | |
 
 ## Repository layout
 
@@ -49,7 +49,7 @@ npm run db:migrate && npm run db:seed
 npm run dev                       # api :4000, worker, web :3000
 ```
 
-- OTP codes are printed in the API log while `SMS_PROVIDER=console`.
+- Sign-in OTP codes are printed in the API log while `EMAIL_PROVIDER=console`.
 - Without Razorpay keys a mock gateway is used in development (payments succeed instantly).
 - Without WhatsApp keys, bot messages are logged instead of sent.
 

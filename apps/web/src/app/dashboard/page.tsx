@@ -165,9 +165,9 @@ export default function DashboardPage() {
           <li>
             <Link
               href="/create"
-              className="flex h-full min-h-44 flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-ink/20 p-5 text-ink-soft transition-colors hover:border-ink/40 hover:bg-white hover:text-ink"
+              className="flex h-full min-h-44 flex-col items-center justify-center gap-3 rounded-[var(--radius-card)] border border-dashed border-ink/20 p-5 text-ink-soft transition-colors hover:border-ink/40 hover:bg-surface hover:text-ink"
             >
-              <span className="grid size-11 place-items-center rounded-full border border-hairline bg-white">
+              <span className="grid size-11 place-items-center rounded-full border border-hairline bg-surface">
                 <Plus className="size-5" aria-hidden />
               </span>
               <span className="font-semibold">New invitation</span>

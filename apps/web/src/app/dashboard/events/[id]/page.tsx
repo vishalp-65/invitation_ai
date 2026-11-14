@@ -51,7 +51,7 @@ function EventWorkspace() {
     <div>
       <Link
         href="/dashboard"
-        className="inline-flex h-9 items-center gap-1 rounded-full border border-hairline bg-white pl-2.5 pr-4 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
+        className="inline-flex h-9 items-center gap-1 rounded-full border border-hairline bg-surface pl-2.5 pr-4 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
       >
         <ChevronLeft className="size-4" aria-hidden />
         My invitations

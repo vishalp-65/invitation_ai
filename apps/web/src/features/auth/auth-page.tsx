@@ -30,7 +30,7 @@ export function useNextTarget() {
  */
 function BrandPanel() {
   return (
-    <section className="sticky top-0 hidden h-dvh flex-col overflow-hidden bg-ink text-white lg:flex">
+    <section className="sticky top-0 hidden h-dvh flex-col overflow-hidden bg-primary text-on-primary lg:flex">
       <div className="relative z-10 flex items-center justify-between px-12 py-8 xl:px-14">
         <Logo tone="light" />
         <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-white/70">140+ designs</span>
@@ -54,7 +54,7 @@ function BrandPanel() {
                     sizes="180px"
                     priority={i < 2}
                     // margin (not gap) keeps the two halves exactly equal, so the loop has no jump
-                    className="mb-4 aspect-[9/16] w-full rounded-xl border border-white/10 bg-white/5 object-cover"
+                    className="mb-4 aspect-[9/16] w-full rounded-xl border border-white/10 bg-surface/5 object-cover"
                   />
                 ))}
               </div>
@@ -63,7 +63,7 @@ function BrandPanel() {
         </div>
       </div>
 
-      <div className="relative z-10 border-t border-white/10 bg-ink px-12 pb-12 pt-9 xl:px-14">
+      <div className="relative z-10 border-t border-white/10 bg-primary px-12 pb-12 pt-9 xl:px-14">
         <p className="font-display max-w-md text-[2.4rem] leading-[1.12]">शुभ कार्य की शुरुआत, एक निमंत्रण से।</p>
         <p className="mt-2 text-white/60">Every celebration begins with an invitation.</p>
         <ul className="mt-6 flex flex-col gap-2.5">
@@ -99,7 +99,7 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
   const switchHref = signup ? `/login${qs}` : `/signup${qs}`;
 
   return (
-    <main className="grid min-h-dvh bg-white lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+    <main className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <BrandPanel />
 
       <section className="flex min-h-dvh flex-col">

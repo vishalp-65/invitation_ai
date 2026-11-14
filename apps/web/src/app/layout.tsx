@@ -5,6 +5,7 @@ import { getLocale } from 'next-intl/server';
 import { Mukta, Tiro_Devanagari_Hindi } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers';
+import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 import '@/styles/globals.css';
 
 const tiro = Tiro_Devanagari_Hindi({
@@ -32,7 +33,11 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${tiro.variable} ${mukta.variable}`}>
+    <html lang={locale} className={`${tiro.variable} ${mukta.variable}`} data-theme="light" suppressHydrationWarning>
+      <head>
+        {/* Sets data-theme before first paint (no flash of the wrong theme). */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+      </head>
       <body className="min-h-dvh antialiased">
         <div className="ambient" aria-hidden />
         <NextIntlClientProvider>

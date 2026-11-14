@@ -42,7 +42,6 @@ export class AuthController {
   providers() {
     return {
       google: this.google.clientId ? { clientId: this.google.clientId, redirect: this.google.redirectEnabled } : null,
-      phone: true,
       email: true,
     };
   }
@@ -52,7 +51,7 @@ export class AuthController {
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
   requestOtp(@ZBody(requestOtpSchema) body: RequestOtpInput) {
-    return this.auth.requestLoginOtp(body);
+    return this.auth.requestLoginOtp(body.email);
   }
 
   @Public()
@@ -64,7 +63,7 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ) {
-    const { tokens, user, isNew } = await this.auth.verifyLoginOtp(body, body.code, req.headers['user-agent']);
+    const { tokens, user, isNew } = await this.auth.verifyLoginOtp(body.email, body.code, body.name, req.headers['user-agent']);
     this.setCookies(reply, tokens);
     return { user, isNew };
   }
@@ -113,8 +112,7 @@ export class AuthController {
       const { profile, next } = await this.google.finishRedirect(code, state);
       const { tokens } = await this.auth.signInWithGoogleProfile(profile, req.headers['user-agent']);
       this.setCookies(reply, tokens);
-      // /auth/continue finishes any missing-contact verification before going to `next`.
-      return this.redirect(reply, new URL(`/auth/continue?next=${encodeURIComponent(next)}`, this.env.APP_URL).toString());
+      return this.redirect(reply, new URL(safeNext(next), this.env.APP_URL).toString());
     } catch (err) {
       if (!(err instanceof UnauthorizedException || err instanceof ConflictException)) {
         this.logger.error(`Google callback failed: ${(err as Error).message}`);
@@ -154,21 +152,6 @@ export class AuthController {
     const { tokens, user, isNew } = await this.auth.signInWithGoogle(body.credential, req.headers['user-agent']);
     this.setCookies(reply, tokens);
     return { user, isNew };
-  }
-
-  /** Signed-in: prove a second contact (mobile or email) and attach it to the account. */
-  @Post('contact/request')
-  @HttpCode(200)
-  @RateLimit({ limit: 10, windowSec: 3600 })
-  requestContact(@CurrentUser() user: AuthUser, @ZBody(requestOtpSchema) body: RequestOtpInput) {
-    return this.auth.requestContactOtp(user.id, body);
-  }
-
-  @Post('contact/verify')
-  @HttpCode(200)
-  @RateLimit({ limit: 30, windowSec: 600 })
-  async verifyContact(@CurrentUser() user: AuthUser, @ZBody(verifyOtpSchema) body: VerifyOtpInput) {
-    return { user: await this.auth.verifyContactOtp(user.id, body, body.code) };
   }
 
   @Public()

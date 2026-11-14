@@ -15,7 +15,9 @@ import {
 } from '@cardai/ai';
 import { aiGenerations, eq, type Database } from '@cardai/db';
 import {
+  AI_BACKGROUNDS_PER_EVENT,
   eventContentSchema,
+  UPGRADE_FEATURES,
   FREE_AI_QUOTA_PER_DAY,
   getEventType,
   parsedEventIntentSchema,
@@ -190,12 +192,55 @@ export class AiService {
 
   // ---------------- Images ----------------
 
+  private bgKey(eventId: string) {
+    return `aibg:event:${eventId}`;
+  }
+
+  private async upgraded(eventId: string) {
+    const { features, credits } = await this.entitlements.forEvent(eventId);
+    return { upgraded: UPGRADE_FEATURES.some((f) => features.has(f)), credits: credits.ai_background ?? 0 };
+  }
+
+  /**
+   * Pays for one AI background: the invitation's included allowance first, then an
+   * `ai_background` credit (AI Background Pack). Returns how it was paid, for refunds.
+   */
+  private async chargeBackground(eventId: string, upgraded: boolean): Promise<'allowance' | 'credit'> {
+    const included = upgraded ? AI_BACKGROUNDS_PER_EVENT.paid : AI_BACKGROUNDS_PER_EVENT.free;
+    const used = await this.redis.incr(this.bgKey(eventId));
+    if (used <= included) return 'allowance';
+    await this.redis.decr(this.bgKey(eventId));
+    try {
+      await this.entitlements.consumeCredit(eventId, 'ai_background');
+      return 'credit';
+    } catch {
+      throw new HttpException('No AI backgrounds left for this invitation. Get the AI Background Pack to make more.', HttpStatus.PAYMENT_REQUIRED);
+    }
+  }
+
+  private async refundBackground(eventId: string, how: 'allowance' | 'credit') {
+    if (how === 'allowance') await this.redis.decr(this.bgKey(eventId));
+    else await this.entitlements.refundCredit(eventId, 'ai_background');
+  }
+
+  /** AI background allowance + pack credits for one invitation (the editor shows "2 left"). */
+  async imageQuota(user: AuthUser, eventId: string) {
+    const event = await this.events.getOwned(user, eventId);
+    const { upgraded, credits } = await this.upgraded(event.id);
+    const used = Number((await this.redis.get(this.bgKey(event.id))) ?? 0);
+    const included = upgraded ? AI_BACKGROUNDS_PER_EVENT.paid : AI_BACKGROUNDS_PER_EVENT.free;
+    return {
+      background: { used: Math.min(used, included), included, credits, remaining: Math.max(0, included - used) + credits, upgraded },
+      configured: Boolean(this.env.OPENROUTER_API_KEY),
+    };
+  }
+
   async generateImage(user: AuthUser, input: GenerateImageInput) {
     this.ensureConfigured();
     const event = await this.events.getOwned(user, input.eventId);
-    const paid = (await this.entitlements.forEvent(event.id)).features.size > 0;
-    if (!paid) await this.consumeQuota(user.id, 'image');
+    const { upgraded: paid } = await this.upgraded(event.id);
 
+    // Build the prompt first so bad input never costs a credit.
     let references: string[] | undefined;
     let prompt: string;
     if (input.kind === 'background') {
@@ -207,6 +252,17 @@ export class AiService {
       const urls = await this.media.urlsFor([source.id]);
       references = [urls.get(source.id)!];
       prompt = input.kind === 'caricature' ? caricaturePrompt(input.prompt) : portraitCutoutPrompt();
+    }
+
+    const charge = input.kind === 'background' ? await this.chargeBackground(event.id, paid) : null;
+    // Daily per-user guardrail applies to free generations only (pack credits are paid for).
+    if (!paid && charge !== 'credit') {
+      try {
+        await this.consumeQuota(user.id, 'image');
+      } catch (err) {
+        if (charge) await this.refundBackground(event.id, charge);
+        throw err;
+      }
     }
 
     try {
@@ -231,6 +287,8 @@ export class AiService {
       await this.log('image', user.id, { eventId: event.id, model, costUsd: result.usage.costUsd?.toString(), assetId: asset.id, input: { kind: input.kind } });
       return this.media.toDto(asset);
     } catch (err) {
+      // A failed generation shouldn't use up a credit.
+      if (charge) await this.refundBackground(event.id, charge).catch(() => undefined);
       this.wrap(err);
     }
   }

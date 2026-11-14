@@ -2,7 +2,7 @@ import { clsx } from 'clsx';
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
 const control =
-  'w-full rounded-[var(--radius-field)] border border-hairline bg-white px-3.5 py-2.5 text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/55 hover:border-ink/25 focus:border-ink/50 focus:shadow-[0_0_0_4px_rgb(30_34_80/0.08)] focus:outline-none aria-[invalid=true]:border-sindoor';
+  'w-full rounded-[var(--radius-field)] border border-hairline bg-surface px-3.5 py-2.5 text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/55 hover:border-ink/25 focus:border-ink/50 focus:shadow-[0_0_0_4px_rgb(30_34_80/0.08)] focus:outline-none aria-[invalid=true]:border-sindoor';
 
 interface FieldProps {
   label: string;
@@ -61,7 +61,7 @@ export function Chip({
       aria-pressed={selected}
       className={clsx(
         'press inline-flex h-10 items-center gap-2 rounded-[var(--radius-pill)] border px-4 text-[0.95rem] font-medium transition-[background-color,color,border-color] duration-200 disabled:opacity-50',
-        selected ? 'border-ink bg-ink text-white' : 'border-hairline bg-white text-ink hover:border-ink/30',
+        selected ? 'border-ink bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
         className,
       )}
       {...props}

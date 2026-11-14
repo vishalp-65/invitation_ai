@@ -29,9 +29,6 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string().min(32),
   JWT_REFRESH_SECRET: z.string().min(32),
   COOKIE_DOMAIN: z.string().optional().transform((v) => v || undefined),
-  SMS_PROVIDER: z.enum(['console', 'msg91']).default('console'),
-  MSG91_AUTH_KEY: z.string().optional(),
-  MSG91_OTP_TEMPLATE_ID: z.string().optional(),
   EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
@@ -79,7 +76,6 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     const missing = required.filter((k) => !env[k]);
     if (missing.length) throw new Error(`Missing production configuration: ${missing.join(', ')}`);
     if (env.EMAIL_PROVIDER === 'console') throw new Error('EMAIL_PROVIDER=console is not allowed in production');
-    if (env.SMS_PROVIDER === 'console') throw new Error('SMS_PROVIDER=console is not allowed in production');
   }
   return env;
 }

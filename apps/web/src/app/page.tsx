@@ -30,7 +30,7 @@ export default async function HomePage() {
       {/* ================= HERO ================= */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-10 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-24">
         <div className="max-w-xl">
-          <p className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-hairline bg-white px-3 py-1 text-sm font-medium text-ink-soft">
+          <p className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-1 text-sm font-medium text-ink-soft">
             <span className="size-1.5 rounded-full bg-sindoor" aria-hidden />
             {t('hero.kicker')}
           </p>
@@ -64,7 +64,7 @@ export default async function HomePage() {
       </section>
 
       {/* ================= STATS ================= */}
-      <section className="border-y border-hairline bg-white">
+      <section className="border-y border-hairline bg-surface">
         <dl className="mx-auto grid max-w-6xl grid-cols-2 md:grid-cols-4">
           {[
             ['140+', hi ? 'डिज़ाइन' : 'Designs'],
@@ -118,7 +118,7 @@ export default async function HomePage() {
         />
 
         {/* ================= DESIGN FAMILIES ================= */}
-        <section className="border-y border-hairline bg-white">
+        <section className="border-y border-hairline bg-surface">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
@@ -154,7 +154,7 @@ export default async function HomePage() {
             <span className="absolute left-5 right-5 top-5 hidden h-px bg-hairline md:block" aria-hidden />
             {(['s1', 's2', 's3'] as const).map((k, i) => (
               <Reveal as="li" key={k} delay={i} className="relative">
-                <span className="relative grid size-10 place-items-center rounded-full border border-hairline bg-white font-semibold text-ink shadow-sm">
+                <span className="relative grid size-10 place-items-center rounded-full border border-hairline bg-surface font-semibold text-ink shadow-sm">
                   {i + 1}
                 </span>
                 <h3 className="mt-6 text-2xl">{t(`how.${k}`)}</h3>
@@ -165,7 +165,7 @@ export default async function HomePage() {
         </section>
 
         {/* ================= LANGUAGES ================= */}
-        <section className="bg-ink text-white">
+        <section className="bg-primary text-on-primary">
           <div className="mx-auto grid max-w-6xl gap-10 px-5 py-20 sm:py-24 lg:grid-cols-[1fr_1.4fr] lg:items-center">
             <div>
               <Reveal as="p" className="eyebrow !text-marigold">
@@ -180,9 +180,9 @@ export default async function HomePage() {
                   : 'Every script shaped correctly. Conjuncts like “श्री” and “ப்ரியா” look exactly like a printed card.'}
               </p>
             </div>
-            <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-white/10 bg-white/10 sm:grid-cols-3">
+            <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-white/10 bg-surface/10 sm:grid-cols-3">
               {LANGUAGES.map((l) => (
-                <li key={l.code} className="flex flex-col gap-0.5 bg-ink px-5 py-4 transition-colors duration-200 hover:bg-[#262b62]">
+                <li key={l.code} className="flex flex-col gap-0.5 bg-primary px-5 py-4 transition-colors duration-200 hover:bg-[#262b62]">
                   <span lang={l.code} className="font-display text-2xl leading-tight">
                     {l.nativeName}
                   </span>
@@ -219,7 +219,7 @@ export default async function HomePage() {
         </section>
 
         {/* ================= COMPARISON ================= */}
-        <section className="border-y border-hairline bg-white">
+        <section className="border-y border-hairline bg-surface">
           <div className="mx-auto max-w-6xl px-5 py-20 sm:py-28">
             <Reveal as="p" className="eyebrow">
               {hi ? 'तुलना' : 'Compare'}
@@ -234,7 +234,7 @@ export default async function HomePage() {
                     <th className="p-4 font-semibold sm:p-5">
                       <span className="sr-only">Feature</span>
                     </th>
-                    <th className="bg-ink p-4 font-semibold text-white sm:p-5">CardAI</th>
+                    <th className="bg-primary p-4 font-semibold text-on-primary sm:p-5">CardAI</th>
                     <th className="p-4 font-semibold text-ink-soft sm:p-5">{hi ? 'फ़्रीलांस डिज़ाइनर' : 'Freelance designer'}</th>
                     <th className="p-4 font-semibold text-ink-soft sm:p-5">{hi ? 'सामान्य डिज़ाइन ऐप' : 'Generic design apps'}</th>
                   </tr>
@@ -282,7 +282,7 @@ export default async function HomePage() {
                 <Reveal
                   key={code}
                   delay={i}
-                  className={`lift flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-ink text-white shadow-lift' : 'panel'}`}
+                  className={`lift flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-primary text-on-primary shadow-lift' : 'panel'}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-2xl">{p.name}</h3>
@@ -326,7 +326,7 @@ export default async function HomePage() {
 
         {/* ================= CTA ================= */}
         <section className="px-3 pb-16 sm:px-5">
-          <Reveal className="mx-auto flex max-w-6xl flex-col gap-8 rounded-[28px] bg-ink px-6 py-12 text-white sm:px-12 sm:py-16 md:flex-row md:items-center">
+          <Reveal className="mx-auto flex max-w-6xl flex-col gap-8 rounded-[28px] bg-primary px-6 py-12 text-on-primary sm:px-12 sm:py-16 md:flex-row md:items-center">
             <div className="flex-1">
               <h2 className="text-3xl sm:text-4xl">{hi ? 'वेबसाइट नहीं चाहिए? WhatsApp पर "Hi" भेजिए।' : 'Prefer WhatsApp? Just send “Hi”.'}</h2>
               <p className="mt-3 max-w-xl text-white/70">

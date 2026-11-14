@@ -23,7 +23,7 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.4s_var(--ease-out-quint)] rounded-t-[28px] border border-hairline bg-white p-0 text-ink shadow-lift backdrop:bg-night/40 sm:m-auto sm:max-w-lg sm:rounded-[24px]"
+      className="fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[28px] border border-hairline bg-surface p-0 text-ink shadow-lift backdrop:bg-[var(--color-overlay)] sm:m-auto sm:max-w-lg sm:rounded-[24px]"
     >
       <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
         <h2 className="text-xl">{title}</h2>

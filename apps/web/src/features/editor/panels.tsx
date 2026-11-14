@@ -9,23 +9,27 @@ import {
   getEventType,
   getLanguage,
   groupByFamily,
-  PALETTES,
-  PATTERNS,
   type DesignData,
   type DesignElement,
   type EventDto,
   type TemplateDefinition,
+  type UserTemplateDto,
 } from '@cardai/shared';
 import { ASSETS, STICKERS, type Sticker, type StickerCategory } from '@cardai/templates';
 import { clsx } from 'clsx';
-import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, ImagePlus, Lock, Plus, Trash2, Unlock } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ArrowDown, ArrowUp, BookmarkPlus, Copy, Eye, EyeOff, Group, ImagePlus, Lock, Plus, Trash2, Unlock } from 'lucide-react';
 import Image from 'next/image';
 import { useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { DesignView } from '@/components/design/design-view';
 import { useEventMedia } from '@/features/event/use-event-props';
+import { tip } from '@/components/ui/tooltip';
+import { api } from '@/lib/api';
 import { useTemplates } from '@/lib/hooks';
-import { ColorPicker, Section, Seg, useOnVisible } from './controls';
+import { MY_TEMPLATES_KEY } from './header-actions';
+import { BackgroundPanel } from './background-panel';
+import { Section, Seg, useOnVisible } from './controls';
 import { currentPage, newId, useEditor } from './store';
 import { splitIso, type useEventWriter } from './use-event-data';
 
@@ -50,7 +54,7 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
   const { data: templates } = useTemplates(event.type);
   const families = useMemo(() => groupByFamily(templates ?? []), [templates]);
   const current = useEditor((s) => s.doc?.templateId);
-  const [cat, setCat] = useState<'all' | NonNullable<TemplateDefinition['category']>>('all');
+  const [cat, setCat] = useState<'all' | 'mine' | NonNullable<TemplateDefinition['category']>>('all');
   const shown = families.filter((f) => cat === 'all' || f.variants[0]!.category === cat);
 
   function apply(t: TemplateDefinition) {
@@ -72,6 +76,7 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
         onChange={setCat}
         options={[
           { v: 'all', label: 'All' },
+          { v: 'mine', label: 'Mine' },
           { v: 'wedding', label: 'Wedding' },
           { v: 'kids', label: 'Kids' },
           { v: 'religious', label: 'Religious' },
@@ -79,12 +84,67 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
         ]}
       />
       </div>
+      {cat === 'mine' ? (
+        <MyTemplates event={event} data={data} close={close} />
+      ) : (
       <ul className="grid grid-cols-2 gap-3">
         {shown.map((f) => (
           <TemplateTile key={f.id} name={f.name} variants={f.variants} current={current} onPick={apply} />
         ))}
       </ul>
+      )}
     </div>
+  );
+}
+
+function MyTemplates({ event, data, close }: Pick<PanelProps, 'event' | 'data' | 'close'>) {
+  const qc = useQueryClient();
+  const { data: mine, isLoading } = useQuery({ queryKey: MY_TEMPLATES_KEY, queryFn: () => api<{ items: UserTemplateDto[] }>('/me/templates'), select: (d) => d.items });
+  // Same kind of invitation first.
+  const items = useMemo(() => [...(mine ?? [])].sort((a, b) => Number(b.eventType === event.type) - Number(a.eventType === event.type)), [mine, event.type]);
+
+  async function remove(t: UserTemplateDto) {
+    qc.setQueryData<{ items: UserTemplateDto[] }>(MY_TEMPLATES_KEY, (cur) => (cur ? { items: cur.items.filter((x) => x.id !== t.id) } : cur));
+    try {
+      await api(`/me/templates/${t.id}`, { method: 'DELETE' });
+      toast.success(`Deleted “${t.name}”`);
+    } catch {
+      toast.error('Could not delete. Try again.');
+      void qc.invalidateQueries({ queryKey: MY_TEMPLATES_KEY });
+    }
+  }
+
+  if (isLoading) return <div className="grid grid-cols-2 gap-3">{[0, 1].map((i) => <div key={i} className="skeleton aspect-[9/16]" />)}</div>;
+  if (!items.length)
+    return (
+      <div className="rounded-xl border border-dashed border-hairline p-5 text-center text-sm text-ink-soft">
+        <BookmarkPlus className="mx-auto mb-2 size-6" />
+        Nothing saved yet. Use <strong>More → Save as my template</strong> to reuse a design you love.
+      </div>
+    );
+  return (
+    <ul className="grid grid-cols-2 gap-3">
+      {items.map((t) => (
+        <li key={t.id} className="group relative">
+          <button
+            type="button"
+            onClick={() => {
+              const cur = useEditor.getState().doc;
+              useEditor.getState().replace({ ...t.design, templateId: cur?.templateId ?? t.design.templateId });
+              toast.success(`Using “${t.name}”`, { action: { label: 'Undo', onClick: () => useEditor.getState().undo() } });
+              close();
+            }}
+            className="block w-full overflow-hidden rounded-xl bg-mist shadow-sm"
+          >
+            <DesignView page={t.design.pages[0]!} data={data} language={event.language} lazy />
+          </button>
+          <p className="mt-1.5 truncate pr-7 text-sm font-semibold">{t.name}</p>
+          <button type="button" onClick={() => void remove(t)} {...tip('Delete template')} className="absolute bottom-0 right-0 grid size-7 place-items-center rounded-full text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">
+            <Trash2 className="size-3.5" />
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -160,7 +220,7 @@ function TextPanel({ event, data, close }: PanelProps) {
   return (
     <div className="flex flex-col gap-2 p-4">
       {presets.map((p) => (
-        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-xl border border-hairline bg-white px-4 text-left hover:border-ink/40" style={p.style}>
+        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-xl border border-hairline bg-surface px-4 text-left hover:border-ink/40" style={p.style}>
           {p.label}
         </button>
       ))}
@@ -171,7 +231,7 @@ function TextPanel({ event, data, close }: PanelProps) {
             <button
               key={b.bind}
               type="button"
-              className="rounded-full border border-hairline bg-white px-3 py-1.5 text-sm hover:border-ink/40"
+              className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-sm hover:border-ink/40"
               onClick={() => add(displayText({ text: '', bind: b.bind }, data), latin ? 'Cormorant Garamond' : lang.fonts.body, 40, { bind: b.bind })}
             >
               {b.label}
@@ -242,7 +302,7 @@ function ElementsPanel({ close }: PanelProps) {
             { label: 'Ring', node: <div className="size-12 rounded-full ring-4 ring-[#C9973F]" />, run: () => addShape('ellipse', { fill: null, stroke: '#C9973F', strokeW: 8 }) },
             { label: 'Frame', node: <div className="h-12 w-10 ring-2 ring-[#C9973F]" />, run: () => addShape('rect', { fill: null, stroke: '#C9973F', strokeW: 5, w: 700, h: 1100, x: 190, y: 410 }) },
           ].map((s) => (
-            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-hairline bg-white text-xs font-semibold hover:border-ink/40">
+            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-xs font-semibold hover:border-ink/40">
               {s.node}
               {s.label}
             </button>
@@ -252,7 +312,7 @@ function ElementsPanel({ close }: PanelProps) {
         <ul className="grid grid-cols-3 gap-2.5">
           {STICKERS.filter((s) => s.category === cat).map((s) => (
             <li key={s.id}>
-              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-xl border border-hairline bg-white p-1.5 hover:border-ink/40">
+              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-xl border border-hairline bg-surface p-1.5 hover:border-ink/40">
                 <StickerPreview sticker={s} size={84} />
                 <span className="w-full truncate text-center text-[0.7rem] font-semibold text-ink-soft">{s.label}</span>
               </button>
@@ -284,7 +344,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
           const url = await pickImage();
           if (url) addPhoto(url);
         }}
-        className="flex h-12 items-center justify-center gap-2 rounded-full bg-ink font-semibold text-white"
+        className="flex h-12 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary"
       >
         <ImagePlus className="size-5" /> Upload a photo
       </button>
@@ -306,48 +366,6 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
   );
 }
 
-// ---------------------------------------------------------------- background
-
-function BackgroundPanel() {
-  const page = useEditor((s) => currentPage(s));
-  const [all, setAll] = useState(true);
-  if (!page) return null;
-  const bg = page.bg;
-  const set = (patch: Partial<typeof bg>) => useEditor.getState().setBackground(patch, all);
-  return (
-    <div className="flex flex-col">
-      <label className="flex items-center gap-2 px-4 pt-4 text-sm font-semibold">
-        <input type="checkbox" checked={all} onChange={(e) => setAll(e.target.checked)} className="size-4 accent-[#1E2250]" />
-        Apply to every page
-      </label>
-      <Section title="Colour themes">
-        <div className="grid grid-cols-6 gap-2">
-          {Object.entries(PALETTES).map(([k, p]) => (
-            <button
-              key={k}
-              type="button"
-              aria-label={k}
-              onClick={() => set({ color: p.background, color2: p.backgroundAlt, gradient: 'radial', patternColor: p.primary, patternAccent: p.accent })}
-              className="aspect-square rounded-full border border-black/10 shadow-sm"
-              style={{ background: `radial-gradient(circle at 35% 30%, ${p.background}, ${p.backgroundAlt})` }}
-            />
-          ))}
-        </div>
-      </Section>
-      <Section title="Main colour">
-        <ColorPicker value={bg.color} onChange={(c) => set({ color: c })} />
-      </Section>
-      <Section title="Blend">
-        <Seg label="Blend" value={bg.gradient} onChange={(v) => set({ gradient: v, color2: bg.color2 ?? bg.color })} options={[{ v: 'none', label: 'Solid' }, { v: 'radial', label: 'Glow' }, { v: 'linear', label: 'Fade' }]} />
-        {bg.gradient !== 'none' && <ColorPicker value={bg.color2 ?? bg.color} onChange={(c) => set({ color2: c })} />}
-      </Section>
-      <Section title="Pattern">
-        <Seg label="Pattern" value={bg.pattern} onChange={(v) => set({ pattern: v })} options={PATTERNS.map((p) => ({ v: p, label: p === 'none' ? 'None' : `${p[0]!.toUpperCase()}${p.slice(1)}` }))} />
-      </Section>
-    </div>
-  );
-}
-
 // ---------------------------------------------------------------- details
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
@@ -358,7 +376,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </label>
   );
 }
-const inputCls = 'h-12 rounded-xl border border-hairline bg-white px-3 text-base focus:border-ink focus:outline-none';
+const inputCls = 'h-12 rounded-xl border border-hairline bg-surface px-3 text-base focus:border-ink focus:outline-none';
 
 function DetailsPanel({ event, data, writer }: PanelProps) {
   const people = getEventType(event.type).primaryPeople;
@@ -443,10 +461,10 @@ function PagesPanel({ data, event }: PanelProps) {
         ))}
       </ul>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-white font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface font-semibold disabled:opacity-40">
           <Plus className="size-4" /> Add page
         </button>
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-white font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface font-semibold disabled:opacity-40">
           <Copy className="size-4" /> Duplicate
         </button>
       </div>
@@ -456,26 +474,38 @@ function PagesPanel({ data, event }: PanelProps) {
 
 function LayersPanel({ data }: PanelProps) {
   const page = useEditor((s) => currentPage(s));
-  const selected = useEditor((s) => s.selected);
+  const selection = useEditor((s) => s.selection);
   const s = useEditor.getState;
   if (!page) return null;
   const label = (e: DesignElement) => (e.type === 'text' ? displayText(e, data) || 'Text' : e.type === 'art' ? (ASSETS[e.asset]?.label ?? 'Artwork') : e.type === 'image' ? 'Photo' : e.shape === 'line' ? 'Line' : 'Shape');
   return (
-    <ul className="flex flex-col p-2">
+    <div className="flex flex-col p-2">
+      <p className="px-2 pb-2 text-xs text-ink-soft">Tick layers to select several, then group, align or move them together.</p>
+      <ul className="flex flex-col">
       {[...page.elements].reverse().map((e) => (
-        <li key={e.id} className={clsx('flex items-center gap-1 rounded-xl pr-1', selected === e.id && 'bg-mist')}>
-          <button type="button" onClick={() => s().select(e.id)} className={clsx('h-11 min-w-0 flex-1 truncate px-3 text-left text-sm', e.hidden && 'opacity-40')}>
+        <li key={e.id} className={clsx('flex items-center gap-1 rounded-xl pl-1 pr-1', selection.includes(e.id) && 'bg-mist')}>
+          <input
+            type="checkbox"
+            checked={selection.includes(e.id)}
+            disabled={e.locked}
+            onChange={() => s().select(e.id, { add: true, solo: true })}
+            aria-label={`Select ${label(e)}`}
+            className="size-4 shrink-0 accent-[var(--color-primary)]"
+          />
+          <button type="button" onClick={() => s().select(e.id)} className={clsx('h-11 min-w-0 flex-1 truncate px-2 text-left text-sm', e.hidden && 'opacity-40')}>
+            {e.group && <Group className="mr-1.5 inline size-3.5 align-[-2px] text-ink-soft" aria-label="Grouped" />}
             {label(e)}
           </button>
-          <button type="button" aria-label={e.hidden ? 'Show' : 'Hide'} className="grid size-9 place-items-center rounded-lg hover:bg-white" onClick={() => s().update(e.id, { hidden: !e.hidden })}>
+          <button type="button" aria-label={e.hidden ? 'Show' : 'Hide'} className="grid size-9 place-items-center rounded-lg hover:bg-surface" onClick={() => s().update(e.id, { hidden: !e.hidden })}>
             {e.hidden ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
           </button>
-          <button type="button" aria-label={e.locked ? 'Unlock' : 'Lock'} className="grid size-9 place-items-center rounded-lg hover:bg-white" onClick={() => s().update(e.id, { locked: !e.locked })}>
+          <button type="button" aria-label={e.locked ? 'Unlock' : 'Lock'} className="grid size-9 place-items-center rounded-lg hover:bg-surface" onClick={() => s().update(e.id, { locked: !e.locked })}>
             {e.locked ? <Lock className="size-4" /> : <Unlock className="size-4 text-ink-soft" />}
           </button>
         </li>
       ))}
-    </ul>
+      </ul>
+    </div>
   );
 }
 
@@ -490,7 +520,7 @@ export function ToolPanel({ tool, ...props }: PanelProps & { tool: ToolId }) {
     case 'photos':
       return <PhotosPanel {...props} />;
     case 'background':
-      return <BackgroundPanel />;
+      return <BackgroundPanel event={props.event} pickImage={props.pickImage} />;
     case 'details':
       return <DetailsPanel {...props} />;
     case 'pages':

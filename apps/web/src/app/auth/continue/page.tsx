@@ -1,19 +1,14 @@
 'use client';
 
-import type { MeResponse } from '@cardai/shared';
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { Logo } from '@/components/layout/site-header';
-import { PageSkeleton } from '@/components/ui/skeletons';
-import { CompleteAccount } from '@/features/auth/auth-flow';
 import { useNextTarget } from '@/features/auth/auth-page';
 import { useMe } from '@/lib/hooks';
 
-const complete = (u: MeResponse) => Boolean(u.phone && u.email && u.name);
-
 /**
- * Landing spot after the Google redirect: the session cookie is already set, so either finish
- * verifying the missing mobile number / email, or go straight on to where the user was headed.
+ * Legacy landing spot after Google sign-in (the API now redirects straight to `next`). Kept so
+ * old links keep working: go on if signed in, otherwise back to the login page.
  */
 function ContinueInner() {
   const router = useRouter();
@@ -22,28 +17,20 @@ function ContinueInner() {
 
   useEffect(() => {
     if (isLoading) return;
-    if (!me) router.replace(`/login?next=${encodeURIComponent(target)}`);
-    else if (complete(me)) router.replace(target);
+    router.replace(me ? target : `/login?next=${encodeURIComponent(target)}`);
   }, [isLoading, me, router, target]);
 
-  if (!me || complete(me)) {
-    return (
-      <div className="mx-auto mt-24 max-w-sm px-5" role="status" aria-label="Signing you in">
-        <PageSkeleton />
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto w-full max-w-[25rem] animate-fade-up px-5 pb-12 pt-10 sm:pt-20">
-      <CompleteAccount user={me} isNew={!me.phone} onDone={() => router.replace(target)} />
+    <div className="mt-32 flex flex-col items-center gap-4 text-ink-soft" role="status">
+      <span className="size-8 animate-spin rounded-full border-2 border-ink/15 border-t-ink" aria-hidden />
+      Signing you in…
     </div>
   );
 }
 
 export default function ContinuePage() {
   return (
-    <main className="min-h-dvh bg-white">
+    <main className="min-h-dvh bg-surface">
       <div className="px-5 py-4 sm:px-8">
         <Logo />
       </div>

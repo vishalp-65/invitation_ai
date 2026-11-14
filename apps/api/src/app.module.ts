@@ -17,6 +17,7 @@ import { PrintModule } from './modules/print/print.module.js';
 import { RendersModule } from './modules/renders/renders.module.js';
 import { SitesModule } from './modules/sites/sites.module.js';
 import { TemplatesModule } from './modules/templates/templates.module.js';
+import { UserTemplatesModule } from './modules/user-templates/user-templates.module.js';
 import { WhatsAppModule } from './modules/whatsapp/whatsapp.module.js';
 
 const isDev = process.env.NODE_ENV !== 'production';
@@ -45,6 +46,7 @@ const isDev = process.env.NODE_ENV !== 'production';
     WhatsAppModule,
     PrintModule,
     MarketplaceModule,
+    UserTemplatesModule,
   ],
   controllers: [HealthController],
   providers: [

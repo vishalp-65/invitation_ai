@@ -3,7 +3,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
+import { TooltipLayer } from '@/components/ui/tooltip';
 import { ApiError } from '@/lib/api';
+import { ThemeSync } from '@/lib/theme';
 
 export function Providers({ children }: { children: ReactNode }) {
   const [client] = useState(
@@ -20,11 +22,13 @@ export function Providers({ children }: { children: ReactNode }) {
   );
   return (
     <QueryClientProvider client={client}>
+      <ThemeSync />
+      <TooltipLayer />
       {children}
       <Toaster
         position="top-center"
         closeButton
-        toastOptions={{ className: 'glass-light !rounded-[22px] !border-0 !bg-white/75 !text-ink' }}
+        toastOptions={{ className: '!rounded-2xl !border !border-hairline !bg-surface !text-ink !shadow-lg' }}
       />
     </QueryClientProvider>
   );

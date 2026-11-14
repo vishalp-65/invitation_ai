@@ -10,7 +10,7 @@ import { ApiError } from '@/lib/api';
 import { buy } from '@/lib/checkout';
 import { qk } from '@/lib/hooks';
 
-const ORDER: ProductCode[] = ['combo', 'card', 'video', 'website', 'ai_clip', 'print'];
+const ORDER: ProductCode[] = ['combo', 'card', 'video', 'website', 'ai_clip', 'ai_backgrounds', 'print'];
 
 export function UpgradePanel({ event }: { event: EventDto }) {
   const qc = useQueryClient();
@@ -43,14 +43,14 @@ export function UpgradePanel({ event }: { event: EventDto }) {
           return (
             <li
               key={code}
-              className={`flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-ink text-white shadow-lift lg:row-span-2' : 'panel'}`}
+              className={`flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-primary text-on-primary shadow-lift lg:row-span-2' : 'panel'}`}
             >
               <h3 className="text-2xl">{p.name}</h3>
               <p className="mt-2 flex items-baseline gap-2">
                 <span className="font-display text-4xl">{formatINR(p.pricePaise)}</span>
                 {p.mrpPaise && <s className="opacity-60">{formatINR(p.mrpPaise)}</s>}
               </p>
-              <p className={`mt-3 ${p.highlight ? 'text-white/85' : 'text-ink-soft'}`}>{p.description}</p>
+              <p className={`mt-3 ${p.highlight ? 'opacity-85' : 'text-ink-soft'}`}>{p.description}</p>
               <div className="mt-auto pt-6">
                 {owned ? (
                   <p className="flex items-center gap-2 font-semibold">
@@ -68,6 +68,9 @@ export function UpgradePanel({ event }: { event: EventDto }) {
                 )}
                 {code === 'ai_clip' && event.credits.ai_clip ? (
                   <p className="mt-2 text-sm">{event.credits.ai_clip} credit available</p>
+                ) : null}
+                {code === 'ai_backgrounds' && event.credits.ai_background ? (
+                  <p className="mt-2 text-sm">{event.credits.ai_background} AI backgrounds available</p>
                 ) : null}
               </div>
             </li>

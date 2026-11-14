@@ -48,11 +48,11 @@ export function OutputsBento({ eyebrow, title, card, video, site }: { eyebrow: s
             <div className="relative w-[50%] overflow-hidden rounded-t-xl sm:w-[70%]">
               <Image src="/showcase/varmala-maroon.jpg" alt="Video invite example" width={432} height={768} sizes="160px" className="aspect-[9/12] w-full object-cover object-top" />
               <div className="absolute inset-x-2.5 bottom-2.5 flex items-center gap-2">
-                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-white text-ink">
+                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-surface text-ink">
                   <Play className="size-3 fill-current" aria-hidden />
                 </span>
-                <span className="h-1 flex-1 overflow-hidden rounded-full bg-white/40">
-                  <span className="block h-full w-[62%] rounded-full bg-white" />
+                <span className="h-1 flex-1 overflow-hidden rounded-full bg-surface/40">
+                  <span className="block h-full w-[62%] rounded-full bg-surface" />
                 </span>
               </div>
             </div>
@@ -92,7 +92,7 @@ function SiteMock() {
           ['04', 'Min'],
           ['51', 'Sec'],
         ].map(([v, l]) => (
-          <div key={l} className="rounded-lg bg-white/10 py-1">
+          <div key={l} className="rounded-lg bg-surface/10 py-1">
             <p className="font-display text-base leading-none">{v}</p>
             <p className="text-[0.55rem] text-white/70">{l}</p>
           </div>

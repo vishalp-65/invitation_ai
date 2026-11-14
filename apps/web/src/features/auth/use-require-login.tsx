@@ -6,7 +6,7 @@ import { useMe } from '@/lib/hooks';
 import { AuthFlow } from './auth-flow';
 
 /**
- * Lets users do everything anonymously and only asks for a phone number at the moment it is
+ * Lets users do everything anonymously and only asks them to sign in (email or Google) at the moment it is
  * needed (AI, saving). Returns `ensureLogin()` and the dialog element to render.
  */
 export function useRequireLogin(reason = 'Sign in to continue') {

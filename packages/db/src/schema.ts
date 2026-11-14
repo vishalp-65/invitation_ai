@@ -439,3 +439,21 @@ export const musicTracks = pgTable('music_tracks', {
   license: text().notNull(),
   active: boolean().notNull().default(true),
 });
+
+// ---------------- User templates ("Save as my template") ----------------
+
+export const userTemplates = pgTable(
+  'user_templates',
+  {
+    id: id(),
+    userId: uuid()
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    name: text().notNull(),
+    /** Event type it was saved from (lists it first for the same kind of invitation). */
+    eventType: text(),
+    design: jsonb().$type<DesignDoc>().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('user_templates_user_idx').on(t.userId, t.createdAt)],
+);

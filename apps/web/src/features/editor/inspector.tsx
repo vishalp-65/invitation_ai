@@ -3,6 +3,11 @@
 import {
   ATTIRES,
   bindingInfo,
+  curvedTextPath,
+  type MediaAssetDto,
+  IMAGE_FILTERS,
+  imageFilterCss,
+  type ImageFilter,
   COUPLE_STYLES,
   displayText,
   EDITOR_FONTS,
@@ -19,8 +24,25 @@ import { ASSETS, loadFamily } from '@cardai/templates';
 import { clsx } from 'clsx';
 import {
   AlignCenter,
+  AlignCenterHorizontal,
+  AlignCenterVertical,
+  AlignEndHorizontal,
+  AlignEndVertical,
   AlignLeft,
   AlignRight,
+  AlignStartHorizontal,
+  AlignStartVertical,
+  AlignHorizontalSpaceAround,
+  AlignVerticalSpaceAround,
+  Copy,
+  Crop,
+  Eraser,
+  Group,
+  Loader2,
+  RotateCcw,
+  Trash2,
+  Ungroup,
+  SlidersHorizontal,
   ArrowDownToLine,
   ArrowUpToLine,
   Bold,
@@ -40,17 +62,25 @@ import {
   Palette,
   PencilLine,
   Sparkles,
+  Spline,
   Square,
   Type,
   Unlock,
   Wand2,
+  X,
   type LucideIcon,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState, type ReactNode } from 'react';
-import { ColorPicker, Section, Seg, Slider, useOnVisible } from './controls';
-import { currentPage, useEditor } from './store';
+import { toast } from 'sonner';
+import { useEventMedia } from '@/features/event/use-event-props';
+import { api, ApiError } from '@/lib/api';
+import { tip } from '@/components/ui/tooltip';
+import { ColorPicker, NumberField, Section, Seg, Slider, useOnVisible } from './controls';
+import { currentPage, selectedElements, useEditor, type AlignTo } from './store';
 
 export interface InspectorCtx {
+  eventId: string;
   data: DesignData | null;
   language: string;
   /** Saves edited text (writes through to event data when linked). */
@@ -113,7 +143,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
         </div>
       )}
       {isDate ? (
-        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-xl border border-hairline bg-white px-4 text-left font-semibold">
+        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-xl border border-hairline bg-surface px-4 text-left font-semibold">
           {shown}
           <PencilLine className="size-4" />
         </button>
@@ -124,14 +154,14 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
             onChange={(e) => setValue(e.target.value)}
             rows={Math.min(6, Math.max(2, value.split('\n').length + 1))}
             dir="auto"
-            className="w-full rounded-xl border border-hairline bg-white p-3 text-base leading-snug focus:border-ink focus:outline-none"
+            className="w-full rounded-xl border border-hairline bg-surface p-3 text-base leading-snug focus:border-ink focus:outline-none"
             aria-label="Text"
           />
           <button
             type="button"
             disabled={value === shown}
             onClick={() => ctx.commitText(el, value)}
-            className="h-11 rounded-full bg-ink font-semibold text-white disabled:opacity-40"
+            className="h-11 rounded-full bg-primary font-semibold text-on-primary disabled:opacity-40"
           >
             Update text
           </button>
@@ -163,7 +193,7 @@ function FontRow({ family, selected, supported, onPick }: { family: string; sele
       type="button"
       onClick={onPick}
       aria-pressed={selected}
-      className={clsx('flex h-12 w-full items-center justify-between rounded-xl px-3 text-left transition-colors', selected ? 'bg-ink text-white' : 'hover:bg-mist', !supported && 'opacity-45')}
+      className={clsx('flex h-12 w-full items-center justify-between rounded-xl px-3 text-left transition-colors', selected ? 'bg-primary text-on-primary' : 'hover:bg-mist', !supported && 'opacity-45')}
     >
       <span style={{ fontFamily: ready ? `"${family}"` : undefined, fontSize: 20 }} className="truncate">
         {family}
@@ -181,7 +211,7 @@ function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
   const groups = [...new Set(fonts.map((f) => f.group))].sort((a, b) => (script !== 'Latn' ? (a === 'indic' ? -1 : b === 'indic' ? 1 : 0) : 0));
   return (
     <div className="flex flex-col gap-3">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className="h-11 rounded-xl border border-hairline bg-white px-3" aria-label="Search fonts" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className="h-11 rounded-xl border border-hairline bg-surface px-3" aria-label="Search fonts" />
       {groups.map((g) => (
         <div key={g}>
           <p className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-soft">{GROUP_LABEL[g]}</p>
@@ -209,7 +239,7 @@ function TextSize({ el }: { el: TextElement }) {
 function TextFormat({ el }: { el: TextElement }) {
   const toggle = (on: boolean, patch: Partial<TextElement>, off: Partial<TextElement>) => up(el.id, on ? off : patch);
   const btn = (active: boolean, label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" aria-pressed={active} aria-label={label} title={label} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-xl border', active ? 'border-ink bg-ink text-white' : 'border-hairline bg-white')}>
+    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-xl border transition-colors', active ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface hover:border-ink/40')}>
       {icon}
     </button>
   );
@@ -242,6 +272,32 @@ function TextEffects({ el, colors }: { el: TextElement; colors: string[] }) {
         ]}
       />
       {(el.effect === 'glow' || el.effect === 'outline') && <ColorPicker value={el.effectColor ?? el.color} onChange={(c) => up(el.id, { effectColor: c })} docColors={colors} />}
+    </div>
+  );
+}
+
+function TextCurve({ el }: { el: TextElement }) {
+  const set = (v: number) => {
+    if (!v) return up(el.id, { curve: undefined, fit: false } as Partial<TextElement>);
+    // Curved text is one line in a fixed box sized to the arc.
+    const { height } = curvedTextPath(el.w, el.size, v);
+    up(el.id, { curve: v, fit: true, h: Math.round(height) } as Partial<TextElement>);
+  };
+  return (
+    <div className="flex flex-col gap-3">
+      <Slider label="Curve" min={-100} max={100} value={el.curve ?? 0} onChange={set} />
+      <Seg
+        label="Curve presets"
+        value={String(el.curve ?? 0)}
+        onChange={(v) => set(Number(v))}
+        options={[
+          { v: '0', label: 'Straight' },
+          { v: '35', label: 'Arch' },
+          { v: '70', label: 'Rainbow' },
+          { v: '-35', label: 'Smile' },
+        ]}
+      />
+      {el.curve ? <p className="text-xs text-ink-soft">Curved text stays on one line. Widen the box to open the curve.</p> : null}
     </div>
   );
 }
@@ -313,6 +369,40 @@ function ArtColors({ el, colors }: { el: ArtElement; colors: string[] }) {
   );
 }
 
+function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) {
+  const qc = useQueryClient();
+  const { data: media } = useEventMedia(ctx.eventId);
+  const [busy, setBusy] = useState(false);
+  const src = el.src;
+  if (!src) return null;
+  const asset = media?.find((m) => m.url === src || m.url.split('?')[0] === src.split('?')[0]);
+  return (
+    <button
+      type="button"
+      disabled={busy || !asset}
+      {...tip(asset ? 'Cut out the person, remove the background' : 'Works on photos uploaded to this invitation')}
+      onClick={async () => {
+        if (!asset) return;
+        setBusy(true);
+        try {
+          const out = await api<MediaAssetDto>('/ai/images', { method: 'POST', json: { eventId: ctx.eventId, kind: 'portrait', sourceAssetId: asset.id } });
+          up(el.id, { src: out.url, bind: undefined, borderW: 0 } as Partial<ImageElement>);
+          toast.success('Background removed', { description: 'Undo brings the original back.' });
+          void qc.invalidateQueries({ queryKey: ['events', ctx.eventId, 'media'] });
+        } catch (e) {
+          toast.error(e instanceof ApiError ? e.message : 'Could not remove the background. Try again.');
+        } finally {
+          setBusy(false);
+        }
+      }}
+      className="flex h-11 items-center justify-center gap-2 rounded-full border border-hairline bg-surface font-semibold transition-colors hover:border-ink/40 disabled:opacity-50"
+    >
+      {busy ? <Loader2 className="size-4 animate-spin" /> : <Eraser className="size-4" />}
+      {busy ? 'Removing background…' : 'Remove background'}
+    </button>
+  );
+}
+
 function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; colors: string[] }) {
   return (
     <div className="flex flex-col gap-4">
@@ -322,13 +412,73 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
           const url = await ctx.pickImage();
           if (url) up(el.id, { src: url, bind: undefined } as Partial<ImageElement>);
         }}
-        className="flex h-11 items-center justify-center gap-2 rounded-full bg-ink font-semibold text-white"
+        className="flex h-11 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary"
       >
         <ImageUp className="size-4" /> {el.src || el.bind ? 'Replace photo' : 'Add photo'}
       </button>
+      <RemoveBackground el={el} ctx={ctx} />
       <Seg label="Shape" value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'arch', label: 'Arch' }]} />
       <Slider label="Border" min={0} max={40} value={el.borderW} onChange={(v) => up(el.id, { borderW: v })} />
       {el.borderW > 0 && <ColorPicker value={el.border ?? '#FFFFFF'} onChange={(c) => up(el.id, { border: c })} docColors={colors} />}
+    </div>
+  );
+}
+
+const FILTER_LABEL: Record<ImageFilter, string> = { none: 'Original', warm: 'Warm', cool: 'Cool', vivid: 'Vivid', fade: 'Fade', mono: 'B&W', sepia: 'Sepia', noir: 'Noir' };
+
+function ImageFilters({ el }: { el: ImageElement }) {
+  const src = el.src ?? null;
+  return (
+    <ul className="grid grid-cols-4 gap-2">
+      {IMAGE_FILTERS.map((f) => (
+        <li key={f}>
+          <button type="button" onClick={() => up(el.id, { filter: f } as Partial<ImageElement>)} aria-pressed={(el.filter ?? 'none') === f} className="group flex w-full flex-col items-center gap-1 text-xs font-semibold text-ink-soft aria-pressed:text-ink">
+            <span className="block aspect-square w-full overflow-hidden rounded-lg bg-mist ring-offset-2 ring-offset-surface group-aria-pressed:ring-2 group-aria-pressed:ring-primary">
+              {src ? (
+                // eslint-disable-next-line @next/next/no-img-element -- tiny live preview
+                <img src={src} alt="" loading="lazy" className="size-full object-cover" style={{ filter: imageFilterCss({ filter: f }) }} />
+              ) : (
+                <span className="block size-full bg-[linear-gradient(135deg,#f4c27a,#c2185b_60%,#3949ab)]" style={{ filter: imageFilterCss({ filter: f }) }} />
+              )}
+            </span>
+            {FILTER_LABEL[f]}
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ImageAdjust({ el }: { el: ImageElement }) {
+  const touched = (el.bright ?? 1) !== 1 || (el.contrast ?? 1) !== 1 || (el.sat ?? 1) !== 1;
+  return (
+    <div className="flex flex-col gap-4">
+      <Slider label="Brightness" min={-80} max={80} value={Math.round(((el.bright ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { bright: 1 + v / 100 } as Partial<ImageElement>)} />
+      <Slider label="Contrast" min={-80} max={80} value={Math.round(((el.contrast ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { contrast: 1 + v / 100 } as Partial<ImageElement>)} />
+      <Slider label="Saturation" min={-100} max={150} value={Math.round(((el.sat ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { sat: 1 + v / 100 } as Partial<ImageElement>)} />
+      {touched && (
+        <button type="button" className="flex items-center gap-1.5 self-start text-sm font-semibold text-ink-soft hover:text-ink" onClick={() => up(el.id, { bright: 1, contrast: 1, sat: 1 } as Partial<ImageElement>)}>
+          <RotateCcw className="size-4" /> Reset adjustments
+        </button>
+      )}
+    </div>
+  );
+}
+
+function ImageCrop({ el }: { el: ImageElement }) {
+  return (
+    <div className="flex flex-col gap-4">
+      <Slider label="Zoom" min={100} max={400} value={Math.round((el.zoom ?? 1) * 100)} suffix="%" onChange={(v) => up(el.id, { zoom: v / 100 } as Partial<ImageElement>)} />
+      <Slider label="Left – right" min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
+      <Slider label="Up – down" min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
+      <div className="flex gap-2">
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
+          <FlipHorizontal2 className="size-4" /> Mirror
+        </button>
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
+          <RotateCcw className="size-4" /> Reset
+        </button>
+      </div>
     </div>
   );
 }
@@ -355,19 +505,43 @@ function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
 function Arrange({ el }: { el: DesignElement }) {
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-xl border border-hairline bg-white px-3 text-sm font-semibold hover:border-ink/40">
+    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
       {icon}
       {label}
     </button>
   );
+  const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
+    <button type="button" disabled={el.locked} onClick={() => s().align(el.id, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40 disabled:opacity-40">
+      <Icon className="size-[1.1rem]" />
+    </button>
+  );
+  const num = (label: string, key: 'x' | 'y' | 'w' | 'h', min: number) => (
+    <NumberField label={label} value={Math.round(el[key])} min={min} disabled={el.locked} onChange={(v) => up(el.id, { [key]: v, ...(key === 'h' && el.type === 'text' ? { fit: true } : {}) } as Partial<DesignElement>)} />
+  );
   return (
     <div className="flex flex-col gap-4">
+      <div>
+        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Align to page</p>
+        <div className="grid grid-cols-6 gap-1.5">
+          {al('left', 'Align left', AlignStartVertical)}
+          {al('hcenter', 'Align centre', AlignCenterVertical)}
+          {al('right', 'Align right', AlignEndVertical)}
+          {al('top', 'Align top', AlignStartHorizontal)}
+          {al('vcenter', 'Align middle', AlignCenterHorizontal)}
+          {al('bottom', 'Align bottom', AlignEndHorizontal)}
+        </div>
+      </div>
+      <div className="grid grid-cols-4 gap-2">
+        {num('X', 'x', -4000)}
+        {num('Y', 'y', -4000)}
+        {num('W', 'w', 1)}
+        {num('H', 'h', 1)}
+      </div>
       <div className="grid grid-cols-2 gap-2">
         {btn('Forward', <ChevronUp className="size-4" />, () => s().arrange(el.id, 'forward'))}
         {btn('Backward', <ChevronDown className="size-4" />, () => s().arrange(el.id, 'backward'))}
         {btn('To front', <ArrowUpToLine className="size-4" />, () => s().arrange(el.id, 'front'))}
         {btn('To back', <ArrowDownToLine className="size-4" />, () => s().arrange(el.id, 'back'))}
-        {btn('Centre across', <AlignCenter className="size-4" />, () => up(el.id, { x: Math.round(540 - el.w / 2) }))}
         {btn(el.locked ? 'Unlock' : 'Lock', el.locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => up(el.id, { locked: !el.locked }))}
       </div>
       <Slider label="Transparency" min={0} max={100} value={Math.round((1 - el.opacity) * 100)} suffix="%" onChange={(v) => up(el.id, { opacity: 1 - v / 100 })} />
@@ -415,6 +589,7 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
         { id: 'size', label: 'Size', icon: Square, render: () => <TextSize el={el} /> },
         { id: 'format', label: 'Format', icon: Bold, render: () => <TextFormat el={el} /> },
         { id: 'effects', label: 'Effects', icon: Sparkles, render: () => <TextEffects el={el} colors={colors} /> },
+        { id: 'curve', label: 'Curve', icon: Spline, render: () => <TextCurve el={el} /> },
         ...common,
       ];
     case 'art':
@@ -427,10 +602,10 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
           icon: FlipHorizontal2,
           render: () => (
             <div className="flex gap-2">
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-white font-semibold" onClick={() => up(el.id, { flipX: !el.flipX })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipX: !el.flipX })}>
                 <FlipHorizontal2 className="size-4" /> Left–right
               </button>
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-white font-semibold" onClick={() => up(el.id, { flipY: !el.flipY })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipY: !el.flipY })}>
                 <FlipVertical2 className="size-4" /> Up–down
               </button>
             </div>
@@ -439,19 +614,50 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
         ...common,
       ];
     case 'image':
-      return [{ id: 'photo', label: 'Photo', icon: ImageUp, render: () => <ImageShape el={el} ctx={ctx} colors={colors} /> }, ...common];
+      return [
+        { id: 'photo', label: 'Photo', icon: ImageUp, render: () => <ImageShape el={el} ctx={ctx} colors={colors} /> },
+        { id: 'filters', label: 'Filters', icon: Sparkles, render: () => <ImageFilters el={el} /> },
+        { id: 'adjust', label: 'Adjust', icon: SlidersHorizontal, render: () => <ImageAdjust el={el} /> },
+        { id: 'crop', label: 'Crop', icon: Crop, render: () => <ImageCrop el={el} /> },
+        ...common,
+      ];
     case 'shape':
       return [{ id: 'style', label: 'Style', icon: Droplet, render: () => <ShapeStyle el={el} colors={colors} /> }, ...common];
   }
 }
 
-/** Desktop inspector: every section stacked. */
-export function InspectorPanel({ sections, title }: { sections: InspectorSection[]; title: string }) {
+/** Desktop inspector: every section stacked; each can be collapsed (remembered per section). */
+export function InspectorPanel({ sections, title, onClose }: { sections: InspectorSection[]; title: string; onClose?: () => void }) {
+  const [closed, setClosed] = useState<Set<string>>(() => {
+    try {
+      return new Set(JSON.parse(localStorage.getItem('cardai-inspector-closed') ?? '[]') as string[]);
+    } catch {
+      return new Set();
+    }
+  });
+  const toggle = (id: string) => {
+    const next = new Set(closed);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setClosed(next);
+    try {
+      localStorage.setItem('cardai-inspector-closed', JSON.stringify([...next]));
+    } catch {
+      /* storage blocked */
+    }
+  };
   return (
     <div>
-      <p className="px-4 pt-4 text-lg font-semibold">{title}</p>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface/95 px-4 py-3 backdrop-blur">
+        <p className="font-semibold">{title}</p>
+        {onClose && (
+          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Deselect', 'Esc', 'left')}>
+            <X className="size-4" />
+          </button>
+        )}
+      </div>
       {sections.map((s) => (
-        <Section key={s.id} title={s.label}>
+        <Section key={s.id} title={s.label} collapsed={closed.has(s.id)} onToggle={() => toggle(s.id)}>
           {s.render()}
         </Section>
       ))}
@@ -459,3 +665,88 @@ export function InspectorPanel({ sections, title }: { sections: InspectorSection
   );
 }
 
+
+// ---------------------------------------------------------------- multi-selection
+
+function MultiArrange({ ids }: { ids: string[] }) {
+  const s = useEditor.getState;
+  const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
+    <button type="button" onClick={() => s().alignMany(ids, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40">
+      <Icon className="size-[1.1rem]" />
+    </button>
+  );
+  return (
+    <div className="flex flex-col gap-4">
+      <div>
+        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Align to each other</p>
+        <div className="grid grid-cols-6 gap-1.5">
+          {al('left', 'Align left edges', AlignStartVertical)}
+          {al('hcenter', 'Align centres', AlignCenterVertical)}
+          {al('right', 'Align right edges', AlignEndVertical)}
+          {al('top', 'Align tops', AlignStartHorizontal)}
+          {al('vcenter', 'Align middles', AlignCenterHorizontal)}
+          {al('bottom', 'Align bottoms', AlignEndHorizontal)}
+        </div>
+      </div>
+      <div>
+        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Space evenly</p>
+        <div className="grid grid-cols-2 gap-2">
+          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'x')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40 disabled:opacity-40">
+            <AlignHorizontalSpaceAround className="size-4" /> Across
+          </button>
+          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'y')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40 disabled:opacity-40">
+            <AlignVerticalSpaceAround className="size-4" /> Down
+          </button>
+        </div>
+        {ids.length < 3 && <p className="mt-1.5 text-xs text-ink-soft">Select 3 or more to space them evenly.</p>}
+      </div>
+      <div className="grid grid-cols-2 gap-2">
+        <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+          <ArrowUpToLine className="size-4" /> To front
+        </button>
+        <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+          <ArrowDownToLine className="size-4" /> To back
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MultiActions({ ids, grouped, locked }: { ids: string[]; grouped: boolean; locked: boolean }) {
+  const s = useEditor.getState;
+  const btn = (label: string, icon: ReactNode, onClick: () => void, danger = false) => (
+    <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40', danger && 'text-sindoor')}>
+      {icon}
+      {label}
+    </button>
+  );
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {grouped ? btn('Ungroup', <Ungroup className="size-4" />, () => s().ungroup(ids)) : btn('Group', <Group className="size-4" />, () => s().group(ids))}
+      {btn('Duplicate', <Copy className="size-4" />, () => s().duplicateMany(ids))}
+      {btn(locked ? 'Unlock all' : 'Lock all', locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => s().updateMany(Object.fromEntries(ids.map((id) => [id, { locked: !locked }]))))}
+      {btn('Delete', <Trash2 className="size-4" />, () => s().removeMany(ids), true)}
+    </div>
+  );
+}
+
+/** Sections shown when several layers are selected. */
+export function useMultiSections(): { sections: InspectorSection[]; count: number; grouped: boolean } {
+  const selection = useEditor((s) => s.selection);
+  const doc = useEditor((s) => s.doc);
+  const page = useEditor((s) => s.page);
+  const els = useMemo(() => (selection.length > 1 ? selectedElements({ doc, page, selection }) : NO_ELS), [selection, doc, page]);
+  if (els.length < 2) return { sections: [], count: 0, grouped: false };
+  const ids = els.map((e) => e.id);
+  const grouped = els.every((e) => e.group && e.group === els[0]!.group);
+  const locked = els.every((e) => e.locked);
+  return {
+    count: els.length,
+    grouped,
+    sections: [
+      { id: 'group', label: grouped ? 'Group' : 'Selection', icon: Group, render: () => <MultiActions ids={ids} grouped={grouped} locked={locked} /> },
+      { id: 'arrange', label: 'Arrange', icon: Layers, render: () => <MultiArrange ids={ids} /> },
+    ],
+  };
+}
+const NO_ELS: DesignElement[] = [];

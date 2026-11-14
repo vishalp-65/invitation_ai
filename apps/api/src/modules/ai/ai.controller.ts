@@ -46,6 +46,11 @@ export class AiController {
     return this.ai.generateImage(user, body);
   }
 
+  @Get('quota/:id')
+  quota(@CurrentUser() user: AuthUser, @UuidParam('id') id: string) {
+    return this.ai.imageQuota(user, id);
+  }
+
   @Post('clips')
   @RateLimit({ limit: 3, windowSec: 300 })
   clip(@CurrentUser() user: AuthUser, @ZBody(generateClipSchema) body: GenerateClipInput) {
