@@ -1,15 +1,24 @@
-import { planVideoScenes, type InviteProps } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, buildDesign, designDataFrom, planVideoScenes, type InviteProps } from '@cardai/shared';
 import type { ComponentType } from 'react';
 import { Composition, Still } from 'remotion';
 import { COMPOSITIONS } from '../compositions';
 import { InviteCard } from '../InviteCard';
 import { InviteVideo } from '../InviteVideo';
+import { DesignCard, DesignVideo, planDesignVideo, type DesignRenderProps } from '../design/compositions';
 import { sampleInviteProps } from '../sample';
 
 const defaultProps = sampleInviteProps();
 // Remotion's generic props typing is stricter than our serialisable InviteProps.
 const Card = InviteCard as ComponentType<Record<string, unknown>>;
 const Video = InviteVideo as ComponentType<Record<string, unknown>>;
+const DCard = DesignCard as ComponentType<Record<string, unknown>>;
+const DVideo = DesignVideo as ComponentType<Record<string, unknown>>;
+
+const designDefaults: DesignRenderProps = (() => {
+  const template = BUILTIN_TEMPLATES.find((t) => t.design) ?? BUILTIN_TEMPLATES[0]!;
+  const data = designDataFrom({ content: defaultProps.content, functions: [{ name: 'Wedding', startsAt: '2026-12-14T19:00:00+05:30', venueName: 'Rambagh Palace', venueAddress: 'Jaipur' }], language: 'en', eventType: 'wedding' });
+  return { design: buildDesign({ template, data, language: 'en', eventType: 'wedding' }), data, language: 'en', page: 0, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null };
+})();
 
 export function RemotionRoot() {
   return (
@@ -33,6 +42,21 @@ export function RemotionRoot() {
         calculateMetadata={({ props }) => ({
           durationInFrames: planVideoScenes(props as InviteProps, COMPOSITIONS.video.fps).durationInFrames,
         })}
+      />
+      <Still id={COMPOSITIONS.designCard.id} component={DCard} width={COMPOSITIONS.designCard.width} height={COMPOSITIONS.designCard.height} defaultProps={designDefaults} />
+      <Still id={COMPOSITIONS.designCardPrint.id} component={DCard} width={COMPOSITIONS.designCardPrint.width} height={COMPOSITIONS.designCardPrint.height} defaultProps={designDefaults} />
+      <Composition
+        id={COMPOSITIONS.designVideo.id}
+        component={DVideo}
+        width={COMPOSITIONS.designVideo.width}
+        height={COMPOSITIONS.designVideo.height}
+        fps={COMPOSITIONS.designVideo.fps}
+        durationInFrames={300}
+        defaultProps={designDefaults}
+        calculateMetadata={({ props }) => {
+          const p = props as unknown as DesignRenderProps;
+          return { durationInFrames: planDesignVideo(p.design, COMPOSITIONS.designVideo.fps, Boolean(p.aiClipUrl)).durationInFrames };
+        }}
       />
     </>
   );

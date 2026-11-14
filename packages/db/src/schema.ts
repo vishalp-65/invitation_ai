@@ -1,4 +1,5 @@
 import type {
+  DesignDoc,
   EventContent,
   EventSettings,
   Feature,
@@ -125,6 +126,8 @@ export const events = pgTable(
     title: text().notNull(),
     content: jsonb().$type<EventContent>().notNull(),
     settings: jsonb().$type<EventSettings>().notNull(),
+    /** Layered card design from the editor (null = auto-built from the template). */
+    design: jsonb().$type<DesignDoc>(),
     viewCount: integer().notNull().default(0),
     publishedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),

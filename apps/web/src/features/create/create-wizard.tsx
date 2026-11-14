@@ -1,26 +1,25 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, planCardPages, type EventDto, type EventTypeId } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, type EventDto, type EventTypeId } from '@cardai/shared';
 import { Check, ChevronLeft, ChevronRight, Eye } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
-import { InvitePlayer } from '@/components/invite/lazy-player';
+import { DesignView } from '@/components/design/design-view';
 import { Button } from '@/components/ui/button';
-import { Chip } from '@/components/ui/field';
 import { Dialog } from '@/components/ui/dialog';
 import { useRequireLogin } from '@/features/auth/use-require-login';
 import { api, ApiError } from '@/lib/api';
 import { defaultWording } from './default-wording';
 import { toIso, useDraft } from './draft-store';
 import { StepDesign } from './step-design';
-import { StepDetails } from './step-details';
-import { StepFunctions } from './step-functions';
 import { StepOccasion } from './step-occasion';
-import { useDraftProps } from './use-draft-props';
+import { StepQuick } from './step-quick';
+import { useDraftDesign } from './use-draft-design';
 
-const STEPS = ['stepEvent', 'stepDetails', 'stepFunctions', 'stepDesign'] as const;
+/** Occasion → names, date, venue → design → editor (everything else is edited on the card). */
+const STEPS = ['stepEvent', 'stepDetails', 'stepDesign'] as const;
 
 export function CreateWizard() {
   const t = useTranslations('wizard');
@@ -55,7 +54,11 @@ export function CreateWizard() {
   const last = step === STEPS.length - 1;
 
   function canContinue(): string | null {
-    if (step === 2 && d.functions.some((f) => !f.name || !f.venueName || !f.date)) return 'Fill the name, date and venue for every function.';
+    if (step === 1) {
+      const people = getEventType(d.type).primaryPeople;
+      if (d.names.slice(0, people).some((n) => !n.trim())) return people === 2 ? 'Add both names.' : 'Add the name.';
+      if (d.functions.some((f) => !f.date || !f.venueName.trim())) return 'Add the date and venue.';
+    }
     return null;
   }
 
@@ -91,9 +94,9 @@ export function CreateWizard() {
       });
       // Publish right away so the website link works when shared; the user can unpublish.
       await api(`/events/${event.id}/publish`, { method: 'POST' });
-      await api('/renders', { method: 'POST', json: { eventId: event.id, format: 'image' } });
       d.reset();
-      router.push(`/dashboard/events/${event.id}?created=1`);
+      // Straight into the editor: tap any text, colour or picture to change it.
+      router.push(`/editor/${event.id}`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Could not create the invitation. Try again.');
     } finally {
@@ -150,9 +153,8 @@ export function CreateWizard() {
 
         <div key={step} className="animate-fade-up">
           {step === 0 && <StepOccasion />}
-          {step === 1 && <StepDetails />}
-          {step === 2 && <StepFunctions />}
-          {step === 3 && <StepDesign />}
+          {step === 1 && <StepQuick />}
+          {step === 2 && <StepDesign />}
         </div>
 
         {/* Action bar: a floating dock on phones (thumb-reachable), inline on desktop. Solid, no blur. */}
@@ -208,33 +210,23 @@ export function CreateWizard() {
 
 function LivePreview() {
   const d = useDraft();
-  const props = useDraftProps(d);
-  const [mode, setMode] = useState<'card' | 'video'>('card');
+  const { doc, data } = useDraftDesign(d);
   const [page, setPage] = useState(0);
-  const pages = planCardPages(props).length;
-  const current = Math.min(page, pages - 1);
+  const current = Math.min(page, doc.pages.length - 1);
 
   return (
     <div>
-      <div className="mb-3 flex gap-2" role="tablist">
-        <Chip selected={mode === 'card'} onClick={() => setMode('card')} role="tab" aria-selected={mode === 'card'}>
-          Card
-        </Chip>
-        <Chip selected={mode === 'video'} onClick={() => setMode('video')} role="tab" aria-selected={mode === 'video'}>
-          Video
-        </Chip>
-      </div>
-      <InvitePlayer props={{ ...props, page: current }} mode={mode} className="shadow-[var(--shadow-soft)]" />
-      {mode === 'card' && pages > 1 && (
+      <DesignView page={doc.pages[current]!} data={data} language={d.language} className="overflow-hidden rounded-[18px] shadow-[var(--shadow-lift)]" />
+      {doc.pages.length > 1 && (
         <div className="mt-3 flex items-center justify-center gap-2">
-          {Array.from({ length: pages }, (_, i) => (
+          {doc.pages.map((p, i) => (
             <button
-              key={i}
+              key={p.id}
               type="button"
               onClick={() => setPage(i)}
               aria-label={`Page ${i + 1}`}
               aria-current={i === current}
-              className="h-2 w-2 rounded-full bg-line transition-[width,background-color] duration-300 aria-[current=true]:w-5 aria-[current=true]:bg-ink"
+              className="size-3 rounded-full bg-line aria-[current=true]:bg-ink"
             />
           ))}
         </div>

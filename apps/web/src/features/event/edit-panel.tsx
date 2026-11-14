@@ -18,18 +18,7 @@ import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { api, ApiError } from '@/lib/api';
 import { qk, useTemplates } from '@/lib/hooks';
 import { useEventMedia } from './use-event-props';
-
-async function uploadPhoto(eventId: string, file: File): Promise<MediaAssetDto> {
-  const type = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) throw new Error('Use a JPG, PNG or WebP photo');
-  const { assetId, uploadUrl, headers } = await api<{ assetId: string; uploadUrl: string; headers: Record<string, string> }>(
-    '/media/presign',
-    { method: 'POST', json: { eventId, contentType: type, bytes: file.size } },
-  );
-  const put = await fetch(uploadUrl, { method: 'PUT', headers, body: file });
-  if (!put.ok) throw new Error('Upload failed. Check your connection and try again.');
-  return api<MediaAssetDto>(`/media/${assetId}/complete`, { method: 'POST' });
-}
+import { uploadPhoto } from '@/lib/upload';
 
 export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();

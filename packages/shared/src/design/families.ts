@@ -276,7 +276,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
     chrome: (ctx) => ({
       bg: radial(ctx),
       under: [
-        artEl('wreath', W / 2 - 470, 120, 940, 940, ['#7A9A6B', ctx.p.accent], { locked: true, opacity: 0.85 }),
+        artEl('wreath', W / 2 - 470, 120, 940, 940, ['#7A9A6B', ctx.p.accent], { locked: true, opacity: 0.32 }),
         ...bottomPair('floral-cluster', 360, [], { kind: 'jasmine' }, 30),
       ],
     }),

@@ -1,4 +1,5 @@
 import type { Community, EventTypeId } from '../constants/event-types.js';
+import { DESIGN_FAMILIES, type DesignFamily } from '../design/families.js';
 import { decorSchema, type Decor, type LayoutId, type MotifId, type PatternId, type TemplateDefinition, type Theme } from './types.js';
 
 type Palette = Theme['palette'];
@@ -226,7 +227,39 @@ function expand(f: Family): TemplateDefinition[] {
   });
 }
 
-export const BUILTIN_TEMPLATES: TemplateDefinition[] = TEMPLATE_FAMILIES.flatMap(expand);
+const LEGACY_CATEGORY = (types: EventTypeId[] | 'all'): TemplateDefinition['category'] => {
+  if (types === 'all') return 'business';
+  if (types.some((t) => ['wedding', 'engagement', 'reception', 'nikah', 'christian-wedding', 'anand-karaj'].includes(t))) return 'wedding';
+  if (types.some((t) => ['birthday', 'baby-shower', 'naming-ceremony'].includes(t))) return 'kids';
+  if (types.some((t) => ['griha-pravesh', 'puja', 'jagran', 'bhandara', 'mundan', 'upanayana', 'annaprashan'].includes(t))) return 'religious';
+  return 'business';
+};
+
+function expandDesign(f: DesignFamily): TemplateDefinition[] {
+  return f.palettes.map((key) => {
+    const k = key as PaletteKey;
+    return {
+      id: `${f.id}-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`,
+      name: `${f.name} · ${VARIANT_NAMES[k]}`,
+      layout: f.legacy.layout,
+      theme: { palette: PALETTES[k], motif: f.legacy.motif, pattern: f.legacy.pattern, ornamentOpacity: 0.14 },
+      eventTypes: f.eventTypes,
+      communities: f.communities ?? [],
+      tags: f.tags,
+      premium: f.premium ?? false,
+      source: 'builtin' as const,
+      family: { id: f.id, name: f.name, variant: VARIANT_NAMES[k] },
+      design: f.id,
+      category: f.category,
+    };
+  });
+}
+
+/** New layered designs first (they're the premium, editor-first collection), then the classics. */
+export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
+  ...DESIGN_FAMILIES.flatMap(expandDesign),
+  ...TEMPLATE_FAMILIES.flatMap(expand).map((t) => ({ ...t, category: LEGACY_CATEGORY(t.eventTypes) })),
+];
 
 export function templateSupportsEvent(template: TemplateDefinition, eventType: string): boolean {
   return template.eventTypes === 'all' || (template.eventTypes as string[]).includes(eventType);

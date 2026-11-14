@@ -1,5 +1,6 @@
-import type { EventContent } from '../schemas/events.js';
-import type { InviteFunction } from '../invite/build-invite-props.js';
+import type { LanguageCode } from '../constants/languages.js';
+import type { EventContent, EventFunctionInput } from '../schemas/events.js';
+import { formatFunctionDate, mainFunctionIndex, type InviteFunction } from '../invite/build-invite-props.js';
 
 /** Live event data a card can show. Bound text always reflects it, so card, video and website agree. */
 export interface DesignData {
@@ -214,4 +215,32 @@ export function bindingChoices(functionCount: number): Array<{ bind: string; lab
     for (const k of ['name', 'datetime', 'venue']) out.push({ bind: `fn${i}.${k}`, label: `Function ${i + 1}: ${FN_FIELDS[k]!.label.toLowerCase()}` });
   }
   return out;
+}
+
+/** Event (or wizard draft) → the data a card shows. */
+export function designDataFrom(input: {
+  content: EventContent;
+  functions: Pick<EventFunctionInput, 'name' | 'startsAt' | 'venueName' | 'venueAddress' | 'dressCode'>[];
+  language: LanguageCode;
+  eventType: string;
+  timezone?: string;
+  salutation?: string | null;
+  photos?: string[];
+}): DesignData {
+  return {
+    content: input.content,
+    functions: input.functions.map((f) => ({
+      name: f.name,
+      ...formatFunctionDate(f.startsAt, input.language, input.timezone),
+      venue: f.venueName,
+      address: f.venueAddress ?? null,
+      dressCode: f.dressCode ?? null,
+    })),
+    mainFunction: mainFunctionIndex(
+      input.functions.map((f) => f.name),
+      input.eventType,
+    ),
+    salutation: input.salutation ?? null,
+    photos: input.photos ?? [],
+  };
 }

@@ -5,3 +5,7 @@ export { sampleInviteProps } from './sample';
 export { Motif } from './components/Motif';
 export { INVITE_FONT_FAMILIES, loadFamily, useInviteFonts } from './fonts';
 export { skinFor } from './layouts/skin';
+export { DesignPage, fontsForPages, fontStack, type RenderGate } from './design/DesignPage';
+export { ASSETS, STICKERS, type AssetDef, type Sticker, type StickerCategory } from './design/assets';
+export { DesignCard, DesignVideo, planDesignVideo, useDesignFonts, DESIGN_VIDEO, type DesignRenderProps } from './design/compositions';
+export { elementMotion, entranceDelay } from './design/motion';

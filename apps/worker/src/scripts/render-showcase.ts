@@ -5,7 +5,7 @@
  *
  *   npm run showcase -w @cardai/worker
  */
-import { BUILTIN_TEMPLATES, COMPOSITION_IDS, sampleInviteProps, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -28,8 +28,12 @@ const browser = await runtime.getBrowser();
 const list = BUILTIN_TEMPLATES.filter((t) => !only || only.some((o) => t.id === o));
 let i = 0;
 for (const t of list) {
-  const props = { ...sampleInviteProps(t, lang(t)), page: 0 };
-  const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.card, inputProps: props, puppeteerInstance: browser });
+  const language = lang(t);
+  const sample = sampleInviteProps(t, language);
+  const data: DesignData = { content: sample.content, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [] };
+  const design = buildDesign({ template: t, data, language, eventType: sample.eventType });
+  const props = { design, data, language, page: 0, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null };
+  const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designCard, inputProps: props, puppeteerInstance: browser });
   await renderStill({
     composition,
     serveUrl,

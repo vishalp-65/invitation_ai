@@ -18,3 +18,4 @@ export * from './schemas/site.js';
 export * from './invite/build-invite-props.js';
 export * from './utils/index.js';
 export * from './invite/sample.js';
+export * from './design/index.js';

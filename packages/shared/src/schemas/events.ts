@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { COMMUNITIES, EVENT_TYPE_IDS } from '../constants/event-types.js';
 import { LANGUAGE_CODES } from '../constants/languages.js';
 import { slugSchema } from './common.js';
+import { designDocSchema, type DesignDoc } from '../design/schema.js';
 
 const text = (max: number) => z.string().trim().max(max);
 
@@ -58,6 +59,8 @@ export const createEventSchema = z.object({
   content: eventContentSchema,
   functions: z.array(eventFunctionInputSchema).min(1).max(12),
   settings: eventSettingsSchema.partial().optional(),
+  /** Card design made in the editor before saving (optional). */
+  design: designDocSchema.optional(),
 });
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 
@@ -90,7 +93,11 @@ export function mergeSettings(current: EventSettings, patch: EventSettingsPatch)
   return eventSettingsSchema.parse(next);
 }
 
-export const updateEventSchema = createEventSchema.partial().extend({
+/** Editor autosave. `null` resets to the template's automatic layout. */
+export const saveDesignSchema = z.object({ design: designDocSchema.nullable() });
+export type SaveDesignInput = z.infer<typeof saveDesignSchema>;
+
+export const updateEventSchema = createEventSchema.omit({ design: true }).partial().extend({
   slug: slugSchema.optional(),
   settings: eventSettingsPatchSchema.optional(),
 });
@@ -116,6 +123,7 @@ export interface EventDto {
   title: string;
   content: EventContent;
   settings: EventSettings;
+  design: DesignDoc | null;
   functions: EventFunctionDto[];
   features: string[];
   credits: Record<string, number>;

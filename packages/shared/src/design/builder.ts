@@ -374,6 +374,17 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           return { h, gap, make: (y) => [artEl(b.asset, cx - w / 2, y, w, h, b.colors, { opts: b.opts, anim: b.anim })] };
         }
         case 'photo': {
+          // No photo yet: a line-art illustration keeps the card complete (the editor can swap in a photo).
+          if (!ctx.data.photos[0]) {
+            const aw = (ctx.people === 2 ? 340 : 300) * k;
+            const ah = ctx.people === 2 ? aw * 1.25 : aw;
+            const asset = ctx.people === 2 ? 'couple' : 'wreath';
+            return {
+              h: ah,
+              gap,
+              make: (y) => [artEl(asset, cx - aw / 2, y, aw, ah, [tones.accent, ctx.p.backgroundAlt], { opts: ctx.people === 2 ? { style: 'lineart', attire: 'north' } : undefined, anim: 'zoom' })],
+            };
+          }
           const w = b.w * k;
           const h = b.h * k;
           return {

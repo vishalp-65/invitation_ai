@@ -68,6 +68,9 @@ export class OtpService {
       await this.redis.del(`otp:c:${k}`, `otp:cd:${k}`);
       throw new ServiceUnavailableException('We could not send the code right now. Please try again.');
     }
+    if (this.env.NODE_ENV === 'development') {
+      this.logger.warn(`Development OTP for ${target.channel} ${targetId(target)}: ${code}`);
+    }
     return { expiresInSec: OTP_TTL_SEC, resendInSec: RESEND_COOLDOWN_SEC };
   }
 

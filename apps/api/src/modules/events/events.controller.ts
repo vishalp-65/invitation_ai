@@ -1,5 +1,5 @@
-import { createEventSchema, updateEventSchema, type CreateEventInput, type UpdateEventInput } from '@cardai/shared';
-import { Controller, Delete, Get, Patch, Post } from '@nestjs/common';
+import { createEventSchema, saveDesignSchema, updateEventSchema, type CreateEventInput, type SaveDesignInput, type UpdateEventInput } from '@cardai/shared';
+import { Controller, Delete, Get, Patch, Post, Put } from '@nestjs/common';
 import { CurrentUser, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { EventsService } from './events.service.js';
@@ -27,6 +27,13 @@ export class EventsController {
   @Patch(':id')
   update(@CurrentUser() user: AuthUser, @UuidParam('id') id: string, @ZBody(updateEventSchema) body: UpdateEventInput) {
     return this.events.update(user, id, body);
+  }
+
+  /** Editor autosave (debounced on the client). */
+  @Put(':id/design')
+  @RateLimit({ limit: 600, windowSec: 3600 })
+  saveDesign(@CurrentUser() user: AuthUser, @UuidParam('id') id: string, @ZBody(saveDesignSchema) body: SaveDesignInput) {
+    return this.events.saveDesign(user, id, body.design);
   }
 
   @Post(':id/publish')

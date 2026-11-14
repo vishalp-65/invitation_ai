@@ -1,11 +1,11 @@
 'use client';
 
 import { getEventType } from '@cardai/shared';
-import { ChevronDown, ChevronLeft, PartyPopper } from 'lucide-react';
+import { Brush, ChevronDown, ChevronLeft, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
-import { InvitePlayer } from '@/components/invite/lazy-player';
+import { buttonClass } from '@/components/ui/button';
 import { Chip } from '@/components/ui/field';
 import { PageSkeleton } from '@/components/ui/skeletons';
 import { useMediaQuery } from '@/lib/use-media-query';
@@ -15,7 +15,7 @@ import { PrintPanel } from '@/features/event/print-panel';
 import { RsvpPanel } from '@/features/event/rsvp-panel';
 import { SharePanel } from '@/features/event/share-panel';
 import { UpgradePanel } from '@/features/event/upgrade-panel';
-import { useEventProps } from '@/features/event/use-event-props';
+import { EventDesignPreview } from '@/features/event/design-preview';
 import { useEvent } from '@/lib/hooks';
 
 const TABS = [
@@ -33,7 +33,6 @@ function EventWorkspace() {
   const search = useSearchParams();
   const router = useRouter();
   const { data: event, isLoading, error } = useEvent(id);
-  const props = useEventProps(event);
   const [tab, setTab] = useState<TabId>(search.get('upgrade') ? 'upgrade' : 'share');
   const [mode, setMode] = useState<'card' | 'video'>('card');
   const justCreated = search.get('created') === '1';
@@ -95,6 +94,10 @@ function EventWorkspace() {
             {getEventType(event.type).label} · {event.functions.length} {event.functions.length === 1 ? 'function' : 'functions'} · {event.viewCount}{' '}
             views
           </p>
+          <Link href={`/editor/${event.id}`} className={buttonClass('primary', 'md', 'mt-5')}>
+            <Brush className="size-4" aria-hidden />
+            Edit the card
+          </Link>
 
           {/* Underline tabs on a solid strip: sticky under the header, no blur. */}
           <div className="sticky top-[68px] z-10 -mx-4 mt-8 border-b border-hairline bg-ivory px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
@@ -146,7 +149,7 @@ function EventWorkspace() {
                 Video
               </Chip>
             </div>
-            {props && (showPreview || isDesktop) && <InvitePlayer props={props} mode={mode} className="shadow-[var(--shadow-lift)]" />}
+            {(showPreview || isDesktop) && <EventDesignPreview event={event} mode={mode} />}
           </div>
         </aside>
       </div>

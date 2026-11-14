@@ -103,4 +103,8 @@ export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
   designer?: { id: string; name: string };
   /** Design family: same layout + ornaments, different colourways. */
   family?: { id: string; name: string; variant: string };
+  /** Layered design family (editor-first templates); absent for the classic catalogue. */
+  design?: string;
+  /** Gallery group. */
+  category?: 'wedding' | 'kids' | 'religious' | 'business';
 };

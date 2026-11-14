@@ -1,17 +1,12 @@
-import { Logger } from '@nestjs/common';
 import type { Env } from '../../config/env.js';
 
 export interface EmailProvider {
   sendOtp(email: string, code: string, ttlMinutes: number): Promise<void>;
 }
 
-/** Development only: prints the code to the API log. Blocked in production by env validation. */
+/** Development stub; OtpService logs the generated code for local testing. */
 export class ConsoleEmailProvider implements EmailProvider {
-  private readonly logger = new Logger('Email');
-
-  async sendOtp(email: string, code: string): Promise<void> {
-    this.logger.warn(`Email OTP for ${email}: ${code}`);
-  }
+  async sendOtp(): Promise<void> {}
 }
 
 /** Resend transactional email API (https://resend.com). */

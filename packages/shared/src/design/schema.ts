@@ -22,8 +22,8 @@ const base = {
   id,
   x: num(-4000, 6000),
   y: num(-4000, 6000),
-  w: num(4, 6000),
-  h: num(4, 6000),
+  w: num(1, 6000),
+  h: num(1, 6000),
   /** Degrees, clockwise. */
   rot: num(-360, 360).default(0),
   opacity: num(0, 1).default(1),

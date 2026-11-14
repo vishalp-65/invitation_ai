@@ -1,5 +1,6 @@
 import type { PatternId } from '@cardai/shared';
 import { random } from 'remotion';
+import { useSvgId } from '../art/svg-ids';
 
 interface PatternProps {
   pattern: PatternId;
@@ -14,9 +15,10 @@ interface PatternProps {
 
 /** Tiled background ornament. Pure SVG so it is crisp at any print resolution. */
 export function Pattern({ pattern, color, accent, opacity, width, height, seed = 'p' }: PatternProps) {
+  // Unique per instance: the gallery shows many cards (different colours) on one page.
+  const id = useSvgId(`pat-${pattern}`);
   if (pattern === 'none' || opacity <= 0) return null;
   const tile = width / 6;
-  const id = `pat-${pattern}`;
 
   if (pattern === 'confetti') {
     const pieces = Array.from({ length: 90 }, (_, i) => {

@@ -1,5 +1,5 @@
 import { eq, renders, type RenderOutput } from '@cardai/db';
-import { CANVAS, COMPOSITION_IDS, planCardPages, VIDEO, type InviteProps, type RenderJobData } from '@cardai/shared';
+import { CANVAS, COMPOSITION_IDS, DESIGN_PRINT, VIDEO, type RenderJobData } from '@cardai/shared';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import type { Job } from 'bullmq';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
@@ -7,7 +7,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { WorkerContext } from '../context.js';
 import type { RemotionRuntime } from '../remotion.js';
-import { loadInviteProps } from './load-props.js';
+import { loadDesignProps, type DesignRenderProps } from './load-design.js';
 import { buildPrintPdf, buildScreenPdf } from './pdf.js';
 
 /** Free previews render at 720p: cheaper, faster, and nudges upgrade to HD. */
@@ -32,7 +32,8 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
     };
 
     try {
-      const props = await loadInviteProps(ctx, render.eventId, {
+      // Every card is a layered design now (saved from the editor, or the template's own layout).
+      const props = await loadDesignProps(ctx, render.eventId, {
         watermark: render.watermark,
         withQr: render.format === 'print_pdf' || render.format === 'pdf',
       });
@@ -42,7 +43,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
       const outputs: RenderOutput[] = [];
 
       if (render.format === 'video') {
-        const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.video, inputProps: props, puppeteerInstance: browser });
+        const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designVideo, inputProps: props, puppeteerInstance: browser });
         const seconds = composition.durationInFrames / composition.fps;
         // Bitrate budget keeps the MP4 under WhatsApp's forwarding limit regardless of length.
         const kbps = Math.max(800, Math.min(4500, Math.floor((VIDEO.targetMaxBytes * 8 * 0.92) / seconds / 1000) - 128));
@@ -64,12 +65,12 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
         outputs.push(await upload(ctx, file, `${prefix}/invite.mp4`, 'video/mp4'));
       } else {
         const print = render.format === 'print_pdf';
-        const compId = print ? COMPOSITION_IDS.cardPrint : COMPOSITION_IDS.card;
-        const pages = planCardPages(props);
+        const compId = print ? COMPOSITION_IDS.designCardPrint : COMPOSITION_IDS.designCard;
+        const pages = props.design.pages;
         const images: Buffer[] = [];
 
         for (let i = 0; i < pages.length; i++) {
-          const pageProps: InviteProps = { ...props, page: i };
+          const pageProps: DesignRenderProps = { ...props, page: i };
           const composition = await selectComposition({ serveUrl, id: compId, inputProps: pageProps, puppeteerInstance: browser });
           const file = join(dir, `page-${i + 1}.${print ? 'png' : 'jpg'}`);
           await renderStill({
@@ -94,7 +95,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
           outputs.push({ key: put.key, contentType: 'application/pdf', bytes: put.bytes });
         }
         if (print) {
-          const pdf = await buildPrintPdf(images, CANVAS.print.bleedPx);
+          const pdf = await buildPrintPdf(images, DESIGN_PRINT.bleedPx);
           const put = await ctx.storage.put(`${prefix}/invite-print.pdf`, pdf, 'application/pdf');
           outputs.push({ key: put.key, contentType: 'application/pdf', bytes: put.bytes });
         }

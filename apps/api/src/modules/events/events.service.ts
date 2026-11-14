@@ -6,6 +6,7 @@ import {
   slugify,
   templateSupportsEvent,
   type CreateEventInput,
+  type DesignDoc,
   type EventDto,
   type EventFunctionInput,
   type UpdateEventInput,
@@ -67,6 +68,7 @@ export class EventsService {
           title: input.title,
           content: input.content,
           settings,
+          design: input.design ? { ...input.design, templateId: template.id } : null,
         })
         .returning({ id: events.id });
       await tx.insert(eventFunctions).values(input.functions.map((f, i) => toFunctionRow(event!.id, f, i)));
@@ -152,6 +154,12 @@ export class EventsService {
     return this.getDto(user, eventId);
   }
 
+  async saveDesign(user: AuthUser, eventId: string, design: DesignDoc | null): Promise<{ updatedAt: string }> {
+    await this.getOwned(user, eventId);
+    const [row] = await this.db.update(events).set({ design, updatedAt: new Date() }).where(eq(events.id, eventId)).returning({ updatedAt: events.updatedAt });
+    return { updatedAt: row!.updatedAt.toISOString() };
+  }
+
   async setStatus(user: AuthUser, eventId: string, status: 'published' | 'archived' | 'draft'): Promise<EventDto> {
     await this.getOwned(user, eventId);
     await this.db
@@ -173,6 +181,7 @@ export class EventsService {
       content: dto.content,
       functions: dto.functions.map(({ id: _id, sortOrder: _s, ...f }) => f),
       settings: { ...dto.settings, aiClipAssetId: undefined },
+      design: dto.design ?? undefined,
     });
   }
 
@@ -190,6 +199,7 @@ export class EventsService {
       title: event.title,
       content: event.content,
       settings: event.settings,
+      design: event.design ?? null,
       functions: fns.map(fromFunctionRow),
       features: [...ent.features],
       credits: ent.credits as Record<string, number>,

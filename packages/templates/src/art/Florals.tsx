@@ -165,4 +165,4 @@ export function FloralCorners({
   );
 }
 
-export { Marigold, Rose, Lotus, Jasmine, Leaf };
+export { Marigold, Rose, Lotus, Jasmine, Leaf, Cluster };

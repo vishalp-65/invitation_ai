@@ -1,17 +1,12 @@
-import { Logger } from '@nestjs/common';
 import type { Env } from '../../config/env.js';
 
 export interface SmsProvider {
   sendOtp(phone: string, code: string): Promise<void>;
 }
 
-/** Development only: prints the OTP to the API log. Blocked in production by env validation. */
+/** Development stub; OtpService logs the generated code for local testing. */
 export class ConsoleSmsProvider implements SmsProvider {
-  private readonly logger = new Logger('SMS');
-
-  async sendOtp(phone: string, code: string): Promise<void> {
-    this.logger.warn(`OTP for ${phone}: ${code}`);
-  }
+  async sendOtp(): Promise<void> {}
 }
 
 /** MSG91 OTP API (DLT-registered template required in India). */

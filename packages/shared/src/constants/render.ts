@@ -32,7 +32,13 @@ export const COMPOSITION_IDS = {
   card: 'InviteCard',
   cardPrint: 'InviteCardPrint',
   video: 'InviteVideo',
+  designCard: 'DesignCard',
+  designCardPrint: 'DesignCardPrint',
+  designVideo: 'DesignVideo',
 } as const;
+
+/** Print size for layered designs: the 9:16 card at 1.5× (≈4.8×8.5 in at 337 DPI) plus bleed. */
+export const DESIGN_PRINT = { width: 1620, height: 2880, bleedPx: 35 } as const;
 
 export const QUEUES = {
   render: 'render',
