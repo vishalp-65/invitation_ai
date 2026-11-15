@@ -1,7 +1,7 @@
 'use client';
 
 import { getEventType } from '@cardai/shared';
-import { Brush, ChevronDown, ChevronLeft, PartyPopper } from 'lucide-react';
+import { Brush, ChevronDown, ChevronLeft, Globe, PartyPopper } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
@@ -94,10 +94,16 @@ function EventWorkspace() {
             {getEventType(event.type).label} · {event.functions.length} {event.functions.length === 1 ? 'function' : 'functions'} · {event.viewCount}{' '}
             views
           </p>
-          <Link href={`/editor/${event.id}`} className={buttonClass('primary', 'md', 'mt-5')}>
-            <Brush className="size-4" aria-hidden />
-            Edit the card
-          </Link>
+          <div className="mt-5 flex flex-wrap gap-2">
+            <Link href={`/editor/${event.id}`} className={buttonClass('primary', 'md')}>
+              <Brush className="size-4" aria-hidden />
+              Edit the card
+            </Link>
+            <Link href={`/builder/${event.id}`} className={buttonClass('line', 'md')}>
+              <Globe className="size-4" aria-hidden />
+              Design the website
+            </Link>
+          </div>
 
           {/* Underline tabs on a solid strip: sticky under the header, no blur. */}
           <div className="sticky top-[68px] z-10 -mx-4 mt-8 border-b border-hairline bg-ivory px-4 sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">

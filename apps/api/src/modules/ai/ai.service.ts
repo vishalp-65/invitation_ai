@@ -4,6 +4,7 @@ import {
   intentPrompt,
   OpenRouterError,
   portraitCutoutPrompt,
+  siteDraftPrompt,
   PROMPT_VERSION,
   transliterationOutputSchema,
   transliterationPrompt,
@@ -22,6 +23,9 @@ import {
   getEventType,
   parsedEventIntentSchema,
   QUEUES,
+  siteDraftOutputSchema,
+  type SiteDraftInput,
+  type SiteDraftOutput,
   type AiClipJobData,
   type EventContent,
   type GenerateClipInput,
@@ -184,7 +188,16 @@ export class AiService {
         userId: user.id,
       });
       await this.log('translation', user.id, { eventId, model: usage.model, costUsd: usage.costUsd?.toString() });
-      return data;
+      // Never lose card details the model skipped; phone numbers and the hashtag stay as typed.
+      const src = event.content;
+      return {
+        ...src,
+        ...data,
+        welcomeLines: data.welcomeLines?.length ? data.welcomeLines : src.welcomeLines,
+        complimentsLines: data.complimentsLines?.length ? data.complimentsLines : src.complimentsLines,
+        rsvpContacts: src.rsvpContacts?.map((r, i) => ({ name: data.rsvpContacts?.[i]?.name || r.name, phone: r.phone })),
+        hashtag: src.hashtag,
+      };
     } catch (err) {
       this.wrap(err);
     }
@@ -325,6 +338,46 @@ export class AiService {
     if (!gen || (gen.userId !== user.id && user.role !== 'admin')) throw new NotFoundException('Not found');
     const asset = gen.assetId ? (await this.media.urlsFor([gen.assetId])).get(gen.assetId) : null;
     return { id: gen.id, kind: gen.kind, status: gen.status, error: gen.error, assetId: gen.assetId, url: asset ?? null };
+  }
+
+  // ---------------- Invitation website draft ----------------
+
+  /** Writes the website's words (welcome, intros, story, FAQ, dress code) from the host's facts. */
+  async draftSite(user: AuthUser, eventId: string, input: SiteDraftInput): Promise<SiteDraftOutput> {
+    this.ensureConfigured();
+    const event = await this.events.getOwned(user, eventId);
+    await this.consumeQuota(user.id, 'wording');
+    const fns = await this.events.functionsOf(event.id);
+    const facts = {
+      eventType: event.type,
+      language: event.language,
+      tone: input.tone,
+      vibe: input.vibe,
+      community: event.community,
+      primaryNames: event.content.primaryNames,
+      functions: fns.map((f) => ({ name: f.name, date: f.startsAt.toISOString().slice(0, 10), venue: f.venueName })),
+      story: input.story,
+    };
+    const key = `ai:site:${PROMPT_VERSION}:${hashJson(facts)}`;
+    try {
+      return await this.cached(key, async () => {
+        const { system, user: prompt } = siteDraftPrompt(facts);
+        const { data, usage } = await this.ai.chatJson({
+          models: this.env.AI_TEXT_MODELS,
+          system,
+          user: prompt,
+          schema: siteDraftOutputSchema,
+          schemaName: 'invitation_site',
+          temperature: 0.7,
+          maxTokens: 2500,
+          userId: user.id,
+        });
+        await this.log('wording', user.id, { eventId, model: usage.model, costUsd: usage.costUsd?.toString(), input: { site: true } });
+        return data;
+      });
+    } catch (err) {
+      this.wrap(err);
+    }
   }
 
   // ---------------- Conversational intake (WhatsApp / voice) ----------------

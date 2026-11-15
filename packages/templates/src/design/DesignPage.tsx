@@ -267,7 +267,6 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
   }
   return (
     <div style={frame}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- also rendered by Remotion */}
       <img
         src={src}
         alt=""
@@ -366,7 +365,6 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
       <div style={{ position: 'absolute', left: 0, top: 0, width: DESIGN_W, height: DESIGN_H, transform: `scale(${scale})`, transformOrigin: '0 0', background: bg.color }}>
         <div style={{ position: 'absolute', inset: 0, background, transform: `scale(${zoom})` }} />
         {bg.image && (
-          // eslint-disable-next-line @next/next/no-img-element -- also rendered by Remotion
           <img
             src={bg.image}
             alt=""

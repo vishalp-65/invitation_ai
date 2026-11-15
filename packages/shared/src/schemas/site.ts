@@ -1,6 +1,22 @@
 import { z } from 'zod';
 import type { EventContent, EventFunctionDto, EventSettings } from './events.js';
 import type { LayoutId, Theme } from '../templates/types.js';
+import type { GuestStay, SiteDoc } from '../site/schema.js';
+import type { SiteTier } from '../site/tiers.js';
+
+export interface SiteUpdateDto {
+  id: string;
+  text: string;
+  pinned: boolean;
+  createdAt: string;
+}
+
+export interface SiteWishDto {
+  id: string;
+  name: string;
+  message: string;
+  createdAt: string;
+}
 
 /** Everything the public invitation website needs, in one request. */
 export interface PublicSiteDto {
@@ -25,9 +41,40 @@ export interface PublicSiteDto {
     musicUrl: string | null;
     coverUrl: string | null;
     videoUrl: string | null;
+    /** Public URLs of photos used inside sections (couple, story, custom...), by asset id. */
+    assets: Record<string, string>;
   };
-  guest: { name: string; salutation: string | null; functionIds: string[] | null; maxPax: number } | null;
+  guest: {
+    name: string;
+    salutation: string | null;
+    functionIds: string[] | null;
+    maxPax: number;
+    groupLabel: string | null;
+    stay: GuestStay | null;
+  } | null;
   features: { rsvp: boolean; showBranding: boolean };
+  /** The page document with the plan applied (locked sections removed). */
+  site: SiteDoc;
+  tier: SiteTier;
+  shortUrl: string;
+  updates: SiteUpdateDto[];
+  wishes: SiteWishDto[];
+  album: string[];
+  expiresAt: string | null;
+}
+
+/** Returned instead of the site when it is private and the visitor has no access yet. */
+export interface LockedSiteDto {
+  locked: 'password' | 'guests';
+  title: string;
+  coverUrl: string | null;
+  language: string;
+}
+
+export type PublicSiteResponse = PublicSiteDto | LockedSiteDto;
+
+export function isLockedSite(r: PublicSiteResponse): r is LockedSiteDto {
+  return 'locked' in r;
 }
 
 export const trackViewSchema = z.object({

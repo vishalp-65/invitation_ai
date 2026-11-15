@@ -57,8 +57,8 @@ export interface Tones {
 }
 
 export type Band =
-  | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect }
-  | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade' }
+  | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect; font?: string; group?: string }
+  | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade'; group?: string }
   | { t: 'divider'; style?: string; w?: number; gap?: number }
   | { t: 'date'; style: 'strip' | 'line' | 'stack' | 'boxed'; gap?: number }
   | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded'; gap?: number }
@@ -69,6 +69,8 @@ export interface Zone {
   bottom: number;
   left: number;
   right: number;
+  /** Editorial layouts set the text flush left. */
+  align?: 'left' | 'center';
 }
 
 // ---------------------------------------------------------------- type sets
@@ -264,9 +266,9 @@ export function textEl(
   style: RoleStyle,
   ctx: RecipeCtx,
   tones: Tones,
-  o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right' },
+  o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right'; font?: string; group?: string },
 ): TextElement {
-  const font = roleFont(style, ctx);
+  const font = o.font ?? roleFont(style, ctx);
   return {
     id: nextId('t'),
     type: 'text',
@@ -290,6 +292,7 @@ export function textEl(
     upper: ctx.latin ? (style.upper ?? false) : false,
     effect: o.effect ?? style.effect ?? 'none',
     fit: true,
+    ...(o.group ? { group: o.group } : {}),
   };
 }
 
@@ -340,6 +343,9 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
   const zw = DESIGN_W - zone.left - zone.right;
   const avail = DESIGN_H - zone.top - zone.bottom;
   const cx = zone.left + zw / 2;
+  const left = zone.align === 'left';
+  /** x of a box of width w: centred, or flush with the zone's left edge. */
+  const at = (w: number) => (left ? zone.left : cx - w / 2);
 
   const visible = bands.filter((b) => {
     if (b.t !== 'text') return true;
@@ -357,7 +363,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           const style = ts[b.role];
           const value = (b.bind ? resolveBinding(b.bind, ctx.data) : b.text) ?? '';
           const w = zw * (b.width ?? 1);
-          const font = roleFont(style, ctx);
+          const font = b.font ?? roleFont(style, ctx);
           const upper = ctx.latin && (style.upper ?? false);
           const ls = ctx.latin ? (style.ls ?? 0) : 0;
           let size = (b.size ?? style.size) * k;
@@ -371,13 +377,13 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           return {
             h,
             gap,
-            make: (y) => [textEl(style, ctx, tones, { x: cx - w / 2, y, w, h, text: value, bind: b.bind, size, tone: b.tone, effect: b.effect })],
+            make: (y) => [textEl(style, ctx, tones, { x: at(w), y, w, h, text: value, bind: b.bind, size, tone: b.tone, effect: b.effect, font: b.font, group: b.group, align: left ? 'left' : 'center' })],
           };
         }
         case 'art': {
           const w = b.w * k;
           const h = b.h * k;
-          return { h, gap, make: (y) => [artEl(b.asset, cx - w / 2, y, w, h, b.colors, { opts: b.opts, anim: b.anim })] };
+          return { h, gap, make: (y) => [artEl(b.asset, at(w), y, w, h, b.colors, { opts: b.opts, anim: b.anim, ...(b.group ? { group: b.group } : {}) })] };
         }
         case 'photo': {
           // No photo yet: a line-art illustration keeps the card complete (the editor can swap in a photo).
@@ -388,7 +394,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
             return {
               h: ah,
               gap,
-              make: (y) => [artEl(asset, cx - aw / 2, y, aw, ah, [tones.accent, ctx.p.backgroundAlt], { opts: ctx.people === 2 ? { style: 'lineart', attire: 'north' } : undefined, anim: 'zoom' })],
+              make: (y) => [artEl(asset, at(aw), y, aw, ah, [tones.accent, ctx.p.backgroundAlt], { opts: ctx.people === 2 ? { style: 'lineart', attire: 'north' } : undefined, anim: 'zoom' })],
             };
           }
           const w = b.w * k;
@@ -400,7 +406,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
               {
                 id: nextId('i'),
                 type: 'image',
-                x: cx - w / 2,
+                x: at(w),
                 y,
                 w,
                 h,
@@ -419,7 +425,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
         case 'divider': {
           const w = (b.w ?? 420) * Math.min(1, k + 0.1);
           const h = 46 * Math.min(1, k + 0.1);
-          return { h, gap, make: (y) => [artEl('divider', cx - w / 2, y, w, h, dividerColors ?? [tones.accent], { opts: { style: b.style ?? 'ornate' } })] };
+          return { h, gap, make: (y) => [artEl('divider', at(w), y, w, h, dividerColors ?? [tones.accent], { opts: { style: b.style ?? 'ornate' } })] };
         }
         case 'date':
           return dateBand(b.style, ctx, ts, tones, zone, k, gap);
@@ -454,17 +460,19 @@ function dateBand(style: 'strip' | 'line' | 'stack' | 'boxed', ctx: RecipeCtx, t
   if (!fn) return { h: 0, gap: 0, make: () => [] };
   const t = (role: Role, o: Parameters<typeof textEl>[3]) => textEl(ts[role], ctx, tones, o);
 
-  if (style === 'line') {
+  if (style === 'line' || zone.align === 'left') {
     const size = ts.date.size * k;
     const w = zw;
     const h1 = estimateTextHeight(fn.dateLabel, size, w, ts.date.font, ts.date.upper, ts.date.ls, 1.3);
     const size2 = ts.small.size * k * 1.1;
+    const align = zone.align === 'left' ? ('left' as const) : ('center' as const);
+    const x = align === 'left' ? zone.left : cx - w / 2;
     return {
       h: h1 + size2 * 1.5,
       gap,
       make: (y) => [
-        t('date', { x: cx - w / 2, y, w, h: h1, text: fn.dateLabel, bind: 'fnM.date', size }),
-        t('small', { x: cx - w / 2, y: y + h1 + 4, w, h: size2 * 1.4, text: fn.timeLabel, bind: 'fnM.time', size: size2 }),
+        t('date', { x, y, w, h: h1, text: fn.dateLabel, bind: 'fnM.date', size, align }),
+        t('small', { x, y: y + h1 + 4, w, h: size2 * 1.4, text: fn.timeLabel, bind: 'fnM.time', size: size2, align }),
       ],
     };
   }

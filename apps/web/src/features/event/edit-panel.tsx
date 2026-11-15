@@ -19,6 +19,7 @@ import { api, ApiError } from '@/lib/api';
 import { qk, useTemplates } from '@/lib/hooks';
 import { useEventMedia } from './use-event-props';
 import { uploadPhoto } from '@/lib/upload';
+import { CardDetailsPanel } from './card-details-panel';
 
 export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();
@@ -168,6 +169,8 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           </label>
         </div>
       </section>
+
+      <CardDetailsPanel event={event} onUpgrade={onUpgrade} />
 
       {/* Design */}
       <section>

@@ -13,6 +13,15 @@ const csv = z
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   APP_URL: z.url(),
+  /**
+   * Base of short invitation links, e.g. https://inv.to (a separate short domain pointed at the
+   * web app). Unset = `${APP_URL}/s`. Pick the domain at launch; links are built from this only.
+   */
+  SHORT_LINK_BASE: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.replace(/\/+$/, '') : undefined))
+    .pipe(z.url().optional()),
   API_PORT: z.coerce.number().int().default(4000),
 
   DATABASE_URL: z.string().min(1),

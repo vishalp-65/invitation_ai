@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { BUILTIN_TEMPLATES } from '../templates/catalog.js';
 import { getEventType, EVENT_TYPE_IDS } from '../constants/event-types.js';
-import { buildDesign } from './build.js';
+import { buildDesign, coverPageIndex } from './build.js';
+import { functionIcon } from './pages.js';
 import { designDataFrom, resolveBinding, writeBinding } from './bindings.js';
 import { designDocSchema } from './schema.js';
 
@@ -31,9 +32,9 @@ describe('buildDesign', () => {
       const parsed = designDocSchema.safeParse(doc);
       if (!parsed.success) throw new Error(`${t.id}: ${parsed.error.message.slice(0, 400)}`);
       expect(doc.pages.length).toBeGreaterThanOrEqual(2);
-      const texts = doc.pages[0]!.elements.filter((e) => e.type === 'text');
+      const texts = doc.pages[coverPageIndex(doc)]!.elements.filter((e) => e.type === 'text');
       expect(texts.length, t.id).toBeGreaterThan(3);
-      for (const e of texts) {
+      for (const e of doc.pages.flatMap((pg) => pg.elements.filter((x) => x.type === 'text'))) {
         expect(e.y, `${t.id} ${e.id}`).toBeGreaterThanOrEqual(0);
         expect(e.y + e.h, `${t.id} ${e.id} ${'bind' in e ? e.bind : ''}`).toBeLessThanOrEqual(1920 + 1);
       }
@@ -47,6 +48,41 @@ describe('buildDesign', () => {
       const doc = buildDesign({ template: t, data, language: 'hi', eventType: type });
       expect(designDocSchema.safeParse(doc).success).toBe(true);
     }
+  });
+
+  it('adds blessing, ceremonies, family & RSVP and photo pages', () => {
+    const t = BUILTIN_TEMPLATES.find((x) => x.design === 'rajwada-gold')!;
+    const many = Array.from({ length: 7 }, (_, i) => ({ ...functions[i % 2]!, name: ['Haldi', 'Mehendi', 'Sangeet', 'Baraat', 'Wedding', 'Reception', 'Puja'][i]! }));
+    const data = designDataFrom({
+      content: { ...content, welcomeLines: ['Aarav', 'Diya'], rsvpContacts: [{ name: 'Ramesh Sharma', phone: '98290 12345' }], note: 'Your blessings are our gift', hashtag: '#PriyaWedsRahul' },
+      functions: many,
+      language: 'en',
+      eventType: 'wedding',
+      rsvpDeadline: '2026-12-01T00:00:00+05:30',
+    });
+    const doc = buildDesign({ template: t, data, language: 'en', eventType: 'wedding' });
+    expect(doc.pages.map((p) => p.id)).toEqual(['blessing', 'cover', 'schedule-1', 'schedule-2', 'schedule-3', 'family', 'photo']);
+    const binds = doc.pages.flatMap((p) => p.elements.map((e) => ('bind' in e ? e.bind : undefined))).filter(Boolean);
+    for (const b of ['invocation', 'fn6.name', 'welcomeLines', 'rsvpContacts', 'rsvpBy', 'note', 'hashtag']) expect(binds).toContain(b);
+    expect(resolveBinding('rsvpBy', data)).toBe('Kindly RSVP by 1 December');
+    // Function blocks move together.
+    const fn0 = doc.pages[2]!.elements.filter((e) => e.group === 'fn0');
+    expect(fn0.length).toBeGreaterThanOrEqual(4);
+    // Nikah opens with Bismillah instead of Ganesha.
+    const nikah = buildDesign({ template: t, data, language: 'en', eventType: 'nikah' });
+    expect(nikah.pages[0]!.elements.some((e) => e.type === 'text' && e.font === 'Amiri')).toBe(true);
+  });
+
+  it('picks function icons and parses RSVP contacts', () => {
+    expect(['Haldi Ceremony', 'मेहंदी', 'Sangeet Night', 'Baraat', 'Pheras', 'Reception Dinner', 'Ring Ceremony', 'Satyanarayan Katha', 'Something'].map(functionIcon)).toEqual([
+      'haldi', 'mehendi', 'sangeet', 'baraat', 'pheras', 'dinner', 'rings', 'puja', 'flower',
+    ]);
+    const data = designDataFrom({ content, functions, language: 'en', eventType: 'wedding' });
+    const w = writeBinding('rsvpContacts', 'Ramesh Sharma · 98290 12345\nSunita - +91 99999 00000', data);
+    expect(w?.scope === 'content' && w.content.rsvpContacts).toEqual([
+      { name: 'Ramesh Sharma', phone: '98290 12345' },
+      { name: 'Sunita', phone: '+91 99999 00000' },
+    ]);
   });
 
   it('reads and writes bindings', () => {

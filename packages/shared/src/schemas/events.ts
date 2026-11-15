@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { COMMUNITIES, EVENT_TYPE_IDS } from '../constants/event-types.js';
 import { LANGUAGE_CODES } from '../constants/languages.js';
-import { slugSchema } from './common.js';
+import { slugSchema, webUrl } from './common.js';
 import { designDocSchema, type DesignDoc } from '../design/schema.js';
 
 const text = (max: number) => z.string().trim().max(max);
@@ -18,6 +18,17 @@ export const eventContentSchema = z.object({
   familyTitle: text(60).optional(),
   familyLines: z.array(text(140)).max(16).default([]),
   closing: text(240).optional(),
+  /** "Swagatotsuk" / "Darshanabhilashi": relatives eagerly awaiting the guests. */
+  welcomeTitle: text(60).optional(),
+  welcomeLines: z.array(text(140)).max(16).optional(),
+  /** "With best compliments from". */
+  complimentsTitle: text(60).optional(),
+  complimentsLines: z.array(text(140)).max(12).optional(),
+  /** Printed on the card's RSVP block (the website has its own RSVP form). */
+  rsvpContacts: z.array(z.object({ name: text(60), phone: text(24) })).max(3).optional(),
+  /** Free note, e.g. "Your blessings are our gift". */
+  note: text(240).optional(),
+  hashtag: text(40).optional(),
 });
 export type EventContent = z.infer<typeof eventContentSchema>;
 
@@ -28,7 +39,7 @@ export const eventFunctionInputSchema = z.object({
   endsAt: z.iso.datetime({ offset: true }).optional(),
   venueName: text(120).min(1),
   venueAddress: text(300).optional(),
-  mapUrl: z.url().max(500).optional(),
+  mapUrl: webUrl().optional(),
   dressCode: text(80).optional(),
   notes: text(300).optional(),
 });

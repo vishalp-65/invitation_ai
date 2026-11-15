@@ -4,6 +4,7 @@ import { getEventType, groupByFamily, type TemplateDefinition } from '@cardai/sh
 import { useLocale } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
+import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/invite/template-search';
 import { Chip } from '@/components/ui/field';
 import { useTemplates } from '@/lib/hooks';
 import { useDraft } from './draft-store';
@@ -27,13 +28,16 @@ export function StepDesign() {
   const { data: templates, isLoading } = useTemplates(d.type);
   const [cat, setCat] = useState<Cat>('all');
 
+  const search = useTemplateSearch(templates);
   const families = useMemo(() => {
-    const list = groupByFamily(templates ?? []);
+    const list = groupByFamily(search.results);
+    // A typed search keeps its relevance order.
+    if (search.state.q.trim()) return list;
     // New layered designs and the chosen tradition first.
     const score = (vs: (typeof list)[number]['variants']) =>
       (vs[0]!.design ? 0 : 2) + (d.community && (vs[0]!.communities as string[]).includes(d.community) ? 0 : 1);
     return [...list].sort((a, b) => score(a.variants) - score(b.variants));
-  }, [templates, d.community]);
+  }, [search.results, search.state.q, d.community]);
   const cats = useMemo(() => (['all', ...new Set(families.map((f) => f.variants[0]!.category).filter(Boolean))] as Cat[]), [families]);
   const shown = families.filter((f) => cat === 'all' || f.variants[0]!.category === cat);
 
@@ -47,6 +51,7 @@ export function StepDesign() {
             : `${families.length} designs for this occasion. Next you can change any word, colour or picture right on the card.`}
         </p>
       </div>
+      <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
       {cats.length > 2 && (
         <div className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none]">
           <div className="flex w-max gap-2">
@@ -64,6 +69,8 @@ export function StepDesign() {
             <li key={i} className="skeleton aspect-[9/16]" />
           ))}
         </ul>
+      ) : shown.length === 0 ? (
+        <NoTemplates hi={hi} onReset={search.reset} />
       ) : (
         <ul className="grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 sm:gap-x-4">
           {shown.map((f, i) => (

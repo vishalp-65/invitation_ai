@@ -6,8 +6,34 @@ import { ButtonLink } from '@/components/ui/button';
 
 export const metadata: Metadata = { title: 'Pricing' };
 
-const FREE = ['Unlimited previews in every design', 'Image card with a small watermark', 'Invitation website link', 'Up to 25 guests', 'AI wording in 12 languages'];
-const ORDER: ProductCode[] = ['card', 'video', 'website', 'combo'];
+const FREE = [
+  'Unlimited previews in every design',
+  'Image card with a small watermark',
+  'Animated invitation website with short link (online 15 days after the event)',
+  'Up to 25 guests',
+  'AI wording in 12 languages',
+];
+const ORDER: ProductCode[] = ['card', 'video', 'website', 'website_royale', 'combo'];
+
+/** Website plans side by side. */
+const SITE_ROWS: Array<[string, boolean | string, boolean | string, boolean | string]> = [
+  ['Write the whole page with AI', true, true, true],
+  ['Cover, welcome, schedule, venue map, family, RSVP', true, true, true],
+  ['Opening scene', 'Envelope', 'All 5', 'All 5'],
+  ['Animated characters', 'Couple, Ganesha, diya, kalash', 'Full cast', 'Full cast'],
+  ['Story, couple, gallery, video, dress code, FAQ', false, true, true],
+  ['Guest wishes & Shagun (UPI) section', false, true, true],
+  ['Personal links for unlimited guests', '25 guests', true, true],
+  ['Your own short link name', false, true, true],
+  ['No branding, background music', false, true, true],
+  ['Travel & stay: each guest sees their room and pickup', false, false, true],
+  ['Live updates on the day + live stream', false, false, true],
+  ['Guest photo album after the event', false, false, true],
+  ['Second language (one tap to switch)', false, false, true],
+  ['Sections only for chosen guest groups', false, false, true],
+  ['Password / guests-only access', false, false, true],
+  ['Online after the event', '15 days', '1 year', '2 years'],
+];
 
 export default function PricingPage() {
   return (
@@ -53,11 +79,46 @@ export default function PricingPage() {
           </section>
         </div>
 
+        <section className="mt-16">
+          <h2 className="text-3xl">Invitation website plans</h2>
+          <p className="mt-2 max-w-2xl text-ink-soft">
+            Try every section, opening and character for free in the builder. Guests see the parts your plan includes.
+          </p>
+          <div className="mt-6 overflow-x-auto">
+            <table className="w-full min-w-[620px] text-left">
+              <thead>
+                <tr className="border-b-2 border-ink">
+                  <th className="py-3 pr-3 font-semibold">Feature</th>
+                  <th className="py-3 pr-3 font-semibold">Free</th>
+                  <th className="py-3 pr-3 font-semibold">
+                    {PRODUCTS.website.name} · {formatINR(PRODUCTS.website.pricePaise)}
+                  </th>
+                  <th className="py-3 font-semibold">
+                    {PRODUCTS.website_royale.name} · {formatINR(PRODUCTS.website_royale.pricePaise)}
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {SITE_ROWS.map(([label, ...cells]) => (
+                  <tr key={label}>
+                    <td className="py-3 pr-3">{label}</td>
+                    {cells.map((c, i) => (
+                      <td key={i} className="py-3 pr-3 text-[0.95rem]">
+                        {c === true ? <Check className="size-5 text-leaf" aria-label="Included" /> : c === false ? <span className="text-ink-soft" aria-label="Not included">—</span> : c}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
         <section className="mt-16 grid gap-8 md:grid-cols-2">
           <div>
             <h2 className="text-2xl">Add-ons</h2>
             <ul className="mt-4 flex flex-col gap-3">
-              {(['ai_clip', 'ai_backgrounds', 'print'] as const).map((c) => (
+              {(['royale_upgrade', 'site_year', 'ai_clip', 'ai_backgrounds', 'print'] as const).map((c) => (
                 <li key={c} className="flex justify-between gap-4 border-b border-line pb-3">
                   <span>
                     <strong>{PRODUCTS[c].name}</strong>

@@ -46,6 +46,7 @@ const FONT_LOADERS: Record<string, () => Promise<FontModule>> = {
   'Noto Serif Oriya': () => import('@remotion/google-fonts/NotoSerifOriya') as Promise<FontModule>,
   'Noto Sans Oriya': () => import('@remotion/google-fonts/NotoSansOriya') as Promise<FontModule>,
   'Noto Nastaliq Urdu': () => import('@remotion/google-fonts/NotoNastaliqUrdu') as Promise<FontModule>,
+  Amiri: () => import('@remotion/google-fonts/Amiri') as Promise<FontModule>,
   'Pinyon Script': () => import('@remotion/google-fonts/PinyonScript') as Promise<FontModule>,
   Parisienne: () => import('@remotion/google-fonts/Parisienne') as Promise<FontModule>,
   Allura: () => import('@remotion/google-fonts/Allura') as Promise<FontModule>,

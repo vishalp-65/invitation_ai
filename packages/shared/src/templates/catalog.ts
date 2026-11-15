@@ -1,5 +1,6 @@
 import type { Community, EventTypeId } from '../constants/event-types.js';
-import { DESIGN_FAMILIES, type DesignFamily } from '../design/families.js';
+import { type DesignFamily } from '../design/families.js';
+import { ALL_DESIGN_FAMILIES } from '../design/families-heritage.js';
 import { decorSchema, type Decor, type LayoutId, type MotifId, type PatternId, type TemplateDefinition, type Theme } from './types.js';
 
 type Palette = Theme['palette'];
@@ -36,6 +37,10 @@ export const PALETTES = {
   butter: { background: '#FFF7DA', backgroundAlt: '#FBE7A6', surface: '#FFFFFF', primary: '#B3501A', accent: '#2E8B57', text: '#3D2A0E', muted: '#7A6234' },
   kumkum: { background: '#8E0F1F', backgroundAlt: '#5E0812', surface: '#FFF3E0', primary: '#FFC857', accent: '#FFE29A', text: '#FFF3E0', muted: '#F1C3A1' },
   forest: { background: '#13362B', backgroundAlt: '#0A2019', surface: '#F4EEDF', primary: '#E3C27A', accent: '#F2E2B3', text: '#F4EEDF', muted: '#A9C2B2' },
+  linen: { background: '#F5F0E8', backgroundAlt: '#EAE2D4', surface: '#FFFFFF', primary: '#3A332B', accent: '#9A8670', text: '#2E2A25', muted: '#6F665B' },
+  dustyRose: { background: '#F6EFEA', backgroundAlt: '#EBDDD5', surface: '#FFFFFF', primary: '#8E4A55', accent: '#B98A6B', text: '#4A2C2F', muted: '#806266' },
+  dustyBlue: { background: '#EEF2F7', backgroundAlt: '#DCE4EF', surface: '#FFFFFF', primary: '#3F5577', accent: '#B49A62', text: '#25324A', muted: '#5D6C85' },
+  champagne: { background: '#FFFDF8', backgroundAlt: '#F6EEDD', surface: '#FFFFFF', primary: '#A9844A', accent: '#C7A46A', text: '#5A4A34', muted: '#857358' },
 } satisfies Record<string, Palette>;
 
 export type PaletteKey = keyof typeof PALETTES;
@@ -46,6 +51,7 @@ const VARIANT_NAMES: Record<PaletteKey, string> = {
   temple: 'Temple Red', teal: 'Teal', rose: 'Rose Noir', wine: 'Wine', plum: 'Plum', navy: 'Navy', onyx: 'Onyx',
   jade: 'Jade', peach: 'Peach', mint: 'Mint', mustard: 'Haldi', coral: 'Coral',
   cream: 'Cream', babyBlue: 'Baby Blue', babyPink: 'Baby Pink', butter: 'Butter', kumkum: 'Kumkum', forest: 'Forest',
+  linen: 'Linen', dustyRose: 'Dusty Rose', dustyBlue: 'Dusty Blue', champagne: 'Champagne',
 };
 
 interface Family {
@@ -251,13 +257,14 @@ function expandDesign(f: DesignFamily): TemplateDefinition[] {
       family: { id: f.id, name: f.name, variant: VARIANT_NAMES[k] },
       design: f.id,
       category: f.category,
+      ...(f.styles ? { styles: f.styles } : {}),
     };
   });
 }
 
 /** New layered designs first (they're the premium, editor-first collection), then the classics. */
 export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
-  ...DESIGN_FAMILIES.flatMap(expandDesign),
+  ...ALL_DESIGN_FAMILIES.flatMap(expandDesign),
   ...TEMPLATE_FAMILIES.flatMap(expand).map((t) => ({ ...t, category: LEGACY_CATEGORY(t.eventTypes) })),
 ];
 

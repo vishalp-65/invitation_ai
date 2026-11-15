@@ -524,7 +524,7 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
       const ids = els.map((x) => x.id);
       const free = els.filter((x) => !x.locked);
       const freeIds = free.map((x) => x.id);
-      if (e.key === 'Escape') return s.select(null);
+      if (e.key === 'Escape') return run(() => s.select(null));
       if (mod && k === 'c') return run(() => s.copyMany(ids));
       if (mod && k === 'g') return run(() => (e.shiftKey ? s.ungroup(ids) : s.group(ids)));
       if (mod && e.shiftKey && k === 'l') {

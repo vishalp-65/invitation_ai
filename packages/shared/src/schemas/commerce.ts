@@ -3,7 +3,7 @@ import { PRODUCT_CODES } from '../constants/products.js';
 import { RENDER_FORMATS } from '../constants/render.js';
 import { LAYOUTS, themeSchema } from '../templates/types.js';
 import { COMMUNITIES, EVENT_TYPE_IDS } from '../constants/event-types.js';
-import { phoneSchema } from './common.js';
+import { phoneSchema, webUrl } from './common.js';
 
 // ---------- Renders ----------
 export const createRenderSchema = z.object({
@@ -114,7 +114,7 @@ export const updatePrintOrderSchema = z.object({
 export const designerApplySchema = z.object({
   displayName: z.string().trim().min(2).max(60),
   bio: z.string().trim().max(500).optional(),
-  portfolioUrl: z.url().optional(),
+  portfolioUrl: webUrl().optional(),
   payoutUpi: z.string().regex(/^[\w.-]{2,256}@[a-zA-Z]{2,64}$/, 'Enter a valid UPI ID'),
 });
 

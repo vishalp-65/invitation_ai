@@ -128,7 +128,12 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
 
 export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickImage: () => Promise<string | null> }) {
   const page = useEditor((s) => currentPage(s));
-  const [all, setAll] = useState(true);
+  // Multi-page designs often give each page its own background: only default to "every page" when they already match.
+  const [all, setAll] = useState(() => {
+    const pages = useEditor.getState().doc?.pages ?? [];
+    const first = JSON.stringify(pages[0]?.bg);
+    return pages.every((p) => JSON.stringify(p.bg) === first);
+  });
   const { data: media } = useEventMedia(event.id);
   if (!page) return null;
   const bg = page.bg;

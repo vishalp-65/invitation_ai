@@ -313,6 +313,12 @@ const OPTION_CHOICES: Record<string, Record<string, string[]>> = {
   motif: { motif: ['om', 'shree', 'kalash', 'diya', 'lotus', 'khanda', 'crescent', 'cross', 'peacock', 'heart', 'balloons'] },
   border: { style: ['double', 'temple', 'paithani', 'phulkari', 'deco'] },
   bandhanwar: { flowers: ['marigold', 'jasmine'] },
+  'arch-panel': { shape: ['scallop', 'mughal', 'dome', 'oval', 'rect'] },
+  'fn-icon': { icon: ['haldi', 'mehendi', 'sangeet', 'baraat', 'wedding', 'pheras', 'reception', 'rings', 'puja', 'nikah', 'cake', 'dinner', 'flower'] },
+  'bloom-corner': { kind: ['peony', 'hydrangea', 'tulip', 'daisy', 'mixed'] },
+  greenery: { kind: ['eucalyptus', 'olive', 'fern', 'mixed'] },
+  'line-flower': { kind: ['poppy', 'lily', 'rose', 'wild'] },
+  'genda-ladi': { count: ['1', '2', '3', '4', '5'] },
 };
 const nice = (s: string) => ({ watercolor: 'Painted', caricature: 'Cute', lineart: 'Line art', north: 'North Indian', south: 'South Indian', muslim: 'Nikah', christian: 'Church' })[s] ?? `${s[0]!.toUpperCase()}${s.slice(1)}`;
 

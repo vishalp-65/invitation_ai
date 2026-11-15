@@ -1,5 +1,5 @@
 import { and, asc, count, eq, eventFunctions, guests, inArray, rsvps, type Database } from '@cardai/db';
-import { whatsappShareUrl, type GuestDto, type GuestInput, type RsvpSummaryDto } from '@cardai/shared';
+import { whatsappShareUrl, type GuestDto, type GuestInput, type RsvpSummaryDto, type UpdateGuestInput } from '@cardai/shared';
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import type { AuthUser } from '../../common/auth.decorators.js';
@@ -7,6 +7,7 @@ import { ENV, type Env } from '../../config/env.js';
 import { DB } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
+import { ShortLinksService } from '../short-links/short-links.service.js';
 import { WhatsAppClient } from '../whatsapp/whatsapp.client.js';
 
 const token = customAlphabet('abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789', 12);
@@ -22,6 +23,7 @@ export class GuestsService {
     private readonly events: EventsService,
     private readonly entitlements: EntitlementsService,
     private readonly whatsapp: WhatsAppClient,
+    private readonly links: ShortLinksService,
   ) {}
 
   private inviteUrl(slug: string, guestToken: string) {
@@ -51,13 +53,15 @@ export class GuestsService {
       m[a.functionId] = { status: a.status, headcount: a.headcount };
       byGuest.set(a.guestId!, m);
     }
-    return { items: rows.map((g) => this.toDto(g, event.slug, byGuest.get(g.id) ?? {})) };
+    const codes = await this.links.guestCodes(rows);
+    return { items: rows.map((g) => this.toDto({ ...g, shortCode: codes.get(g.id) ?? g.shortCode }, event.slug, byGuest.get(g.id) ?? {})) };
   }
 
   async create(user: AuthUser, eventId: string, input: GuestInput): Promise<GuestDto> {
     const event = await this.events.getOwned(user, eventId);
     await this.assertCapacity(eventId, 1);
-    const [row] = await this.db.insert(guests).values({ ...input, eventId, token: token() }).returning();
+    if (input.stay) await this.entitlements.require(eventId, 'website_royale', 'Travel & stay per guest is part of Site Royale');
+    const [row] = await this.db.insert(guests).values({ ...input, eventId, token: token(), shortCode: this.links.newGuestCode() }).returning();
     return this.toDto(row!, event.slug, {});
   }
 
@@ -72,16 +76,17 @@ export class GuestsService {
         if (seen.has(g.phone)) continue; // skip duplicates by phone
         seen.add(g.phone);
       }
-      fresh.push(g);
+      fresh.push({ ...g, stay: undefined }); // stay details are set per guest (Royale)
     }
     for (let i = 0; i < fresh.length; i += 500) {
-      await this.db.insert(guests).values(fresh.slice(i, i + 500).map((g) => ({ ...g, eventId, token: token() })));
+      await this.db.insert(guests).values(fresh.slice(i, i + 500).map((g) => ({ ...g, eventId, token: token(), shortCode: this.links.newGuestCode() })));
     }
     return { created: fresh.length, skipped: list.length - fresh.length };
   }
 
-  async update(user: AuthUser, eventId: string, guestId: string, input: Partial<GuestInput>): Promise<GuestDto> {
+  async update(user: AuthUser, eventId: string, guestId: string, input: UpdateGuestInput): Promise<GuestDto> {
     const event = await this.events.getOwned(user, eventId);
+    if (input.stay) await this.entitlements.require(eventId, 'website_royale', 'Travel & stay per guest is part of Site Royale');
     const [row] = await this.db.update(guests).set(input).where(and(eq(guests.id, guestId), eq(guests.eventId, eventId))).returning();
     if (!row) throw new NotFoundException('Guest not found');
     return this.toDto(row, event.slug, {});
@@ -100,9 +105,13 @@ export class GuestsService {
     const event = await this.events.getOwned(user, eventId);
     const [guest] = await this.db.select().from(guests).where(and(eq(guests.id, guestId), eq(guests.eventId, eventId)));
     if (!guest) throw new NotFoundException('Guest not found');
-    const url = this.inviteUrl(event.slug, guest.token);
+    const [code] = (await this.links.guestCodes([guest])).values();
+    const url = code ? this.links.url(code) : this.inviteUrl(event.slug, guest.token);
     const greeting = guest.salutation || guest.name;
-    const message = `${greeting}, you are warmly invited to ${event.title}. Please open your invitation: ${url}`;
+    const reminder = Boolean(guest.invitedAt) && guest.viewCount === 0;
+    const message = reminder
+      ? `${greeting}, a gentle reminder — your invitation to ${event.title} is waiting for you: ${url}`
+      : `${greeting}, you are warmly invited to ${event.title}. Please open your invitation: ${url}`;
 
     let sent = false;
     if (viaApi && guest.phone && this.whatsapp.configured) {
@@ -111,7 +120,13 @@ export class GuestsService {
       sent = true;
     }
     await this.db.update(guests).set({ invitedAt: new Date() }).where(eq(guests.id, guest.id));
-    return { sent, shareUrl: whatsappShareUrl(message, guest.phone), inviteUrl: url };
+    return {
+      sent,
+      shareUrl: whatsappShareUrl(message, guest.phone),
+      smsUrl: guest.phone ? `sms:${guest.phone}?body=${encodeURIComponent(message)}` : null,
+      message,
+      inviteUrl: url,
+    };
   }
 
   async rsvpSummary(user: AuthUser, eventId: string): Promise<RsvpSummaryDto> {
@@ -184,6 +199,9 @@ export class GuestsService {
       functionIds: g.functionIds,
       token: g.token,
       inviteUrl: this.inviteUrl(slug, g.token),
+      shortUrl: g.shortCode ? this.links.url(g.shortCode) : this.inviteUrl(slug, g.token),
+      stay: g.stay ?? null,
+      invitedAt: g.invitedAt?.toISOString() ?? null,
       viewCount: g.viewCount,
       firstViewedAt: g.firstViewedAt?.toISOString() ?? null,
       rsvp,

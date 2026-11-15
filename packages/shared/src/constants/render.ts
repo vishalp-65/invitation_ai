@@ -17,7 +17,7 @@ export const CANVAS = {
 export const VIDEO = {
   fps: 30,
   /** WhatsApp forwards videos up to 16 MB without re-compressing badly; we aim below. */
-  targetMaxBytes: 14 * 1024 * 1024,
+  targetMaxBytes: 15 * 1024 * 1024,
   sceneSeconds: {
     intro: 3.5,
     names: 4.5,
@@ -25,6 +25,17 @@ export const VIDEO = {
     family: 4,
     outro: 3.5,
   },
+} as const;
+
+/** Output quality for paid (watermark-free) renders. Free previews stay at storyPreview size. */
+export const RENDER_QUALITY = {
+  /** Stills are rendered at 2x (2160x3840) so they stay crisp on large phones and when zoomed in a PDF. */
+  stillScale: 2,
+  stillJpegQuality: 95,
+  /** Video frames are captured at max JPEG quality before x264 encoding (Remotion defaults to 80). */
+  videoFrameQuality: 100,
+  videoMaxKbps: 9000,
+  videoMinKbps: 1500,
 } as const;
 
 /** Remotion composition ids (registered in @cardai/templates, rendered by the worker). */

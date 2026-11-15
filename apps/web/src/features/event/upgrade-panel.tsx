@@ -10,7 +10,17 @@ import { ApiError } from '@/lib/api';
 import { buy } from '@/lib/checkout';
 import { qk } from '@/lib/hooks';
 
-const ORDER: ProductCode[] = ['combo', 'card', 'video', 'website', 'ai_clip', 'ai_backgrounds', 'print'];
+const ORDER: ProductCode[] = ['combo', 'website', 'website_royale', 'royale_upgrade', 'card', 'video', 'ai_clip', 'ai_backgrounds', 'site_year', 'print'];
+
+/** Hide offers that don't apply to this invitation (e.g. the Royale upgrade before Premium). */
+function visible(code: ProductCode, features: string[]) {
+  const premium = features.includes('website_premium');
+  const royale = features.includes('website_royale');
+  if (code === 'royale_upgrade') return premium && !royale;
+  if (code === 'website_royale') return !premium || royale;
+  if (code === 'website') return !royale;
+  return true;
+}
 
 export function UpgradePanel({ event }: { event: EventDto }) {
   const qc = useQueryClient();
@@ -37,7 +47,7 @@ export function UpgradePanel({ event }: { event: EventDto }) {
       <h2 className="text-2xl">Upgrade this invitation</h2>
       <p className="mt-1 text-ink-soft">One-time payment for this event. Pay by UPI, card or wallet.</p>
       <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {ORDER.map((code) => {
+        {ORDER.filter((code) => visible(code, event.features)).map((code) => {
           const p = PRODUCTS[code];
           const owned = p.features.every((f) => event.features.includes(f)) && !p.credits;
           return (
@@ -68,6 +78,9 @@ export function UpgradePanel({ event }: { event: EventDto }) {
                 )}
                 {code === 'ai_clip' && event.credits.ai_clip ? (
                   <p className="mt-2 text-sm">{event.credits.ai_clip} credit available</p>
+                ) : null}
+                {code === 'site_year' && event.credits.site_extra_year ? (
+                  <p className="mt-2 text-sm">{event.credits.site_extra_year} extra year{event.credits.site_extra_year > 1 ? 's' : ''} added</p>
                 ) : null}
                 {code === 'ai_backgrounds' && event.credits.ai_background ? (
                   <p className="mt-2 text-sm">{event.credits.ai_background} AI backgrounds available</p>

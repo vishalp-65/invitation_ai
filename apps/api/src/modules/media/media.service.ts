@@ -1,4 +1,4 @@
-import { and, desc, eq, inArray, mediaAssets, musicTracks, type Database } from '@cardai/db';
+import { and, desc, eq, inArray, mediaAssets, musicTracks, sql, type Database } from '@cardai/db';
 import type { MediaAssetDto, PresignUploadInput } from '@cardai/shared';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
@@ -86,7 +86,8 @@ export class MediaService {
     const rows = await this.db
       .select()
       .from(mediaAssets)
-      .where(and(eq(mediaAssets.eventId, eventId), eq(mediaAssets.ready, true)))
+      // Guest album uploads are moderated in the website builder, not offered as design assets.
+      .where(and(eq(mediaAssets.eventId, eventId), eq(mediaAssets.ready, true), sql`coalesce(${mediaAssets.meta}->>'source', '') <> 'guest_album'`))
       .orderBy(desc(mediaAssets.createdAt));
     return { items: rows.map((r) => this.toDto(r)) };
   }

@@ -85,6 +85,43 @@ export function translationPrompt(languageCode: string, content: unknown) {
   };
 }
 
+// ---------------- Invitation website draft ----------------
+
+export function siteDraftPrompt(opts: {
+  eventType: string;
+  language: string;
+  tone: string;
+  vibe: string;
+  community?: string | null;
+  primaryNames: string[];
+  functions: Array<{ name: string; date: string; venue: string }>;
+  story?: string;
+}) {
+  const lang = getLanguage(opts.language);
+  const event = getEventType(opts.eventType);
+  const system = [
+    'You write the content of an animated invitation website for an Indian family event.',
+    `Write ONLY in ${lang.name} (${lang.script} script); keep personal names as given (transliterate into ${lang.script} if needed).`,
+    'Use ONLY the facts provided. Never invent names, dates, places, jobs, how people met, or relatives. If the story is not given, return an empty story array.',
+    'FAQ answers must stay generic when the fact is unknown (e.g. "Details will be shared soon"), never made-up specifics.',
+    'Dress code colours must be #RRGGBB, matching the function mood (haldi = yellows, mehendi = greens, sangeet = jewel tones...).',
+    `Pick opening from: none, envelope, doors, curtain, scroll, petals. Pick character from: auto, none, couple, ganesha, diya, kalash, baby, cake, elephant, peacock, doves, house — fitting the occasion and the "${opts.vibe}" vibe.`,
+    'headings: one natural, short heading in the invitation language for each of these section types: hero, welcome, couple, story, schedule, dresscode, venue, gallery, video, family, travel, rsvp, gifts, livestream, updates, faq, wishes, album, custom, closing.',
+    'Short lines that read well on a phone. No emojis, no hashtags. Return JSON only.',
+  ].join(' ');
+  const user = [
+    `Occasion: ${event.label}.`,
+    opts.community ? `Community/custom: ${opts.community}.` : '',
+    `Tone: ${opts.tone}. Visual vibe: ${opts.vibe}.`,
+    opts.primaryNames.length ? `Main people: ${opts.primaryNames.join(' & ')}.` : '',
+    `Functions: ${opts.functions.map((f) => `${f.name} on ${f.date} at ${f.venue}`).join('; ')}.`,
+    opts.story ? `Their story / notes from the host:\n${opts.story}` : 'No story given.',
+  ]
+    .filter(Boolean)
+    .join('\n');
+  return { system, user };
+}
+
 // ---------------- WhatsApp / voice intake ----------------
 
 export function intentPrompt(today: string) {

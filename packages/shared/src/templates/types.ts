@@ -107,4 +107,6 @@ export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
   design?: string;
   /** Gallery group. */
   category?: 'wedding' | 'kids' | 'religious' | 'business';
+  /** Declared visual styles for search (more are derived, see templates/search.ts). */
+  styles?: string[];
 };

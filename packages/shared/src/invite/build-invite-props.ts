@@ -38,6 +38,8 @@ export interface InviteFunction {
   venue: string;
   address: string | null;
   dressCode: string | null;
+  /** Short description of the function. */
+  notes?: string | null;
 }
 
 export interface BuildInvitePropsInput {

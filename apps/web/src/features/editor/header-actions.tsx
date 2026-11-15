@@ -97,10 +97,17 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
       await flush();
       let r = await api<RenderDto>('/renders', { method: 'POST', json: { eventId: event.id, format } });
       const until = Date.now() + 4 * 60_000;
+      let misses = 0;
       while (me === run.current && (r.status === 'queued' || r.status === 'processing') && Date.now() < until) {
         setRender(r);
         await new Promise((res) => setTimeout(res, 1500));
-        r = await api<RenderDto>(`/renders/${r.id}`);
+        try {
+          r = await api<RenderDto>(`/renders/${r.id}`);
+          misses = 0;
+        } catch (err) {
+          // A dropped poll (flaky mobile data) shouldn't abandon a render that is still running.
+          if (++misses >= 4) throw err;
+        }
       }
       if (me !== run.current) return;
       setRender(r);
@@ -176,7 +183,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
             {render.watermark && (
               <p className="rounded-xl bg-mist p-3 text-sm">
                 Free downloads carry a small watermark.{' '}
-                <Link href={`/dashboard/events/${event.id}?tab=upgrade`} className="font-semibold underline underline-offset-4">
+                <Link href={`/dashboard/events/${event.id}?upgrade=card`} className="font-semibold underline underline-offset-4">
                   Remove it from {formatINR(PRODUCTS.card.pricePaise)}
                 </Link>
               </p>

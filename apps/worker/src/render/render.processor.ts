@@ -1,5 +1,5 @@
 import { eq, renders, type RenderOutput } from '@cardai/db';
-import { CANVAS, COMPOSITION_IDS, DESIGN_PRINT, VIDEO, type RenderJobData } from '@cardai/shared';
+import { COMPOSITION_IDS, DESIGN_PRINT, RENDER_QUALITY, VIDEO, type RenderJobData } from '@cardai/shared';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import type { Job } from 'bullmq';
 import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
@@ -9,9 +9,6 @@ import type { WorkerContext } from '../context.js';
 import type { RemotionRuntime } from '../remotion.js';
 import { loadDesignProps, type DesignRenderProps } from './load-design.js';
 import { buildPrintPdf, buildScreenPdf } from './pdf.js';
-
-/** Free previews render at 720p: cheaper, faster, and nudges upgrade to HD. */
-const PREVIEW_SCALE = CANVAS.storyPreview.width / CANVAS.story.width;
 
 export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRuntime) {
   return async function process(job: Job<RenderJobData>): Promise<void> {
@@ -46,7 +43,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
         const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designVideo, inputProps: props, puppeteerInstance: browser });
         const seconds = composition.durationInFrames / composition.fps;
         // Bitrate budget keeps the MP4 under WhatsApp's forwarding limit regardless of length.
-        const kbps = Math.max(800, Math.min(4500, Math.floor((VIDEO.targetMaxBytes * 8 * 0.92) / seconds / 1000) - 128));
+        const kbps = Math.max(RENDER_QUALITY.videoMinKbps, Math.min(RENDER_QUALITY.videoMaxKbps, Math.floor((VIDEO.targetMaxBytes * 8 * 0.92) / seconds / 1000) - 128));
         const file = join(dir, 'invite.mp4');
         await renderMedia({
           composition,
@@ -55,10 +52,11 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
           outputLocation: file,
           inputProps: props,
           puppeteerInstance: browser,
-          scale: render.watermark ? PREVIEW_SCALE : 1,
+          scale: 1, // 1080p for everyone; free renders differ only by the watermark
           videoBitrate: `${kbps}k`,
           audioBitrate: '128k',
-          x264Preset: 'medium',
+          x264Preset: render.watermark ? 'medium' : 'slow',
+          jpegQuality: RENDER_QUALITY.videoFrameQuality,
           concurrency: ctx.env.REMOTION_CONCURRENCY ?? null,
           onProgress: ({ progress }) => void setProgress(progress),
         });
@@ -68,6 +66,8 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
         const compId = print ? COMPOSITION_IDS.designCardPrint : COMPOSITION_IDS.designCard;
         const pages = props.design.pages;
         const images: Buffer[] = [];
+        // Paid stills render at 2x; print is already 300+ DPI and stays lossless at 1x.
+        const stillScale = print || render.watermark ? 1 : RENDER_QUALITY.stillScale;
 
         for (let i = 0; i < pages.length; i++) {
           const pageProps: DesignRenderProps = { ...props, page: i };
@@ -79,8 +79,8 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
             output: file,
             inputProps: pageProps,
             puppeteerInstance: browser,
-            ...(print ? { imageFormat: 'png' as const } : { imageFormat: 'jpeg' as const, jpegQuality: 90 }),
-            scale: render.watermark ? PREVIEW_SCALE : 1,
+            ...(print ? { imageFormat: 'png' as const } : { imageFormat: 'jpeg' as const, jpegQuality: RENDER_QUALITY.stillJpegQuality }),
+            scale: stillScale,
           });
           images.push(await readFile(file));
           await setProgress((i + 1) / (pages.length + 1));
@@ -90,7 +90,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
         }
 
         if (render.format === 'pdf') {
-          const pdf = await buildScreenPdf(images);
+          const pdf = await buildScreenPdf(images, stillScale);
           const put = await ctx.storage.put(`${prefix}/invite.pdf`, pdf, 'application/pdf');
           outputs.push({ key: put.key, contentType: 'application/pdf', bytes: put.bytes });
         }

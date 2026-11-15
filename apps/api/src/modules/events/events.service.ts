@@ -16,6 +16,7 @@ import { customAlphabet } from 'nanoid';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { DB } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
+import { ShortLinksService } from '../short-links/short-links.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
 
 const suffix = customAlphabet('abcdefghijkmnpqrstuvwxyz23456789', 4);
@@ -29,6 +30,7 @@ export class EventsService {
     @Inject(DB) private readonly db: Database,
     private readonly templates: TemplatesService,
     private readonly entitlements: EntitlementsService,
+    private readonly links: ShortLinksService,
   ) {}
 
   /** Loads an event the caller owns (admins can access all). 404 instead of 403 to avoid leaking ids. */
@@ -151,6 +153,8 @@ export class EventsService {
         }
       }
     });
+    // Short links cache the slug they point at.
+    if (input.slug && input.slug !== event.slug) await this.links.forgetCodes(await this.links.codesOfEvent(eventId));
     return this.getDto(user, eventId);
   }
 
@@ -170,8 +174,9 @@ export class EventsService {
   }
 
   async duplicate(user: AuthUser, eventId: string): Promise<EventDto> {
-    const dto = await this.getDto(user, eventId);
-    return this.create(user, {
+    const source = await this.getOwned(user, eventId);
+    const dto = await this.toDto(source, await this.functionsOf(eventId));
+    const copy = await this.create(user, {
       type: dto.type,
       language: dto.language,
       secondaryLanguage: dto.secondaryLanguage ?? undefined,
@@ -183,6 +188,18 @@ export class EventsService {
       settings: { ...dto.settings, aiClipAssetId: undefined },
       design: dto.design ?? undefined,
     });
+    // Keep the website design too. Function ids are new, so per-function links (venue, dress
+    // code) fall back to defaults, and guest-group targeting is kept as is.
+    if (source.site) {
+      const fnIds = new Set(copy.functions.map((f) => f.id));
+      const site = structuredClone(source.site);
+      for (const sec of site.sections) {
+        if (sec.type === 'venue' && sec.functionId && !fnIds.has(sec.functionId)) sec.functionId = undefined;
+        if (sec.type === 'dresscode') for (const d of sec.items) if (d.functionId && !fnIds.has(d.functionId)) d.functionId = undefined;
+      }
+      await this.db.update(events).set({ site }).where(eq(events.id, copy.id));
+    }
+    return copy;
   }
 
   async toDto(event: EventRow, fns: FunctionRow[]): Promise<EventDto> {

@@ -2,6 +2,12 @@ import { z } from 'zod';
 
 export const uuid = z.uuid();
 
+/**
+ * A link we render as `href` on public pages: http(s) only, so `javascript:` / `data:` links
+ * can never run in a guest's browser.
+ */
+export const webUrl = (max = 500) => z.url({ protocol: /^https?$/, error: 'Enter a link starting with https://' }).max(max);
+
 /** Indian mobile in E.164 (+91XXXXXXXXXX) or any E.164 number for NRIs. */
 export const phoneSchema = z
   .string()

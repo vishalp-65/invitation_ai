@@ -84,6 +84,7 @@ export const EDITOR_FONTS: EditorFont[] = [
   { family: 'Noto Sans Oriya', group: 'indic', scripts: ['Latn', 'Orya'] },
   { family: 'Noto Nastaliq Urdu', group: 'indic', scripts: ['Latn', 'Arab'] },
   { family: 'Noto Naskh Arabic', group: 'indic', scripts: ['Latn', 'Arab'] },
+  { family: 'Amiri', group: 'serif', scripts: ['Latn', 'Arab'] },
 ];
 
 export function fontSupports(family: string, script: string): boolean {

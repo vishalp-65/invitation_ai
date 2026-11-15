@@ -29,11 +29,12 @@ export async function loadDesignProps(ctx: WorkerContext, eventId: string, opts:
   const language = event.language as LanguageCode;
   const data = designDataFrom({
     content: event.content,
-    functions: fns.map((f) => ({ name: f.name, startsAt: f.startsAt.toISOString(), venueName: f.venueName, venueAddress: f.venueAddress ?? undefined, dressCode: f.dressCode ?? undefined })),
+    functions: fns.map((f) => ({ name: f.name, startsAt: f.startsAt.toISOString(), venueName: f.venueName, venueAddress: f.venueAddress ?? undefined, dressCode: f.dressCode ?? undefined, notes: f.notes })),
     language,
     eventType: event.type,
     timezone: event.settings.timezone,
     photos: legacy.photos,
+    rsvpDeadline: event.settings.rsvpDeadline ?? null,
   });
   let design: DesignDoc = event.design ?? buildDesign({ template: legacy.template, data, language, eventType: event.type });
 

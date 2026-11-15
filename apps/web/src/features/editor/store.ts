@@ -308,7 +308,10 @@ export const useEditor = create<EditorState>()((set, get) => {
     deletePage: (i) => {
       const { doc } = get();
       if (!doc || doc.pages.length <= 1) return;
-      commit({ ...doc, pages: doc.pages.filter((_, k) => k !== i) }, true, { page: Math.max(0, Math.min(get().page, doc.pages.length - 2)), ...NONE });
+      const cur = get().page;
+      // Deleting an earlier page shifts the current one down by one.
+      const page = i < cur ? cur - 1 : Math.min(cur, doc.pages.length - 2);
+      commit({ ...doc, pages: doc.pages.filter((_, k) => k !== i) }, true, { page: Math.max(0, page), ...(i === cur ? NONE : {}) });
     },
 
     movePage: (i, dir) => {
@@ -325,14 +328,14 @@ export const useEditor = create<EditorState>()((set, get) => {
       const { past, doc, future } = get();
       if (!past.length || !doc) return;
       const prev = past[past.length - 1]!;
-      set({ doc: prev, past: past.slice(0, -1), future: [doc, ...future].slice(0, HISTORY_LIMIT), version: get().version + 1 });
+      set({ doc: prev, past: past.slice(0, -1), future: [doc, ...future].slice(0, HISTORY_LIMIT), version: get().version + 1, gesture: null });
       set(undoRedoExtra(prev));
     },
     redo: () => {
       const { past, doc, future } = get();
       if (!future.length || !doc) return;
       const next = future[0]!;
-      set({ doc: next, future: future.slice(1), past: [...past, doc].slice(-HISTORY_LIMIT), version: get().version + 1 });
+      set({ doc: next, future: future.slice(1), past: [...past, doc].slice(-HISTORY_LIMIT), version: get().version + 1, gesture: null });
       set(undoRedoExtra(next));
     },
 

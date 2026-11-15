@@ -4,18 +4,26 @@ import { decorSchema, type TemplateDefinition } from '../templates/types.js';
 import type { DesignData } from './bindings.js';
 import { artEl, fullPage, makeCtx, resetIds, shapeEl, solidBg, stack, tonesFor, TYPE_SETS, type Band, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
 import { isDarkColor } from './color.js';
-import { DESIGN_FAMILIES, goldOn, type Chrome, type DesignFamily } from './families.js';
+import { goldOn, trueGold, type Chrome, type DesignFamily } from './families.js';
+import { ALL_DESIGN_FAMILIES } from './families-heritage.js';
+import { blessingBands, blessingKind, ceremonyBands, familyBands, FUNCTIONS_PER_PAGE, hasFamilyExtras, photoBands } from './pages.js';
 import { DESIGN_H, DESIGN_W, type DesignDoc, type DesignElement, type DesignPage } from './schema.js';
 
 export interface BuildDesignInput {
-  template: Pick<TemplateDefinition, 'id' | 'layout' | 'theme'> & { design?: string };
+  template: Pick<TemplateDefinition, 'id' | 'layout' | 'theme'> & { design?: string; communities?: readonly string[] };
   data: DesignData;
   language: LanguageCode;
   eventType: string;
 }
 
-const SCHEDULE_TITLE: Partial<Record<LanguageCode, string>> = { en: 'Celebrations', hi: 'मांगलिक कार्यक्रम', mr: 'कार्यक्रम' };
-const FUNCTIONS_PER_PAGE = 3;
+/** Hard cap from designDocSchema. */
+const MAX_PAGES = 8;
+
+/** Index of the main invitation page (page 1 may be the blessing page). */
+export function coverPageIndex(doc: Pick<DesignDoc, 'pages'>): number {
+  const i = doc.pages.findIndex((p) => p.id === 'cover');
+  return i >= 0 ? i : 0;
+}
 
 /** A recipe-like description of any template (new design families, or the classic catalogue). */
 interface Spec {
@@ -27,9 +35,14 @@ interface Spec {
   chrome: (ctx: RecipeCtx, t: Tones) => Chrome;
   hero: (ctx: RecipeCtx, t: Tones) => Band[];
   bands?: (ctx: RecipeCtx, t: Tones) => Band[];
+  /** Chrome for the inner pages (defaults to the cover's). */
+  inner?: (ctx: RecipeCtx, t: Tones) => Chrome;
+  innerZone?: Zone;
+  /** Chrome for the blessing page (defaults to the inner pages'). */
+  blessing?: (ctx: RecipeCtx, t: Tones) => Chrome;
 }
 
-function defaultCoverBands(spec: Spec, ctx: RecipeCtx, t: Tones): Band[] {
+function defaultCoverBands(spec: Spec, ctx: RecipeCtx, t: Tones, familyOnCover: boolean): Band[] {
   const hero = spec.hero(ctx, t);
   const divider: Band = { t: 'divider', style: spec.divider, gap: 30 };
   const dateAndVenue: Band[] = [
@@ -37,8 +50,7 @@ function defaultCoverBands(spec: Spec, ctx: RecipeCtx, t: Tones): Band[] {
     { t: 'text', role: 'venue', bind: 'fnM.venue', gap: 26 },
     { t: 'text', role: 'small', bind: 'fnM.address', gap: 6 },
   ];
-  const fam = ctx.data.functions.length <= 1 && ctx.data.content.familyLines.length <= 3;
-  const family: Band[] = fam
+  const family: Band[] = familyOnCover
     ? [
         { t: 'text', role: 'eyebrow', bind: 'familyTitle', gap: 34, size: TYPE_SETS[spec.type].eyebrow.size * 0.85 },
         { t: 'text', role: 'small', bind: 'familyLines', gap: 8 },
@@ -90,13 +102,17 @@ function page(id: string, chrome: Chrome, content: DesignElement[]): DesignPage 
   return { id, bg: chrome.bg, elements: [...chrome.under, ...(chrome.over ?? []), ...content] };
 }
 
-/** Builds the full card (cover + schedule + family pages) for a template and event data. */
+/**
+ * Builds the full card for a template and event data:
+ *   blessing (sacred symbol) → cover → ceremonies… → family & RSVP → photo / save the date.
+ * Inner pages only appear when the event has content for them.
+ */
 export function buildDesign(input: BuildDesignInput): DesignDoc {
   resetIds();
   const ev = getEventType(input.eventType);
   const p = input.template.theme.palette;
   const ctx = makeCtx({ p, data: input.data, language: input.language, eventType: input.eventType, category: ev.category, people: ev.primaryPeople });
-  const family = input.template.design ? DESIGN_FAMILIES.find((f) => f.id === input.template.design) : undefined;
+  const family = input.template.design ? ALL_DESIGN_FAMILIES.find((f) => f.id === input.template.design) : undefined;
   const spec: Spec = family
     ? {
         type: family.type,
@@ -107,44 +123,53 @@ export function buildDesign(input: BuildDesignInput): DesignDoc {
         chrome: family.chrome,
         hero: family.hero ?? (() => []),
         bands: family.bands,
+        inner: family.inner,
+        innerZone: family.innerZone,
+        blessing: family.blessing,
       }
     : legacySpec(input.template);
 
   const tones = tonesFor(spec.textBg(ctx), p);
   const ts = TYPE_SETS[spec.type];
   const chrome = spec.chrome(ctx, tones);
-  const pages: DesignPage[] = [];
+  const inner: Chrome = spec.inner ? spec.inner(ctx, tones) : chrome;
+  const innerZone = spec.innerZone ?? spec.zone;
+  const gold = goldOn(ctx);
+  const fns = input.data.functions;
+  const lines = input.data.content.familyLines.length;
 
-  const coverBands = spec.bands ? spec.bands(ctx, tones) : defaultCoverBands(spec, ctx, tones);
+  // Family names stay on the cover for small, single-function invites with nothing else to say.
+  const extras = hasFamilyExtras(ctx);
+  const familyPage = (lines > 0 && (fns.length > 1 || lines > 3)) || extras;
+  const familyOnCover = !familyPage && lines > 0;
+  const photoPage = ctx.people === 2 || input.data.photos.length > 0;
+  const kind = blessingKind(input.eventType, input.template.communities ?? [], input.template.theme.motif);
+
+  const pages: DesignPage[] = [];
+  const blessing = blessingBands(ctx, kind, trueGold(ctx));
+  if (blessing.length) {
+    const bc = spec.blessing ? spec.blessing(ctx, tones) : inner;
+    pages.push(page('blessing', bc, stack(blessing, { ...innerZone, align: 'center' }, ctx, ts, tones)));
+  }
+
+  const coverBands = spec.bands ? spec.bands(ctx, tones) : defaultCoverBands(spec, ctx, tones, familyOnCover);
   pages.push(page('cover', chrome, stack(coverBands, spec.zone, ctx, ts, tones)));
 
-  // Inner pages reuse the frame and background (the hero illustration lives in the cover bands).
-  const inner: Chrome = chrome;
-  const fns = input.data.functions;
+  // Budget: ceremonies get whatever the other pages leave (max 8 pages in all).
+  const reserved = pages.length + (familyPage ? 1 : 0) + (photoPage ? 1 : 0);
   if (fns.length > 1) {
-    for (let i = 0; i < fns.length; i += FUNCTIONS_PER_PAGE) {
-      const bands: Band[] = [{ t: 'text', role: 'headline', text: SCHEDULE_TITLE[input.language] ?? SCHEDULE_TITLE.en!, gap: 0 }, { t: 'divider', style: spec.divider, gap: 24 }];
-      for (let k = i; k < Math.min(fns.length, i + FUNCTIONS_PER_PAGE); k++) {
-        bands.push(
-          { t: 'text', role: 'connector', bind: `fn${k}.name`, gap: 64, size: ts.connector.size * 1.2 },
-          { t: 'text', role: 'date', bind: `fn${k}.datetime`, gap: 14, size: ts.date.size * 0.95 },
-          { t: 'text', role: 'venue', bind: `fn${k}.venue`, gap: 14 },
-          { t: 'text', role: 'small', bind: `fn${k}.address`, gap: 4 },
-          { t: 'text', role: 'small', bind: `fn${k}.dress`, gap: 6 },
-        );
-      }
-      pages.push(page(`schedule-${i / FUNCTIONS_PER_PAGE + 1}`, inner, stack(bands, spec.zone, ctx, ts, tones)));
+    const maxCeremonyPages = Math.max(1, MAX_PAGES - reserved);
+    const per = Math.max(FUNCTIONS_PER_PAGE, Math.ceil(fns.length / maxCeremonyPages));
+    for (let i = 0; i < fns.length; i += per) {
+      const bands = ceremonyBands(ctx, i, Math.min(fns.length, i + per), spec.divider, spec.type, gold);
+      pages.push(page(`schedule-${i / per + 1}`, inner, stack(bands, innerZone, ctx, ts, tones)));
     }
   }
-  const lines = input.data.content.familyLines.length;
-  if (lines > 0 && (fns.length > 1 || lines > 3)) {
-    const bands: Band[] = [
-      { t: 'text', role: 'headline', bind: 'familyTitle', gap: 0 },
-      { t: 'divider', style: spec.divider, gap: 24 },
-      { t: 'text', role: 'body', bind: 'familyLines', gap: 40 },
-      { t: 'text', role: 'connector', bind: 'closing', gap: 60 },
-    ];
-    pages.push(page('family', inner, stack(bands, spec.zone, ctx, ts, tones)));
+  if (familyPage && pages.length < MAX_PAGES) {
+    pages.push(page('family', inner, stack(familyBands(ctx, spec.divider, lines > 0, spec.type), innerZone, ctx, ts, tones)));
+  }
+  if (photoPage && pages.length < MAX_PAGES) {
+    pages.push(page('photo', inner, stack(photoBands(ctx, spec.date), innerZone, ctx, ts, tones)));
   }
   return { v: 1, templateId: input.template.id, pages };
 }

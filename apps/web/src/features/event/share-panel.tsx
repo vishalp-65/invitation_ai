@@ -1,10 +1,11 @@
 'use client';
 
-import { whatsappShareUrl, type EventDto, type RenderDto } from '@cardai/shared';
-import { Copy, Download, FileText, Film, Image as ImageIcon, MessageCircle, Printer, Share2 } from 'lucide-react';
+import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
+import { useQuery } from '@tanstack/react-query';
+import { Copy, Download, FileText, Film, Globe, Image as ImageIcon, MessageCircle, Printer, Share2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 import { useCreateRender, useRenders } from '@/lib/hooks';
 
 const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof ImageIcon; help: string; feature?: string }> = [
@@ -32,7 +33,8 @@ async function shareFile(url: string, name: string, contentType: string) {
 export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const { data: renders } = useRenders(event.id);
   const create = useCreateRender(event.id);
-  const siteUrl = typeof window !== 'undefined' ? `${window.location.origin}/i/${event.slug}` : '';
+  const site = useQuery({ queryKey: ['site', event.id], queryFn: () => api<SiteSettingsDto>(`/events/${event.id}/site`) });
+  const siteUrl = site.data?.vanityUrl ?? site.data?.shortUrl ?? (typeof window !== 'undefined' ? `${window.location.origin}/i/${event.slug}` : '');
   const live = event.status === 'published';
 
   async function make(format: RenderDto['format']) {
@@ -71,6 +73,10 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
               </Button>
               <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="quiet" className="text-white hover:bg-surface/10">
                 Open website
+              </ButtonLink>
+              <ButtonLink href={`/builder/${event.id}`} variant="quiet" className="text-white hover:bg-surface/10">
+                <Globe className="size-4" />
+                Design it
               </ButtonLink>
             </div>
           </>

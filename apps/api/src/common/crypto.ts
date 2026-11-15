@@ -1,4 +1,18 @@
-import { createHash, createHmac, randomBytes, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+
+/** scrypt$<salt>$<hash>, all base64url (site access passwords). */
+export function hashPassword(password: string): string {
+  const salt = randomBytes(16);
+  const hash = scryptSync(password.normalize('NFKC'), salt, 32);
+  return `scrypt$${salt.toString('base64url')}$${hash.toString('base64url')}`;
+}
+
+export function verifyPassword(password: string, stored: string): boolean {
+  const [scheme, salt, hash] = stored.split('$');
+  if (scheme !== 'scrypt' || !salt || !hash) return false;
+  const actual = scryptSync(password.normalize('NFKC'), Buffer.from(salt, 'base64url'), 32).toString('base64url');
+  return safeEqual(actual, hash);
+}
 
 export const sha256 = (input: string) => createHash('sha256').update(input).digest('hex');
 

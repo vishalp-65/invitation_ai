@@ -5,8 +5,9 @@
  *
  *   npm run showcase -w @cardai/worker
  */
-import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
+import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import pino from 'pino';
@@ -20,30 +21,43 @@ const lang = (t: TemplateDefinition): 'en' | 'hi' =>
   t.communities.includes('modern') || ['christian-wedding', 'corporate'].some((e) => (t.eventTypes as string[]).includes(e)) ? 'en' : 'hi';
 
 const only = process.argv[2]?.split(','); // optional comma-separated id filter
+const missingOnly = process.argv.includes('--missing'); // skip thumbnails that already exist
+/** Dev review: `--all-pages --out=DIR` renders every page as <id>-<n>-<pageId>.jpg into DIR. */
+const allPages = process.argv.includes('--all-pages');
+const outArg = process.argv.find((a) => a.startsWith('--out='))?.slice(6);
 const runtime = new RemotionRuntime(log);
 await mkdir(outDir, { recursive: true });
 const serveUrl = await runtime.getServeUrl();
 const browser = await runtime.getBrowser();
 
-const list = BUILTIN_TEMPLATES.filter((t) => !only || only.some((o) => t.id === o));
+const list = BUILTIN_TEMPLATES.filter((t) => (!only || only[0]!.startsWith('--') || only.some((o) => t.id === o)) && (!missingOnly || !existsSync(`${outDir}${t.id}.jpg`)));
 let i = 0;
 for (const t of list) {
   const language = lang(t);
   const sample = sampleInviteProps(t, language);
-  const data: DesignData = { content: sample.content, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [] };
+  // Review renders also fill the optional details so every inner page has something on it.
+  const content = allPages
+    ? { ...sample.content, welcomeLines: ['Aarav & Diya', 'Kabir, Meera'], rsvpContacts: [{ name: 'Ramesh Sharma', phone: '98290 12345' }], note: 'Your blessings are our gift', hashtag: '#RahulWedsPriya' }
+    : sample.content;
+  const data: DesignData = { content, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
   const design = buildDesign({ template: t, data, language, eventType: sample.eventType });
-  const props = { design, data, language, page: 0, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null };
-  const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designCard, inputProps: props, puppeteerInstance: browser });
-  await renderStill({
-    composition,
-    serveUrl,
-    inputProps: props,
-    puppeteerInstance: browser,
-    output: `${outDir}${t.id}.jpg`,
-    imageFormat: 'jpeg',
-    jpegQuality: 84,
-    scale: 0.4, // 432×768: crisp at 2× DPR for phone-sized tiles
-  });
+  const dir = outArg ? `${outArg.replace(/[\/]$/, '')}/` : outDir;
+  const pages = allPages ? design.pages.map((p, n) => ({ n, file: `${dir}${t.id}-${n + 1}-${p.id}.jpg` })) : [{ n: coverPageIndex(design), file: `${dir}${t.id}.jpg` }];
+  for (const pg of pages) {
+    // Thumbnails show the main invitation page, not the blessing page in front of it.
+    const props = { design, data, language, page: pg.n, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null };
+    const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designCard, inputProps: props, puppeteerInstance: browser });
+    await renderStill({
+      composition,
+      serveUrl,
+      inputProps: props,
+      puppeteerInstance: browser,
+      output: pg.file,
+      imageFormat: 'jpeg',
+      jpegQuality: 84,
+      scale: 0.4, // 432×768: crisp at 2× DPR for phone-sized tiles
+    });
+  }
   log.info(`${++i}/${list.length} ${t.id}`);
 }
 await runtime.close();

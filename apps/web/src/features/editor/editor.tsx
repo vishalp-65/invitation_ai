@@ -109,6 +109,15 @@ function useAutosave(eventId: string | undefined) {
     timer.current = setTimeout(() => void flush().catch(() => undefined), 800);
   }, [version, flush]);
 
+  // Leaving the editor inside the app (Back, Done, links) must not drop the last edit:
+  // `flush` reads the document synchronously, before the store is cleared on unmount.
+  useEffect(
+    () => () => {
+      if (timer.current) void flush().catch(() => undefined);
+    },
+    [flush],
+  );
+
   // Save right away when the tab is hidden (phone lock, app switch).
   useEffect(() => {
     const onHide = () => document.visibilityState === 'hidden' && timer.current && void flush().catch(() => undefined);
@@ -207,6 +216,9 @@ export function Editor({ eventId }: { eventId: string }) {
         e.preventDefault();
         setShortcuts(true);
       }
+      // Esc closes the tool panel once nothing is selected (the canvas clears the selection first).
+      const st = useEditor.getState();
+      if (e.key === 'Escape' && !typing && !e.defaultPrevented && !st.selection.length && !st.editing && !document.querySelector('dialog[open]')) setTool(null);
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);

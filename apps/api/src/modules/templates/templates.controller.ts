@@ -8,7 +8,9 @@ import { TemplatesService } from './templates.service.js';
 const listQuery = z.object({
   eventType: z.enum(EVENT_TYPE_IDS).optional(),
   community: z.enum(COMMUNITIES).optional(),
-  q: z.string().max(40).optional(),
+  q: z.string().max(60).optional(),
+  styles: z.string().max(200).transform((v) => v.split(',').filter(Boolean)).optional(),
+  colors: z.string().max(200).transform((v) => v.split(',').filter(Boolean)).optional(),
   premium: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
 });
 

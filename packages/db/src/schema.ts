@@ -3,6 +3,8 @@ import type {
   EventContent,
   EventSettings,
   Feature,
+  GuestStay,
+  SiteDoc,
   Theme,
 } from '@cardai/shared';
 import { sql } from 'drizzle-orm';
@@ -82,6 +84,9 @@ export const users = pgTable(
   locale: text().notNull().default('en'),
   /** Reseller agent who onboarded this user (P2 agent network). */
   referredByAgentId: uuid(),
+  /** Set by an admin to block sign-in (existing sessions are revoked). */
+  disabledAt: timestamp({ withTimezone: true }),
+  lastSeenAt: timestamp({ withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
   },
@@ -128,12 +133,18 @@ export const events = pgTable(
     settings: jsonb().$type<EventSettings>().notNull(),
     /** Layered card design from the editor (null = auto-built from the template). */
     design: jsonb().$type<DesignDoc>(),
+    /** Invitation website document (null = occasion default). */
+    site: jsonb().$type<SiteDoc>(),
+    /** scrypt hash for password-protected sites (Royale). */
+    sitePasswordHash: text(),
+    /** Random short-link code, e.g. inv.to/k7Qp2. */
+    shortCode: text(),
     viewCount: integer().notNull().default(0),
     publishedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex().on(t.slug), index().on(t.userId, t.createdAt)],
+  (t) => [uniqueIndex().on(t.slug), uniqueIndex('events_short_code_uq').on(t.shortCode), index().on(t.userId, t.createdAt)],
 );
 
 export const eventFunctions = pgTable(
@@ -270,6 +281,11 @@ export const orders = pgTable(
     /** Template in use at purchase time, for marketplace revenue share. */
     templateId: text(),
     agentId: uuid(),
+    /** Catalogue price before sale/coupon (amountPaise is what was charged). */
+    listPricePaise: integer(),
+    discountPaise: integer().notNull().default(0),
+    couponCode: text(),
+    saleId: uuid(),
     createdAt: createdAt(),
     paidAt: timestamp({ withTimezone: true }),
   },
@@ -294,13 +310,17 @@ export const guests = pgTable(
     functionIds: jsonb().$type<string[] | null>(),
     /** Unguessable token for the personalised link. */
     token: text().notNull(),
+    /** Personal short-link code (longer than event codes, still unguessable). */
+    shortCode: text(),
+    /** Room / pickup details for the Royale travel manager. */
+    stay: jsonb().$type<GuestStay | null>(),
     viewCount: integer().notNull().default(0),
     firstViewedAt: timestamp({ withTimezone: true }),
     lastViewedAt: timestamp({ withTimezone: true }),
     invitedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [uniqueIndex().on(t.token), index().on(t.eventId)],
+  (t) => [uniqueIndex().on(t.token), uniqueIndex('guests_short_code_uq').on(t.shortCode), index().on(t.eventId)],
 );
 
 export const rsvps = pgTable(
@@ -456,4 +476,190 @@ export const userTemplates = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('user_templates_user_idx').on(t.userId, t.createdAt)],
+);
+
+// ---------------- Invitation website extras ----------------
+
+/** Vanity short links, e.g. inv.to/rahul-weds-priya (Site Premium). */
+export const shortAliases = pgTable(
+  'short_aliases',
+  {
+    alias: text().primaryKey(),
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    clicks: integer().notNull().default(0),
+    createdAt: createdAt(),
+  },
+  (t) => [index('short_aliases_event_idx').on(t.eventId)],
+);
+
+/** Host-posted live announcements ("Baraat is leaving now"). */
+export const siteUpdates = pgTable(
+  'site_updates',
+  {
+    id: id(),
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    text: text().notNull(),
+    pinned: boolean().notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('site_updates_event_idx').on(t.eventId, t.createdAt)],
+);
+
+/** Guestbook wishes left on the website. Hosts can hide any. */
+export const siteWishes = pgTable(
+  'site_wishes',
+  {
+    id: id(),
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    guestId: uuid().references(() => guests.id, { onDelete: 'set null' }),
+    name: text().notNull(),
+    message: text().notNull(),
+    hidden: boolean().notNull().default(false),
+    createdAt: createdAt(),
+  },
+  (t) => [index('site_wishes_event_idx').on(t.eventId, t.createdAt)],
+);
+
+// ---------------- Admin: catalogue control, offers, analytics ----------------
+
+/** Admin overrides on any template (built-in or not): hide = "deleted" from the catalogue, restorable. */
+export const templateOverrides = pgTable('template_overrides', {
+  templateId: text().primaryKey(),
+  hidden: boolean().notNull().default(false),
+  featured: boolean().notNull().default(false),
+  premium: boolean(),
+  updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: updatedAt(),
+});
+
+export const catalogStatus = pgEnum('catalog_status', ['draft', 'published']);
+
+/** Templates designed by admins in the editor and published straight into the catalogue. */
+export const catalogTemplates = pgTable(
+  'catalog_templates',
+  {
+    id: id(),
+    /** Public template id, "adm-xxxxxx". */
+    templateKey: text().notNull(),
+    name: text().notNull(),
+    /** Built-in template the design started from (layout/theme fallback for video + website). */
+    baseTemplateId: text().notNull(),
+    eventTypes: jsonb().$type<string[]>().notNull(),
+    communities: jsonb().$type<string[]>().notNull().default([]),
+    tags: jsonb().$type<string[]>().notNull().default([]),
+    premium: boolean().notNull().default(false),
+    design: jsonb().$type<DesignDoc>().notNull(),
+    status: catalogStatus().notNull().default('published'),
+    createdBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex('catalog_templates_key_uq').on(t.templateKey)],
+);
+
+/** Admin price/MRP edits per product code. Missing row = the price in code. */
+export const productOverrides = pgTable('product_overrides', {
+  code: text().primaryKey(),
+  pricePaise: integer(),
+  mrpPaise: integer(),
+  updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: updatedAt(),
+});
+
+export const discountKind = pgEnum('discount_kind', ['percent', 'flat']);
+
+export const coupons = pgTable(
+  'coupons',
+  {
+    id: id(),
+    /** Upper-cased. */
+    code: text().notNull(),
+    description: text(),
+    kind: discountKind().notNull(),
+    /** Percent (1..90) or paise. */
+    value: integer().notNull(),
+    /** Empty = every product. */
+    productCodes: jsonb().$type<string[]>().notNull().default([]),
+    startsAt: timestamp({ withTimezone: true }),
+    endsAt: timestamp({ withTimezone: true }),
+    maxUses: integer(),
+    perUserLimit: integer().notNull().default(1),
+    usedCount: integer().notNull().default(0),
+    active: boolean().notNull().default(true),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('coupons_code_uq').on(t.code)],
+);
+
+/** Sitewide sale: automatic % off on chosen products for a date range. Best active sale wins. */
+export const sales = pgTable('sales', {
+  id: id(),
+  name: text().notNull(),
+  percentOff: integer().notNull(),
+  productCodes: jsonb().$type<string[]>().notNull().default([]),
+  startsAt: timestamp({ withTimezone: true }).notNull(),
+  endsAt: timestamp({ withTimezone: true }).notNull(),
+  active: boolean().notNull().default(true),
+  createdAt: createdAt(),
+});
+
+export const announcements = pgTable('announcements', {
+  id: id(),
+  message: text().notNull(),
+  ctaLabel: text(),
+  ctaUrl: text(),
+  tone: text().notNull().default('marigold'),
+  /** all | landing | app */
+  audience: text().notNull().default('all'),
+  startsAt: timestamp({ withTimezone: true }),
+  endsAt: timestamp({ withTimezone: true }),
+  active: boolean().notNull().default(true),
+  createdAt: createdAt(),
+});
+
+/**
+ * First-party product analytics. One row per tracked action; `visitorId` is an anonymous
+ * first-party cookie, linked to `userId` once the visitor signs in.
+ */
+export const analyticsEvents = pgTable(
+  'analytics_events',
+  {
+    id: id(),
+    name: text().notNull(),
+    visitorId: text().notNull(),
+    sessionId: text(),
+    userId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    path: text(),
+    referrer: text(),
+    device: text(),
+    templateId: text(),
+    props: jsonb().$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('analytics_name_time_idx').on(t.name, t.createdAt),
+    index('analytics_visitor_idx').on(t.visitorId),
+    index('analytics_user_idx').on(t.userId, t.createdAt),
+    index('analytics_template_idx').on(t.templateId, t.createdAt),
+  ],
+);
+
+/** Every admin write, for accountability. */
+export const adminAuditLog = pgTable(
+  'admin_audit_log',
+  {
+    id: id(),
+    adminId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    action: text().notNull(),
+    target: text(),
+    details: jsonb().$type<Record<string, unknown>>(),
+    createdAt: createdAt(),
+  },
+  (t) => [index('admin_audit_time_idx').on(t.createdAt)],
 );

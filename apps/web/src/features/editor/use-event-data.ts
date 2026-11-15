@@ -19,6 +19,7 @@ export function useDesignData(event: EventDto | undefined, photos: string[] = []
             eventType: event.type,
             timezone: event.settings.timezone,
             photos,
+            rsvpDeadline: event.settings.rsvpDeadline ?? null,
           })
         : null,
     [event, photos],

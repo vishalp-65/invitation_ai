@@ -1,4 +1,4 @@
-import { guestInputSchema, importGuestsSchema, updateGuestSchema, type GuestInput } from '@cardai/shared';
+import { guestInputSchema, importGuestsSchema, updateGuestSchema, type GuestInput, type UpdateGuestInput } from '@cardai/shared';
 import { Controller, Delete, Get, Header, HttpCode, Patch, Post } from '@nestjs/common';
 import { z } from 'zod';
 import { CurrentUser, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
@@ -32,7 +32,7 @@ export class GuestsController {
     @CurrentUser() user: AuthUser,
     @UuidParam('eventId') eventId: string,
     @UuidParam('guestId') guestId: string,
-    @ZBody(updateGuestSchema) body: Partial<GuestInput>,
+    @ZBody(updateGuestSchema) body: UpdateGuestInput,
   ) {
     return this.guests.update(user, eventId, guestId, body);
   }

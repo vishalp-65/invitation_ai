@@ -8,6 +8,7 @@ import {
   displayText,
   getEventType,
   getLanguage,
+  coverPageIndex,
   groupByFamily,
   type DesignData,
   type DesignElement,
@@ -23,6 +24,7 @@ import Image from 'next/image';
 import { useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { DesignView } from '@/components/design/design-view';
+import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/invite/template-search';
 import { useEventMedia } from '@/features/event/use-event-props';
 import { tip } from '@/components/ui/tooltip';
 import { api } from '@/lib/api';
@@ -52,7 +54,8 @@ function place(el: DesignElement) {
 
 function TemplatesPanel({ event, data, close }: PanelProps) {
   const { data: templates } = useTemplates(event.type);
-  const families = useMemo(() => groupByFamily(templates ?? []), [templates]);
+  const search = useTemplateSearch(templates);
+  const families = useMemo(() => groupByFamily(search.results), [search.results]);
   const current = useEditor((s) => s.doc?.templateId);
   const [cat, setCat] = useState<'all' | 'mine' | NonNullable<TemplateDefinition['category']>>('all');
   const shown = families.filter((f) => cat === 'all' || f.variants[0]!.category === cat);
@@ -84,8 +87,11 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
         ]}
       />
       </div>
+      {cat !== 'mine' && <TemplateSearchBar state={search.state} onChange={search.setState} compact count={shown.length} />}
       {cat === 'mine' ? (
         <MyTemplates event={event} data={data} close={close} />
+      ) : shown.length === 0 ? (
+        <NoTemplates onReset={search.reset} />
       ) : (
       <ul className="grid grid-cols-2 gap-3">
         {shown.map((f) => (
@@ -136,7 +142,7 @@ function MyTemplates({ event, data, close }: Pick<PanelProps, 'event' | 'data' |
             }}
             className="block w-full overflow-hidden rounded-xl bg-mist shadow-sm"
           >
-            <DesignView page={t.design.pages[0]!} data={data} language={event.language} lazy />
+            <DesignView page={t.design.pages[coverPageIndex(t.design)]!} data={data} language={event.language} lazy />
           </button>
           <p className="mt-1.5 truncate pr-7 text-sm font-semibold">{t.name}</p>
           <button type="button" onClick={() => void remove(t)} {...tip('Delete template')} className="absolute bottom-0 right-0 grid size-7 place-items-center rounded-full text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">

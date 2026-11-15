@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { phoneSchema } from './common.js';
+import { guestStaySchema, type GuestStay } from '../site/schema.js';
 
 export const guestInputSchema = z.object({
   name: z.string().trim().min(1).max(100),
@@ -12,6 +13,8 @@ export const guestInputSchema = z.object({
   maxPax: z.number().int().min(1).max(50).default(2),
   /** Functions the guest is invited to; omitted = all. */
   functionIds: z.array(z.uuid()).max(12).optional(),
+  /** Royale travel manager: room, pickup... */
+  stay: guestStaySchema.optional(),
 });
 export type GuestInput = z.infer<typeof guestInputSchema>;
 
@@ -19,7 +22,11 @@ export const importGuestsSchema = z.object({
   guests: z.array(guestInputSchema).min(1).max(2000),
 });
 
-export const updateGuestSchema = guestInputSchema.partial();
+/** No defaults on PATCH (Zod 4 `.partial()` would otherwise reset maxPax to 2). */
+export const updateGuestSchema = guestInputSchema
+  .extend({ maxPax: z.number().int().min(1).max(50), stay: guestStaySchema.nullable() })
+  .partial();
+export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
 
 export const RSVP_STATUSES = ['yes', 'no', 'maybe'] as const;
 export type RsvpStatus = (typeof RSVP_STATUSES)[number];
@@ -57,6 +64,10 @@ export interface GuestDto {
   functionIds: string[] | null;
   token: string;
   inviteUrl: string;
+  /** Short personal link, e.g. https://inv.to/k7Qp2Xa */
+  shortUrl: string;
+  stay: GuestStay | null;
+  invitedAt: string | null;
   viewCount: number;
   firstViewedAt: string | null;
   rsvp: Record<string, { status: RsvpStatus; headcount: number }>;

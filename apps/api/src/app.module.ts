@@ -15,6 +15,7 @@ import { MediaModule } from './modules/media/media.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PrintModule } from './modules/print/print.module.js';
 import { RendersModule } from './modules/renders/renders.module.js';
+import { ShortLinksModule } from './modules/short-links/short-links.module.js';
 import { SitesModule } from './modules/sites/sites.module.js';
 import { TemplatesModule } from './modules/templates/templates.module.js';
 import { UserTemplatesModule } from './modules/user-templates/user-templates.module.js';
@@ -41,6 +42,7 @@ const isDev = process.env.NODE_ENV !== 'production';
     AiModule,
     RendersModule,
     PaymentsModule,
+    ShortLinksModule,
     SitesModule,
     GuestsModule,
     WhatsAppModule,

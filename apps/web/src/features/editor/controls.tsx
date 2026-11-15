@@ -38,6 +38,10 @@ export function Slider({ label, value, min, max, step = 1, onChange, suffix = ''
         value={value}
         onPointerDown={() => s().begin()}
         onPointerUp={() => s().end()}
+        // A touch that turns into a scroll cancels instead of lifting: close the undo step either way.
+        onPointerCancel={() => s().end()}
+        onLostPointerCapture={() => s().end()}
+        onBlur={() => s().end()}
         onKeyUp={() => s().end()}
         onChange={(e) => onChange(Number(e.target.value))}
         className="range"

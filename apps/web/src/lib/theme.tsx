@@ -10,7 +10,7 @@ export type Theme = 'light' | 'dark';
 
 const KEY = 'cardai-theme';
 /** Marketing and guest-facing pages keep the editorial light look. */
-const LIGHT_ONLY = /^\/(pricing\/?)?$|^\/i\//;
+const LIGHT_ONLY = /^\/(pricing\/?)?$|^\/i\/|^\/preview\//;
 
 export function isLightOnly(pathname: string) {
   return LIGHT_ONLY.test(pathname);

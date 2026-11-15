@@ -36,6 +36,12 @@ export class PaymentsService {
   async createOrder(user: AuthUser, input: CreateOrderInput): Promise<CheckoutDto> {
     const event = await this.events.getOwned(user, input.eventId);
     const product = PRODUCTS[input.productCode];
+    if (product.code === 'royale_upgrade' && !(await this.entitlements.has(event.id, 'website_premium'))) {
+      throw new BadRequestException('The Royale upgrade is for invitations that already have Site Premium. Choose Site Royale instead.');
+    }
+    if ((product.code === 'website_royale' || product.code === 'royale_upgrade') && (await this.entitlements.has(event.id, 'website_royale'))) {
+      throw new BadRequestException('This invitation already has Site Royale.');
+    }
     const [me] = await this.db.select({ phone: users.phone, name: users.name }).from(users).where(eq(users.id, user.id));
 
     const [order] = await this.db

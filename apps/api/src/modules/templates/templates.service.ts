@@ -1,7 +1,7 @@
 import { eq, marketplaceTemplates, users, type Database } from '@cardai/db';
 import {
   BUILTIN_TEMPLATES,
-  templateSupportsEvent,
+  searchTemplates,
   type Community,
   type EventTypeId,
   type LayoutId,
@@ -15,6 +15,8 @@ export interface TemplateFilter {
   community?: string;
   q?: string;
   premium?: boolean;
+  styles?: string[];
+  colors?: string[];
 }
 
 const CACHE_MS = 60_000;
@@ -56,14 +58,8 @@ export class TemplatesService {
   }
 
   async list(filter: TemplateFilter): Promise<TemplateDefinition[]> {
-    const q = filter.q?.toLowerCase().trim();
-    return (await this.all()).filter(
-      (t) =>
-        (!filter.eventType || templateSupportsEvent(t, filter.eventType)) &&
-        (!filter.community || t.communities.length === 0 || (t.communities as string[]).includes(filter.community)) &&
-        (filter.premium === undefined || t.premium === filter.premium) &&
-        (!q || t.name.toLowerCase().includes(q) || t.tags.some((tag) => tag.includes(q))),
-    );
+    // Free text understands Hindi/Hinglish (shaadi, mehndi, griha pravesh) and ranks the best matches first.
+    return searchTemplates(await this.all(), filter).map((h) => h.template);
   }
 
   async resolve(id: string): Promise<TemplateDefinition> {

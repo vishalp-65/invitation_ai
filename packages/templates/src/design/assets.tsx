@@ -7,6 +7,8 @@ import { Ganesha } from '../art/Ganesha';
 import { Balloons, BabyMoon, Cake, Cradle } from '../art/Kids';
 import { Arch, Border, Clouds, Confetti, Corner, Divider, Gift, Lantern, Rainbow, Ribbon, Rings, Skyline, Sprig, Stars, Sunburst, Wreath } from '../art/Ornaments';
 import { Bandhanwar, Bells, DiyaRow, Doves, Elephant, House, Kalash, LotusBloom, Peacock, Rangoli } from '../art/Sacred';
+import { ArchPanel, Bow, Chhatri, Filigree, FnIcon, GendaLadi, GeoFrame, GoldRing, PalaceArch } from '../art/Architecture';
+import { BloomCorner, Greenery, LineFlower } from '../art/Botanicals';
 import { PaintFilter, useSvgId } from '../art/svg-ids';
 import { Toran } from '../art/Toran';
 import { Frame } from '../components/Frames';
@@ -149,6 +151,18 @@ export const ASSETS: Record<string, AssetDef> = {
       </div>
     ),
   },
+  'arch-panel': { label: 'Arch panel', colors: ['#FFF6E5', '#C9973F', '#C9973F'], aspect: 0.62, render: (p) => <ArchPanel {...p} /> },
+  'palace-arch': { label: 'Palace arch', colors: ['#F2B8B5', '#D98E8B', '#C9973F'], aspect: 1080 / 1920, page: true, render: (p) => <PalaceArch {...p} /> },
+  filigree: { label: 'Gold filigree', colors: ['#C9973F'], aspect: 1, render: (p) => <Filigree {...p} /> },
+  'geo-frame': { label: 'Geometric frame', colors: ['#C9973F'], aspect: 0.62, render: (p) => <GeoFrame {...p} /> },
+  'gold-ring': { label: 'Gold hoop', colors: ['#C9973F'], aspect: 1, render: (p) => <GoldRing {...p} /> },
+  bow: { label: 'Satin bow', colors: ['#B9BEC6', '#8D939C'], aspect: 0.2, render: (p) => <Bow {...p} /> },
+  chhatri: { label: 'Royal umbrella', colors: ['#C2185B', '#1B4F9C', '#E9B949'], aspect: 0.8, motion: 'sway', render: (p) => <Chhatri {...p} /> },
+  'genda-ladi': { label: 'Marigold strings', colors: ['#F28C0F', '#FFC93C', '#2F7D32'], aspect: 0.35, motion: 'sway', render: (p) => <GendaLadi {...p} /> },
+  'fn-icon': { label: 'Function icon', colors: ['#C9973F', '#F4D58D'], aspect: 1, motion: 'float', render: (p) => <FnIcon {...p} /> },
+  'bloom-corner': { label: 'Watercolour bouquet', colors: ['#B58FD1', '#6A4C93', '#7A9A6B', '#E9C46A'], aspect: 1, motion: 'sway', render: (p) => <BloomCorner {...p} /> },
+  greenery: { label: 'Greenery', colors: ['#6E8B5A', '#3F5A35'], aspect: 1, motion: 'sway', render: (p) => <Greenery {...p} /> },
+  'line-flower': { label: 'Line-art flower', colors: ['#3B2A1A'], aspect: 0.9, render: (p) => <LineFlower {...p} /> },
   florals: {
     label: 'Corner flowers',
     colors: [],
@@ -240,4 +254,15 @@ export const STICKERS: Sticker[] = [
   { id: 'wreath', asset: 'wreath', label: 'Wreath', category: 'ornament', w: 500 },
   { id: 'sprig', asset: 'sprig', label: 'Leafy branch', category: 'ornament', w: 300 },
   { id: 'arch', asset: 'arch', label: 'Arch window', category: 'ornament', w: 700 },
+  ...(['scallop', 'mughal', 'dome', 'oval'] as const).map((shape) => ({ id: `arch-panel-${shape}`, asset: 'arch-panel', label: `${shape[0]!.toUpperCase()}${shape.slice(1)} arch panel`, category: 'ornament' as const, opts: { shape }, w: 760 })),
+  { id: 'filigree', asset: 'filigree', label: 'Gold filigree', category: 'ornament', w: 300 },
+  { id: 'geo-frame', asset: 'geo-frame', label: 'Geometric frame', category: 'ornament', w: 800 },
+  { id: 'gold-ring', asset: 'gold-ring', label: 'Gold hoop', category: 'ornament', w: 520 },
+  { id: 'bow', asset: 'bow', label: 'Satin bow', category: 'wedding', w: 220 },
+  { id: 'chhatri', asset: 'chhatri', label: 'Royal umbrella', category: 'wedding', w: 260 },
+  { id: 'genda-ladi', asset: 'genda-ladi', label: 'Marigold strings', category: 'wedding', opts: { count: 3 }, w: 240 },
+  ...(['haldi', 'mehendi', 'sangeet', 'baraat', 'wedding', 'pheras', 'reception', 'rings', 'puja', 'nikah', 'cake', 'dinner', 'flower'] as const).map((icon) => ({ id: `fn-icon-${icon}`, asset: 'fn-icon', label: `${icon[0]!.toUpperCase()}${icon.slice(1)} icon`, category: 'wedding' as const, opts: { icon }, w: 150 })),
+  ...(['peony', 'hydrangea', 'tulip', 'daisy', 'mixed'] as const).map((kind) => ({ id: `bloom-${kind}`, asset: 'bloom-corner', label: `Watercolour ${kind}`, category: 'wedding' as const, opts: { kind }, w: 420 })),
+  ...(['eucalyptus', 'olive', 'fern', 'mixed'] as const).map((kind) => ({ id: `greenery-${kind}`, asset: 'greenery', label: `${kind[0]!.toUpperCase()}${kind.slice(1)} greenery`, category: 'ornament' as const, opts: { kind }, w: 420 })),
+  ...(['poppy', 'lily', 'rose', 'wild'] as const).map((kind) => ({ id: `line-${kind}`, asset: 'line-flower', label: `Line-art ${kind === 'wild' ? 'wildflowers' : kind}`, category: 'ornament' as const, opts: { kind }, w: 360 })),
 ];

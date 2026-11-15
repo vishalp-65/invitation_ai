@@ -1,12 +1,12 @@
 import { PDFDocument, rgb } from 'pdf-lib';
 
-/** Screen PDF: one page per card image, sized 1px = 0.75pt. */
-export async function buildScreenPdf(pages: Buffer[]): Promise<Buffer> {
+/** Screen PDF: one page per card image, sized 1 CSS px = 0.75pt (`scale` = image pixels per CSS px). */
+export async function buildScreenPdf(pages: Buffer[], scale = 1): Promise<Buffer> {
   const pdf = await PDFDocument.create();
   for (const bytes of pages) {
     const img = await pdf.embedJpg(bytes);
-    const w = img.width * 0.75;
-    const h = img.height * 0.75;
+    const w = (img.width / scale) * 0.75;
+    const h = (img.height / scale) * 0.75;
     pdf.addPage([w, h]).drawImage(img, { x: 0, y: 0, width: w, height: h });
   }
   return Buffer.from(await pdf.save());

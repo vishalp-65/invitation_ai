@@ -44,12 +44,26 @@ export interface DesignFamily {
   hero?: (ctx: RecipeCtx, t: Tones) => Band[];
   /** Fully custom cover bands. */
   bands?: (ctx: RecipeCtx, t: Tones) => Band[];
+  /** Chrome for inner pages (ceremonies, family, photo); defaults to the cover's. */
+  inner?: (ctx: RecipeCtx, t: Tones) => Chrome;
+  /** Text zone for inner pages; defaults to `zone`. */
+  innerZone?: Zone;
+  /** Chrome for the blessing page; defaults to the inner pages'. */
+  blessing?: (ctx: RecipeCtx, t: Tones) => Chrome;
+  /** Search metadata: visual style words (see templates/search.ts). */
+  styles?: string[];
 }
 
 // ------------------------------------------------------------ helpers
 
 const W = DESIGN_W;
 const H = DESIGN_H;
+
+/** Real metallic gold for sacred art and gilding (never a green/pink palette accent). */
+export function trueGold(ctx: RecipeCtx): string {
+  if (isDarkColor(ctx.p.background)) return isDarkColor(ctx.p.primary) ? '#E9B949' : ctx.p.primary;
+  return '#A8741A';
+}
 
 /** Gold that reads on the page background. */
 export function goldOn(ctx: RecipeCtx): string {
@@ -59,13 +73,13 @@ export function goldOn(ctx: RecipeCtx): string {
   return '#A8741A';
 }
 
-const radial = (ctx: RecipeCtx, pattern: PageBackground['pattern'] = 'none', opacity = 0.12) =>
+export const radial = (ctx: RecipeCtx, pattern: PageBackground['pattern'] = 'none', opacity = 0.12) =>
   solidBg(ctx.p.background, ctx.p.backgroundAlt, 'radial', pattern, goldOn(ctx), opacity);
-const linear = (ctx: RecipeCtx, pattern: PageBackground['pattern'] = 'none', opacity = 0.12) =>
+export const linear = (ctx: RecipeCtx, pattern: PageBackground['pattern'] = 'none', opacity = 0.12) =>
   solidBg(ctx.p.background, ctx.p.backgroundAlt, 'linear', pattern, goldOn(ctx), opacity);
 
 /** Same corner piece in all four corners. */
-function corners4(asset: string, size: number, colors: string[], inset = 0, opts?: Record<string, string | number | boolean>): DesignElement[] {
+export function corners4(asset: string, size: number, colors: string[], inset = 0, opts?: Record<string, string | number | boolean>): DesignElement[] {
   return [
     artEl(asset, inset, inset, size, size, colors, { opts, locked: true }),
     artEl(asset, W - inset - size, inset, size, size, colors, { opts, flipX: true, locked: true }),
@@ -73,15 +87,15 @@ function corners4(asset: string, size: number, colors: string[], inset = 0, opts
     artEl(asset, W - inset - size, H - inset - size, size, size, colors, { opts, flipX: true, flipY: true, locked: true }),
   ];
 }
-const bottomPair = (asset: string, size: number, colors: string[], opts?: Record<string, string | number | boolean>, dy = 0) => [
+export const bottomPair = (asset: string, size: number, colors: string[], opts?: Record<string, string | number | boolean>, dy = 0) => [
   artEl(asset, -size * 0.12, H - size * 0.92 + dy, size, size, colors, { opts, flipY: true, locked: true }),
   artEl(asset, W - size * 0.88, H - size * 0.92 + dy, size, size, colors, { opts, flipX: true, flipY: true, locked: true }),
 ];
-const topPair = (asset: string, size: number, colors: string[], opts?: Record<string, string | number | boolean>) => [
+export const topPair = (asset: string, size: number, colors: string[], opts?: Record<string, string | number | boolean>) => [
   artEl(asset, -size * 0.12, -size * 0.08, size, size, colors, { opts, locked: true }),
   artEl(asset, W - size * 0.88, -size * 0.08, size, size, colors, { opts, flipX: true, locked: true }),
 ];
-const ganesha = (ctx: RecipeCtx, size = 190): Band => ({
+export const ganesha = (ctx: RecipeCtx, size = 190): Band => ({
   t: 'art',
   asset: 'ganesha',
   w: size,
@@ -91,7 +105,7 @@ const ganesha = (ctx: RecipeCtx, size = 190): Band => ({
   gap: 18,
   anim: 'drop',
 });
-const couple = (ctx: RecipeCtx, style: string, attire: string, w = 400): Band => ({
+export const couple = (ctx: RecipeCtx, style: string, attire: string, w = 400): Band => ({
   t: 'art',
   asset: 'couple',
   w,
@@ -101,18 +115,18 @@ const couple = (ctx: RecipeCtx, style: string, attire: string, w = 400): Band =>
   gap: 14,
   anim: 'zoom',
 });
-const motif = (ctx: RecipeCtx, m: MotifId, size = 150): Band => ({ t: 'art', asset: 'motif', w: size, h: size, colors: [goldOn(ctx), ctx.p.accent], opts: { motif: m }, gap: 20, anim: 'drop' });
-const art = (asset: string, w: number, h: number, colors: string[], opts?: Record<string, string | number | boolean>, gap = 18): Band => ({ t: 'art', asset, w, h, colors, opts, gap, anim: 'zoom' });
+export const motif = (ctx: RecipeCtx, m: MotifId, size = 150): Band => ({ t: 'art', asset: 'motif', w: size, h: size, colors: [goldOn(ctx), ctx.p.accent], opts: { motif: m }, gap: 20, anim: 'drop' });
+export const art = (asset: string, w: number, h: number, colors: string[], opts?: Record<string, string | number | boolean>, gap = 18): Band => ({ t: 'art', asset, w, h, colors, opts, gap, anim: 'zoom' });
 
 /** Surface panel the text sits on. */
-const panel = (ctx: RecipeCtx, x: number, y: number, w: number, h: number, radius = 36, opacity = 0.94) =>
+export const panel = (ctx: RecipeCtx, x: number, y: number, w: number, h: number, radius = 36, opacity = 0.94) =>
   shapeEl('rect', x, y, w, h, { fill: ctx.p.surface, fillOpacity: opacity, radius, stroke: goldOn(ctx), strokeW: 3 });
 
-const WEDDINGS: EventTypeId[] = ['wedding', 'engagement', 'reception', 'anniversary'];
-const ALL_WEDDINGS: EventTypeId[] = [...WEDDINGS, 'nikah', 'christian-wedding', 'anand-karaj'];
-const KIDS: EventTypeId[] = ['birthday', 'baby-shower', 'naming-ceremony', 'mundan', 'annaprashan'];
-const SACRED: EventTypeId[] = ['griha-pravesh', 'puja', 'jagran', 'bhandara', 'upanayana', 'mundan', 'annaprashan', 'naming-ceremony'];
-const BUSINESS: EventTypeId[] = ['shop-opening', 'corporate', 'retirement', 'other'];
+export const WEDDINGS: EventTypeId[] = ['wedding', 'engagement', 'reception', 'anniversary'];
+export const ALL_WEDDINGS: EventTypeId[] = [...WEDDINGS, 'nikah', 'christian-wedding', 'anand-karaj'];
+export const KIDS: EventTypeId[] = ['birthday', 'baby-shower', 'naming-ceremony', 'mundan', 'annaprashan'];
+export const SACRED: EventTypeId[] = ['griha-pravesh', 'puja', 'jagran', 'bhandara', 'upanayana', 'mundan', 'annaprashan', 'naming-ceremony'];
+export const BUSINESS: EventTypeId[] = ['shop-opening', 'corporate', 'retirement', 'other'];
 
 // ------------------------------------------------------------ families
 
