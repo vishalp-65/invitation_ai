@@ -4,6 +4,9 @@ import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { AuthGuard, RateLimitGuard, RolesGuard } from './common/guards.js';
 import { InfraModule } from './infra/infra.module.js';
+import { AdminModule } from './modules/admin/admin.module.js';
+import { AnalyticsModule } from './modules/analytics/analytics.module.js';
+import { OffersModule } from './modules/offers/offers.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
 import { AuthModule } from './modules/auth/auth.module.js';
 import { EntitlementsModule } from './modules/entitlements/entitlements.module.js';
@@ -34,6 +37,8 @@ const isDev = process.env.NODE_ENV !== 'production';
       },
     }),
     InfraModule,
+    AnalyticsModule,
+    OffersModule,
     AuthModule,
     TemplatesModule,
     EntitlementsModule,
@@ -49,6 +54,7 @@ const isDev = process.env.NODE_ENV !== 'production';
     PrintModule,
     MarketplaceModule,
     UserTemplatesModule,
+    AdminModule,
   ],
   controllers: [HealthController],
   providers: [

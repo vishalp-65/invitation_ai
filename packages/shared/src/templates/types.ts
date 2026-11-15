@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { DesignDoc } from '../design/schema.js';
 import { COMMUNITIES, EVENT_TYPE_IDS } from '../constants/event-types.js';
 
 /** Layout families implemented as Remotion components in @cardai/templates. */
@@ -99,7 +100,11 @@ export const templateDefinitionSchema = z.object({
   premium: z.boolean().default(false),
 });
 export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
-  source: 'builtin' | 'marketplace';
+  source: 'builtin' | 'marketplace' | 'catalog';
+  /** Finished editor layout (admin-published catalogue templates). Thumbnails render it live. */
+  doc?: DesignDoc;
+  /** Admin pinned it to the top of the gallery. */
+  featured?: boolean;
   designer?: { id: string; name: string };
   /** Design family: same layout + ornaments, different colourways. */
   family?: { id: string; name: string; variant: string };

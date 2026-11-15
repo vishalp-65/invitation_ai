@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
 import { useCreateRender, useRenders } from '@/lib/hooks';
+import { track } from '@/lib/track';
 
 const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof ImageIcon; help: string; feature?: string }> = [
   { format: 'image', label: 'Image card', icon: ImageIcon, help: 'JPG pages for WhatsApp status and chats.' },
@@ -17,6 +18,7 @@ const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof 
 
 /** Shares the actual file (not a link) — on Android this opens WhatsApp with the image attached. */
 async function shareFile(url: string, name: string, contentType: string) {
+  track('share', { props: { kind: 'file' } });
   const blob = await (await fetch(url)).blob();
   const file = new File([blob], name, { type: contentType });
   if (navigator.canShare?.({ files: [file] })) {
@@ -123,7 +125,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                             <Share2 className="size-4" />
                             {r.outputs.length > 1 ? `Page ${i + 1}` : 'Share'}
                           </Button>
-                          <a href={o.url} download={name} className="grid size-9 place-items-center rounded-full hover:bg-mist" aria-label={`Download ${name}`}>
+                          <a href={o.url} download={name} className="grid size-9 place-items-center rounded-lg hover:bg-mist" aria-label={`Download ${name}`}>
                             <Download className="size-4" />
                           </a>
                         </span>

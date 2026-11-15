@@ -1,6 +1,6 @@
 import { clipPrompt } from '@cardai/ai';
 import { aiGenerations, and, entitlements, eq, events, mediaAssets, sql } from '@cardai/db';
-import { AI_CLIP_SECONDS, BUILTIN_TEMPLATES, getEventType, type AiClipJobData } from '@cardai/shared';
+import { AI_CLIP_SECONDS, BUILTIN_TEMPLATES, faithOf, getEventType, type AiClipJobData } from '@cardai/shared';
 import type { Job } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -18,14 +18,14 @@ export function createAiClipProcessor(ctx: WorkerContext) {
     const [gen] = await ctx.db.select().from(aiGenerations).where(eq(aiGenerations.id, job.data.generationId));
     if (!gen || gen.status === 'completed' || !gen.eventId || !gen.userId) return;
     const log = ctx.log.child({ generationId: gen.id });
-    const input = gen.input as { prompt: string | null; firstFrameUrl: string | null; templateId: string; eventType: string };
+    const input = gen.input as { prompt: string | null; firstFrameUrl: string | null; templateId: string; eventType: string; community?: string | null };
 
     try {
       await ctx.db.update(aiGenerations).set({ status: 'processing' }).where(eq(aiGenerations.id, gen.id));
       const theme = (BUILTIN_TEMPLATES.find((t) => t.id === input.templateId) ?? BUILTIN_TEMPLATES[0]!).theme;
       const submitted = await ctx.ai.submitVideo({
         model: gen.model ?? ctx.env.AI_VIDEO_MODEL,
-        prompt: clipPrompt({ eventLabel: getEventType(input.eventType).label, theme, extra: input.prompt ?? undefined }),
+        prompt: clipPrompt({ eventLabel: getEventType(input.eventType).label, theme, extra: input.prompt ?? undefined, faith: faithOf(input.eventType, input.community) }),
         durationSec: AI_CLIP_SECONDS,
         resolution: '720p',
         aspectRatio: '9:16',

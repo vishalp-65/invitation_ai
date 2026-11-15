@@ -1,8 +1,14 @@
 import { clsx } from 'clsx';
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
-const control =
-  'w-full rounded-[var(--radius-field)] border border-hairline bg-surface px-3.5 py-2.5 text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/55 hover:border-ink/25 focus:border-ink/50 focus:shadow-[0_0_0_4px_rgb(30_34_80/0.08)] focus:outline-none aria-[invalid=true]:border-sindoor';
+/** Shared look for every text control: flat, 8px corners, the border carries hover/focus/error. */
+/** Colours/border/states only, no size or padding, so call sites can size it without class conflicts. */
+export const controlClass =
+  'rounded-[var(--radius-field)] border border-hairline bg-surface text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-ink focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
+const control = `${controlClass} w-full px-3 text-[0.95rem]`;
+
+/** Small form label. */
+export const labelClass = 'text-sm font-medium text-ink';
 
 interface FieldProps {
   label: string;
@@ -19,14 +25,14 @@ export function Field({ label, hint, error, action, children }: FieldProps) {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-end justify-between gap-2">
-        <label htmlFor={id} className="text-[0.95rem] font-semibold">
+        <label htmlFor={id} className={labelClass}>
           {label}
         </label>
         {action}
       </div>
       {children(id, hintId)}
       {(error || hint) && (
-        <p id={hintId} className={clsx('text-sm', error ? 'text-sindoor' : 'text-ink-soft')}>
+        <p id={hintId} className={clsx('text-[0.8125rem]', error ? 'text-sindoor' : 'text-ink-soft')}>
           {error ?? hint}
         </p>
       )}
@@ -35,16 +41,16 @@ export function Field({ label, hint, error, action, children }: FieldProps) {
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={clsx(control, 'h-12', className)} {...props} />;
+  return <input className={clsx(control, 'h-10', className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={clsx(control, 'min-h-24 resize-y leading-relaxed', className)} {...props} />;
+  return <textarea className={clsx(control, 'min-h-24 resize-y py-2 leading-relaxed', className)} {...props} />;
 }
 
 export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
   return (
-    <select className={clsx(control, 'h-12 appearance-none bg-[length:1rem] pr-9', className)} {...props}>
+    <select className={clsx(control, 'select h-10 pr-9', className)} {...props}>
       {children}
     </select>
   );
@@ -60,11 +66,25 @@ export function Chip({
       type="button"
       aria-pressed={selected}
       className={clsx(
-        'press inline-flex h-10 items-center gap-2 rounded-[var(--radius-pill)] border px-4 text-[0.95rem] font-medium transition-[background-color,color,border-color] duration-200 disabled:opacity-50',
-        selected ? 'border-ink bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
+        'inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] border px-3.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50',
+        selected ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-mist',
         className,
       )}
       {...props}
     />
   );
+}
+
+type Tone = 'neutral' | 'good' | 'warn' | 'bad' | 'info';
+const tones: Record<Tone, string> = {
+  neutral: '',
+  good: 'border-transparent bg-leaf/12 text-leaf',
+  warn: 'border-transparent bg-marigold/18 text-marigold-deep',
+  bad: 'border-transparent bg-sindoor/10 text-sindoor',
+  info: 'border-transparent bg-tint text-ink',
+};
+
+/** Small status / count label (`.badge`). */
+export function Badge({ tone = 'neutral', className, ...props }: React.HTMLAttributes<HTMLSpanElement> & { tone?: Tone }) {
+  return <span className={clsx('badge', tones[tone], className)} {...props} />;
 }

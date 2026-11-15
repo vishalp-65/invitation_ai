@@ -34,7 +34,7 @@ export function HeroShowcase() {
         height={768}
         sizes="(max-width: 640px) 40vw, 210px"
         priority
-        className="absolute left-[2%] top-[14%] w-[42%] animate-card-in rounded-2xl border-4 border-white shadow-[0_24px_48px_-24px_rgb(30_34_80/0.5)] [--rot:-8deg] [animation-delay:120ms]"
+        className="absolute left-[2%] top-[14%] w-[42%] animate-card-in rounded-xl border-4 border-white [--rot:-8deg] [animation-delay:120ms]"
       />
       <Image
         src="/showcase/genda-jharokha-maroon.jpg"
@@ -43,12 +43,12 @@ export function HeroShowcase() {
         height={768}
         sizes="(max-width: 640px) 40vw, 210px"
         priority
-        className="absolute right-[2%] top-[14%] w-[42%] animate-card-in rounded-2xl border-4 border-white shadow-[0_24px_48px_-24px_rgb(30_34_80/0.5)] [--rot:8deg] [animation-delay:200ms]"
+        className="absolute right-[2%] top-[14%] w-[42%] animate-card-in rounded-xl border-4 border-white [--rot:8deg] [animation-delay:200ms]"
       />
 
       {/* Front card (plays the real video invite on demand) */}
       <div className="absolute left-1/2 top-0 w-[52%] -translate-x-1/2">
-        <div className="animate-card-in overflow-hidden rounded-[22px] border-[5px] border-white bg-night shadow-[0_40px_80px_-30px_rgb(30_34_80/0.6)]">
+        <div className="animate-card-in overflow-hidden rounded-xl border-[5px] border-white bg-night">
           {playing ? (
             <InvitePlayer props={props} mode="video" autoPlay controls={false} />
           ) : (
@@ -65,7 +65,7 @@ export function HeroShowcase() {
               <button
                 type="button"
                 onClick={() => setPlaying(true)}
-                className="press absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-full bg-surface px-4 py-2.5 text-sm font-semibold text-ink shadow-lg hover:bg-ivory"
+                className="press absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 whitespace-nowrap rounded-lg bg-surface px-4 py-2.5 text-sm font-semibold text-ink hover:bg-ivory"
               >
                 <Play className="size-3.5 fill-current" aria-hidden />
                 Play video invite
@@ -76,7 +76,7 @@ export function HeroShowcase() {
       </div>
 
       {/* Proof chips */}
-      <div className="panel absolute bottom-[8%] left-0 flex animate-fade-up items-center gap-3 rounded-2xl px-3.5 py-2.5 [animation-delay:650ms] sm:-left-4">
+      <div className="panel absolute bottom-[8%] left-0 flex animate-fade-up items-center gap-3 rounded-xl px-3.5 py-2.5 [animation-delay:650ms] sm:-left-4">
         <span className="grid size-9 place-items-center rounded-xl bg-sand text-sindoor">
           <Users className="size-4.5" aria-hidden />
         </span>
@@ -85,7 +85,7 @@ export function HeroShowcase() {
           <span className="block text-xs text-ink-soft">Sangeet RSVP</span>
         </span>
       </div>
-      <div className="panel absolute bottom-[22%] right-0 hidden animate-fade-up items-center gap-2 rounded-full px-3.5 py-2 text-sm font-medium [animation-delay:800ms] sm:flex sm:-right-4">
+      <div className="panel absolute bottom-[22%] right-0 hidden animate-fade-up items-center gap-2 rounded-lg px-3.5 py-2 text-sm font-medium [animation-delay:800ms] sm:flex sm:-right-4">
         <CheckCircle2 className="size-4 text-leaf" aria-hidden />
         Video ready · 9.8 MB
       </div>

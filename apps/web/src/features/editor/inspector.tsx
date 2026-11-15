@@ -78,6 +78,7 @@ import { api, ApiError } from '@/lib/api';
 import { tip } from '@/components/ui/tooltip';
 import { ColorPicker, NumberField, Section, Seg, Slider, useOnVisible } from './controls';
 import { currentPage, selectedElements, useEditor, type AlignTo } from './store';
+import { controlClass } from '@/components/ui/field';
 
 export interface InspectorCtx {
   eventId: string;
@@ -135,7 +136,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
   return (
     <div className="flex flex-col gap-3">
       {info && (
-        <div className="flex items-start gap-2 rounded-xl bg-mist p-3 text-sm">
+        <div className="flex items-start gap-2 rounded-lg bg-mist p-3 text-sm">
           <Link2 className="mt-0.5 size-4 shrink-0 text-leaf" aria-hidden />
           <p className="flex-1">
             <strong>Linked to {info.label.toLowerCase()}.</strong> Changing it here also updates your website, RSVP page and video.
@@ -143,7 +144,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
         </div>
       )}
       {isDate ? (
-        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-xl border border-hairline bg-surface px-4 text-left font-semibold">
+        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-lg border border-hairline bg-surface px-4 text-left font-semibold">
           {shown}
           <PencilLine className="size-4" />
         </button>
@@ -154,14 +155,14 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
             onChange={(e) => setValue(e.target.value)}
             rows={Math.min(6, Math.max(2, value.split('\n').length + 1))}
             dir="auto"
-            className="w-full rounded-xl border border-hairline bg-surface p-3 text-base leading-snug focus:border-ink focus:outline-none"
+            className="w-full rounded-lg border border-hairline bg-surface p-3 text-base leading-snug focus:border-ink focus:outline-none"
             aria-label="Text"
           />
           <button
             type="button"
             disabled={value === shown}
             onClick={() => ctx.commitText(el, value)}
-            className="h-11 rounded-full bg-primary font-semibold text-on-primary disabled:opacity-40"
+            className="h-11 rounded-lg bg-primary font-semibold text-on-primary disabled:opacity-40"
           >
             Update text
           </button>
@@ -193,7 +194,7 @@ function FontRow({ family, selected, supported, onPick }: { family: string; sele
       type="button"
       onClick={onPick}
       aria-pressed={selected}
-      className={clsx('flex h-12 w-full items-center justify-between rounded-xl px-3 text-left transition-colors', selected ? 'bg-primary text-on-primary' : 'hover:bg-mist', !supported && 'opacity-45')}
+      className={clsx('flex h-12 w-full items-center justify-between rounded-lg px-3 text-left transition-colors', selected ? 'tint-primary font-semibold' : 'hover:bg-mist', !supported && 'opacity-45')}
     >
       <span style={{ fontFamily: ready ? `"${family}"` : undefined, fontSize: 20 }} className="truncate">
         {family}
@@ -211,7 +212,7 @@ function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
   const groups = [...new Set(fonts.map((f) => f.group))].sort((a, b) => (script !== 'Latn' ? (a === 'indic' ? -1 : b === 'indic' ? 1 : 0) : 0));
   return (
     <div className="flex flex-col gap-3">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className="h-11 rounded-xl border border-hairline bg-surface px-3" aria-label="Search fonts" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className={`${controlClass} h-10 px-3`} aria-label="Search fonts" />
       {groups.map((g) => (
         <div key={g}>
           <p className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-soft">{GROUP_LABEL[g]}</p>
@@ -239,7 +240,7 @@ function TextSize({ el }: { el: TextElement }) {
 function TextFormat({ el }: { el: TextElement }) {
   const toggle = (on: boolean, patch: Partial<TextElement>, off: Partial<TextElement>) => up(el.id, on ? off : patch);
   const btn = (active: boolean, label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-xl border transition-colors', active ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface hover:border-ink/40')}>
+    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-lg border transition-colors', active ? 'border-primary tint-primary' : 'border-hairline bg-surface hover:border-ink/40')}>
       {icon}
     </button>
   );
@@ -357,7 +358,7 @@ function ArtColors({ el, colors }: { el: ArtElement; colors: string[] }) {
             onClick={() => setActive(i)}
             aria-label={`Colour ${i + 1}`}
             aria-pressed={i === active}
-            className="size-10 rounded-xl border border-black/10 aria-pressed:ring-2 aria-pressed:ring-ink aria-pressed:ring-offset-2"
+            className="size-10 rounded-lg border border-black/10 aria-pressed:ring-2 aria-pressed:ring-ink aria-pressed:ring-offset-2"
             style={{ background: c }}
           />
         ))}
@@ -401,7 +402,7 @@ function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) 
           setBusy(false);
         }
       }}
-      className="flex h-11 items-center justify-center gap-2 rounded-full border border-hairline bg-surface font-semibold transition-colors hover:border-ink/40 disabled:opacity-50"
+      className="flex h-11 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold transition-colors hover:border-ink/40 disabled:opacity-50"
     >
       {busy ? <Loader2 className="size-4 animate-spin" /> : <Eraser className="size-4" />}
       {busy ? 'Removing background…' : 'Remove background'}
@@ -418,7 +419,7 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
           const url = await ctx.pickImage();
           if (url) up(el.id, { src: url, bind: undefined } as Partial<ImageElement>);
         }}
-        className="flex h-11 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary"
+        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary"
       >
         <ImageUp className="size-4" /> {el.src || el.bind ? 'Replace photo' : 'Add photo'}
       </button>
@@ -478,10 +479,10 @@ function ImageCrop({ el }: { el: ImageElement }) {
       <Slider label="Left – right" min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
       <Slider label="Up – down" min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
       <div className="flex gap-2">
-        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
           <FlipHorizontal2 className="size-4" /> Mirror
         </button>
-        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
           <RotateCcw className="size-4" /> Reset
         </button>
       </div>
@@ -511,7 +512,7 @@ function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
 function Arrange({ el }: { el: DesignElement }) {
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
       {icon}
       {label}
     </button>
@@ -608,10 +609,10 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
           icon: FlipHorizontal2,
           render: () => (
             <div className="flex gap-2">
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipX: !el.flipX })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipX: !el.flipX })}>
                 <FlipHorizontal2 className="size-4" /> Left–right
               </button>
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-xl border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipY: !el.flipY })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipY: !el.flipY })}>
                 <FlipVertical2 className="size-4" /> Up–down
               </button>
             </div>
@@ -654,10 +655,10 @@ export function InspectorPanel({ sections, title, onClose }: { sections: Inspect
   };
   return (
     <div>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface px-4 py-3">
         <p className="font-semibold">{title}</p>
         {onClose && (
-          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Deselect', 'Esc', 'left')}>
+          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg hover:bg-mist" {...tip('Deselect', 'Esc', 'left')}>
             <X className="size-4" />
           </button>
         )}
@@ -707,10 +708,10 @@ function MultiArrange({ ids }: { ids: string[] }) {
         {ids.length < 3 && <p className="mt-1.5 text-xs text-ink-soft">Select 3 or more to space them evenly.</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+        <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
           <ArrowUpToLine className="size-4" /> To front
         </button>
-        <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+        <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
           <ArrowDownToLine className="size-4" /> To back
         </button>
       </div>
@@ -721,7 +722,7 @@ function MultiArrange({ ids }: { ids: string[] }) {
 function MultiActions({ ids, grouped, locked }: { ids: string[]; grouped: boolean; locked: boolean }) {
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void, danger = false) => (
-    <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-xl border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40', danger && 'text-sindoor')}>
+    <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40', danger && 'text-sindoor')}>
       {icon}
       {label}
     </button>

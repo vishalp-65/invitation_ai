@@ -69,5 +69,7 @@ export const parsedEventIntentSchema = z.object({
     )
     .max(8),
   language: z.enum(LANGUAGE_CODES).nullable(),
+  /** Only when stated or implied by a faith ceremony; never guessed from names. */
+  community: z.enum(COMMUNITIES).nullable(),
 });
 export type ParsedEventIntent = z.infer<typeof parsedEventIntentSchema>;

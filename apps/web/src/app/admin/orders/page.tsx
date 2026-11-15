@@ -1,0 +1,108 @@
+'use client';
+
+import { PRODUCTS, type ProductCode } from '@cardai/shared';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { ShoppingBag } from 'lucide-react';
+import { useState } from 'react';
+import { Badge, dateTime, Empty, inr, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
+import { api } from '@/lib/api';
+
+interface OrderRow {
+  id: string;
+  productCode: string;
+  amountPaise: number;
+  listPricePaise: number | null;
+  discountPaise: number;
+  couponCode: string | null;
+  status: 'created' | 'paid' | 'failed' | 'refunded';
+  provider: string;
+  paymentId: string | null;
+  createdAt: string;
+  paidAt: string | null;
+  userName: string | null;
+  userEmail: string | null;
+  eventTitle: string | null;
+}
+
+type Status = 'all' | OrderRow['status'];
+const TONE = { paid: 'good', created: 'neutral', failed: 'bad', refunded: 'warn' } as const;
+const LABEL = { paid: 'Paid', created: 'Not paid', failed: 'Failed', refunded: 'Refunded' } as const;
+
+export default function AdminOrdersPage() {
+  const [status, setStatus] = useState<Status>('paid');
+  const [page, setPage] = useState(1);
+  const qs = new URLSearchParams({ page: String(page), ...(status !== 'all' ? { status } : {}) });
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin', 'orders', qs.toString()],
+    queryFn: () => api<{ items: OrderRow[]; total: number; paidPaise: number; pageSize: number }>(`/admin/orders?${qs}`),
+    placeholderData: keepPreviousData,
+  });
+
+  return (
+    <>
+      <PageHeader
+        title="Orders"
+        description="Every checkout, with what was charged, discounts and coupons."
+        actions={data && <span className="rounded-lg bg-surface px-4 py-2 text-sm font-semibold">Collected: {inr(data.paidPaise)}</span>}
+      />
+      <div className="mb-4">
+        <Segmented
+          value={status}
+          onChange={(s) => {
+            setStatus(s);
+            setPage(1);
+          }}
+          label="Order status"
+          options={[
+            { value: 'paid', label: 'Paid' },
+            { value: 'created', label: 'Not paid' },
+            { value: 'failed', label: 'Failed' },
+            { value: 'refunded', label: 'Refunded' },
+            { value: 'all', label: 'All' },
+          ]}
+        />
+      </div>
+      <section className="rounded-xl border border-hairline bg-surface">
+        {isLoading ? (
+          <Skeleton className="m-5 h-48" />
+        ) : !data?.items.length ? (
+          <div className="p-5">
+            <Empty icon={<ShoppingBag className="size-6" />} title="No orders here" />
+          </div>
+        ) : (
+          <>
+            <Table head={['Customer', 'Product', 'Invitation', 'Charged', 'Discount', 'When', 'Status']}>
+              {data.items.map((o) => (
+                <tr key={o.id}>
+                  <td>
+                    <p className="font-semibold">{o.userName ?? 'No name'}</p>
+                    <p className="text-xs text-ink-soft">{o.userEmail ?? '—'}</p>
+                  </td>
+                  <td>{PRODUCTS[o.productCode as ProductCode]?.name ?? o.productCode}</td>
+                  <td className="max-w-44 truncate text-ink-soft" title={o.eventTitle ?? ''}>
+                    {o.eventTitle ?? '—'}
+                  </td>
+                  <td className="font-semibold tabular-nums">{inr(o.amountPaise)}</td>
+                  <td className="whitespace-nowrap text-ink-soft">
+                    {o.discountPaise > 0 ? `−${inr(o.discountPaise)}` : '—'}
+                    {o.couponCode && (
+                      <span className="ml-1.5">
+                        <Badge tone="info">{o.couponCode}</Badge>
+                      </span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap text-ink-soft">{dateTime(o.paidAt ?? o.createdAt)}</td>
+                  <td>
+                    <Badge tone={TONE[o.status]}>{LABEL[o.status]}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </Table>
+            <Pager page={page} total={data.total} pageSize={data.pageSize} onPage={setPage} />
+          </>
+        )}
+      </section>
+      {data && <p className="mt-3 text-sm text-ink-soft">{num(data.total)} orders</p>}
+    </>
+  );
+}

@@ -83,7 +83,7 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
       {rows && rows.length > 0 && (
         <ul className="flex flex-col gap-2.5 md:hidden">
           {rows.map((r) => (
-            <li key={r.id} className="flex items-center justify-between gap-3 glass-light rounded-2xl p-4">
+            <li key={r.id} className="flex items-center justify-between gap-3 glass-light rounded-xl p-4">
               <div className="min-w-0">
                 <p className="truncate font-semibold">{r.name}</p>
                 <p className="text-sm text-ink-soft" lang={event.language}>
@@ -92,7 +92,7 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                 </p>
               </div>
               <span
-                className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${r.status === 'yes' ? 'bg-leaf/15 text-leaf' : r.status === 'no' ? 'bg-sindoor/10 text-sindoor' : 'bg-marigold/20 text-marigold-deep'}`}
+                className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${r.status === 'yes' ? 'bg-leaf/15 text-leaf' : r.status === 'no' ? 'bg-sindoor/10 text-sindoor' : 'bg-marigold/20 text-marigold-deep'}`}
               >
                 {STATUS_LABEL[r.status]}
               </span>

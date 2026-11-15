@@ -14,6 +14,8 @@ import { ENV, type Env } from '../../config/env.js';
 import { CurrentUser, Public, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
 import { ACCESS_COOKIE } from '../../common/guards.js';
 import { ZBody } from '../../common/zod.js';
+import { VISITOR_COOKIE } from '@cardai/shared';
+import { AnalyticsService } from '../analytics/analytics.service.js';
 import { AuthService } from './auth.service.js';
 import { safeEqual } from '../../common/crypto.js';
 import { GoogleService, safeNext } from './google.service.js';
@@ -34,6 +36,7 @@ export class AuthController {
     private readonly auth: AuthService,
     private readonly google: GoogleService,
     private readonly tokens: TokenService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
   /** Which sign-in methods this deployment offers (the Google client ID is public by design). */
@@ -65,6 +68,7 @@ export class AuthController {
   ) {
     const { tokens, user, isNew } = await this.auth.verifyLoginOtp(body.email, body.code, body.name, req.headers['user-agent']);
     this.setCookies(reply, tokens);
+    this.trackSignIn(req, user.id, isNew, 'email');
     return { user, isNew };
   }
 
@@ -110,8 +114,9 @@ export class AuthController {
 
     try {
       const { profile, next } = await this.google.finishRedirect(code, state);
-      const { tokens } = await this.auth.signInWithGoogleProfile(profile, req.headers['user-agent']);
+      const { tokens, user, isNew } = await this.auth.signInWithGoogleProfile(profile, req.headers['user-agent']);
       this.setCookies(reply, tokens);
+      this.trackSignIn(req, user.id, isNew, 'google');
       return this.redirect(reply, new URL(safeNext(next), this.env.APP_URL).toString());
     } catch (err) {
       if (!(err instanceof UnauthorizedException || err instanceof ConflictException)) {
@@ -151,6 +156,7 @@ export class AuthController {
   ) {
     const { tokens, user, isNew } = await this.auth.signInWithGoogle(body.credential, req.headers['user-agent']);
     this.setCookies(reply, tokens);
+    this.trackSignIn(req, user.id, isNew, 'google');
     return { user, isNew };
   }
 
@@ -185,6 +191,12 @@ export class AuthController {
   @Patch('me')
   updateMe(@CurrentUser() user: AuthUser, @ZBody(updateProfileSchema) body: UpdateProfileInput) {
     return this.auth.updateProfile(user.id, body);
+  }
+
+  private trackSignIn(req: FastifyRequest, userId: string, isNew: boolean, method: 'email' | 'google') {
+    const visitorId = req.cookies[VISITOR_COOKIE];
+    this.analytics.identify(visitorId, userId);
+    this.analytics.record(isNew ? 'signup' : 'login', { visitorId, userId, userAgent: req.headers['user-agent'] }, { props: { method } });
   }
 
   private setCookies(reply: FastifyReply, tokens: IssuedTokens) {

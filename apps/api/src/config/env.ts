@@ -52,6 +52,15 @@ const envSchema = z.object({
     .optional()
     .transform((v) => v || undefined),
 
+  /**
+   * Accounts that get the admin role when they sign in (normal email-code / Google login).
+   * Comma separated; compared case-insensitively. Admins can promote others from /admin.
+   */
+  ADMIN_EMAILS: z
+    .string()
+    .optional()
+    .transform((v) => (v ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)),
+
   OPENROUTER_API_KEY: z.string().optional(),
   AI_TEXT_MODELS: csv.default(['google/gemini-4-hydrogen']),
   AI_IMAGE_MODEL: z.string().default('google/gemini-3.1-flash-image'),

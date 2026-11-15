@@ -4,6 +4,7 @@ import { COLOR_FILTERS, COMMUNITIES, searchTemplates, STYLE_FILTERS, type Templa
 import { clsx } from 'clsx';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
+import { controlClass } from '@/components/ui/field';
 
 export type TemplateSearchState = Required<Pick<TemplateFilters, 'q' | 'styles' | 'colors'>> & { community: string };
 
@@ -66,7 +67,7 @@ export function TemplateSearchBar({
   const nFilters = state.styles.length + state.colors.length + (state.community ? 1 : 0);
   const chip = (selected: boolean) =>
     clsx(
-      'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm font-medium transition-colors',
+      'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3.5 text-sm font-medium transition-colors',
       selected ? 'border-ink bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
     );
 
@@ -81,11 +82,11 @@ export function TemplateSearchBar({
             value={state.q}
             onChange={(e) => onChange({ ...state, q: e.target.value })}
             placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search: shaadi, ganesha, maroon, floral, nikah…'}
-            className="h-11 w-full rounded-full border border-hairline bg-surface pl-10 pr-10 text-[0.95rem] text-ink outline-none placeholder:text-ink-soft/80 focus-visible:border-ink"
+            className="h-11 w-full rounded-lg border border-hairline bg-surface pl-10 pr-10 text-[0.95rem] text-ink outline-none placeholder:text-ink-soft/80 focus-visible:border-ink"
             enterKeyHint="search"
           />
           {state.q && (
-            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-full text-ink-soft hover:bg-mist" aria-label={hi ? 'साफ़ करें' : 'Clear search'}>
+            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-soft hover:bg-mist" aria-label={hi ? 'साफ़ करें' : 'Clear search'}>
               <X className="size-4" />
             </button>
           )}
@@ -121,7 +122,7 @@ export function TemplateSearchBar({
               <select
                 value={state.community}
                 onChange={(e) => onChange({ ...state, community: e.target.value })}
-                className="h-9 rounded-full border border-hairline bg-surface px-3 text-sm text-ink outline-none focus-visible:border-ink"
+                className={`${controlClass} select h-9 pl-3 pr-9 text-sm`}
               >
                 <option value="">{hi ? 'सभी' : 'Any'}</option>
                 {COMMUNITIES.map((c) => (
@@ -147,7 +148,7 @@ export function TemplateSearchBar({
 /** Empty state when nothing matches. */
 export function NoTemplates({ hi = false, onReset }: { hi?: boolean; onReset: () => void }) {
   return (
-    <div className="rounded-2xl border border-dashed border-hairline p-8 text-center">
+    <div className="rounded-xl border border-dashed border-hairline p-8 text-center">
       <p className="font-semibold">{hi ? 'कोई डिज़ाइन नहीं मिला' : 'No designs match'}</p>
       <p className="mt-1 text-sm text-ink-soft">{hi ? 'कम शब्द या दूसरा रंग आज़माएँ।' : 'Try fewer words or another colour.'}</p>
       <button type="button" onClick={onReset} className="mt-3 text-sm font-semibold underline underline-offset-4">

@@ -1,3 +1,8 @@
+/** Single shimmer block; size it with classes. */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <div className={`skeleton ${className}`} aria-hidden />;
+}
+
 /** Shimmer placeholders shown instantly while a route streams in (no layout jump). */
 export function PageSkeleton({ variant = 'list' }: { variant?: 'list' | 'grid' | 'workspace' | 'form' }) {
   return (
@@ -23,7 +28,7 @@ export function PageSkeleton({ variant = 'list' }: { variant?: 'list' | 'grid' |
           <div className="flex flex-col gap-4">
             <div className="flex gap-2">
               {Array.from({ length: 4 }, (_, i) => (
-                <div key={i} className="skeleton h-10 w-28 rounded-full" />
+                <div key={i} className="skeleton h-9 w-28" />
               ))}
             </div>
             <div className="skeleton h-40" />
@@ -36,7 +41,7 @@ export function PageSkeleton({ variant = 'list' }: { variant?: 'list' | 'grid' |
         <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_360px]">
           <div className="flex flex-col gap-4">
             {Array.from({ length: 6 }, (_, i) => (
-              <div key={i} className="skeleton h-14" />
+              <div key={i} className="skeleton h-10" />
             ))}
           </div>
           <div className="skeleton hidden aspect-[9/16] lg:block" />

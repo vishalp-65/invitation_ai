@@ -3,6 +3,7 @@
 import { BUILTIN_TEMPLATES, getEventType, templateSupportsEvent, type Community, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import { findTemplate } from '@/lib/hooks';
 
 export interface DraftFunction {
   key: string;
@@ -80,7 +81,7 @@ export const useDraft = create<DraftStore>()(
       setContent: (patch) => set((s) => ({ content: { ...s.content, ...patch }, contentIsDefault: false })),
       setType: (type) =>
         set((s) => {
-          const current = BUILTIN_TEMPLATES.find((t) => t.id === s.templateId);
+          const current = findTemplate(s.templateId);
           const templateId =
             current && templateSupportsEvent(current, type)
               ? s.templateId

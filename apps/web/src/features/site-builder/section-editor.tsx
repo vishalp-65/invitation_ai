@@ -128,7 +128,7 @@ function ListEditor<T>({
   return (
     <div className="flex flex-col gap-3">
       {items.map((item, i) => (
-        <div key={i} className="rounded-2xl border border-hairline bg-surface-2 p-3">
+        <div key={i} className="rounded-xl border border-hairline bg-surface-2 p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">#{i + 1}</span>
             <div className="flex gap-0.5">

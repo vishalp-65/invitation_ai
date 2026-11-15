@@ -22,8 +22,9 @@ export function DesignGrid() {
         rsvpDeadline: '2026-12-01T00:00:00+05:30',
         language: lang,
         eventType,
+        community: t.communities[0],
       });
-      const doc = buildDesign({ template: t, data, language: lang, eventType });
+      const doc = buildDesign({ template: t, data, language: lang, eventType, community: t.communities[0] });
       return { t, data, doc };
     });
   }, [lang, only, q]);

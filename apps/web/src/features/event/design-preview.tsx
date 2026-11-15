@@ -7,17 +7,17 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
 import { useDesignData } from '@/features/editor/use-event-data';
-import { useTemplates } from '@/lib/hooks';
+import { useTemplate } from '@/lib/hooks';
 import { useEventMedia } from './use-event-props';
 
 const DesignPlayer = dynamic(() => import('@/components/design/design-player').then((m) => m.DesignPlayer), {
   ssr: false,
-  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-[18px]" />,
+  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-xl" />,
 });
 
 /** The event's card exactly as the editor saved it (or the template's layout), plus its video. */
 export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'card' | 'video' }) {
-  const { data: templates } = useTemplates();
+  const { data: template } = useTemplate(event.design ? undefined : event.templateId);
   const { data: media } = useEventMedia(event.id);
   const photos = useMemo(
     () => event.settings.photoAssetIds.map((id) => media?.find((m) => m.id === id)?.url).filter((u): u is string => Boolean(u)),
@@ -26,11 +26,10 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
   const data = useDesignData(event, photos);
   const doc = useMemo(() => {
     if (event.design) return event.design;
-    const template = templates?.find((t) => t.id === event.templateId);
-    return template && data ? buildDesign({ template, data, language: event.language, eventType: event.type }) : null;
-  }, [event, templates, data]);
+    return template && data ? buildDesign({ template, data, language: event.language, eventType: event.type, community: event.community }) : null;
+  }, [event, template, data]);
   const [page, setPage] = useState(0);
-  if (!doc || !data) return <div className="skeleton aspect-[9/16] w-full rounded-[18px]" />;
+  if (!doc || !data) return <div className="skeleton aspect-[9/16] w-full rounded-xl" />;
   const current = Math.min(page, doc.pages.length - 1);
 
   return (
@@ -38,9 +37,9 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
       {mode === 'video' ? (
         <DesignPlayer design={doc} data={data} language={event.language} />
       ) : (
-        <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-[18px] shadow-[var(--shadow-lift)]" aria-label="Edit the card">
+        <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-xl" aria-label="Edit the card">
           <DesignView page={doc.pages[current]!} data={data} language={event.language} />
-          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-full bg-surface/95 font-semibold text-ink opacity-0 shadow-md transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-lg bg-surface/95 font-semibold text-ink opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <Brush className="size-4" /> Edit the card
           </span>
         </Link>

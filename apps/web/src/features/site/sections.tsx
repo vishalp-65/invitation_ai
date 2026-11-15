@@ -197,7 +197,8 @@ function Hero({ section, doc, started }: { section: SiteSectionOf<'hero'>; doc: 
 
         {section.variant !== 'photo' && (
           <div ref={charRef} className="inv-enter mt-4" style={{ '--delay': '350ms' } as React.CSSProperties}>
-            <Character doc={doc} eventType={data.event.type} primary={primary} accent={accent} size={section.variant === 'split' ? 150 : 190} />
+            <Character doc={doc} eventType={data.event.type}
+          community={data.event.community} primary={primary} accent={accent} size={section.variant === 'split' ? 150 : 190} />
           </div>
         )}
 
@@ -728,6 +729,7 @@ function Closing({ section }: { section: SiteSectionOf<'closing'> }) {
         <Character
           doc={{ ...data.site, character: { ...data.site.character, kind: data.site.character.kind === 'couple' ? 'doves' : data.site.character.kind } }}
           eventType={data.event.type}
+          community={data.event.community}
           primary={primary}
           accent={accent}
           size={110}

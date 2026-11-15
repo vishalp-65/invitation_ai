@@ -37,7 +37,7 @@ export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }
       <div className="w-full max-w-sm">
         {site.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={site.coverUrl} alt="" className="mx-auto mb-8 h-56 rounded-2xl object-cover opacity-90" />
+          <img src={site.coverUrl} alt="" className="mx-auto mb-8 h-56 rounded-xl object-cover opacity-90" />
         )}
         <Lock className="mx-auto size-8 text-[#F2A900]" aria-hidden />
         <h1 className="mt-4 text-3xl">{site.title}</h1>
@@ -64,7 +64,7 @@ export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }
                 {error}
               </p>
             )}
-            <button type="submit" disabled={busy} className="h-12 rounded-full bg-[#F2A900] font-semibold text-[#1E2250] disabled:opacity-60">
+            <button type="submit" disabled={busy} className="h-12 rounded-lg bg-[#F2A900] font-semibold text-[#1E2250] disabled:opacity-60">
               {hi ? 'निमंत्रण खोलें' : 'Open invitation'}
             </button>
           </form>

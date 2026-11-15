@@ -87,7 +87,7 @@ export default function DesignerPage() {
                   <li key={t.id} className="flex flex-wrap items-center gap-3 py-4">
                     <span className="flex-1 font-semibold">{t.name}</span>
                     <span className="text-sm text-ink-soft">{t.salesCount} sales</span>
-                    <span className="rounded-full bg-mist px-3 py-1 text-sm">{t.status}</span>
+                    <span className="rounded-lg bg-mist px-3 py-1 text-sm">{t.status}</span>
                     {t.status === 'draft' && (
                       <Button
                         size="sm"
@@ -229,7 +229,7 @@ function ThemeEditor({ onSaved }: { onSaved: () => void }) {
           Save draft
         </Button>
       </div>
-      <InvitePlayer props={preview} mode="card" className="shadow-[var(--shadow-lift)]" />
+      <InvitePlayer props={preview} mode="card" className="" />
     </section>
   );
 }

@@ -1,19 +1,22 @@
 import { getEventType } from '../constants/event-types.js';
+import { blessingFor, faithOf, type Faith } from '../constants/faith.js';
 import type { LanguageCode } from '../constants/languages.js';
 import { decorSchema, type TemplateDefinition } from '../templates/types.js';
 import type { DesignData } from './bindings.js';
-import { artEl, fullPage, makeCtx, resetIds, shapeEl, solidBg, stack, tonesFor, TYPE_SETS, type Band, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
+import { artEl, faithElements, fullPage, makeCtx, resetIds, shapeEl, solidBg, stack, tonesFor, TYPE_SETS, type Band, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
 import { isDarkColor } from './color.js';
 import { goldOn, trueGold, type Chrome, type DesignFamily } from './families.js';
 import { ALL_DESIGN_FAMILIES } from './families-heritage.js';
-import { blessingBands, blessingKind, ceremonyBands, familyBands, FUNCTIONS_PER_PAGE, hasFamilyExtras, photoBands } from './pages.js';
+import { blessingBands, ceremonyBands, familyBands, FUNCTIONS_PER_PAGE, hasFamilyExtras, photoBands } from './pages.js';
 import { DESIGN_H, DESIGN_W, type DesignDoc, type DesignElement, type DesignPage } from './schema.js';
 
 export interface BuildDesignInput {
-  template: Pick<TemplateDefinition, 'id' | 'layout' | 'theme'> & { design?: string; communities?: readonly string[] };
+  template: Pick<TemplateDefinition, 'id' | 'layout' | 'theme'> & { design?: string; communities?: readonly string[]; doc?: DesignDoc };
   data: DesignData;
   language: LanguageCode;
   eventType: string;
+  /** The family's tradition (event.community). Decides the card's sacred marks with the event type. */
+  community?: string | null;
 }
 
 /** Hard cap from designDocSchema. */
@@ -97,9 +100,9 @@ function defaultCoverBands(spec: Spec, ctx: RecipeCtx, t: Tones, familyOnCover: 
   ];
 }
 
-function page(id: string, chrome: Chrome, content: DesignElement[]): DesignPage {
+function page(id: string, chrome: Chrome, content: DesignElement[], faith: Faith, community?: string | null): DesignPage {
   // Confetti/sparkle overlays sit behind the text so they never hurt readability.
-  return { id, bg: chrome.bg, elements: [...chrome.under, ...(chrome.over ?? []), ...content] };
+  return { id, bg: chrome.bg, elements: faithElements([...chrome.under, ...(chrome.over ?? [])], faith, community).concat(content) };
 }
 
 /**
@@ -108,10 +111,16 @@ function page(id: string, chrome: Chrome, content: DesignElement[]): DesignPage 
  * Inner pages only appear when the event has content for them.
  */
 export function buildDesign(input: BuildDesignInput): DesignDoc {
+  // Admin-published templates carry a finished, data-bound layout from the editor.
+  const faith = faithOf(input.eventType, input.community);
+  if (input.template.doc) {
+    const doc = structuredClone(input.template.doc);
+    return { ...doc, templateId: input.template.id, pages: doc.pages.map((pg) => ({ ...pg, elements: faithElements(pg.elements, faith, input.community) })) };
+  }
   resetIds();
   const ev = getEventType(input.eventType);
   const p = input.template.theme.palette;
-  const ctx = makeCtx({ p, data: input.data, language: input.language, eventType: input.eventType, category: ev.category, people: ev.primaryPeople });
+  const ctx = makeCtx({ p, data: input.data, language: input.language, eventType: input.eventType, category: ev.category, people: ev.primaryPeople, faith, community: input.community });
   const family = input.template.design ? ALL_DESIGN_FAMILIES.find((f) => f.id === input.template.design) : undefined;
   const spec: Spec = family
     ? {
@@ -143,17 +152,18 @@ export function buildDesign(input: BuildDesignInput): DesignDoc {
   const familyPage = (lines > 0 && (fns.length > 1 || lines > 3)) || extras;
   const familyOnCover = !familyPage && lines > 0;
   const photoPage = ctx.people === 2 || input.data.photos.length > 0;
-  const kind = blessingKind(input.eventType, input.template.communities ?? [], input.template.theme.motif);
+  // The blessing follows the family's faith, never the template's: the template only picks Om vs Ganesha.
+  const kind = blessingFor(input.eventType, faith, input.template.theme.motif);
 
   const pages: DesignPage[] = [];
   const blessing = blessingBands(ctx, kind, trueGold(ctx));
   if (blessing.length) {
     const bc = spec.blessing ? spec.blessing(ctx, tones) : inner;
-    pages.push(page('blessing', bc, stack(blessing, { ...innerZone, align: 'center' }, ctx, ts, tones)));
+    pages.push(page('blessing', bc, stack(blessing, { ...innerZone, align: 'center' }, ctx, ts, tones), faith, input.community));
   }
 
   const coverBands = spec.bands ? spec.bands(ctx, tones) : defaultCoverBands(spec, ctx, tones, familyOnCover);
-  pages.push(page('cover', chrome, stack(coverBands, spec.zone, ctx, ts, tones)));
+  pages.push(page('cover', chrome, stack(coverBands, spec.zone, ctx, ts, tones), faith, input.community));
 
   // Budget: ceremonies get whatever the other pages leave (max 8 pages in all).
   const reserved = pages.length + (familyPage ? 1 : 0) + (photoPage ? 1 : 0);
@@ -162,14 +172,14 @@ export function buildDesign(input: BuildDesignInput): DesignDoc {
     const per = Math.max(FUNCTIONS_PER_PAGE, Math.ceil(fns.length / maxCeremonyPages));
     for (let i = 0; i < fns.length; i += per) {
       const bands = ceremonyBands(ctx, i, Math.min(fns.length, i + per), spec.divider, spec.type, gold);
-      pages.push(page(`schedule-${i / per + 1}`, inner, stack(bands, innerZone, ctx, ts, tones)));
+      pages.push(page(`schedule-${i / per + 1}`, inner, stack(bands, innerZone, ctx, ts, tones), faith, input.community));
     }
   }
   if (familyPage && pages.length < MAX_PAGES) {
-    pages.push(page('family', inner, stack(familyBands(ctx, spec.divider, lines > 0, spec.type), innerZone, ctx, ts, tones)));
+    pages.push(page('family', inner, stack(familyBands(ctx, spec.divider, lines > 0, spec.type), innerZone, ctx, ts, tones), faith, input.community));
   }
   if (photoPage && pages.length < MAX_PAGES) {
-    pages.push(page('photo', inner, stack(photoBands(ctx, spec.date), innerZone, ctx, ts, tones)));
+    pages.push(page('photo', inner, stack(photoBands(ctx, spec.date), innerZone, ctx, ts, tones), faith, input.community));
   }
   return { v: 1, templateId: input.template.id, pages };
 }

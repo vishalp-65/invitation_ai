@@ -184,7 +184,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                 type="button"
                 aria-pressed={t.id === event.templateId}
                 onClick={() => save.mutate({ templateId: t.id })}
-                className="flex items-center gap-2 rounded-full border border-hairline py-1.5 pl-1.5 pr-4 text-[0.95rem] font-medium hover:border-ink aria-pressed:border-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
+                className="flex items-center gap-2 rounded-lg border border-hairline py-1.5 pl-1.5 pr-4 text-[0.95rem] font-medium hover:border-ink aria-pressed:border-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
               >
                 <span className="size-7 rounded-full border-2 border-white" style={{ background: t.theme.palette.background }} aria-hidden />
                 {t.name}
@@ -200,7 +200,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           {photos.map((p) => (
             <div key={p.id} className="flex flex-col items-center gap-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our CDN */}
-              <img src={p.url} alt="" className="size-24 rounded-[14px] object-cover" />
+              <img src={p.url} alt="" className="size-24 rounded-lg object-cover" />
               <button
                 type="button"
                 className="text-xs font-semibold text-sindoor"
@@ -214,7 +214,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="grid size-24 place-items-center rounded-[14px] border-2 border-dashed border-line text-ink-soft hover:border-ink"
+            className="grid size-24 place-items-center rounded-lg border-2 border-dashed border-line text-ink-soft hover:border-ink"
           >
             <ImagePlus className="size-6" />
             <span className="sr-only">Add photos</span>
@@ -228,7 +228,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             <p className="mt-1 text-[0.95rem] text-ink-soft">A one-of-a-kind painted background in your design&apos;s colours.</p>
             {background && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={background.url} alt="Current AI background" className="mt-3 h-40 rounded-[12px] object-cover" />
+              <img src={background.url} alt="Current AI background" className="mt-3 h-40 rounded-xl object-cover" />
             )}
             <div className="mt-4 flex gap-2">
               <Button size="sm" variant="brand" onClick={() => aiImage('background')} loading={aiBusy === 'background'}>

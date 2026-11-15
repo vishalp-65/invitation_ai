@@ -2,6 +2,7 @@
 
 import type { CheckoutDto, ProductCode } from '@cardai/shared';
 import { api } from './api';
+import { track } from './track';
 
 declare global {
   interface Window {
@@ -24,8 +25,9 @@ function loadRazorpay(): Promise<void> {
  * Opens Razorpay Checkout (UPI, cards, wallets) and verifies on the server.
  * In local development without keys the API returns keyId "mock" and we skip the popup.
  */
-export async function buy(eventId: string, productCode: ProductCode): Promise<boolean> {
-  const order = await api<CheckoutDto>('/payments/orders', { method: 'POST', json: { eventId, productCode } });
+export async function buy(eventId: string, productCode: ProductCode, couponCode?: string): Promise<boolean> {
+  track('checkout_start', { props: { product: productCode, coupon: couponCode ?? null } });
+  const order = await api<CheckoutDto>('/payments/orders', { method: 'POST', json: { eventId, productCode, ...(couponCode ? { couponCode } : {}) } });
 
   const verify = (paymentId: string, signature: string) =>
     api('/payments/verify', {

@@ -1,9 +1,9 @@
 'use client';
 
-import { formatINR, PRODUCTS, type EventDto, type RenderDto, type UserTemplateDto } from '@cardai/shared';
+import { formatINR, type EventDto, type RenderDto, type UserTemplateDto } from '@cardai/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { BookmarkPlus, Check, Download, FileImage, FileText, Keyboard, Loader2, Lock, MoreHorizontal, Play, Printer, RotateCcw } from 'lucide-react';
+import { BookmarkPlus, Check, Download, FileImage, FileText, Keyboard, Loader2, Lock, MoreHorizontal, Play, Printer, RotateCcw, Store } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -12,10 +12,12 @@ import { tip } from '@/components/ui/tooltip';
 import { api, ApiError } from '@/lib/api';
 import { ThemeSegmented } from '@/lib/theme';
 import { useEditor } from './store';
+import { controlClass } from '@/components/ui/field';
+import { usePrice } from '@/lib/offers';
 
 // ---------------------------------------------------------------- More menu
 
-export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate }: { onVideo: () => void; onShortcuts: () => void; onSaveTemplate: () => void }) {
+export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate, onPublish, onDownload }: { onVideo: () => void; onShortcuts: () => void; onSaveTemplate: () => void; onPublish?: () => void; onDownload?: () => void }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -37,7 +39,7 @@ export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate }: { onVideo: ()
         setOpen(false);
         run();
       }}
-      className={clsx('flex h-10 w-full items-center gap-2.5 rounded-lg px-3 text-left text-sm font-medium hover:bg-mist', cls)}
+      className={clsx('menu-item', cls)}
     >
       <Icon className="size-4 opacity-80" />
       <span className="flex-1">{label}</span>
@@ -46,15 +48,18 @@ export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate }: { onVideo: ()
   );
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-10 place-items-center rounded-full hover:bg-mist" {...tip('More')}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-9 place-items-center rounded-lg hover:bg-mist" {...tip('More')}>
         <MoreHorizontal className="size-5" />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right animate-[pop-in_0.1s_ease-out] rounded-xl border border-hairline bg-surface p-1 shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)]">
+        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right animate-[pop-in_0.1s_ease-out] menu">
+          {/* Phones keep the header for the title: Download lives here instead. */}
+          {onDownload && item('Download', Download, onDownload, undefined, 'sm:hidden')}
           {item('Preview video invite', Play, onVideo, undefined, 'lg:hidden')}
           {item('Save as my template', BookmarkPlus, onSaveTemplate)}
+          {onPublish && item('Publish to catalogue', Store, onPublish, 'Admin', 'text-marigold-deep')}
           {item('Keyboard shortcuts', Keyboard, onShortcuts, '?', 'max-md:hidden')}
-          <div className="my-1 h-px bg-hairline" />
+          <div className="menu-sep" />
           <div className="px-3 pb-2 pt-1">
             <p className="mb-1.5 text-xs font-semibold text-ink-soft">Theme</p>
             <ThemeSegmented />
@@ -78,6 +83,7 @@ const kb = (n: number) => (n > 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : 
 
 export function DownloadDialog({ open, onClose, event, flush }: { open: boolean; onClose: () => void; event: EventDto; flush: () => Promise<void> }) {
   const [format, setFormat] = useState<Format>('image');
+  const cardPrice = usePrice('card').pricePaise;
   const [render, setRender] = useState<RenderDto | null>(null);
   const [busy, setBusy] = useState(false);
   const run = useRef(0);
@@ -138,7 +144,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
                   aria-checked={format === f.id}
                   disabled={busy || Boolean(locked)}
                   onClick={() => setFormat(f.id)}
-                  className="flex items-start gap-3 rounded-xl border border-hairline bg-surface p-3 text-left transition-colors hover:border-ink/40 disabled:opacity-60 aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
+                  className="flex items-start gap-3 rounded-lg border border-hairline bg-surface p-3 text-left transition-colors hover:border-ink/40 disabled:opacity-60 aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
                 >
                   <f.icon className="mt-0.5 size-5 shrink-0" />
                   <span className="flex-1">
@@ -172,7 +178,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
             <ul className="flex flex-col gap-2">
               {render.outputs.map((o, i) => (
                 <li key={o.url}>
-                  <a href={o.url} download target="_blank" rel="noreferrer" className="flex h-12 items-center gap-3 rounded-xl border border-hairline bg-surface px-3 font-semibold hover:border-ink/40">
+                  <a href={o.url} download target="_blank" rel="noreferrer" className="flex h-12 items-center gap-3 rounded-lg border border-hairline bg-surface px-3 font-semibold hover:border-ink/40">
                     <Download className="size-4" />
                     <span className="flex-1">{render.outputs.length > 1 ? `Page ${i + 1}` : format === 'image' ? 'Your card' : 'Your PDF'}</span>
                     <span className="text-sm font-normal text-ink-soft">{kb(o.bytes)}</span>
@@ -181,10 +187,10 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
               ))}
             </ul>
             {render.watermark && (
-              <p className="rounded-xl bg-mist p-3 text-sm">
+              <p className="rounded-lg bg-mist p-3 text-sm">
                 Free downloads carry a small watermark.{' '}
                 <Link href={`/dashboard/events/${event.id}?upgrade=card`} className="font-semibold underline underline-offset-4">
-                  Remove it from {formatINR(PRODUCTS.card.pricePaise)}
+                  Remove it from {formatINR(cardPrice)}
                 </Link>
               </p>
             )}
@@ -195,7 +201,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
         )}
 
         {!done && (
-          <button type="button" onClick={start} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60">
+          <button type="button" onClick={start} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             {busy ? 'Preparing…' : 'Download'}
           </button>
@@ -242,10 +248,10 @@ export function SaveTemplateDialog({ open, onClose, event }: { open: boolean; on
       <form onSubmit={save} className="flex flex-col gap-4 pb-2">
         <label className="flex flex-col gap-1.5">
           <span className="text-sm font-semibold text-ink-soft">Template name</span>
-          <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} required className="h-12 rounded-xl border border-hairline bg-surface px-3 focus:border-primary focus:outline-none" />
+          <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} required className={`${controlClass} h-10 px-3`} />
         </label>
         <p className="text-sm text-ink-soft">Keeps your layout, fonts, colours and backgrounds. Names, dates and venues fill in from whichever invitation you use it in. Photos aren&apos;t copied.</p>
-        <button type="submit" disabled={busy || !name.trim()} className="flex h-12 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-60">
+        <button type="submit" disabled={busy || !name.trim()} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-60">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <BookmarkPlus className="size-4" />}
           Save template
         </button>

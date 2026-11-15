@@ -15,6 +15,8 @@ import { TokenService } from '../modules/auth/token.service.js';
 import { IS_PUBLIC, RATE_LIMIT, ROLES, type AuthedRequest, type RateLimitOptions } from './auth.decorators.js';
 
 export const ACCESS_COOKIE = 'cai_at';
+/** Redis marker for accounts an admin disabled, so live access tokens stop working at once. */
+export const disabledKey = (userId: string) => `user:disabled:${userId}`;
 
 /** Global guard: every route requires a valid access token unless marked @Public(). */
 @Injectable()
@@ -22,6 +24,7 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly tokens: TokenService,
+    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -35,7 +38,7 @@ export class AuthGuard implements CanActivate {
 
     if (token) {
       const user = await this.tokens.verifyAccess(token).catch(() => null);
-      if (user) req.user = user;
+      if (user && !(await this.redis.exists(disabledKey(user.id)))) req.user = user;
     }
     if (isPublic) return true;
     if (!req.user) throw new UnauthorizedException('Please sign in');

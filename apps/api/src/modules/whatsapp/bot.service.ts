@@ -1,4 +1,4 @@
-import { BUILTIN_TEMPLATES, EVENT_TYPES, getEventType, LANGUAGES, templateSupportsEvent, type EventTypeId, type LanguageCode } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPES, faithOf, getEventType, LANGUAGES, templateFaithClash, templateSupportsEvent, type EventTypeId, type LanguageCode } from '@cardai/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ENV, type Env } from '../../config/env.js';
 import { REDIS, type Redis } from '../../infra/infra.module.js';
@@ -146,8 +146,10 @@ export class BotService {
     const intent = await this.ai.parseIntent(state.details ?? '', user.id);
     const eventType = state.eventType ?? intent.eventType ?? 'other';
 
+    const community = intent.community ?? undefined;
     const content = await this.ai.generateWording(authUser, {
       eventType,
+      community,
       language: code,
       tone: 'traditional',
       facts: { primaryNames: intent.primaryNames.slice(0, 2), primaryDetails: [], hosts: intent.hosts ?? undefined, extra: state.details },
@@ -157,11 +159,15 @@ export class BotService {
       ? intent.functions
       : [{ name: getEventType(eventType).defaultFunctions[0] ?? 'Event', date: null, time: null, venue: null }];
     const fallbackDate = new Date(Date.now() + 14 * 86400_000).toISOString().slice(0, 10);
-    const template = BUILTIN_TEMPLATES.find((t) => templateSupportsEvent(t, eventType)) ?? BUILTIN_TEMPLATES[0]!;
+    // First design for the occasion, preferring one drawn for the family's faith.
+    const faith = faithOf(eventType, community);
+    const fits = BUILTIN_TEMPLATES.filter((t) => templateSupportsEvent(t, eventType));
+    const template = fits.find((t) => !templateFaithClash(t.communities, faith)) ?? fits[0] ?? BUILTIN_TEMPLATES[0]!;
 
     const event = await this.events.create(authUser, {
       type: eventType,
       language: code,
+      community,
       templateId: template.id,
       title: content.headline || getEventType(eventType).label,
       content,

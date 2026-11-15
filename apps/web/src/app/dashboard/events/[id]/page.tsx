@@ -51,7 +51,7 @@ function EventWorkspace() {
     <div>
       <Link
         href="/dashboard"
-        className="inline-flex h-9 items-center gap-1 rounded-full border border-hairline bg-surface pl-2.5 pr-4 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
+        className="inline-flex h-9 items-center gap-1 rounded-lg border border-hairline bg-surface pl-2.5 pr-4 text-sm font-semibold text-ink-soft transition-colors hover:border-ink/30 hover:text-ink"
       >
         <ChevronLeft className="size-4" aria-hidden />
         My invitations
@@ -79,7 +79,7 @@ function EventWorkspace() {
               {getEventType(event.type).emoji}
             </span>
             <span
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+              className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold ${
                 event.status === 'published' ? 'bg-leaf/10 text-leaf' : 'bg-mist text-ink-soft'
               }`}
             >
@@ -140,7 +140,7 @@ function EventWorkspace() {
             type="button"
             onClick={() => setShowPreview((s) => !s)}
             aria-expanded={showPreview}
-            className="panel flex w-full items-center justify-between rounded-2xl px-4 py-3 font-semibold lg:hidden"
+            className="panel flex w-full items-center justify-between rounded-xl px-4 py-3 font-semibold lg:hidden"
           >
             {showPreview ? 'Hide preview' : 'Show preview'}
             <ChevronDown className={`size-5 transition-transform ${showPreview ? 'rotate-180' : ''}`} />

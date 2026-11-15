@@ -8,10 +8,10 @@ import dynamic from 'next/dynamic';
  */
 export const InvitePlayer = dynamic(() => import('./invite-player').then((m) => m.InvitePlayer), {
   ssr: false,
-  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-[18px]" aria-label="Loading preview" />,
+  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-xl" aria-label="Loading preview" />,
 });
 
 export const InviteThumb = dynamic(() => import('./invite-player').then((m) => m.InviteThumb), {
   ssr: false,
-  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-[14px]" />,
+  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-lg" />,
 });

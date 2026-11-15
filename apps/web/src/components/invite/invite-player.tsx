@@ -25,7 +25,7 @@ interface Props {
 export function InvitePlayer({ props, mode, className, autoPlay = false, controls = true, loop = true }: Props) {
   const duration = mode === 'video' ? planVideoScenes(props, VIDEO.fps).durationInFrames : 1;
   return (
-    <div className={clsx('aspect-[9/16] w-full overflow-hidden rounded-[18px] bg-mist', className)}>
+    <div className={clsx('aspect-[9/16] w-full overflow-hidden rounded-xl bg-mist', className)}>
       <Player
         key={`${mode}-${duration}`}
         component={mode === 'video' ? Video : Card}
@@ -59,7 +59,7 @@ export function InviteThumb({ props, className }: { props: InviteProps; classNam
   }, []);
 
   return (
-    <div ref={ref} className={clsx('aspect-[9/16] w-full overflow-hidden rounded-[14px] bg-mist', className)}>
+    <div ref={ref} className={clsx('aspect-[9/16] w-full overflow-hidden rounded-lg bg-mist', className)}>
       {visible && (
         <Thumbnail
           component={Card}

@@ -1,3 +1,4 @@
+import { BISMILLAH, invocationFor, type BlessingKind } from '../constants/faith.js';
 import type { LanguageCode } from '../constants/languages.js';
 import { TYPE_SETS, type Band, type RecipeCtx, type TypeSetKey } from './builder.js';
 
@@ -47,38 +48,43 @@ const FAMILY_TITLE: L = { en: 'With love from', hi: 'शुभाकांक्
 
 // ------------------------------------------------------------ blessing page
 
-const BISMILLAH = 'بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ';
-const GANESH_LINE: L = { en: '|| Shree Ganeshaya Namah ||', hi: '॥ श्री गणेशाय नमः ॥', mr: '॥ श्री गणेशाय नमः ॥', gu: '॥ શ્રી ગણેશાય નમઃ ॥' };
-
-export type BlessingKind = 'ganesha' | 'bismillah' | 'khanda' | 'cross' | 'om' | 'none';
-
-/** Which sacred symbol opens the card. */
-export function blessingKind(eventType: string, communities: readonly string[] = [], motif?: string): BlessingKind {
-  if (eventType === 'nikah' || communities.includes('muslim') || motif === 'crescent') return 'bismillah';
-  if (eventType === 'christian-wedding' || communities.includes('christian') || motif === 'cross') return 'cross';
-  if (eventType === 'anand-karaj' || communities.includes('sikh') || motif === 'khanda') return 'khanda';
-  if (['jagran', 'puja', 'bhandara', 'upanayana', 'griha-pravesh'].includes(eventType)) return motif === 'om' ? 'om' : 'ganesha';
-  if (['wedding', 'engagement', 'reception', 'anniversary', 'mundan', 'annaprashan', 'naming-ceremony', 'baby-shower', 'shop-opening'].includes(eventType)) return 'ganesha';
-  return 'none';
-}
-
+/**
+ * The blessing page: the faith's sacred art, then its blessing line. The line is the card's own
+ * `invocation` when it has one (the family may have reworded it), else the faith's stock line.
+ */
 export function blessingBands(ctx: RecipeCtx, kind: BlessingKind, gold: string): Band[] {
   if (kind === 'none') return [];
   const out: Band[] = [];
+  const own = ctx.data.content.invocation?.trim();
   if (kind === 'ganesha') {
     out.push({ t: 'art', asset: 'ganesha', w: 460, h: 506, colors: [gold, ctx.p.accent], opts: { light: !isDark(ctx.p.background) }, gap: 0, anim: 'drop' });
   } else if (kind === 'bismillah') {
     out.push({ t: 'art', asset: 'motif', w: 200, h: 200, colors: [gold, ctx.p.accent], opts: { motif: 'crescent' }, gap: 0, anim: 'drop' });
+    // The Bismillah is the blessing itself; only add the card's line when it says something else.
     out.push({ t: 'text', role: 'headline', text: BISMILLAH, font: 'Amiri', size: 84, gap: 50, tone: 'accent' });
+    out.push({ t: 'divider', style: 'ornate', gap: 46, w: 380 });
+    if (own && own !== BISMILLAH) out.push({ t: 'text', role: 'headline', bind: 'invocation', gap: 40, size: 56 });
+    return out;
   } else {
-    const motif = kind === 'cross' ? 'cross' : kind === 'khanda' ? 'khanda' : 'om';
+    const motif = BLESSING_MOTIF[kind];
     out.push({ t: 'art', asset: 'motif', w: 300, h: 300, colors: [gold, ctx.p.accent], opts: { motif }, gap: 0, anim: 'drop' });
   }
   out.push({ t: 'divider', style: 'ornate', gap: 46, w: 380 });
-  if (ctx.data.content.invocation?.trim()) out.push({ t: 'text', role: 'headline', bind: 'invocation', gap: 40, size: 64 });
-  else if (kind === 'ganesha') out.push({ t: 'text', role: 'headline', text: pick(GANESH_LINE, ctx.language), gap: 40, size: 64 });
+  if (own) out.push({ t: 'text', role: 'headline', bind: 'invocation', gap: 40, size: 64 });
+  else {
+    const line = invocationFor({ eventType: ctx.eventType, faith: ctx.faith, language: ctx.language });
+    if (line) out.push({ t: 'text', role: 'headline', text: line, gap: 40, size: 64 });
+  }
   return out;
 }
+
+const BLESSING_MOTIF: Record<Exclude<BlessingKind, 'ganesha' | 'bismillah' | 'none'>, string> = {
+  om: 'om',
+  cross: 'cross',
+  khanda: 'khanda',
+  jain: 'kalash',
+  buddhist: 'lotus',
+};
 
 function isDark(hex: string): boolean {
   const n = parseInt(hex.slice(1), 16);

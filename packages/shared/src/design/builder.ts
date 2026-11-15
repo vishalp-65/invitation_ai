@@ -1,5 +1,6 @@
 import { getLanguage, type LanguageCode } from '../constants/languages.js';
 import type { EventCategory } from '../constants/event-types.js';
+import { attireFor, faithMotif, markSuitsFaith, sacredMarkOf, type Faith } from '../constants/faith.js';
 import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
@@ -18,6 +19,10 @@ export interface RecipeCtx {
   eventType: string;
   category: EventCategory;
   people: 0 | 1 | 2;
+  /** Whose sacred marks may appear (see constants/faith.ts). */
+  faith: Faith;
+  /** The family's tradition (picks regional couple attire). */
+  community?: string | null;
 }
 
 export type Role =
@@ -227,9 +232,11 @@ export function makeCtx(input: {
   eventType: string;
   category: EventCategory;
   people: 0 | 1 | 2;
+  faith?: Faith;
+  community?: string | null;
 }): RecipeCtx {
   const lang = getLanguage(input.language);
-  return { ...input, script: lang.script, latin: lang.script === 'Latn', langFonts: lang.fonts };
+  return { ...input, faith: input.faith ?? 'hindu', script: lang.script, latin: lang.script === 'Latn', langFonts: lang.fonts };
 }
 
 const GROUP_WIDTH: Record<string, number> = { script: 0.38, serif: 0.5, display: 0.56, sans: 0.58, fun: 0.56, indic: 0.6 };
@@ -347,7 +354,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
   /** x of a box of width w: centred, or flush with the zone's left edge. */
   const at = (w: number) => (left ? zone.left : cx - w / 2);
 
-  const visible = bands.filter((b) => {
+  const visible = faithBands(bands, ctx.faith, ctx.community).filter((b) => {
     if (b.t !== 'text') return true;
     const value = b.bind ? resolveBinding(b.bind, ctx.data) : b.text;
     return Boolean(value && value.trim());
@@ -394,7 +401,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
             return {
               h: ah,
               gap,
-              make: (y) => [artEl(asset, at(aw), y, aw, ah, [tones.accent, ctx.p.backgroundAlt], { opts: ctx.people === 2 ? { style: 'lineart', attire: 'north' } : undefined, anim: 'zoom' })],
+              make: (y) => [artEl(asset, at(aw), y, aw, ah, [tones.accent, ctx.p.backgroundAlt], { opts: ctx.people === 2 ? { style: 'lineart', attire: attireFor(ctx.faith, ctx.community) } : undefined, anim: 'zoom' })],
             };
           }
           const w = b.w * k;
@@ -525,4 +532,50 @@ function dateBand(style: 'strip' | 'line' | 'stack' | 'boxed', ctx: RecipeCtx, t
       return out;
     },
   };
+}
+
+/**
+ * Sacred art of another faith (a Ganesha on a Nikah card, a crescent on a Hindu one) becomes this
+ * faith's own motif, or is dropped on secular cards. Cultural decoration is left alone.
+ */
+export function faithBands(bands: Band[], faith: Faith, community?: string | null): Band[] {
+  const out: Band[] = [];
+  for (const b of bands) {
+    if (b.t === 'art' && b.asset === 'couple') {
+      out.push({ ...b, opts: { ...b.opts, attire: attireFor(faith, community, String(b.opts?.attire ?? '')) } });
+      continue;
+    }
+    const mark = b.t === 'art' ? sacredMarkOf(b.asset, b.opts) : null;
+    if (b.t !== 'art' || !mark || markSuitsFaith(mark, faith)) {
+      out.push(b);
+      continue;
+    }
+    const own = faithMotif(faith);
+    if (!own) continue;
+    // Motifs are square; Ganesha is tall. Keep the footprint modest.
+    const size = Math.min(b.w, b.h, 200);
+    out.push({ ...b, asset: 'motif', w: size, h: size, opts: { motif: own } });
+  }
+  return out;
+}
+
+/** Same rule for loose art elements (chrome decoration, published layouts). */
+export function faithElements(elements: DesignElement[], faith: Faith, community?: string | null): DesignElement[] {
+  const out: DesignElement[] = [];
+  for (const e of elements) {
+    if (e.type === 'art' && e.asset === 'couple') {
+      out.push({ ...e, opts: { ...e.opts, attire: attireFor(faith, community, String(e.opts?.attire ?? '')) } });
+      continue;
+    }
+    const mark = e.type === 'art' ? sacredMarkOf(e.asset, e.opts) : null;
+    if (e.type !== 'art' || !mark || markSuitsFaith(mark, faith)) {
+      out.push(e);
+      continue;
+    }
+    const own = faithMotif(faith);
+    if (!own) continue;
+    const size = Math.min(e.w, e.h);
+    out.push({ ...e, asset: 'motif', x: e.x + (e.w - size) / 2, y: e.y + (e.h - size) / 2, w: size, h: size, opts: { motif: own } });
+  }
+  return out;
 }

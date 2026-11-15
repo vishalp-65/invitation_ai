@@ -1,0 +1,61 @@
+# Runs on the droplet in /opt/cardai. Isolated from the other backend:
+#  - own compose project name (cardai), own network, own volumes
+#  - only the API is published, on 127.0.0.1:4100 (loopback) -> reverse proxy routes api.<domain> to it
+#  - postgres/redis are NOT published to the host
+name: cardai
+
+x-app-env: &app-env
+  env_file: .env
+  environment:
+    DATABASE_URL: postgres://cardai:${POSTGRES_PASSWORD}@postgres:5432/cardai
+    REDIS_URL: redis://redis:6379
+
+services:
+  api:
+    image: ${REGISTRY_IMAGE_API}
+    <<: *app-env
+    restart: unless-stopped
+    ports: ['127.0.0.1:4100:4000']
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    deploy: { resources: { limits: { memory: 768m } } }
+    logging: { driver: json-file, options: { max-size: 10m, max-file: '3' } }
+
+  worker:
+    image: ${REGISTRY_IMAGE_WORKER}
+    <<: *app-env
+    restart: unless-stopped
+    shm_size: 1gb
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    deploy: { resources: { limits: { memory: ${WORKER_MEMORY:-3g} } } }
+    logging: { driver: json-file, options: { max-size: 10m, max-file: '3' } }
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: cardai
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: cardai
+    volumes: [cardai_pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U cardai']
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    volumes: [cardai_redisdata:/data]
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      retries: 10
+
+volumes:
+  cardai_pgdata:
+  cardai_redisdata:

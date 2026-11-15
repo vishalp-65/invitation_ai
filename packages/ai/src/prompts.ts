@@ -1,5 +1,8 @@
 import {
+  faithOf,
   getEventType,
+  markSuitsFaith,
+  type Faith,
   getLanguage,
   type GenerateWordingInput,
   type Theme,
@@ -8,12 +11,12 @@ import {
 import { z } from 'zod';
 
 /** Bump when a prompt changes so cached generations are invalidated. */
-export const PROMPT_VERSION = 'v1';
+export const PROMPT_VERSION = 'v2';
 
 // ---------------- Wording ----------------
 
 export const wordingOutputSchema = z.object({
-  invocation: z.string().describe('Short blessing line at the very top, or empty string if not customary'),
+  invocation: z.string().describe('Always an empty string: the app adds the blessing line for the family faith'),
   headline: z.string().describe('2–4 word title, e.g. "Shubh Vivah"'),
   hostLine: z.string().describe('Who is inviting, as one sentence'),
   primaryNames: z.array(z.string()).describe('Names of the couple / person, in the target script'),
@@ -47,6 +50,7 @@ export function wordingPrompt(input: GenerateWordingInput) {
 
   const user = [
     `Event: ${event.label}.`,
+    `Faith: ${faithOf(input.eventType, input.community)}. Use only this faith's customs and phrases; never mention another religion's deities or prayers.`,
     input.community ? `Community/custom: ${input.community}.` : '',
     `Tone: ${TONE_GUIDE[input.tone]}.`,
     input.facts.primaryNames.length ? `Main names: ${input.facts.primaryNames.join(' & ')}.` : '',
@@ -111,6 +115,7 @@ export function siteDraftPrompt(opts: {
   ].join(' ');
   const user = [
     `Occasion: ${event.label}.`,
+    `${faithLine(opts.eventType, opts.community)} Do not pick the ganesha or kalash character unless the faith is hindu (kalash also jain).`,
     opts.community ? `Community/custom: ${opts.community}.` : '',
     `Tone: ${opts.tone}. Visual vibe: ${opts.vibe}.`,
     opts.primaryNames.length ? `Main people: ${opts.primaryNames.join(' & ')}.` : '',
@@ -130,18 +135,20 @@ export function intentPrompt(today: string) {
       'Extract invitation details from a user message (may be Hindi, Hinglish or any Indian language, possibly a voice transcript).',
       `Today is ${today}. Resolve relative dates ("next Sunday") to YYYY-MM-DD. Use null when unknown. Never guess names.`,
       'eventType must be one of the allowed ids. language is the language the user wants the card in (default to the language they are writing in).',
+      'community only when the message says it or names a faith ceremony (nikah, anand karaj, church wedding, jain…); never infer religion from names; otherwise null.',
     ].join(' '),
   };
 }
 
 // ---------------- Images ----------------
 
-export function backgroundImagePrompt(opts: { eventLabel: string; theme: Theme; extra?: string }) {
+export function backgroundImagePrompt(opts: { eventLabel: string; theme: Theme; extra?: string; faith: Faith }) {
   const p = opts.theme.palette;
   return [
     `Vertical 9:16 decorative background artwork for an Indian ${opts.eventLabel} invitation card.`,
     `Colour palette: ${p.background}, ${p.backgroundAlt}, ${p.primary}, ${p.accent}.`,
-    `Motif inspiration: ${opts.theme.motif}, ${opts.theme.pattern} patterns, rich traditional Indian ornamentation, soft lighting.`,
+    `Motif inspiration: ${motifHint(opts.theme.motif, opts.faith)}${opts.theme.pattern} patterns, rich traditional Indian ornamentation, soft lighting.`,
+    FAITH_IMAGERY[opts.faith],
     'Leave the central 60% calm and uncluttered so text can be placed on top.',
     'Absolutely no text, letters, numbers, logos or watermarks.',
     opts.extra ? `Scene direction: ${opts.extra}.` : '',
@@ -163,11 +170,44 @@ export function portraitCutoutPrompt() {
   return 'Same people as the reference photo, unchanged, cleanly cut out on a transparent background, studio quality. No text.';
 }
 
-export function clipPrompt(opts: { eventLabel: string; theme: Theme; extra?: string }) {
+export function clipPrompt(opts: { eventLabel: string; theme: Theme; extra?: string; faith: Faith }) {
   return [
     `Slow cinematic establishing shot for an Indian ${opts.eventLabel} invitation:`,
-    opts.extra ?? 'a decorated venue with marigold garlands, diyas and fairy lights, gentle camera push-in, petals floating',
+    opts.extra ?? CLIP_SCENE[opts.faith],
+    FAITH_IMAGERY[opts.faith],
     `colour mood ${opts.theme.palette.background} and ${opts.theme.palette.primary}.`,
     'No people speaking, no text, no logos.',
   ].join(' ');
+}
+
+// ---------------- Faith ----------------
+
+function faithLine(eventType: string, community?: string | null): string {
+  return `Faith: ${faithOf(eventType, community)}. Use only this faith's customs, symbols and phrases; never another religion's deities, prayers or symbols.`;
+}
+
+/** Imagery the image/clip models must stay within (they otherwise default to Hindu temple art). */
+const FAITH_IMAGERY: Record<Faith, string> = {
+  hindu: 'Hindu wedding/puja aesthetics are welcome.',
+  muslim: 'Islamic aesthetics only: arches, jaali, lanterns, geometric patterns, crescent. No Hindu deities, Om, swastika, kalash or temple imagery; no human or animal figures.',
+  christian: 'Christian aesthetics: church, white florals, doves, candles. No Hindu or Islamic religious symbols.',
+  sikh: 'Sikh aesthetics: phulkari, gurdwara-inspired domes, Khanda allowed. No Hindu deities, Om or idols.',
+  jain: 'Jain aesthetics: lotus, kalash, simple temple shikhara. No Hindu deities such as Ganesha.',
+  buddhist: 'Buddhist aesthetics: lotus, Dharma wheel, stupa silhouettes. No Hindu deities.',
+  secular: 'No religious symbols or deities of any faith.',
+};
+
+const CLIP_SCENE: Record<Faith, string> = {
+  hindu: 'a decorated venue with marigold garlands, diyas and fairy lights, gentle camera push-in, petals floating',
+  muslim: 'a decorated venue with arches, hanging lanterns, white florals and fairy lights, gentle camera push-in',
+  christian: 'a church aisle with white flowers, candles and soft daylight, gentle camera push-in',
+  sikh: 'a decorated venue with phulkari drapes, marigolds and fairy lights, gentle camera push-in',
+  jain: 'a serene venue with lotus decor, white and gold drapes and soft lamps, gentle camera push-in',
+  buddhist: 'a serene venue with lotus decor, soft lanterns and drapes, gentle camera push-in',
+  secular: 'an elegant decorated venue with flowers and fairy lights, gentle camera push-in',
+};
+
+/** The template's motif, unless it is another faith's sacred symbol. */
+function motifHint(motif: string, faith: Faith): string {
+  return motif !== 'none' && markSuitsFaith(motif, faith) ? `${motif}, ` : '';
 }

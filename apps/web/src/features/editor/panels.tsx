@@ -21,6 +21,7 @@ import { clsx } from 'clsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, BookmarkPlus, Copy, Eye, EyeOff, Group, ImagePlus, Lock, Plus, Trash2, Unlock } from 'lucide-react';
 import Image from 'next/image';
+import { coverOf, TemplateCover } from '@/components/invite/template-cover';
 import { useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { DesignView } from '@/components/design/design-view';
@@ -34,6 +35,7 @@ import { BackgroundPanel } from './background-panel';
 import { Section, Seg, useOnVisible } from './controls';
 import { currentPage, newId, useEditor } from './store';
 import { splitIso, type useEventWriter } from './use-event-data';
+import { controlClass } from '@/components/ui/field';
 
 export type ToolId = 'templates' | 'text' | 'elements' | 'photos' | 'background' | 'details' | 'pages' | 'layers';
 
@@ -62,7 +64,7 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
 
   function apply(t: TemplateDefinition) {
     if (!data) return;
-    const doc = buildDesign({ template: t, data, language: event.language, eventType: event.type });
+    const doc = buildDesign({ template: t, data, language: event.language, eventType: event.type, community: event.community });
     useEditor.getState().replace(doc);
     toast.success(`Switched to ${t.family?.name ?? t.name}`, { action: { label: 'Undo', onClick: () => useEditor.getState().undo() } });
     close();
@@ -140,12 +142,12 @@ function MyTemplates({ event, data, close }: Pick<PanelProps, 'event' | 'data' |
               toast.success(`Using “${t.name}”`, { action: { label: 'Undo', onClick: () => useEditor.getState().undo() } });
               close();
             }}
-            className="block w-full overflow-hidden rounded-xl bg-mist shadow-sm"
+            className="block w-full overflow-hidden rounded-lg bg-mist"
           >
             <DesignView page={t.design.pages[coverPageIndex(t.design)]!} data={data} language={event.language} lazy />
           </button>
           <p className="mt-1.5 truncate pr-7 text-sm font-semibold">{t.name}</p>
-          <button type="button" onClick={() => void remove(t)} {...tip('Delete template')} className="absolute bottom-0 right-0 grid size-7 place-items-center rounded-full text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">
+          <button type="button" onClick={() => void remove(t)} {...tip('Delete template')} className="absolute bottom-0 right-0 grid size-7 touch:size-9 place-items-center rounded-lg text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">
             <Trash2 className="size-3.5" />
           </button>
         </li>
@@ -159,12 +161,12 @@ function TemplateTile({ name, variants, current, onPick }: { name: string; varia
   const t = variants[i] ?? variants[0]!;
   return (
     <li>
-      <button type="button" onClick={() => onPick(t)} className={clsx('block w-full overflow-hidden rounded-xl bg-mist shadow-sm ring-offset-2', t.id === current && 'ring-2 ring-ink')}>
-        <Image src={`/showcase/${t.id}.jpg`} alt={t.name} width={216} height={384} sizes="160px" className="aspect-[9/16] w-full object-cover" />
+      <button type="button" onClick={() => onPick(t)} className={clsx('block w-full overflow-hidden rounded-lg bg-mist ring-offset-2', t.id === current && 'ring-2 ring-ink')}>
+        {t.doc ? <TemplateCover id={t.id} name={t.name} coverPage={coverOf(t.doc)} /> : <Image src={`/showcase/${t.id}.jpg`} alt={t.name} width={216} height={384} sizes="160px" className="aspect-[9/16] w-full object-cover" />}
       </button>
       <p className="mt-1.5 truncate text-sm font-semibold">{name}</p>
       {variants.length > 1 && (
-        <div className="mt-1 flex gap-1.5">
+        <div className="mt-1 flex flex-wrap gap-1.5 touch:gap-2">
           {variants.map((v, k) => (
             <button
               key={v.id}
@@ -172,7 +174,7 @@ function TemplateTile({ name, variants, current, onPick }: { name: string; varia
               aria-label={v.family?.variant ?? v.name}
               aria-pressed={k === i}
               onClick={() => setI(k)}
-              className="size-5 rounded-full border-2 border-white shadow-[0_0_0_1px_var(--color-line)] aria-pressed:shadow-[0_0_0_2px_var(--color-ink)]"
+              className="size-5 rounded-full border-2 border-white touch:size-7 shadow-[0_0_0_1px_var(--color-line)] aria-pressed:shadow-[0_0_0_2px_var(--color-ink)]"
               style={{ background: `linear-gradient(135deg, ${v.theme.palette.background} 55%, ${v.theme.palette.primary} 55%)` }}
             />
           ))}
@@ -226,7 +228,7 @@ function TextPanel({ event, data, close }: PanelProps) {
   return (
     <div className="flex flex-col gap-2 p-4">
       {presets.map((p) => (
-        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-xl border border-hairline bg-surface px-4 text-left hover:border-ink/40" style={p.style}>
+        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-lg border border-hairline bg-surface px-4 text-left hover:border-ink/40" style={p.style}>
           {p.label}
         </button>
       ))}
@@ -237,7 +239,7 @@ function TextPanel({ event, data, close }: PanelProps) {
             <button
               key={b.bind}
               type="button"
-              className="rounded-full border border-hairline bg-surface px-3 py-1.5 text-sm hover:border-ink/40"
+              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm hover:border-ink/40"
               onClick={() => add(displayText({ text: '', bind: b.bind }, data), latin ? 'Cormorant Garamond' : lang.fonts.body, 40, { bind: b.bind })}
             >
               {b.label}
@@ -308,7 +310,7 @@ function ElementsPanel({ close }: PanelProps) {
             { label: 'Ring', node: <div className="size-12 rounded-full ring-4 ring-[#C9973F]" />, run: () => addShape('ellipse', { fill: null, stroke: '#C9973F', strokeW: 8 }) },
             { label: 'Frame', node: <div className="h-12 w-10 ring-2 ring-[#C9973F]" />, run: () => addShape('rect', { fill: null, stroke: '#C9973F', strokeW: 5, w: 700, h: 1100, x: 190, y: 410 }) },
           ].map((s) => (
-            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-xl border border-hairline bg-surface text-xs font-semibold hover:border-ink/40">
+            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-xs font-semibold hover:border-ink/40">
               {s.node}
               {s.label}
             </button>
@@ -318,7 +320,7 @@ function ElementsPanel({ close }: PanelProps) {
         <ul className="grid grid-cols-3 gap-2.5">
           {STICKERS.filter((s) => s.category === cat).map((s) => (
             <li key={s.id}>
-              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-xl border border-hairline bg-surface p-1.5 hover:border-ink/40">
+              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-lg border border-hairline bg-surface p-1.5 hover:border-ink/40">
                 <StickerPreview sticker={s} size={84} />
                 <span className="w-full truncate text-center text-[0.7rem] font-semibold text-ink-soft">{s.label}</span>
               </button>
@@ -350,7 +352,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
           const url = await pickImage();
           if (url) addPhoto(url);
         }}
-        className="flex h-12 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary"
+        className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary"
       >
         <ImagePlus className="size-5" /> Upload a photo
       </button>
@@ -358,7 +360,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
         <ul className="grid grid-cols-3 gap-2">
           {photos.map((m) => (
             <li key={m.id}>
-              <button type="button" onClick={() => addPhoto(m.url)} className="block aspect-square w-full overflow-hidden rounded-xl bg-mist">
+              <button type="button" onClick={() => addPhoto(m.url)} className="block aspect-square w-full overflow-hidden rounded-lg bg-mist">
                 {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our storage */}
                 <img src={m.url} alt="" loading="lazy" className="size-full object-cover" />
               </button>
@@ -382,7 +384,7 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
     </label>
   );
 }
-const inputCls = 'h-12 rounded-xl border border-hairline bg-surface px-3 text-base focus:border-ink focus:outline-none';
+const inputCls = `${controlClass} h-10 px-3 text-[0.95rem]`;
 
 function DetailsPanel({ event, data, writer }: PanelProps) {
   const people = getEventType(event.type).primaryPeople;
@@ -443,7 +445,7 @@ function PagesPanel({ data, event }: PanelProps) {
   if (!doc) return null;
   return (
     <div className="flex flex-col gap-3 p-4">
-      <ul className="grid grid-cols-3 gap-3">
+      <ul className="grid grid-cols-3 gap-3 max-sm:grid-cols-2">
         {doc.pages.map((p, i) => (
           <li key={p.id} className="flex flex-col gap-1.5">
             <button type="button" onClick={() => s().setPage(i)} className={clsx('overflow-hidden rounded-lg ring-offset-2', i === pageIdx ? 'ring-2 ring-ink' : 'ring-1 ring-hairline')} aria-label={`Page ${i + 1}`}>
@@ -452,13 +454,13 @@ function PagesPanel({ data, event }: PanelProps) {
             <div className="flex items-center justify-between text-ink-soft">
               <span className="text-xs font-semibold">{i + 1}</span>
               <span className="flex">
-                <button type="button" aria-label="Move earlier" className="grid size-7 place-items-center rounded hover:bg-mist disabled:opacity-30" disabled={i === 0} onClick={() => s().movePage(i, -1)}>
+                <button type="button" aria-label="Move earlier" className="grid size-7 place-items-center rounded-md hover:bg-mist touch:size-10 disabled:opacity-30" disabled={i === 0} onClick={() => s().movePage(i, -1)}>
                   <ArrowUp className="size-3.5" />
                 </button>
-                <button type="button" aria-label="Move later" className="grid size-7 place-items-center rounded hover:bg-mist disabled:opacity-30" disabled={i === doc.pages.length - 1} onClick={() => s().movePage(i, 1)}>
+                <button type="button" aria-label="Move later" className="grid size-7 place-items-center rounded-md hover:bg-mist touch:size-10 disabled:opacity-30" disabled={i === doc.pages.length - 1} onClick={() => s().movePage(i, 1)}>
                   <ArrowDown className="size-3.5" />
                 </button>
-                <button type="button" aria-label="Delete page" className="grid size-7 place-items-center rounded text-sindoor hover:bg-sindoor/10 disabled:opacity-30" disabled={doc.pages.length <= 1} onClick={() => s().deletePage(i)}>
+                <button type="button" aria-label="Delete page" className="grid size-7 place-items-center rounded-md text-sindoor touch:size-10 hover:bg-sindoor/10 disabled:opacity-30" disabled={doc.pages.length <= 1} onClick={() => s().deletePage(i)}>
                   <Trash2 className="size-3.5" />
                 </button>
               </span>
@@ -467,10 +469,10 @@ function PagesPanel({ data, event }: PanelProps) {
         ))}
       </ul>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-surface font-semibold disabled:opacity-40">
           <Plus className="size-4" /> Add page
         </button>
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-full border border-hairline bg-surface font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-surface font-semibold disabled:opacity-40">
           <Copy className="size-4" /> Duplicate
         </button>
       </div>
@@ -489,14 +491,14 @@ function LayersPanel({ data }: PanelProps) {
       <p className="px-2 pb-2 text-xs text-ink-soft">Tick layers to select several, then group, align or move them together.</p>
       <ul className="flex flex-col">
       {[...page.elements].reverse().map((e) => (
-        <li key={e.id} className={clsx('flex items-center gap-1 rounded-xl pl-1 pr-1', selection.includes(e.id) && 'bg-mist')}>
+        <li key={e.id} className={clsx('flex items-center gap-1 rounded-lg pl-1 pr-1', selection.includes(e.id) && 'bg-mist')}>
           <input
             type="checkbox"
             checked={selection.includes(e.id)}
             disabled={e.locked}
             onChange={() => s().select(e.id, { add: true, solo: true })}
             aria-label={`Select ${label(e)}`}
-            className="size-4 shrink-0 accent-[var(--color-primary)]"
+            className="size-4 shrink-0 accent-[var(--color-primary)] touch:mx-1.5 touch:size-5"
           />
           <button type="button" onClick={() => s().select(e.id)} className={clsx('h-11 min-w-0 flex-1 truncate px-2 text-left text-sm', e.hidden && 'opacity-40')}>
             {e.group && <Group className="mr-1.5 inline size-3.5 align-[-2px] text-ink-soft" aria-label="Grouped" />}

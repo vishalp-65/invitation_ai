@@ -14,6 +14,9 @@ COPY packages ./packages
 COPY apps/worker ./apps/worker
 RUN npm ci --workspace @cardai/worker --include-workspace-root
 RUN npx turbo run build --filter=@cardai/worker...
+# Bundle the Remotion templates at build time so the worker never runs webpack at runtime
+# (faster boot, several hundred MB lower peak memory).
+RUN npm run bundle -w @cardai/worker
 # Download Chrome Headless Shell at build time, not on first job.
 RUN node -e "require('@remotion/renderer').ensureBrowser()"
 

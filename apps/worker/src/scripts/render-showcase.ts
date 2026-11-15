@@ -5,7 +5,7 @@
  *
  *   npm run showcase -w @cardai/worker
  */
-import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -39,8 +39,10 @@ for (const t of list) {
   const content = allPages
     ? { ...sample.content, welcomeLines: ['Aarav & Diya', 'Kabir, Meera'], rsvpContacts: [{ name: 'Ramesh Sharma', phone: '98290 12345' }], note: 'Your blessings are our gift', hashtag: '#RahulWedsPriya' }
     : sample.content;
-  const data: DesignData = { content, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
-  const design = buildDesign({ template: t, data, language, eventType: sample.eventType });
+  const faith = faithOf(sample.eventType, t.communities[0]);
+  const invocation = resolveInvocation(content.invocation, { eventType: sample.eventType, faith, language, community: t.communities[0] });
+  const data: DesignData = { content: { ...content, invocation }, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
+  const design = buildDesign({ template: t, data, language, eventType: sample.eventType, community: t.communities[0] });
   const dir = outArg ? `${outArg.replace(/[\/]$/, '')}/` : outDir;
   const pages = allPages ? design.pages.map((p, n) => ({ n, file: `${dir}${t.id}-${n + 1}-${p.id}.jpg` })) : [{ n: coverPageIndex(design), file: `${dir}${t.id}.jpg` }];
   for (const pg of pages) {

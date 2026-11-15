@@ -12,7 +12,7 @@ export function DesignPlayer({ design, data, language, musicUrl = null }: { desi
   const props: DesignRenderProps = { design, data, language, page: 0, watermark: false, watermarkText: BRAND.watermarkText, musicUrl, aiClipUrl: null };
   const { durationInFrames } = planDesignVideo(design, VIDEO.fps, false);
   return (
-    <div className="aspect-[9/16] w-full overflow-hidden rounded-[18px] bg-mist">
+    <div className="aspect-[9/16] w-full overflow-hidden rounded-xl bg-mist">
       <Player
         component={Video}
         inputProps={props}

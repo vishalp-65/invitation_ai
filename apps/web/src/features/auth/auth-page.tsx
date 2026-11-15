@@ -33,7 +33,7 @@ function BrandPanel() {
     <section className="sticky top-0 hidden h-dvh flex-col overflow-hidden bg-primary text-on-primary lg:flex">
       <div className="relative z-10 flex items-center justify-between px-12 py-8 xl:px-14">
         <Logo tone="light" />
-        <span className="rounded-full border border-white/15 px-3 py-1 text-xs font-medium text-white/70">140+ designs</span>
+        <span className="rounded-md border border-white/15 px-3 py-1 text-xs font-medium text-white/70">140+ designs</span>
       </div>
 
       <div className="relative min-h-0 flex-1 overflow-hidden" aria-hidden>
@@ -111,7 +111,7 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
             <span className="hidden sm:inline">{signup ? 'Already have an account?' : `New to ${BRAND.name}?`} </span>
             <Link
               href={switchHref}
-              className="ml-1 inline-flex h-9 items-center rounded-full border border-hairline px-4 font-semibold text-ink transition-colors hover:border-ink/30 hover:bg-ivory"
+              className="ml-1 inline-flex h-9 items-center rounded-lg border border-hairline px-4 font-semibold text-ink transition-colors hover:border-ink/30 hover:bg-ivory"
             >
               {signup ? 'Log in' : 'Sign up'}
             </Link>

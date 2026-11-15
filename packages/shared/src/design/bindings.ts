@@ -1,3 +1,4 @@
+import { faithOf, resolveInvocation } from '../constants/faith.js';
 import { getLanguage, type LanguageCode } from '../constants/languages.js';
 import type { EventContent, EventFunctionInput } from '../schemas/events.js';
 import { formatFunctionDate, mainFunctionIndex, type InviteFunction } from '../invite/build-invite-props.js';
@@ -293,9 +294,14 @@ export function designDataFrom(input: {
   photos?: string[];
   /** ISO RSVP deadline (event settings). */
   rsvpDeadline?: string | null;
+  /** The family's tradition; with the event type it decides the blessing line. */
+  community?: string | null;
 }): DesignData {
+  const faith = faithOf(input.eventType, input.community);
   return {
-    content: input.content,
+    // A stock blessing line of another faith (left from an earlier choice) follows the event's faith;
+    // anything the family typed themselves is kept.
+    content: { ...input.content, invocation: resolveInvocation(input.content.invocation, { eventType: input.eventType, faith, language: input.language, community: input.community }) },
     functions: input.functions.map((f) => ({
       name: f.name,
       ...formatFunctionDate(f.startsAt, input.language, input.timezone),

@@ -26,7 +26,7 @@ export function OutputsBento({ eyebrow, title, card, video, site }: { eyebrow: s
         <Reveal className="panel lift flex flex-col overflow-hidden rounded-[var(--radius-card)] md:col-span-3 md:row-span-2">
           <Copy icon={Globe2} {...site} />
           <div className="relative mt-auto flex justify-center bg-sand px-6 pt-8">
-            <div className="relative aspect-[9/16] w-[62%] max-w-[250px] overflow-hidden rounded-t-[28px] border-[6px] border-b-0 border-night">
+            <div className="relative aspect-[9/16] w-[62%] max-w-[250px] overflow-hidden rounded-t-xl border-[6px] border-b-0 border-night">
               <SiteMock />
             </div>
           </div>

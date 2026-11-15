@@ -1,0 +1,115 @@
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/worker/**'
+      - 'packages/**'
+      - 'infra/docker/**'
+      - 'infra/deploy/**'
+      - 'package-lock.json'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-deploy
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/cardai
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx turbo run typecheck lint test --filter=@cardai/api... --filter=@cardai/worker...
+
+  build:
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        service: [api, worker]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.service }}.Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Copy compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: infra/deploy/docker-compose.prod.yml
+          target: /opt/cardai
+          strip_components: 2
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          TAG: ${{ github.sha }}
+          PREFIX: ${{ env.IMAGE_PREFIX }}
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          envs: GHCR_USER,GHCR_TOKEN,TAG,PREFIX
+          script_stop: true
+          script: |
+            cd /opt/cardai
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            export REGISTRY_IMAGE_API="$PREFIX-api:$TAG" REGISTRY_IMAGE_WORKER="$PREFIX-worker:$TAG"
+            set -a; . ./.env; set +a
+            dc="docker compose -f docker-compose.prod.yml --env-file .env"
+            $dc pull api worker
+            $dc up -d postgres redis
+            # run DB migrations with the new image before swapping containers
+            $dc run --rm --no-deps api node packages/db/dist/migrate.js
+            $dc up -d --remove-orphans api worker
+            echo "REGISTRY_IMAGE_API=$REGISTRY_IMAGE_API" > .deploy.env
+            echo "REGISTRY_IMAGE_WORKER=$REGISTRY_IMAGE_WORKER" >> .deploy.env
+            # health gate
+            for i in $(seq 1 30); do
+              curl -fs http://127.0.0.1:4100/api/health >/dev/null && ok=1 && break
+              sleep 2
+            done
+            [ "$ok" = 1 ] || { $dc logs --tail=80 api; exit 1; }
+            docker image prune -f --filter "until=72h"

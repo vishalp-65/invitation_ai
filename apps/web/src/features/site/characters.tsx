@@ -1,6 +1,6 @@
 'use client';
 
-import { autoCharacter, type SiteDoc } from '@cardai/shared';
+import { siteCharacterFor, type SiteDoc } from '@cardai/shared';
 import { BabyMoon, Cake, Couple, DiyaArt, Doves, Elephant, Ganesha, House, Kalash, Peacock } from '@cardai/templates/art';
 
 /**
@@ -10,17 +10,20 @@ import { BabyMoon, Cake, Couple, DiyaArt, Doves, Elephant, Ganesha, House, Kalas
 export function Character({
   doc,
   eventType,
+  community,
   primary,
   accent,
   size,
 }: {
   doc: SiteDoc;
   eventType: string;
+  /** The family's tradition: "auto" never shows another faith's sacred character. */
+  community?: string | null;
   primary: string;
   accent: string;
   size: number;
 }) {
-  const kind = doc.character.kind === 'auto' ? autoCharacter(eventType) : doc.character.kind;
+  const kind = siteCharacterFor(doc.character.kind, eventType, community);
   if (kind === 'none') return null;
   const box = { w: size, h: size };
   let art: React.ReactNode;

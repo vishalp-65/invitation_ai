@@ -133,7 +133,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
         <h3 className="text-xl">Functions &amp; ceremonies</h3>
         <ol className="flex flex-col gap-3">
           {fns.map((f, i) => (
-            <li key={f.key} className="rounded-2xl border border-hairline bg-surface p-4">
+            <li key={f.key} className="rounded-xl border border-hairline bg-surface p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-semibold">
                   <span aria-hidden>{ICON_EMOJI[functionIcon(f.name)] ?? '🌸'}</span>

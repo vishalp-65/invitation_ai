@@ -48,6 +48,7 @@ import { qk, useEvent } from '@/lib/hooks';
 import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
+import { track } from '@/lib/track';
 
 type Tab = 'ai' | 'sections' | 'look' | 'share' | 'live';
 const TABS: Array<{ id: Tab; label: string; icon: typeof Sparkles }> = [
@@ -81,7 +82,7 @@ function PreviewFrame({ data, doc, replay, scrollTo, device }: { data: PublicSit
 
   return (
     <div className={`mx-auto h-full ${device === 'phone' ? 'w-[390px] max-w-full' : 'w-full'} transition-[width] duration-300`}>
-      <div className={`h-full overflow-hidden bg-black ${device === 'phone' ? 'rounded-[44px] border-[10px] border-[#14141c] shadow-lift' : 'rounded-2xl border border-hairline'}`}>
+      <div className={`h-full overflow-hidden bg-black ${device === 'phone' ? 'rounded-[44px] border-[10px] border-[#14141c]' : 'rounded-xl border border-hairline'}`}>
         <iframe ref={frame} src="/preview/site" title="Website preview" className="size-full border-0 bg-white" />
       </div>
     </div>
@@ -166,6 +167,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
   const publish = useMutation({
     mutationFn: () => api(`/events/${eventId}/publish`, { method: 'POST' }),
     onSuccess: () => {
+      track('site_published');
       toast.success('Your website is live');
       void qc.invalidateQueries({ queryKey: qk.event(eventId) });
     },
@@ -242,7 +244,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
         return (
           <div
             key={s.id}
-            className={`flex items-center gap-1 rounded-2xl border p-1.5 pl-3 transition-colors ${selected === s.id ? 'border-primary bg-surface' : 'border-hairline bg-surface-2'} ${s.hidden ? 'opacity-60' : ''}`}
+            className={`flex items-center gap-1 rounded-xl border p-1.5 pl-3 transition-colors ${selected === s.id ? 'border-primary bg-surface' : 'border-hairline bg-surface-2'} ${s.hidden ? 'opacity-60' : ''}`}
           >
             <button type="button" className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left" onClick={() => select(s.id)}>
               <span className="min-w-0 flex-1">
@@ -333,7 +335,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
     <div className="flex h-svh flex-col bg-workspace text-ink">
       {/* Top bar */}
       <header className="flex h-16 shrink-0 items-center gap-2 border-b border-hairline bg-surface px-3 sm:px-5">
-        <Link href={`/dashboard/events/${eventId}`} className="grid size-10 place-items-center rounded-full hover:bg-mist" aria-label="Back to invitation">
+        <Link href={`/dashboard/events/${eventId}`} className="grid size-10 place-items-center rounded-lg hover:bg-mist" aria-label="Back to invitation">
           <ChevronLeft className="size-5" />
         </Link>
         <div className="min-w-0 flex-1">
@@ -343,7 +345,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             {saveLabel} · {TIER_NAME[tier]}
           </p>
         </div>
-        <div className="hidden items-center gap-1 rounded-full border border-hairline p-1 lg:flex">
+        <div className="hidden items-center gap-1 rounded-lg border border-hairline p-1 lg:flex">
           <Button size="sm" variant={device === 'phone' ? 'primary' : 'quiet'} onClick={() => setDevice('phone')} aria-label="Phone preview">
             <Smartphone className="size-4" />
           </Button>
@@ -419,7 +421,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
 
       {/* Phones: edit / preview switch */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center p-3 lg:hidden">
-        <div className="flex rounded-full border border-hairline bg-surface p-1 shadow-lift">
+        <div className="flex rounded-lg border border-hairline bg-surface p-1">
           <Button size="sm" variant={mobileView === 'edit' ? 'primary' : 'quiet'} onClick={() => setMobileView('edit')}>
             Edit
           </Button>
@@ -436,11 +438,11 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             const used = doc.sections.some((s) => s.type === t);
             return (
               <li key={t}>
-                <button type="button" onClick={() => add(t)} className="flex h-full w-full flex-col rounded-2xl border border-hairline bg-surface-2 p-3 text-left hover:border-ink/30">
+                <button type="button" onClick={() => add(t)} className="flex h-full w-full flex-col rounded-xl border border-hairline bg-surface-2 p-3 text-left hover:border-ink/30">
                   <span className="flex items-center gap-1.5 font-semibold">
                     {SECTION_INFO[t].label}
                     {!tierAtLeast(tier, needs) && (
-                      <span className="rounded-full bg-marigold/20 px-1.5 text-[10px] font-bold uppercase tracking-wide">{needs === 'royale' ? 'Royale' : 'Premium'}</span>
+                      <span className="rounded-lg bg-marigold/20 px-1.5 text-[10px] font-bold uppercase tracking-wide">{needs === 'royale' ? 'Royale' : 'Premium'}</span>
                     )}
                     {used && <span className="text-xs font-normal text-ink-soft">· added</span>}
                   </span>

@@ -38,7 +38,7 @@ export function TemplateGallery() {
                 aria-pressed={filter === f}
                 onClick={() => setFilter(f)}
                 className={clsx(
-                  'h-10 shrink-0 rounded-full px-4 text-[0.95rem] font-medium transition-colors',
+                  'h-10 shrink-0 rounded-lg px-4 text-[0.95rem] font-medium transition-colors',
                   filter === f ? 'bg-primary text-on-primary' : 'bg-mist hover:bg-line',
                 )}
               >

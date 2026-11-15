@@ -70,7 +70,8 @@ export class EventsService {
           title: input.title,
           content: input.content,
           settings,
-          design: input.design ? { ...input.design, templateId: template.id } : null,
+          // Admin-published templates are finished editor layouts: the invitation starts from that design.
+          design: input.design ? { ...input.design, templateId: template.id } : template.doc ? structuredClone(template.doc) : null,
         })
         .returning({ id: events.id });
       await tx.insert(eventFunctions).values(input.functions.map((f, i) => toFunctionRow(event!.id, f, i)));
@@ -107,11 +108,13 @@ export class EventsService {
   async update(user: AuthUser, eventId: string, input: UpdateEventInput): Promise<EventDto> {
     const event = await this.getOwned(user, eventId);
 
+    let switchedDesign: DesignDoc | undefined;
     if (input.templateId && input.templateId !== event.templateId) {
       const template = await this.templates.resolve(input.templateId);
       if (!templateSupportsEvent(template, input.type ?? event.type)) {
         throw new BadRequestException('This template does not support the selected event type');
       }
+      if (template.doc) switchedDesign = structuredClone(template.doc);
     }
     if (input.slug && input.slug !== event.slug) {
       await this.entitlements.require(eventId, 'website_premium', 'A custom link is part of the Website plan');
@@ -132,6 +135,7 @@ export class EventsService {
           slug: input.slug,
           content: input.content,
           settings: input.settings ? mergeSettings(event.settings, input.settings) : undefined,
+          ...(switchedDesign ? { design: switchedDesign } : {}),
           updatedAt: new Date(),
         })
         .where(eq(events.id, eventId));

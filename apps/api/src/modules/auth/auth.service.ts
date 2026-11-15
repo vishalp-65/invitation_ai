@@ -1,6 +1,7 @@
 import { and, eq, isNotNull, sql, users, type Database } from '@cardai/db';
 import type { MeResponse, UpdateProfileInput, UserRole } from '@cardai/shared';
 import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ENV, type Env } from '../../config/env.js';
 import { DB } from '../../infra/infra.module.js';
 import { GoogleService, type GoogleProfile } from './google.service.js';
 import { OtpService } from './otp.service.js';
@@ -20,6 +21,7 @@ export class AuthService {
     private readonly otp: OtpService,
     private readonly google: GoogleService,
     private readonly tokens: TokenService,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   requestLoginOtp(email: string) {
@@ -102,14 +104,34 @@ export class AuthService {
   }
 
   private async finish(user: MeResponse, isNew: boolean, userAgent?: string): Promise<SignInResult> {
+    user = await this.checkAccess(user.id);
     const tokens = await this.tokens.issue({ id: user.id, role: user.role }, userAgent);
     return { tokens, user, isNew };
   }
 
   async refresh(refreshToken: string, userAgent?: string): Promise<IssuedTokens> {
     const userId = await this.tokens.consumeRefresh(refreshToken);
-    const me = await this.me(userId);
+    const me = await this.checkAccess(userId);
     return this.tokens.issue({ id: me.id, role: me.role }, userAgent);
+  }
+
+  /**
+   * Runs on every sign-in and token refresh: blocks disabled accounts and grants the admin role to
+   * addresses listed in ADMIN_EMAILS (same login flow, no separate admin password).
+   */
+  private async checkAccess(userId: string): Promise<MeResponse> {
+    const [row] = await this.db.select().from(users).where(eq(users.id, userId));
+    if (!row) throw new NotFoundException('User not found');
+    if (row.disabledAt) {
+      await this.tokens.revokeAll(row.id);
+      throw new ForbiddenException('This account has been disabled. Please contact support.');
+    }
+    const email = row.emailVerifiedAt ? row.email?.toLowerCase() : undefined;
+    if (email && this.env.ADMIN_EMAILS.includes(email) && row.role !== 'admin') {
+      const [promoted] = await this.db.update(users).set({ role: 'admin' }).where(eq(users.id, row.id)).returning();
+      return toMe(promoted!);
+    }
+    return toMe(row);
   }
 
   async me(userId: string): Promise<MeResponse> {

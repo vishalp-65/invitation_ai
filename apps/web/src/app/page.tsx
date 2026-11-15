@@ -1,4 +1,4 @@
-import { EVENT_TYPES, formatINR, LANGUAGES, PRODUCTS } from '@cardai/shared';
+import { EVENT_TYPES, formatINR, LANGUAGES, type Product, type ProductCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowRight, Check, MessageCircle, Minus, Plus } from 'lucide-react';
 import Image from 'next/image';
@@ -11,6 +11,7 @@ import { HeroShowcase } from '@/components/marketing/hero-showcase';
 import { MobileDock } from '@/components/marketing/mobile-dock';
 import { OutputsBento } from '@/components/marketing/outputs-bento';
 import { ButtonLink } from '@/components/ui/button';
+import { loadOffers } from '@/lib/offers-server';
 
 const WHATSAPP_BOT = 'https://wa.me/910000000000?text=Hi';
 
@@ -22,6 +23,8 @@ const MARQUEE = [
 export default async function HomePage() {
   const t = await getTranslations();
   const hi = (await getLocale()) === 'hi';
+  const { products: PRODUCTS } = await loadOffers();
+  const COMPARE = compareRows(PRODUCTS);
 
   return (
     <div className="bg-ivory">
@@ -30,7 +33,7 @@ export default async function HomePage() {
       {/* ================= HERO ================= */}
       <section className="mx-auto grid max-w-6xl items-center gap-12 px-5 pb-16 pt-10 sm:pt-16 lg:grid-cols-[1.05fr_1fr] lg:gap-10 lg:pb-24">
         <div className="max-w-xl">
-          <p className="inline-flex animate-fade-up items-center gap-2 rounded-full border border-hairline bg-surface px-3 py-1 text-sm font-medium text-ink-soft">
+          <p className="inline-flex animate-fade-up items-center gap-2 rounded-lg border border-hairline bg-surface px-3 py-1 text-sm font-medium text-ink-soft">
             <span className="size-1.5 rounded-full bg-sindoor" aria-hidden />
             {t('hero.kicker')}
           </p>
@@ -154,7 +157,7 @@ export default async function HomePage() {
             <span className="absolute left-5 right-5 top-5 hidden h-px bg-hairline md:block" aria-hidden />
             {(['s1', 's2', 's3'] as const).map((k, i) => (
               <Reveal as="li" key={k} delay={i} className="relative">
-                <span className="relative grid size-10 place-items-center rounded-full border border-hairline bg-surface font-semibold text-ink shadow-sm">
+                <span className="relative grid size-10 place-items-center rounded-full border border-hairline bg-surface font-semibold text-ink">
                   {i + 1}
                 </span>
                 <h3 className="mt-6 text-2xl">{t(`how.${k}`)}</h3>
@@ -206,7 +209,7 @@ export default async function HomePage() {
               <li key={e.id}>
                 <Link
                   href={`/create?type=${e.id}`}
-                  className="panel lift group flex h-full min-h-16 items-center gap-3 rounded-2xl px-4 py-3 font-medium"
+                  className="panel lift group flex h-full min-h-16 items-center gap-3 rounded-xl px-4 py-3 font-medium"
                 >
                   <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-sand text-lg" aria-hidden>
                     {e.emoji}
@@ -282,11 +285,11 @@ export default async function HomePage() {
                 <Reveal
                   key={code}
                   delay={i}
-                  className={`lift flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-primary text-on-primary shadow-lift' : 'panel'}`}
+                  className={`lift flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-primary text-on-primary' : 'panel'}`}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <h3 className="text-2xl">{p.name}</h3>
-                    {p.highlight && <span className="shrink-0 whitespace-nowrap rounded-full bg-marigold px-2.5 py-0.5 text-xs font-semibold text-night">Most chosen</span>}
+                    {p.highlight && <span className="shrink-0 whitespace-nowrap rounded-md bg-marigold px-2.5 py-0.5 text-xs font-semibold text-night">Most chosen</span>}
                   </div>
                   <p className="mt-4 flex items-baseline gap-2">
                     <span className="font-display text-4xl">{formatINR(p.pricePaise)}</span>
@@ -326,7 +329,7 @@ export default async function HomePage() {
 
         {/* ================= CTA ================= */}
         <section className="px-3 pb-16 sm:px-5">
-          <Reveal className="mx-auto flex max-w-6xl flex-col gap-8 rounded-[28px] bg-primary px-6 py-12 text-on-primary sm:px-12 sm:py-16 md:flex-row md:items-center">
+          <Reveal className="mx-auto flex max-w-6xl flex-col gap-8 rounded-xl bg-primary px-6 py-12 text-on-primary sm:px-12 sm:py-16 md:flex-row md:items-center">
             <div className="flex-1">
               <h2 className="text-3xl sm:text-4xl">{hi ? 'वेबसाइट नहीं चाहिए? WhatsApp पर "Hi" भेजिए।' : 'Prefer WhatsApp? Just send “Hi”.'}</h2>
               <p className="mt-3 max-w-xl text-white/70">
@@ -369,7 +372,7 @@ function Cell({ v }: { v: CellValue }) {
   return <>{v}</>;
 }
 
-const COMPARE: Array<[string, CellValue, CellValue, CellValue]> = [
+const compareRows = (PRODUCTS: Record<ProductCode, Product>): Array<[string, CellValue, CellValue, CellValue]> => [
   ['Time to first invite', '2 minutes', '1–5 days', '30–60 minutes'],
   ['Starting price', formatINR(PRODUCTS.card.pricePaise), '₹500 – ₹7,000', 'Subscription'],
   ['Card + video + website together', true, false, false],

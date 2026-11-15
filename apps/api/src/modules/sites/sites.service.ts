@@ -168,6 +168,7 @@ export class SitesService {
         id: event.id,
         slug: event.slug,
         type: event.type,
+        community: event.community ?? null,
         language: event.language,
         title: event.title,
         content: event.content,

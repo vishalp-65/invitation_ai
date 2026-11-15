@@ -436,7 +436,27 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
     st.update(el.id, patch);
   }
 
+  // Coalesce moves to one update per frame: mice report 120–1000 Hz, the screen only paints at 60–120.
+  const pendingMove = useRef<RPointerEvent | null>(null);
+  const moveFrame = useRef(0);
+  function flushMove() {
+    if (moveFrame.current) cancelAnimationFrame(moveFrame.current);
+    moveFrame.current = 0;
+    const ev = pendingMove.current;
+    pendingMove.current = null;
+    if (ev) onPointerMove(ev);
+  }
+  function onPointerMoveFramed(e: RPointerEvent) {
+    if (pointers.current.has(e.pointerId)) pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (!gesture.current && !viewG.current && !marqueeRef.current) return;
+    pendingMove.current = e;
+    if (!moveFrame.current) moveFrame.current = requestAnimationFrame(flushMove);
+  }
+  useEffect(() => () => cancelAnimationFrame(moveFrame.current), []);
+
   function onPointerUp(e: RPointerEvent) {
+    // Land the last movement before finishing the gesture.
+    flushMove();
     pointers.current.delete(e.pointerId);
     const s = useEditor.getState();
     const v = viewG.current;
@@ -611,12 +631,12 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
         const onFrame = t.closest('[data-selection]');
         setMenu({ x: e.clientX, y: e.clientY, id: id ?? (onFrame ? (st().selected ?? st().selection[0] ?? null) : null) });
       }}
-      onPointerMove={onPointerMove}
+      onPointerMove={onPointerMoveFramed}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
     >
       {size.w > 0 && (
-        <div data-stage className="absolute shadow-[0_24px_60px_-20px_rgb(0_0_0/0.45),0_0_0_1px_rgb(15_18_51/0.06)]" style={{ width: cw, height: ch, left: stageLeft, top: stageTop }}>
+        <div data-stage className="absolute ring-1 ring-black/10" style={{ width: cw, height: ch, left: stageLeft, top: stageTop }}>
           <DesignPage page={page} data={data} width={cw} hidden={hidden} placeholders onMeasure={onMeasure} language={language} fontsReady={fontsReady} />
 
           {/* Interaction layer */}
@@ -728,28 +748,28 @@ function MultiFrame({
         <div className={clsx('absolute inset-0 rounded-[2px] outline outline-2 outline-offset-2 outline-[#F2A900]', !grouped && '[outline-style:dashed]')} />
         {!anyLocked &&
           corners.map(([h, pos]) => (
-            <button key={h} type="button" aria-label={`Scale ${h}`} onPointerDown={(e) => e.button === 0 && onScale(e, h)} className={`pointer-events-auto absolute grid size-8 place-items-center ${pos}`}>
-              <span className="block size-3.5 rounded-full border-2 border-[#F2A900] bg-white shadow" />
+            <button key={h} type="button" aria-label={`Scale ${h}`} onPointerDown={(e) => e.button === 0 && onScale(e, h)} className={`pointer-events-auto absolute grid size-8 place-items-center touch:size-11 ${pos}`}>
+              <span className="block size-3.5 rounded-full border-2 border-[#F2A900] bg-white touch:size-4" />
             </button>
           ))}
         <div
-          className={`pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-full border border-hairline bg-surface p-1 text-ink shadow-lg ${above ? 'bottom-full mb-3' : 'top-full mt-4'}`}
+          className={`pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-hairline bg-surface p-1 text-ink ${above ? 'bottom-full mb-3' : 'top-full mt-4'}`}
           onPointerDown={(e) => e.stopPropagation()}
         >
           <span className="whitespace-nowrap px-2 text-xs font-semibold text-ink-soft">{els.length} items</span>
           {grouped ? (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Ungroup', 'Ctrl+Shift+G', 'top')} onClick={() => s().ungroup(ids)}>
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Ungroup', 'Ctrl+Shift+G', 'top')} onClick={() => s().ungroup(ids)}>
               <Ungroup className="size-4" /> Ungroup
             </button>
           ) : (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Group', 'Ctrl+G', 'top')} onClick={() => s().group(ids)}>
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Group', 'Ctrl+G', 'top')} onClick={() => s().group(ids)}>
               <Group className="size-4" /> Group
             </button>
           )}
-          <button type="button" className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicateMany(ids)}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicateMany(ids)}>
             <Copy className="size-4" />
           </button>
-          <button type="button" className="grid size-8 place-items-center rounded-full text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().removeMany(ids)}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().removeMany(ids)}>
             <Trash2 className="size-4" />
           </button>
         </div>
@@ -797,8 +817,8 @@ function SelectionFrame({
       {handles.map((h) => {
         const side = h.length === 1;
         return (
-          <button key={h} type="button" aria-label={`Resize ${h}`} onPointerDown={(e) => e.button === 0 && onHandle(e, h)} className={`absolute grid size-8 place-items-center ${pos[h]}`}>
-            <span className={`block border-2 border-[#F2A900] bg-white shadow ${side ? (h === 'e' || h === 'w' ? 'h-5 w-2 rounded-full' : 'h-2 w-5 rounded-full') : 'size-3.5 rounded-full'}`} />
+          <button key={h} type="button" aria-label={`Resize ${h}`} onPointerDown={(e) => e.button === 0 && onHandle(e, h)} className={`absolute grid size-8 place-items-center touch:size-11 ${pos[h]}`}>
+            <span className={`block border-2 border-[#F2A900] bg-white ${side ? (h === 'e' || h === 'w' ? 'h-5 w-2 rounded-full touch:h-6' : 'h-2 w-5 rounded-full touch:w-6') : 'size-3.5 rounded-full touch:size-4'}`} />
           </button>
         );
       })}
@@ -807,32 +827,32 @@ function SelectionFrame({
           type="button"
           {...tip('Rotate', 'Shift: 15° steps')}
           onPointerDown={(e) => e.button === 0 && onRotate(e)}
-          className="absolute left-1/2 top-full mt-3 grid size-8 -translate-x-1/2 cursor-grab place-items-center rounded-full border border-hairline bg-surface text-ink shadow-md"
+          className="absolute left-1/2 top-full mt-3 grid size-8 -translate-x-1/2 touch:mt-4 touch:size-10 cursor-grab place-items-center rounded-lg border border-hairline bg-surface text-ink"
         >
           <RotateCw className="size-4" />
         </button>
       )}
       {/* Quick actions pill, counter-rotated so it stays upright */}
       <div
-        className={`absolute left-1/2 flex items-center gap-0.5 rounded-full border border-hairline bg-surface p-1 text-ink shadow-lg ${above ? 'bottom-full mb-3' : 'top-full mt-14'}`}
+        className={`absolute left-1/2 flex items-center gap-0.5 rounded-lg border border-hairline bg-surface p-1 text-ink ${above ? 'bottom-full mb-3 touch:mb-5' : 'top-full mt-14 touch:mt-[4.5rem]'}`}
         style={{ transform: `translateX(-50%) rotate(${-el.rot}deg)` }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         {onEdit && (
-          <button type="button" className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Edit text', 'Enter', 'top')} onClick={onEdit}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Edit text', 'Enter', 'top')} onClick={onEdit}>
             <PencilLine className="size-4" />
           </button>
         )}
         {el.locked ? (
-          <button type="button" className="flex h-8 items-center gap-1 rounded-full px-2.5 text-sm font-semibold hover:bg-mist" onClick={() => s().update(el.id, { locked: false })}>
+          <button type="button" className="flex h-8 items-center gap-1 rounded-lg px-2.5 touch:h-10 text-sm font-semibold hover:bg-mist" onClick={() => s().update(el.id, { locked: false })}>
             <Lock className="size-4" /> Unlock
           </button>
         ) : (
           <>
-            <button type="button" className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicate(el.id)}>
+            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicate(el.id)}>
               <Copy className="size-4" />
             </button>
-            <button type="button" className="grid size-8 place-items-center rounded-full text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().remove(el.id)}>
+            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().remove(el.id)}>
               <Trash2 className="size-4" />
             </button>
           </>

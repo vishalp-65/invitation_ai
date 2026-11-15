@@ -127,14 +127,14 @@ export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; 
     <div
       ref={ref}
       role="menu"
-      className="fixed z-50 min-w-[220px] origin-top-left animate-[pop-in_0.1s_ease-out] rounded-xl border border-hairline bg-surface p-1 text-sm text-ink shadow-[0_16px_40px_-12px_rgb(0_0_0/0.35)]"
+      className="fixed z-50 min-w-[220px] origin-top-left animate-[pop-in_0.1s_ease-out] menu text-sm"
       style={{ left: pos.x, top: pos.y }}
       onPointerDown={(e) => e.stopPropagation()}
       onContextMenu={(e) => e.preventDefault()}
     >
       {items.map((it, i) =>
         it === 'sep' ? (
-          <div key={`sep${i}`} className="my-1 h-px bg-hairline" role="separator" />
+          <div key={`sep${i}`} className="menu-sep" role="separator" />
         ) : (
           <button
             key={it.label}
@@ -146,7 +146,7 @@ export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; 
               onClose();
             }}
             className={clsx(
-              'flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left outline-none transition-colors hover:bg-mist focus-visible:bg-mist disabled:opacity-35 disabled:hover:bg-transparent',
+              'menu-item h-8',
               it.danger && 'text-sindoor',
             )}
           >

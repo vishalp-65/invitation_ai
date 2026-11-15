@@ -5,7 +5,20 @@
     "myInvites": "My invitations",
     "login": "Log in",
     "create": "Create invite",
-    "logout": "Log out"
+    "logout": "Log out",
+    "occasions": "Occasions",
+    "weddings": "Weddings",
+    "family": "Family & puja",
+    "celebrations": "Celebrations & business",
+    "occasionsHint": "Pick an occasion to start with matching designs.",
+    "allDesigns": "Browse all designs",
+    "sell": "Sell designs",
+    "account": "Account",
+    "admin": "Admin console",
+    "language": "Language",
+    "theme": "Theme",
+    "menu": "Menu",
+    "close": "Close menu"
   },
   "hero": {
     "kicker": "Now in 12 Indian languages",
@@ -33,7 +46,9 @@
     "site": "Website & RSVP",
     "siteBody": "Schedule, maps, countdown and an RSVP for each function — with every guest greeted by name."
   },
-  "languages": { "title": "Your words, in your script" },
+  "languages": {
+    "title": "Your words, in your script"
+  },
   "wizard": {
     "stepEvent": "Occasion",
     "stepDetails": "Details",

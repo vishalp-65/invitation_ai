@@ -23,15 +23,15 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[28px] border border-hairline bg-surface p-0 text-ink shadow-lift backdrop:bg-[var(--color-overlay)] sm:m-auto sm:max-w-lg sm:rounded-[24px]"
+      className="fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[var(--radius-card)] border border-hairline bg-surface p-0 text-ink backdrop:bg-[var(--color-overlay)] sm:m-auto sm:max-w-lg sm:rounded-[var(--radius-card)]"
     >
-      <div className="flex items-center justify-between border-b border-hairline px-6 py-4">
-        <h2 className="text-xl">{title}</h2>
-        <button type="button" onClick={onClose} className="press rounded-full bg-ink/5 p-2 hover:bg-ink/10" aria-label="Close">
-          <X className="size-5" />
+      <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
+        <h2 className="text-lg">{title}</h2>
+        <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-[var(--radius-control)] text-ink-soft transition-colors hover:bg-mist hover:text-ink" aria-label="Close">
+          <X className="size-4.5" />
         </button>
       </div>
-      <div className="max-h-[75dvh] overflow-y-auto px-6 py-5">{children}</div>
+      <div className="max-h-[75dvh] overflow-y-auto px-5 py-5">{children}</div>
     </dialog>
   );
 }

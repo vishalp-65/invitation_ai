@@ -10,6 +10,7 @@ import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
 import { GoogleButton } from './google-button';
 import { OtpInput } from './otp-input';
+import { track } from '@/lib/track';
 
 type Mode = 'login' | 'signup';
 
@@ -76,7 +77,7 @@ function GoogleRedirectButton({ mode, next }: { mode: Mode; next: string }) {
       href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}
       onClick={() => setBusy(true)}
       aria-busy={busy}
-      className="press flex h-12 w-full items-center justify-center gap-3 rounded-[14px] border border-hairline bg-surface text-[0.98rem] font-semibold text-ink shadow-[0_1px_2px_rgb(30_34_80/0.06)] transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-ivory focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/10 aria-busy:pointer-events-none aria-busy:opacity-70"
+      className="press flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-hairline bg-surface text-[0.98rem] font-semibold text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-ivory focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/10 aria-busy:pointer-events-none aria-busy:opacity-70"
     >
       {busy ? <span className="size-5 animate-spin rounded-full border-2 border-ink/20 border-t-ink" aria-hidden /> : <GoogleLogo />}
       {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
@@ -102,8 +103,8 @@ function IconInput({
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         className={clsx(
-          'h-12 w-full rounded-[14px] border bg-surface pl-11 pr-4 text-base text-ink transition-[border-color,box-shadow] duration-200 placeholder:text-ink-soft/50 hover:border-ink/25 focus:border-ink/60 focus:shadow-[0_0_0_4px_rgb(30_34_80/0.08)] focus:outline-none',
-          invalid ? 'border-sindoor focus:shadow-[0_0_0_4px_rgb(181_18_27/0.1)]' : 'border-hairline',
+          'h-12 w-full rounded-lg border bg-surface pl-11 pr-4 text-base text-ink transition-colors duration-150 placeholder:text-ink-soft/50 hover:border-ink/25 focus:border-ink/60 focus:outline-none',
+          invalid ? 'border-sindoor' : 'border-hairline',
         )}
         {...props}
       />
@@ -138,7 +139,7 @@ function Alert({ children }: { children: ReactNode }) {
 function Heading({ icon, title, subtitle }: { icon?: ReactNode; title: string; subtitle?: ReactNode }) {
   return (
     <header className="mb-7">
-      {icon && <div className="mb-5 grid size-12 place-items-center rounded-2xl bg-sand text-ink">{icon}</div>}
+      {icon && <div className="mb-5 grid size-12 place-items-center rounded-xl bg-sand text-ink">{icon}</div>}
       <h1 className="text-[1.85rem] leading-[1.15] tracking-tight sm:text-[2.1rem]">{title}</h1>
       {subtitle && <p className="mt-2 text-[0.98rem] leading-relaxed text-ink-soft">{subtitle}</p>}
     </header>
@@ -244,7 +245,7 @@ function CodeStep({
           </p>
         </div>
 
-        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6} className="h-12 w-full rounded-[14px] text-base">
+        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6} className="h-12 w-full rounded-lg text-base">
           {busy ? 'Verifying…' : 'Verify and continue'}
         </Button>
 
@@ -253,7 +254,7 @@ function CodeStep({
             href={inbox.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="press flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-hairline bg-surface text-[0.98rem] font-semibold text-ink transition-colors hover:border-ink/25 hover:bg-ivory"
+            className="press flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-[0.98rem] font-semibold text-ink transition-colors hover:border-ink/25 hover:bg-ivory"
           >
             <Mail className="size-4" aria-hidden />
             {inbox.label}
@@ -319,7 +320,7 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
             autoFocus
           />
         </FieldBlock>
-        <Button type="submit" variant="solid" size="lg" loading={busy} className="h-12 w-full rounded-[14px] text-base">
+        <Button type="submit" variant="solid" size="lg" loading={busy} className="h-12 w-full rounded-lg text-base">
           Get started <ArrowRight className="size-5" aria-hidden />
         </Button>
         <button type="button" onClick={() => onDone()} className="text-center text-sm font-semibold text-ink-soft hover:text-ink">
@@ -357,6 +358,7 @@ export function AuthFlow({
   });
 
   const signup = mode === 'signup';
+  useEffect(() => track('signup_start', { props: { mode } }), [mode]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
@@ -385,6 +387,7 @@ export function AuthFlow({
     setBusy(true);
     try {
       const r = await api<{ resendInSec: number }>('/auth/otp/request', { method: 'POST', json: { email: parsed.email } });
+      track('otp_requested', { props: { signup: Boolean(signup) } });
       setPending({ email: parsed.email, resendInSec: r.resendInSec });
     } catch (err) {
       setError(errMsg(err, 'Could not send the code. Check your connection and try again.'));
@@ -433,7 +436,7 @@ export function AuthFlow({
 
       {providersLoading ? (
         <>
-          <div className="skeleton h-12 w-full rounded-[14px]" aria-hidden />
+          <div className="skeleton h-12 w-full rounded-lg" aria-hidden />
           <Divider />
         </>
       ) : (
@@ -485,7 +488,7 @@ export function AuthFlow({
 
         {error && <Alert>{error}</Alert>}
 
-        <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 h-12 w-full rounded-[14px] text-base">
+        <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 h-12 w-full rounded-lg text-base">
           {busy ? 'Sending code…' : 'Continue with email'}
           {!busy && <ArrowRight className="size-5" aria-hidden />}
         </Button>

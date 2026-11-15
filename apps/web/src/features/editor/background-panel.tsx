@@ -1,6 +1,6 @@
 'use client';
 
-import { formatINR, PALETTES, PATTERNS, PRODUCTS, type EventDto, type MediaAssetDto, type PageBackground } from '@cardai/shared';
+import { formatINR, PALETTES, PATTERNS, type EventDto, type MediaAssetDto, type PageBackground } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { ImagePlus, Loader2, Sparkles, Trash2, Wand2 } from 'lucide-react';
@@ -13,6 +13,8 @@ import { buy } from '@/lib/checkout';
 import { qk } from '@/lib/hooks';
 import { ColorPicker, Section, Seg, Slider } from './controls';
 import { currentPage, useEditor } from './store';
+import { controlClass } from '@/components/ui/field';
+import { usePrice } from '@/lib/offers';
 
 /** One-tap prompt starters, tuned for Indian invitations. */
 const STYLES = [
@@ -35,6 +37,7 @@ interface Quota {
 
 function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: string) => void }) {
   const qc = useQueryClient();
+  const pack = usePrice('ai_backgrounds');
   const [prompt, setPrompt] = useState('');
   const [busy, setBusy] = useState(false);
   const [buying, setBuying] = useState(false);
@@ -63,7 +66,7 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
     setBuying(true);
     try {
       if (await buy(event.id, 'ai_backgrounds')) {
-        toast.success(`${PRODUCTS.ai_backgrounds.credits!.ai_background} more AI backgrounds added`);
+        toast.success(`${pack.credits!.ai_background} more AI backgrounds added`);
         await qc.invalidateQueries({ queryKey: ['ai-quota', event.id] });
         void qc.invalidateQueries({ queryKey: qk.event(event.id) });
       }
@@ -78,19 +81,19 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
   const badge = !q ? null : q.credits > 0 && q.used >= q.included ? `${q.remaining} pack credits` : q.upgraded ? `${q.remaining} left` : `${q.remaining} of ${q.included} free`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-2xl border border-hairline bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface)),var(--color-surface))] p-3.5">
+    <div className="flex flex-col gap-3 rounded-xl border border-hairline bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface)),var(--color-surface))] p-3.5">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 font-semibold">
           <Sparkles className="size-4 text-marigold" /> AI background
         </p>
-        {badge && <span className={clsx('rounded-full px-2 py-0.5 text-xs font-semibold', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? 'None left' : badge}</span>}
+        {badge && <span className={clsx('rounded-md px-2 py-0.5 text-xs font-semibold', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? 'None left' : badge}</span>}
       </div>
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value.slice(0, 400))}
         rows={2}
         placeholder="Describe a scene, e.g. lake palace at sunset with lanterns"
-        className="w-full resize-none rounded-xl border border-hairline bg-surface p-2.5 text-sm leading-snug focus:border-primary focus:outline-none"
+        className={`${controlClass} w-full resize-none p-2.5 text-sm leading-snug`}
         aria-label="Describe the background"
       />
       <div className="-mx-3.5 overflow-x-auto px-3.5 [scrollbar-width:none]">
@@ -101,7 +104,7 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
               type="button"
               onClick={() => setPrompt(s.prompt)}
               aria-pressed={prompt === s.prompt}
-              className="h-8 shrink-0 rounded-full border border-hairline bg-surface px-3 text-xs font-semibold transition-colors hover:border-ink/40 aria-pressed:border-primary aria-pressed:bg-primary aria-pressed:text-on-primary"
+              className="h-8 shrink-0 rounded-lg border border-hairline bg-surface px-3 text-xs font-semibold transition-colors hover:border-ink/40 aria-pressed:border-primary aria-pressed:tint-primary"
             >
               {s.label}
             </button>
@@ -109,12 +112,12 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
         </div>
       </div>
       {out ? (
-        <button type="button" onClick={buyPack} disabled={buying} className="flex h-11 items-center justify-center gap-2 rounded-full bg-sindoor font-semibold text-white transition-colors hover:bg-sindoor-deep disabled:opacity-60">
+        <button type="button" onClick={buyPack} disabled={buying} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-sindoor font-semibold text-white transition-colors hover:bg-sindoor-deep disabled:opacity-60">
           {buying ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
-          Get {PRODUCTS.ai_backgrounds.credits!.ai_background} more for {formatINR(PRODUCTS.ai_backgrounds.pricePaise)}
+          Get {pack.credits!.ai_background} more for {formatINR(pack.pricePaise)}
         </button>
       ) : (
-        <button type="button" onClick={generate} disabled={busy || quota?.configured === false} className="flex h-11 items-center justify-center gap-2 rounded-full bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
+        <button type="button" onClick={generate} disabled={busy || quota?.configured === false} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
           {busy ? 'Painting your background…' : 'Generate background'}
         </button>
@@ -159,7 +162,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
             const url = await pickImage();
             if (url) setImage(url);
           }}
-          className="flex h-11 items-center justify-center gap-2 rounded-full border border-hairline bg-surface font-semibold hover:border-ink/40"
+          className="flex h-11 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold hover:border-ink/40"
         >
           <ImagePlus className="size-4" /> Upload your own
         </button>
@@ -183,7 +186,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
           </ul>
         )}
         {bg.image && (
-          <div className="flex flex-col gap-4 rounded-xl bg-mist/60 p-3">
+          <div className="flex flex-col gap-4 rounded-lg bg-mist/60 p-3">
             <Slider label="Image strength" min={0} max={100} value={Math.round((bg.imageOpacity ?? 1) * 100)} suffix="%" onChange={(v) => set({ imageOpacity: v / 100 })} />
             <Slider label="Blur" min={0} max={30} value={bg.imageBlur ?? 0} onChange={(v) => set({ imageBlur: v })} />
             <Slider label="Colour wash" min={0} max={90} value={Math.round((bg.overlayOpacity ?? 0) * 100)} suffix="%" onChange={(v) => set({ overlayOpacity: v / 100, overlay: bg.overlay ?? '#000000' })} />
@@ -196,14 +199,14 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
       </Section>
 
       <Section title="Colour themes">
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-8 gap-1.5">
           {Object.entries(PALETTES).map(([k, p]) => (
             <button
               key={k}
               type="button"
               {...tip(k.replace(/[-_]/g, ' '))}
               onClick={() => set({ color: p.background, color2: p.backgroundAlt, gradient: 'radial', patternColor: p.primary, patternAccent: p.accent })}
-              className="aspect-square rounded-full border border-black/10 shadow-sm transition-transform duration-100 hover:scale-110"
+              className="aspect-square rounded-lg border border-black/10 transition-transform duration-100 hover:scale-110"
               style={{ background: `radial-gradient(circle at 35% 30%, ${p.background}, ${p.backgroundAlt})` }}
             />
           ))}

@@ -1,4 +1,5 @@
 import { getEventType } from '../constants/event-types.js';
+import { attireFor, characterSuitsFaith, faithOf } from '../constants/faith.js';
 import type { Attire } from '../templates/types.js';
 import { siteDocSchema, type SiteCharacter, type SiteDoc, type SiteSection, type SiteSectionType } from './schema.js';
 
@@ -32,18 +33,23 @@ export function sectionHeading(section: Pick<SiteSection, 'type' | 'title'>, lan
   return language === 'hi' || language === 'mr' ? info.hi : info.label;
 }
 
-const COMMUNITY_ATTIRE: Record<string, Attire> = {
-  'hindu-north': 'north',
-  'hindu-south': 'south',
-  bengali: 'bengali',
-  marathi: 'marathi',
-  sikh: 'sikh',
-  punjabi: 'sikh',
-  muslim: 'muslim',
-  christian: 'christian',
-};
+/**
+ * The character an "auto" site shows. Sacred ones (Ganesha, kalash) only for faiths they belong
+ * to: a Muslim family's shop opening gets a peacock, not a kalash.
+ */
+export function autoCharacter(eventType: string, community?: string | null): Exclude<SiteCharacter, 'auto'> {
+  const kind = baseCharacter(eventType);
+  return characterSuitsFaith(kind, faithOf(eventType, community)) ? kind : 'peacock';
+}
 
-export function autoCharacter(eventType: string): Exclude<SiteCharacter, 'auto'> {
+/** A host's explicit pick is kept; "auto" and AI picks follow the faith. */
+export function siteCharacterFor(kind: SiteCharacter, eventType: string, community?: string | null, picked: 'host' | 'ai' = 'host'): Exclude<SiteCharacter, 'auto'> {
+  if (kind === 'auto') return autoCharacter(eventType, community);
+  if (picked === 'ai' && !characterSuitsFaith(kind, faithOf(eventType, community))) return autoCharacter(eventType, community);
+  return kind;
+}
+
+function baseCharacter(eventType: string): Exclude<SiteCharacter, 'auto'> {
   const t = getEventType(eventType);
   if (t.category === 'wedding') return 'couple';
   switch (t.id) {
@@ -107,7 +113,7 @@ export function defaultSiteDoc(opts: { eventType: string; community?: string | n
   const t = getEventType(opts.eventType);
   return siteDocSchema.parse({
     opening: { kind: t.category === 'business' ? 'none' : t.category === 'wedding' ? 'doors' : 'envelope' },
-    character: { kind: 'auto', attire: COMMUNITY_ATTIRE[opts.community ?? ''] ?? 'north', style: 'watercolor' },
+    character: { kind: 'auto', attire: attireFor(faithOf(opts.eventType, opts.community), opts.community) as Attire, style: 'watercolor' },
     look: { ornament: t.category === 'wedding' ? 'florals' : t.category === 'business' ? 'none' : 'mandala', dark: false },
     sections,
   });

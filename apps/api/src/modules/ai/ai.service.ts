@@ -19,8 +19,10 @@ import {
   AI_BACKGROUNDS_PER_EVENT,
   eventContentSchema,
   UPGRADE_FEATURES,
+  faithOf,
   FREE_AI_QUOTA_PER_DAY,
   getEventType,
+  invocationFor,
   parsedEventIntentSchema,
   QUEUES,
   siteDraftOutputSchema,
@@ -258,7 +260,7 @@ export class AiService {
     let prompt: string;
     if (input.kind === 'background') {
       const template = await this.templates.resolve(event.templateId);
-      prompt = backgroundImagePrompt({ eventLabel: getEventType(event.type).label, theme: template.theme, extra: input.prompt });
+      prompt = backgroundImagePrompt({ eventLabel: getEventType(event.type).label, theme: template.theme, extra: input.prompt, faith: faithOf(event.type, event.community) });
     } else {
       if (!input.sourceAssetId) throw new BadRequestException('Upload a photo first');
       const source = await this.media.getOwnedAsset(user, input.sourceAssetId);
@@ -326,7 +328,7 @@ export class AiService {
         eventId: event.id,
         model: this.env.AI_VIDEO_MODEL,
         status: 'queued',
-        input: { prompt: input.prompt ?? null, firstFrameUrl: firstFrameUrl ?? null, templateId: event.templateId, eventType: event.type },
+        input: { prompt: input.prompt ?? null, firstFrameUrl: firstFrameUrl ?? null, templateId: event.templateId, eventType: event.type, community: event.community ?? null },
       })
       .returning();
     await this.clipQueue.add('clip', { generationId: gen!.id }, { jobId: gen!.id, attempts: 1 });
@@ -418,7 +420,9 @@ export class AiService {
 
 function toContent(o: WordingOutput, input: GenerateWordingInput): EventContent {
   return eventContentSchema.parse({
-    invocation: o.invocation || undefined,
+    // The blessing line is decided by the family's faith, never by the model (it tends to put a
+    // Ganesha line on every Indian card).
+    invocation: invocationFor({ eventType: input.eventType, faith: faithOf(input.eventType, input.community), language: input.language, community: input.community }),
     headline: o.headline,
     hostLine: o.hostLine || undefined,
     primaryNames: (o.primaryNames.length ? o.primaryNames : input.facts.primaryNames).slice(0, 2),

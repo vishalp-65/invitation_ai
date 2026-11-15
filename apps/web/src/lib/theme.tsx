@@ -103,7 +103,7 @@ const META: Record<ThemePref, { label: string; icon: typeof Sun }> = {
 };
 
 /** Icon button that cycles Light → Dark → System. Hidden on light-only pages. */
-export function ThemeToggle({ className }: { className?: string }) {
+export function ThemeToggle({ className, compact }: { className?: string; compact?: boolean }) {
   const p = useThemePref();
   const pathname = usePathname();
   if (isLightOnly(pathname)) return null;
@@ -116,7 +116,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       aria-label={`Theme: ${META[p].label}. Switch to ${META[next].label}`}
       data-tip={`Theme: ${META[p].label}`}
       data-tip-kbd={`→ ${META[next].label}`}
-      className={clsx('grid size-10 place-items-center rounded-full text-ink transition-colors hover:bg-mist', className)}
+      className={clsx('grid place-items-center text-ink transition-colors hover:bg-mist', compact ? 'size-9 rounded-lg' : 'size-10 rounded-full', className)}
     >
       <Icon className="size-[1.15rem]" />
     </button>
@@ -127,7 +127,7 @@ export function ThemeToggle({ className }: { className?: string }) {
 export function ThemeSegmented() {
   const p = useThemePref();
   return (
-    <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-full border border-hairline bg-surface p-0.5">
+    <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-lg border border-hairline bg-surface p-0.5">
       {ORDER.map((o) => {
         const Icon = META[o].icon;
         return (
@@ -137,7 +137,7 @@ export function ThemeSegmented() {
             role="radio"
             aria-checked={p === o}
             onClick={() => setThemePref(o)}
-            className="flex h-8 items-center gap-1.5 rounded-full px-3 text-sm font-semibold text-ink-soft transition-colors aria-checked:bg-primary aria-checked:text-on-primary"
+            className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-ink-soft transition-colors aria-checked:bg-primary aria-checked:text-on-primary"
           >
             <Icon className="size-4" />
             {META[o].label}

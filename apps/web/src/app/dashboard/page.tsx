@@ -110,7 +110,7 @@ export default function DashboardPage() {
                 width={432}
                 height={768}
                 sizes="140px"
-                className={`w-[30%] rounded-t-xl border-[3px] border-b-0 border-white object-cover shadow-soft ${i === 1 ? 'mb-0' : '-mb-6'}`}
+                className={`w-[30%] rounded-t-xl border-[3px] border-b-0 border-white object-cover ${i === 1 ? 'mb-0' : '-mb-6'}`}
               />
             ))}
           </div>
@@ -130,11 +130,11 @@ export default function DashboardPage() {
                   className="panel lift group flex h-full flex-col rounded-[var(--radius-card)] p-5 focus-visible:rounded-[var(--radius-card)]"
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-sand text-2xl" aria-hidden>
+                    <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-sand text-2xl" aria-hidden>
                       {type.emoji}
                     </span>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      className={`inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-semibold ${
                         isLive ? 'bg-leaf/10 text-leaf' : 'bg-mist text-ink-soft'
                       }`}
                     >

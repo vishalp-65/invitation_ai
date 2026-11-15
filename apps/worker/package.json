@@ -10,6 +10,7 @@
     "start": "node dist/main.js",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint src",
+    "bundle": "node dist/scripts/bundle.js",
     "showcase": "node --env-file-if-exists=../../.env dist/scripts/render-showcase.js"
   },
   "dependencies": {

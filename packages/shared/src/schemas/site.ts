@@ -24,6 +24,8 @@ export interface PublicSiteDto {
     id: string;
     slug: string;
     type: string;
+    /** The family's tradition (decides sacred characters and attire). */
+    community: string | null;
     language: string;
     title: string;
     content: EventContent;

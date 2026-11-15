@@ -50,6 +50,7 @@ export interface MediaAssetDto {
 export const createOrderSchema = z.object({
   eventId: z.uuid(),
   productCode: z.enum(PRODUCT_CODES),
+  couponCode: z.string().trim().toUpperCase().min(1).max(24).optional(),
 });
 export type CreateOrderInput = z.infer<typeof createOrderSchema>;
 
@@ -69,6 +70,7 @@ export interface CheckoutDto {
   amountPaise: number;
   currency: 'INR';
   productName: string;
+  discountPaise?: number;
   prefill: { contact: string; name?: string };
 }
 

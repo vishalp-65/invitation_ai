@@ -2,29 +2,30 @@ import { clsx } from 'clsx';
 import Link from 'next/link';
 import type { ButtonHTMLAttributes, ComponentProps } from 'react';
 
-type Variant = 'primary' | 'brand' | 'quiet' | 'outline' | 'danger' | 'gloss' | 'glass' | 'solid' | 'line';
-type Size = 'sm' | 'md' | 'lg';
+type Variant = 'primary' | 'brand' | 'quiet' | 'outline' | 'danger' | 'solid' | 'line' | 'glass';
+type Size = 'xs' | 'sm' | 'md' | 'lg' | 'icon';
 
+/** Flat buttons: small 8px corners, no shadows, colour-only hover. */
 const base =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-pill)] font-semibold transition-[color,background-color,transform,filter] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none';
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-semibold transition-colors duration-150 disabled:opacity-50 disabled:pointer-events-none select-none';
 const variants: Record<Variant, string> = {
-  // Flat indigo ink: the primary action everywhere.
   primary: 'bg-primary text-on-primary hover:bg-primary-hover',
+  /** Alias of primary, kept for existing call sites. */
+  solid: 'bg-primary text-on-primary hover:bg-primary-hover',
   brand: 'bg-sindoor text-white hover:bg-sindoor-deep',
+  line: 'border border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-mist',
+  outline: 'border border-ink text-ink hover:bg-primary hover:text-on-primary',
   quiet: 'bg-transparent text-ink hover:bg-mist',
-  outline: 'border-2 border-ink text-ink hover:bg-primary hover:text-on-primary',
   danger: 'bg-transparent text-sindoor hover:bg-sindoor/10',
-  // Kept for compatibility: same flat ink look as `solid`.
-  gloss: 'bg-primary text-on-primary hover:bg-primary-hover',
-  glass: 'glass text-white hover:bg-surface/15 active:scale-[0.98] transition-transform',
-  // Editorial surfaces: flat ink and hairline buttons.
-  solid: 'bg-primary text-on-primary shadow-[0_1px_2px_rgb(15_18_51/0.2),0_8px_20px_-10px_rgb(30_34_80/0.6)] hover:bg-primary-hover',
-  line: 'border border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-ivory',
+  /** On photos / dark media only. */
+  glass: 'glass text-white hover:bg-white/15',
 };
 const sizes: Record<Size, string> = {
-  sm: 'h-9 px-4 text-sm',
-  md: 'h-11 px-5 text-base',
-  lg: 'h-14 px-7 text-lg',
+  xs: 'h-8 px-3 text-[0.8125rem]',
+  sm: 'h-9 px-3.5 text-sm',
+  md: 'h-10 px-4 text-[0.95rem]',
+  lg: 'h-12 px-6 text-base',
+  icon: 'size-9 p-0',
 };
 
 export function buttonClass(variant: Variant = 'primary', size: Size = 'md', className?: string) {

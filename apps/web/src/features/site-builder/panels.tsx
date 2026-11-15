@@ -112,7 +112,7 @@ export function AiPanel({ eventId, beforeDraft, onDraft }: { eventId: string; be
   });
   return (
     <div className="flex flex-col gap-5">
-      <div className="rounded-2xl bg-primary p-5 text-on-primary">
+      <div className="rounded-xl bg-primary p-5 text-on-primary">
         <Sparkles className="size-6" aria-hidden />
         <h3 className="mt-2 text-xl">Write my page with AI</h3>
         <p className="mt-1 text-sm opacity-85">

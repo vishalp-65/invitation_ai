@@ -39,21 +39,24 @@ import { Dialog } from '@/components/ui/dialog';
 import { tip } from '@/components/ui/tooltip';
 import { useEventMedia } from '@/features/event/use-event-props';
 import { api, ApiError } from '@/lib/api';
-import { qk, useEvent, useTemplates } from '@/lib/hooks';
+import { qk, useEvent, useMe, useTemplate, useTemplates } from '@/lib/hooks';
 import { ThemeToggle } from '@/lib/theme';
 import { uploadPhoto } from '@/lib/upload';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { EditorCanvas } from './canvas';
 import { InspectorPanel, useInspectorSections, useMultiSections, type InspectorCtx } from './inspector';
 import { DownloadDialog, MoreMenu, SaveTemplateDialog } from './header-actions';
+import { PublishTemplateDialog } from './publish-dialog';
 import { ToolPanel, type ToolId } from './panels';
 import { ShortcutsDialog } from './shortcuts';
 import { currentPage, useEditor, ZOOM_MAX, ZOOM_MIN, zoomBy, zoomTo } from './store';
 import { splitIso, useDesignData, useEventWriter } from './use-event-data';
+import { track } from '@/lib/track';
+import { controlClass } from '@/components/ui/field';
 
 const DesignPlayer = dynamic(() => import('@/components/design/design-player').then((m) => m.DesignPlayer), {
   ssr: false,
-  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-[18px]" />,
+  loading: () => <div className="skeleton aspect-[9/16] w-full rounded-xl" />,
 });
 
 const TOOLS: Array<{ id: ToolId; label: string; icon: LucideIcon; hint: string }> = [
@@ -139,6 +142,14 @@ function useAutosave(eventId: string | undefined) {
 export function Editor({ eventId }: { eventId: string }) {
   const router = useRouter();
   const { data: event, isLoading, error } = useEvent(eventId);
+  const opened = event?.id;
+  const openedTemplate = event?.templateId;
+  useEffect(() => {
+    if (opened) track('editor_open', { templateId: openedTemplate });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per invitation
+  }, [opened]);
+  // By id, so hidden templates still open (invitations made with them keep working).
+  const { data: eventTemplate, isError: templateMissing } = useTemplate(event?.templateId);
   const { data: templates } = useTemplates();
   const { data: media } = useEventMedia(eventId);
   const photos = useMemo(
@@ -165,6 +176,8 @@ export function Editor({ eventId }: { eventId: string }) {
   const [shortcuts, setShortcuts] = useState(false);
   const [download, setDownload] = useState(false);
   const [saveTpl, setSaveTpl] = useState(false);
+  const [publishTpl, setPublishTpl] = useState(false);
+  const { data: me } = useMe();
   const [finishing, setFinishing] = useState(false);
 
   // Load (or build) the document once per event.
@@ -176,11 +189,11 @@ export function Editor({ eventId }: { eventId: string }) {
       useEditor.getState().load(event.design);
       return;
     }
-    if (!templates) return;
-    const template = templates.find((t) => t.id === event.templateId) ?? templates[0]!;
+    const template = eventTemplate ?? (templateMissing ? templates?.[0] : undefined);
+    if (!template) return;
     loadedFor.current = event.id;
-    useEditor.getState().load(buildDesign({ template, data, language: event.language, eventType: event.type }));
-  }, [event, data, templates]);
+    useEditor.getState().load(buildDesign({ template, data, language: event.language, eventType: event.type, community: event.community }));
+  }, [event, data, eventTemplate, templateMissing, templates]);
   useEffect(() => () => useEditor.setState({ doc: null, past: [], future: [], selected: null, selection: [], editing: null, version: 0, zoom: 1, pan: { x: 0, y: 0 } }), []);
 
   const pages = useMemo(() => doc?.pages ?? [], [doc]);
@@ -316,9 +329,9 @@ export function Editor({ eventId }: { eventId: string }) {
 
   const toolPanel = tool && (
     <>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface-2/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface-2 px-4 py-3">
         <h2 className="font-sans text-base font-semibold">{toolMeta!.label}</h2>
-        <button type="button" onClick={() => setTool(null)} className="grid size-8 place-items-center rounded-full hover:bg-mist" {...tip('Close panel', 'Esc')}>
+        <button type="button" onClick={() => setTool(null)} className="grid size-8 place-items-center rounded-lg hover:bg-mist" {...tip('Close panel', 'Esc')}>
           <X className="size-4" />
         </button>
       </div>
@@ -332,7 +345,7 @@ export function Editor({ eventId }: { eventId: string }) {
 
       {/* Top bar */}
       <header className="flex h-14 shrink-0 items-center gap-0.5 border-b border-hairline bg-surface px-1.5 sm:gap-1 sm:px-3">
-        <Link href={`/dashboard/events/${event.id}`} className="grid size-10 place-items-center rounded-full hover:bg-mist" {...tip('Back to invitation')}>
+        <Link href={`/dashboard/events/${event.id}`} className="grid size-9 place-items-center rounded-lg hover:bg-mist" {...tip('Back to invitation')}>
           <ChevronLeft className="size-5" />
         </Link>
         <div className="min-w-0 flex-1">
@@ -341,23 +354,23 @@ export function Editor({ eventId }: { eventId: string }) {
           </p>
           <SaveBadge state={saveState} writing={writer.saving} onRetry={() => void save()} />
         </div>
-        <div className="flex items-center gap-0.5 rounded-full sm:bg-mist/60 sm:p-0.5">
-          <button type="button" onClick={() => useEditor.getState().undo()} disabled={!canUndo} className="grid size-10 place-items-center rounded-full transition-colors hover:bg-surface disabled:opacity-30" {...tip('Undo', `${MOD}Z`)}>
-            <Undo2 className="size-[1.15rem]" />
+        <div className="flex items-center gap-0.5 rounded-lg sm:bg-mist/60 sm:p-0.5">
+          <button type="button" onClick={() => useEditor.getState().undo()} disabled={!canUndo} className="grid size-9 place-items-center rounded-lg transition-colors hover:bg-surface disabled:opacity-30" {...tip('Undo', `${MOD}Z`)}>
+            <Undo2 className="size-[1.05rem]" />
           </button>
-          <button type="button" onClick={() => useEditor.getState().redo()} disabled={!canRedo} className="grid size-10 place-items-center rounded-full transition-colors hover:bg-surface disabled:opacity-30" {...tip('Redo', `${MOD}⇧Z`)}>
-            <Redo2 className="size-[1.15rem]" />
+          <button type="button" onClick={() => useEditor.getState().redo()} disabled={!canRedo} className="grid size-9 place-items-center rounded-lg transition-colors hover:bg-surface disabled:opacity-30" {...tip('Redo', `${MOD}⇧Z`)}>
+            <Redo2 className="size-[1.05rem]" />
           </button>
         </div>
-        <ThemeToggle className="hidden sm:grid" />
-        <button type="button" onClick={() => setPreview(true)} className="ml-1 hidden h-10 items-center gap-1.5 rounded-full border border-hairline px-4 font-semibold transition-colors hover:bg-mist lg:flex" {...tip('Preview the video invite')}>
+        <ThemeToggle compact className="hidden sm:grid" />
+        <button type="button" onClick={() => setPreview(true)} className="ml-1 hidden h-9 items-center gap-1.5 rounded-lg border border-hairline px-4 font-semibold transition-colors hover:bg-mist lg:flex" {...tip('Preview the video invite')}>
           <Play className="size-4" /> Video
         </button>
-        <button type="button" onClick={() => setDownload(true)} className="ml-1 flex h-10 items-center gap-1.5 rounded-full border border-hairline px-3 font-semibold transition-colors hover:bg-mist sm:px-4" {...tip('Download as image or PDF')}>
-          <Download className="size-4" /> <span className="hidden sm:inline">Download</span>
+        <button type="button" onClick={() => setDownload(true)} className="ml-1 hidden h-9 items-center gap-1.5 rounded-lg border border-hairline px-4 font-semibold transition-colors hover:bg-mist sm:flex" {...tip('Download as image or PDF')}>
+          <Download className="size-4" /> Download
         </button>
-        <MoreMenu onVideo={() => setPreview(true)} onShortcuts={() => setShortcuts(true)} onSaveTemplate={() => setSaveTpl(true)} />
-        <button type="button" onClick={finish} disabled={finishing} className="ml-1 flex h-10 items-center gap-1.5 rounded-full bg-primary px-4 font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60" {...tip('Save and finish')}>
+        <MoreMenu onVideo={() => setPreview(true)} onShortcuts={() => setShortcuts(true)} onSaveTemplate={() => setSaveTpl(true)} onDownload={() => setDownload(true)} onPublish={me?.role === 'admin' ? () => setPublishTpl(true) : undefined} />
+        <button type="button" onClick={finish} disabled={finishing} className="ml-1 flex h-9 items-center gap-1.5 rounded-lg bg-primary px-4 font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60" {...tip('Save and finish')}>
           {finishing ? <Loader2 className="size-4 animate-spin" /> : <Check className="size-4" />}
           Done
         </button>
@@ -375,7 +388,7 @@ export function Editor({ eventId }: { eventId: string }) {
                 aria-pressed={tool === t.id}
                 data-tip={t.hint}
                 data-tip-side="right"
-                className="mx-1.5 flex flex-col items-center gap-1 rounded-xl py-2.5 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 hover:bg-mist hover:text-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
+                className="mx-1.5 flex flex-col items-center gap-1 rounded-lg py-2.5 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 hover:bg-mist hover:text-ink aria-pressed:tint-primary"
               >
                 <t.icon className="size-5" />
                 {t.label}
@@ -387,13 +400,14 @@ export function Editor({ eventId }: { eventId: string }) {
         {/* Tool panel: inline on wide screens, floating over the canvas on tablets */}
         {tool && layout === 'wide' && <aside className="thin-scroll w-[340px] shrink-0 animate-[panel-in_0.16s_var(--ease-out-quint)] overflow-y-auto border-r border-hairline bg-surface-2">{toolPanel}</aside>}
         {tool && layout === 'medium' && (
-          <aside className="thin-scroll absolute bottom-3 left-[84px] top-3 z-20 w-[340px] max-w-[calc(100%-100px)] animate-[panel-in_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-2xl border border-hairline bg-surface-2 shadow-[0_20px_50px_-20px_rgb(0_0_0/0.45)]">
+          <aside className="thin-scroll absolute bottom-3 left-[84px] top-3 z-20 w-[340px] max-w-[calc(100%-100px)] animate-[panel-in_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-xl border border-hairline bg-surface-2">
             {toolPanel}
           </aside>
         )}
 
         {/* Canvas */}
-        <main className="relative flex min-w-0 flex-1 flex-col">
+        {/* Tablets: floating panels push the canvas aside so the card is never hidden under them. */}
+        <main className={clsx('relative flex min-w-0 flex-1 flex-col', layout === 'medium' && hasSelection && 'mr-[332px]', layout === 'medium' && !hasSelection && tool && 'ml-[356px]')}>
           {doc ? (
             <EditorCanvas data={data} language={event.language} fontsReady={fontsReady} onEditText={onEditText} onCommitText={commitText} />
           ) : (
@@ -411,7 +425,7 @@ export function Editor({ eventId }: { eventId: string }) {
           </aside>
         )}
         {layout === 'medium' && hasSelection && (
-          <aside className="thin-scroll absolute bottom-3 right-3 top-3 z-20 w-[320px] max-w-[calc(100%-100px)] animate-[panel-in-right_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-2xl border border-hairline bg-surface shadow-[0_20px_50px_-20px_rgb(0_0_0/0.45)]">
+          <aside className="thin-scroll absolute bottom-3 right-3 top-3 z-20 w-[320px] max-w-[calc(100%-100px)] animate-[panel-in-right_0.16s_var(--ease-out-quint)] overflow-y-auto rounded-xl border border-hairline bg-surface">
             <InspectorPanel sections={activeSections} title={selTitle} onClose={() => useEditor.getState().select(null)} />
           </aside>
         )}
@@ -423,21 +437,21 @@ export function Editor({ eventId }: { eventId: string }) {
           {openSheet && (
             <div
               className={clsx(
-                'thin-scroll shrink-0 animate-[sheet-up_0.18s_var(--ease-out-quint)] overflow-y-auto overscroll-contain rounded-t-[22px] border-t border-hairline bg-surface shadow-[0_-12px_30px_-18px_rgb(0_0_0/0.4)] transition-[max-height] duration-200',
+                'thin-scroll shrink-0 animate-[sheet-up_0.18s_var(--ease-out-quint)] overflow-y-auto overscroll-contain rounded-t-xl border-t border-hairline bg-surface transition-[max-height] duration-200',
                 sheetFull ? 'max-h-[82dvh]' : 'max-h-[46dvh]',
               )}
             >
-              <div className="sticky top-0 z-10 bg-surface/95 backdrop-blur">
+              <div className="sticky top-0 z-10 bg-surface">
                 <button type="button" onClick={() => setSheetFull((f) => !f)} className="flex w-full justify-center pb-1 pt-2.5" aria-label={sheetFull ? 'Shrink panel' : 'Expand panel'}>
                   <span className="block h-1 w-10 rounded-full bg-ink/20" aria-hidden />
                 </button>
                 <div className="flex items-center justify-between px-4 pb-2">
                   <h2 className="font-sans text-base font-semibold">{section ? activeSections.find((s) => s.id === section)?.label : toolMeta?.label}</h2>
                   <div className="flex items-center gap-1">
-                    <button type="button" onClick={() => setSheetFull((f) => !f)} className="grid size-9 place-items-center rounded-full bg-mist" aria-label={sheetFull ? 'Shrink panel' : 'Expand panel'}>
+                    <button type="button" onClick={() => setSheetFull((f) => !f)} className="grid size-9 place-items-center rounded-lg bg-mist" aria-label={sheetFull ? 'Shrink panel' : 'Expand panel'}>
                       <ChevronUp className={clsx('size-4 transition-transform', sheetFull && 'rotate-180')} />
                     </button>
-                    <button type="button" onClick={() => (section ? setSection(null) : setTool(null))} className="grid size-9 place-items-center rounded-full bg-mist" aria-label="Close">
+                    <button type="button" onClick={() => (section ? setSection(null) : setTool(null))} className="grid size-9 place-items-center rounded-lg bg-mist" aria-label="Close">
                       <X className="size-4" />
                     </button>
                   </div>
@@ -447,10 +461,10 @@ export function Editor({ eventId }: { eventId: string }) {
             </div>
           )}
           <nav className="shrink-0 border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)]" aria-label={hasSelection ? 'Edit selection' : 'Tools'}>
-            <div className="flex overflow-x-auto px-1 py-1.5 [scrollbar-width:none]">
+            <div className="flex overflow-x-auto px-1 py-1.5 [scrollbar-width:none] [mask-image:linear-gradient(to_right,black_calc(100%-28px),transparent)]">
               {hasSelection ? (
                 <>
-                  <button type="button" onClick={() => useEditor.getState().select(null)} className="flex w-16 shrink-0 flex-col items-center gap-1 rounded-xl py-2 text-[0.7rem] font-semibold text-ink-soft" aria-label="Done editing">
+                  <button type="button" onClick={() => useEditor.getState().select(null)} className="flex w-16 shrink-0 flex-col items-center gap-1 rounded-lg py-2 text-[0.7rem] font-semibold text-ink-soft" aria-label="Done editing">
                     <Check className="size-5" />
                     Done
                   </button>
@@ -476,6 +490,7 @@ export function Editor({ eventId }: { eventId: string }) {
       <ShortcutsDialog open={shortcuts} onClose={() => setShortcuts(false)} />
       <DownloadDialog open={download} onClose={() => setDownload(false)} event={event} flush={flush} />
       <SaveTemplateDialog open={saveTpl} onClose={() => setSaveTpl(false)} event={event} />
+      {publishTpl && <PublishTemplateDialog onClose={() => setPublishTpl(false)} event={event} />}
       <Dialog open={preview} onClose={() => setPreview(false)} title="Video invite preview">
         <div className="mx-auto max-w-[300px] p-4">{preview && doc && data && <DesignPlayer design={doc as DesignDoc} data={data} language={event.language} />}</div>
         <p className="px-6 pb-6 text-center text-sm text-ink-soft">Your card animates layer by layer. Change animations from Animate on any selected item.</p>
@@ -490,7 +505,7 @@ function BarButton({ icon: Icon, label, active, onClick }: { icon: LucideIcon; l
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1 rounded-xl py-2 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 active:scale-95 aria-pressed:bg-primary aria-pressed:text-on-primary"
+      className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1 rounded-lg py-2 text-[0.7rem] font-semibold text-ink-soft transition-colors duration-100 active:scale-95 aria-pressed:tint-primary"
     >
       <Icon className="size-5" />
       {label}
@@ -530,8 +545,8 @@ function CanvasBar({ count, index, compact }: { count: number; index: number; co
   const s = useEditor.getState;
   const zoom = useEditor((st) => st.zoom);
   const [open, setOpen] = useState(false);
-  const pill = 'pointer-events-auto flex items-center gap-0.5 rounded-full border border-hairline bg-surface/95 p-1 shadow-md backdrop-blur';
-  const ib = 'grid size-8 place-items-center rounded-full transition-colors hover:bg-mist disabled:opacity-30';
+  const pill = 'pointer-events-auto flex items-center gap-0.5 rounded-lg border border-hairline bg-surface p-1';
+  const ib = 'grid size-8 place-items-center rounded-lg transition-colors hover:bg-mist disabled:opacity-30';
   return (
     <div className="pointer-events-none absolute inset-x-0 bottom-3 flex items-end justify-center gap-2 px-3">
       <div className={pill}>
@@ -553,7 +568,7 @@ function CanvasBar({ count, index, compact }: { count: number; index: number; co
         <button type="button" disabled={zoom <= ZOOM_MIN} onClick={() => zoomBy(0.8)} className={ib} {...tip('Zoom out', `${MOD}−`, 'top')}>
           <Minus className="size-4" />
         </button>
-        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="h-8 min-w-14 rounded-full px-1.5 text-sm font-semibold tabular-nums transition-colors hover:bg-mist" {...tip('Zoom level', `${MOD}0 to fit`, 'top')}>
+        <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} className="h-8 min-w-14 rounded-lg px-1.5 text-sm font-semibold tabular-nums transition-colors hover:bg-mist" {...tip('Zoom level', `${MOD}0 to fit`, 'top')}>
           {zoom === 1 ? 'Fit' : `${Math.round(zoom * 100)}%`}
         </button>
         <button type="button" disabled={zoom >= ZOOM_MAX} onClick={() => zoomBy(1.25)} className={ib} {...tip('Zoom in', `${MOD}+`, 'top')}>
@@ -565,7 +580,7 @@ function CanvasBar({ count, index, compact }: { count: number; index: number; co
           </button>
         )}
         {open && (
-          <div className="absolute bottom-full right-0 mb-2 w-32 origin-bottom-right animate-[pop-in_0.1s_ease-out] rounded-xl border border-hairline bg-surface p-1 shadow-lg" onMouseLeave={() => setOpen(false)}>
+          <div className="absolute bottom-full right-0 mb-2 w-32 origin-bottom-right animate-[pop-in_0.1s_ease-out] menu" onMouseLeave={() => setOpen(false)}>
             {ZOOM_STEPS.map((z) => (
               <button
                 key={z}
@@ -611,15 +626,15 @@ function DateDialog({ event, index, onClose, onSave }: { event: EventDto; index:
         <div className="grid grid-cols-[1.4fr_1fr] gap-3">
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-soft">Date</span>
-            <input type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} className="h-12 rounded-xl border border-hairline bg-surface px-3" />
+            <input type="date" required value={v.date} onChange={(e) => setV({ ...v, date: e.target.value })} className={`${controlClass} h-10 px-3`} />
           </label>
           <label className="flex flex-col gap-1.5">
             <span className="text-sm font-semibold text-ink-soft">Time</span>
-            <input type="time" value={v.time} onChange={(e) => setV({ ...v, time: e.target.value })} className="h-12 rounded-xl border border-hairline bg-surface px-3" />
+            <input type="time" value={v.time} onChange={(e) => setV({ ...v, time: e.target.value })} className={`${controlClass} h-10 px-3`} />
           </label>
         </div>
         <p className="text-sm text-ink-soft">The card, video, website and reminders all use this date.</p>
-        <button type="submit" className="h-12 rounded-full bg-primary font-semibold text-on-primary hover:bg-primary-hover">
+        <button type="submit" className="h-12 rounded-lg bg-primary font-semibold text-on-primary hover:bg-primary-hover">
           Save date
         </button>
       </form>

@@ -12,6 +12,8 @@ import { PRODUCTS, type CheckoutDto, type CreateOrderInput, type VerifyPaymentIn
 import { BadRequestException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { DB } from '../../infra/infra.module.js';
+import { AnalyticsService } from '../analytics/analytics.service.js';
+import { OffersService } from '../offers/offers.service.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
@@ -27,15 +29,18 @@ export class PaymentsService {
     private readonly events: EventsService,
     private readonly entitlements: EntitlementsService,
     private readonly templates: TemplatesService,
+    private readonly offers: OffersService,
+    private readonly analytics: AnalyticsService,
   ) {}
 
-  products() {
-    return { items: Object.values(PRODUCTS), gateway: this.gateway.name };
+  async products() {
+    const { products } = await this.offers.active();
+    return { items: Object.values(products), gateway: this.gateway.name };
   }
 
   async createOrder(user: AuthUser, input: CreateOrderInput): Promise<CheckoutDto> {
     const event = await this.events.getOwned(user, input.eventId);
-    const product = PRODUCTS[input.productCode];
+    const product = await this.offers.product(input.productCode);
     if (product.code === 'royale_upgrade' && !(await this.entitlements.has(event.id, 'website_premium'))) {
       throw new BadRequestException('The Royale upgrade is for invitations that already have Site Premium. Choose Site Royale instead.');
     }
@@ -44,19 +49,27 @@ export class PaymentsService {
     }
     const [me] = await this.db.select({ phone: users.phone, name: users.name }).from(users).where(eq(users.id, user.id));
 
+    // Price is always computed here (admin override -> running sale -> coupon), never trusted from the browser.
+    const coupon = input.couponCode ? await this.offers.quote(user.id, input.couponCode, product.code) : null;
+    const amountPaise = coupon ? coupon.totalPaise : product.pricePaise;
+
     const [order] = await this.db
       .insert(orders)
       .values({
         userId: user.id,
         eventId: event.id,
         productCode: product.code,
-        amountPaise: product.pricePaise,
+        amountPaise,
+        listPricePaise: product.basePricePaise,
+        discountPaise: product.basePricePaise - amountPaise,
+        couponCode: coupon?.code ?? null,
+        saleId: product.sale?.id ?? null,
         provider: this.gateway.name,
         templateId: event.templateId,
       })
       .returning();
 
-    const gw = await this.gateway.createOrder(product.pricePaise, order!.id, {
+    const gw = await this.gateway.createOrder(amountPaise, order!.id, {
       orderId: order!.id,
       eventId: event.id,
       product: product.code,
@@ -68,9 +81,10 @@ export class PaymentsService {
       provider: 'razorpay',
       providerOrderId: gw.id,
       keyId: this.gateway.publicKey,
-      amountPaise: product.pricePaise,
+      amountPaise,
       currency: 'INR',
       productName: product.name,
+      discountPaise: product.basePricePaise - amountPaise,
       prefill: { contact: me?.phone ?? '', name: me?.name ?? undefined },
     };
   }
@@ -133,7 +147,9 @@ export class PaymentsService {
             .where(eq(marketplaceTemplates.id, tpl.id));
         }
       }
+      if (order.couponCode) await this.offers.markUsed(order.couponCode);
       this.logger.log(`Order ${order.id} paid (${order.productCode})`);
+      this.analytics.record('purchase', { userId: order.userId }, { templateId: order.templateId, props: { product: order.productCode, amountPaise: order.amountPaise, coupon: order.couponCode } });
     });
     this.templates.invalidate();
   }

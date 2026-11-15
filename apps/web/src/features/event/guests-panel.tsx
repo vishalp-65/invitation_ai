@@ -201,7 +201,7 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
             {shown.map((g) => {
               const yes = Object.values(g.rsvp).filter((r) => r.status === 'yes').length;
               return (
-                <li key={g.id} className="glass-light rounded-2xl p-4">
+                <li key={g.id} className="glass-light rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{g.name}</p>
@@ -210,7 +210,7 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
                         {g.groupLabel ? ` · ${g.groupLabel}` : ''}
                       </p>
                     </div>
-                    <span className={`shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold ${yes ? 'bg-leaf/15 text-leaf' : 'bg-mist text-ink-soft'}`}>{status(g)}</span>
+                    <span className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${yes ? 'bg-leaf/15 text-leaf' : 'bg-mist text-ink-soft'}`}>{status(g)}</span>
                   </div>
                   <div className="mt-3 flex gap-2">
                     <Button size="sm" className="flex-1 bg-leaf text-white hover:bg-leaf/90" onClick={() => send(g)}>

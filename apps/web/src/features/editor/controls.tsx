@@ -17,7 +17,7 @@ export function Slider({ label, value, min, max, step = 1, onChange, suffix = ''
         <span className="flex items-center gap-1">
           <input
             type="number"
-            className="w-16 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-right text-sm tabular-nums text-ink focus:border-primary focus:outline-none"
+            className="w-16 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-right text-sm tabular-nums touch:h-9 touch:w-[4.5rem] touch:text-base text-ink focus:border-primary focus:outline-none"
             value={Math.round(value * 100) / 100}
             min={min}
             max={max}
@@ -62,7 +62,7 @@ export function NumberField({ label, value, onChange, min = -Infinity, max = Inf
     if (Number.isFinite(n) && n !== value) onChange(Math.min(max, Math.max(min, Math.round(n))));
   };
   return (
-    <label className={clsx('flex h-10 items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 focus-within:border-primary', disabled && 'opacity-50')}>
+    <label className={clsx('flex h-10 items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 focus-within:border-primary touch:h-11', disabled && 'opacity-50')}>
       <span className="text-xs font-bold text-ink-soft">{label}</span>
       <input
         inputMode="numeric"
@@ -79,7 +79,7 @@ export function NumberField({ label, value, onChange, min = -Infinity, max = Inf
             onChange(Math.min(max, Math.max(min, value + d)));
           }
         }}
-        className="w-full min-w-0 bg-transparent text-sm tabular-nums outline-none"
+        className="w-full min-w-0 bg-transparent text-sm tabular-nums outline-none touch:h-full touch:text-base"
         aria-label={label}
       />
     </label>
@@ -98,8 +98,8 @@ export function Seg<T extends string>({ options, value, onChange, label, scroll 
           {...(o.title ? tip(o.title) : {})}
           onClick={() => onChange(o.v)}
           className={clsx(
-            'flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 text-sm font-semibold transition-colors duration-100',
-            o.v === value ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/40',
+            'flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 touch:h-10 touch:min-w-10 text-sm font-semibold transition-colors duration-100',
+            o.v === value ? 'border-primary tint-primary' : 'border-hairline bg-surface text-ink hover:border-ink/40',
           )}
         >
           {o.label}
@@ -115,7 +115,7 @@ export function Section({ title, children, collapsed, onToggle, action }: { titl
     <section className="border-b border-hairline px-4 py-3.5 last:border-0">
       <div className="flex items-center justify-between gap-2">
         {onToggle ? (
-          <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="-mx-1 flex flex-1 items-center justify-between rounded-md px-1 py-0.5 text-left hover:text-ink">
+          <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="-mx-1 flex flex-1 items-center justify-between rounded-md px-1 py-0.5 text-left hover:text-ink touch:py-2">
             <h3 className="font-sans text-[0.78rem] font-bold uppercase tracking-wide text-ink-soft">{title}</h3>
             <ChevronDown className={clsx('size-4 text-ink-soft transition-transform duration-150', collapsed && '-rotate-90')} />
           </button>
@@ -192,14 +192,14 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
       onClick={() => pick(c)}
       {...tip(c)}
       aria-pressed={value.toUpperCase() === c.toUpperCase()}
-      className="size-7 rounded-full border border-black/10 shadow-sm transition-transform duration-100 hover:scale-110 aria-pressed:scale-110 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-2 aria-pressed:ring-offset-surface dark:border-white/15"
+      className="size-7 rounded-full border border-black/10 touch:size-9 transition-transform duration-100 hover:scale-110 aria-pressed:scale-110 aria-pressed:ring-2 aria-pressed:ring-primary aria-pressed:ring-offset-2 aria-pressed:ring-offset-surface dark:border-white/15"
       style={{ background: c }}
     />
   );
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => ref.current?.click()} {...tip('Custom colour')} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-hairline" style={{ background: value }}>
+        <button type="button" onClick={() => ref.current?.click()} {...tip('Custom colour')} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-hairline touch:size-11" style={{ background: value }}>
           <input
             ref={ref}
             type="color"
@@ -214,7 +214,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
             tabIndex={-1}
           />
         </button>
-        <label className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-hairline bg-surface px-2.5 focus-within:border-primary">
+        <label className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-hairline bg-surface px-2.5 focus-within:border-primary touch:h-11">
           <span className="text-sm text-ink-soft">#</span>
           <input
             value={hex.replace('#', '')}
@@ -225,7 +225,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
               if (HEX.test(v)) pick(v.startsWith('#') ? v : `#${v}`);
             }}
             spellCheck={false}
-            className="w-full min-w-0 bg-transparent font-mono text-sm uppercase outline-none"
+            className="w-full min-w-0 bg-transparent font-mono text-sm uppercase outline-none touch:h-full touch:text-base"
             aria-label="Hex colour"
           />
         </label>
@@ -233,7 +233,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
           <button
             type="button"
             {...tip('Pick a colour from screen')}
-            className="grid size-9 shrink-0 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40"
+            className="grid size-9 shrink-0 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40 touch:size-11"
             onClick={async () => {
               try {
                 const r = await new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper().open();
@@ -250,18 +250,18 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
       {uniq.length > 0 && (
         <div>
           <p className="mb-1.5 text-xs font-semibold text-ink-soft">In this design</p>
-          <div className="flex flex-wrap gap-1.5">{uniq.map(sw)}</div>
+          <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{uniq.map(sw)}</div>
         </div>
       )}
       {rec.length > 0 && (
         <div>
           <p className="mb-1.5 text-xs font-semibold text-ink-soft">Recent</p>
-          <div className="flex flex-wrap gap-1.5">{rec.map(sw)}</div>
+          <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{rec.map(sw)}</div>
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5">
+      <div className="flex flex-wrap gap-1.5 touch:gap-2.5">
         {PRESETS.map(sw)}
-        <button type="button" onClick={() => ref.current?.click()} {...tip('More colours')} className="grid size-7 place-items-center rounded-full border border-dashed border-ink/30 text-ink-soft hover:border-ink/60">
+        <button type="button" onClick={() => ref.current?.click()} {...tip('More colours')} className="grid size-7 place-items-center rounded-full border border-dashed touch:size-9 border-ink/30 text-ink-soft hover:border-ink/60">
           <Plus className="size-3.5" />
         </button>
       </div>

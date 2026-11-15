@@ -1,7 +1,6 @@
-import { asc, eq, eventFunctions, events } from '@cardai/db';
 import { BRAND, buildDesign, designDataFrom, DESIGN_H, DESIGN_W, type DesignData, type DesignDoc, type LanguageCode } from '@cardai/shared';
 import type { WorkerContext } from '../context.js';
-import { loadInviteProps } from './load-props.js';
+import { loadEventRows, loadInviteProps } from './load-props.js';
 
 /** Mirrors DesignRenderProps in @cardai/templates (kept local: the worker doesn't compile TSX). */
 export interface DesignRenderProps {
@@ -21,22 +20,21 @@ export interface DesignRenderProps {
  * template's automatic layout (exactly what the editor shows before any change).
  */
 export async function loadDesignProps(ctx: WorkerContext, eventId: string, opts: { watermark: boolean; withQr: boolean }): Promise<DesignRenderProps> {
-  const [event] = await ctx.db.select().from(events).where(eq(events.id, eventId));
-  if (!event) throw new Error(`Event ${eventId} not found`);
-  const fns = await ctx.db.select().from(eventFunctions).where(eq(eventFunctions.eventId, eventId)).orderBy(asc(eventFunctions.sortOrder));
+  const { event, fns } = await loadEventRows(ctx, eventId);
   // Reuse the classic loader for template, media, music and QR resolution.
-  const legacy = await loadInviteProps(ctx, eventId, opts);
+  const legacy = await loadInviteProps(ctx, eventId, opts, { event, fns });
   const language = event.language as LanguageCode;
   const data = designDataFrom({
     content: event.content,
     functions: fns.map((f) => ({ name: f.name, startsAt: f.startsAt.toISOString(), venueName: f.venueName, venueAddress: f.venueAddress ?? undefined, dressCode: f.dressCode ?? undefined, notes: f.notes })),
     language,
     eventType: event.type,
+    community: event.community,
     timezone: event.settings.timezone,
     photos: legacy.photos,
     rsvpDeadline: event.settings.rsvpDeadline ?? null,
   });
-  let design: DesignDoc = event.design ?? buildDesign({ template: legacy.template, data, language, eventType: event.type });
+  let design: DesignDoc = event.design ?? buildDesign({ template: legacy.template, data, language, eventType: event.type, community: event.community });
 
   // PDFs carry a QR code to the invitation website on the last page.
   if (opts.withQr && legacy.qrDataUrl) {

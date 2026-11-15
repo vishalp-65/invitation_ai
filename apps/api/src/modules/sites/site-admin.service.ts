@@ -1,6 +1,6 @@
 import { and, desc, eq, events, inArray, mediaAssets, siteUpdates, siteWishes, sql, type Database } from '@cardai/db';
 import {
-  autoCharacter,
+  siteCharacterFor,
   newSection,
   siteDocSchema,
   type SiteDoc,
@@ -135,7 +135,7 @@ export class SiteAdminService {
       }
     }
     doc.opening = { ...doc.opening, kind: out.opening };
-    doc.character = { ...doc.character, kind: out.character === 'auto' ? autoCharacter(event.type) : out.character };
+    doc.character = { ...doc.character, kind: siteCharacterFor(out.character, event.type, event.community, 'ai') };
     // Re-validate: the model's strings went through length caps, enums are schema-checked.
     return siteDocSchema.parse(doc);
   }
