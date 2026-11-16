@@ -1,6 +1,6 @@
 'use client';
 
-import { getLanguage, sectionHeading, type EventContent, type PublicSiteDto, type SiteSection } from '@cardai/shared';
+import { getLanguage, getSiteDesign, sectionHeading, type EventContent, type PublicSiteDto, type SiteDesign, type SiteSection } from '@cardai/shared';
 import { createContext, useContext, useMemo } from 'react';
 
 export interface SiteCtx {
@@ -14,6 +14,8 @@ export interface SiteCtx {
   heading: (s: Pick<SiteSection, 'type' | 'title'>) => string;
   t: (en: string, hi: string) => string;
   asset: (id: string | undefined) => string | undefined;
+  /** Cinematic design pack, or null for the classic look. */
+  design: SiteDesign | null;
 }
 
 const Ctx = createContext<SiteCtx | null>(null);
@@ -57,6 +59,7 @@ export function SiteProvider({
       heading: (s) => sectionHeading(s, language),
       t: (en, h) => (hi ? h : en),
       asset: (id) => (id ? data.media.assets[id] : undefined),
+      design: getSiteDesign(data.site.design),
     };
   }, [data, content, language, guestToken, preview]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

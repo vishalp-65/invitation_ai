@@ -105,6 +105,8 @@ export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
   doc?: DesignDoc;
   /** Admin pinned it to the top of the gallery. */
   featured?: boolean;
+  /** Invitations made with it (public list only; drives "Popular" sorting). */
+  uses?: number;
   designer?: { id: string; name: string };
   /** Design family: same layout + ornaments, different colourways. */
   family?: { id: string; name: string; variant: string };

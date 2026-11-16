@@ -38,7 +38,7 @@ const updatedAt = () =>
 
 export const userRole = pgEnum('user_role', ['user', 'designer', 'agent', 'admin']);
 export const eventStatus = pgEnum('event_status', ['draft', 'published', 'archived']);
-export const renderFormat = pgEnum('render_format', ['image', 'pdf', 'print_pdf', 'video']);
+export const renderFormat = pgEnum('render_format', ['image', 'pdf', 'print_pdf', 'video', 'site_video']);
 export const jobStatus = pgEnum('job_status', ['queued', 'processing', 'completed', 'failed']);
 export const assetKind = pgEnum('asset_kind', ['photo', 'ai_image', 'ai_clip', 'music', 'render']);
 export const aiKind = pgEnum('ai_kind', [
@@ -77,6 +77,8 @@ export const users = pgTable(
   /** Lower-cased; set only once verified (email OTP or Google), see emailVerifiedAt. */
   email: text(),
   emailVerifiedAt: timestamp({ withTimezone: true }),
+  /** scrypt hash; null for accounts that only ever used Google (they can set one via password reset). */
+  passwordHash: text(),
   /** Google account subject (stable id), never the email. */
   googleSub: text().unique(),
   avatarUrl: text(),

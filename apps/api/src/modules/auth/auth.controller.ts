@@ -1,12 +1,16 @@
 import {
   googleSignInSchema,
+  loginSchema,
   requestOtpSchema,
+  resetPasswordSchema,
+  signupSchema,
   updateProfileSchema,
-  verifyOtpSchema,
   type GoogleSignInInput,
+  type LoginInput,
   type RequestOtpInput,
+  type ResetPasswordInput,
+  type SignupInput,
   type UpdateProfileInput,
-  type VerifyOtpInput,
 } from '@cardai/shared';
 import { ConflictException, Controller, Get, HttpCode, Inject, Logger, Patch, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
@@ -49,24 +53,54 @@ export class AuthController {
     };
   }
 
+  /** Sign-up step 1: email a verification code (rejects addresses that already have an account). */
   @Public()
-  @Post('otp/request')
+  @Post('signup/request')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
-  requestOtp(@ZBody(requestOtpSchema) body: RequestOtpInput) {
-    return this.auth.requestLoginOtp(body.email);
+  requestSignup(@ZBody(requestOtpSchema) body: RequestOtpInput) {
+    return this.auth.requestSignupOtp(body.email);
+  }
+
+  /** Sign-up step 2: verify the code and create the account with its password. */
+  @Public()
+  @Post('signup')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
+  async signup(@ZBody(signupSchema) body: SignupInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { tokens, user, isNew } = await this.auth.signup(body.email, body.code, body.name, body.password, req.headers['user-agent']);
+    this.setCookies(reply, tokens);
+    this.trackSignIn(req, user.id, isNew, 'email');
+    return { user, isNew };
   }
 
   @Public()
-  @Post('otp/verify')
+  @Post('login')
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
-  async verifyOtp(
-    @ZBody(verifyOtpSchema) body: VerifyOtpInput,
-    @Req() req: FastifyRequest,
-    @Res({ passthrough: true }) reply: FastifyReply,
-  ) {
-    const { tokens, user, isNew } = await this.auth.verifyLoginOtp(body.email, body.code, body.name, req.headers['user-agent']);
+  async login(@ZBody(loginSchema) body: LoginInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { tokens, user, isNew } = await this.auth.login(body.email, body.password, req.headers['user-agent']);
+    this.setCookies(reply, tokens);
+    this.trackSignIn(req, user.id, isNew, 'email');
+    return { user, isNew };
+  }
+
+  /** Forgot password step 1: the only login-side use of an emailed code. */
+  @Public()
+  @Post('password/forgot')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
+  forgotPassword(@ZBody(requestOtpSchema) body: RequestOtpInput) {
+    return this.auth.requestPasswordReset(body.email);
+  }
+
+  /** Forgot password step 2: code + new password, then signed in. */
+  @Public()
+  @Post('password/reset')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
+  async resetPassword(@ZBody(resetPasswordSchema) body: ResetPasswordInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { tokens, user, isNew } = await this.auth.resetPassword(body.email, body.code, body.password, req.headers['user-agent']);
     this.setCookies(reply, tokens);
     this.trackSignIn(req, user.id, isNew, 'email');
     return { user, isNew };

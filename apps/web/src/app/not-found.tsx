@@ -5,14 +5,21 @@ export default function NotFound() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-2xl px-4 py-24 text-center">
-        <h1 className="text-5xl">This page does not exist</h1>
-        <p className="mt-4 text-lg text-ink-soft">
+      <div className="toran animate-sway" aria-hidden />
+      <main className="mx-auto flex max-w-xl flex-col items-center px-5 py-20 text-center sm:py-28">
+        <p className="animate-fade-up font-display text-7xl text-primary sm:text-8xl">404</p>
+        <h1 className="mt-4 animate-fade-up text-[2rem] [animation-delay:80ms] sm:text-[2.75rem]">This page does not exist</h1>
+        <p className="mt-4 animate-fade-up text-lg text-ink-soft [animation-delay:160ms]">
           If someone sent you an invitation link, it may have been unpublished. Ask them to share it again.
         </p>
-        <ButtonLink href="/" className="mt-8">
-          Go to the home page
-        </ButtonLink>
+        <div className="mt-8 flex animate-fade-up flex-col gap-3 [animation-delay:240ms] sm:flex-row">
+          <ButtonLink href="/" size="lg">
+            Go to the home page
+          </ButtonLink>
+          <ButtonLink href="/templates" variant="line" size="lg">
+            Browse designs
+          </ButtonLink>
+        </div>
       </main>
     </>
   );

@@ -1,7 +1,7 @@
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
 
-const apiUrl = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
+const apiUrl = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 const storageUrl = process.env.STORAGE_PUBLIC_URL ?? 'http://localhost:9000/cardai';
 
 const config: NextConfig = {

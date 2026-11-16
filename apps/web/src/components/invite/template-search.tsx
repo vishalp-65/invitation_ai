@@ -10,7 +10,7 @@ export type TemplateSearchState = Required<Pick<TemplateFilters, 'q' | 'styles' 
 
 const EMPTY: TemplateSearchState = { q: '', styles: [], colors: [], community: '' };
 
-const COMMUNITY_LABEL: Record<string, [string, string]> = {
+export const COMMUNITY_LABEL: Record<string, [string, string]> = {
   'hindu-north': ['North Indian', 'उत्तर भारतीय'],
   'hindu-south': ['South Indian', 'दक्षिण भारतीय'],
   marwari: ['Marwari / Rajasthani', 'मारवाड़ी'],
@@ -27,8 +27,8 @@ const COMMUNITY_LABEL: Record<string, [string, string]> = {
 };
 
 /** Search + filter state for a template list; results keep relevance order when there is a query. */
-export function useTemplateSearch(templates: TemplateDefinition[] | undefined) {
-  const [state, setState] = useState<TemplateSearchState>(EMPTY);
+export function useTemplateSearch(templates: TemplateDefinition[] | undefined, initial: TemplateSearchState = EMPTY) {
+  const [state, setState] = useState<TemplateSearchState>(initial);
   const q = useDeferredValue(state.q);
   const results = useMemo(
     () =>

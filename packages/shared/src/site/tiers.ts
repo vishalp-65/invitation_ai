@@ -1,4 +1,5 @@
 import type { Feature } from '../constants/products.js';
+import type { SiteDesignId } from './designs.js';
 import type { SiteCharacter, SiteDoc, SiteOpening, SiteSection, SiteSectionType } from './schema.js';
 
 /** Website plan of one invitation, derived from its entitlements. */
@@ -28,6 +29,8 @@ export const SECTION_TIER: Record<SiteSectionType, SiteTier> = {
   rsvp: 'free',
   custom: 'free',
   closing: 'free',
+  countdown: 'free',
+  things: 'premium',
   couple: 'premium',
   story: 'premium',
   dresscode: 'premium',
@@ -49,6 +52,8 @@ export const OPENING_TIER: Record<SiteOpening, SiteTier> = {
   curtain: 'premium',
   scroll: 'premium',
   petals: 'premium',
+  seal: 'premium',
+  lanterns: 'premium',
 };
 
 /** Free sites get the couple (also what `auto` picks for weddings) and sacred characters; the rest of the cast is Premium. */
@@ -65,6 +70,30 @@ export const CHARACTER_TIER: Record<SiteCharacter, SiteTier> = {
   peacock: 'premium',
   doves: 'premium',
   house: 'premium',
+};
+
+/** Cinematic design packs: two are free, the painted royal ones need Premium. */
+export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
+  'modern-minimal': 'free',
+  'pastel-floral': 'free',
+  'royal-lanterns': 'premium',
+  'rose-seal': 'premium',
+  'temple-dawn': 'premium',
+  alpana: 'premium',
+  phulkari: 'premium',
+  bandhani: 'premium',
+  paithani: 'premium',
+  'nikah-emerald': 'premium',
+  'garden-chapel': 'premium',
+  'anand-karaj': 'premium',
+  'lake-palace': 'premium',
+  'goa-sunset': 'premium',
+  'kerala-backwaters': 'premium',
+  'banaras-ghats': 'premium',
+  'himalayan-pines': 'premium',
+  'blue-pottery': 'premium',
+  'bombay-deco': 'premium',
+  'pichwai-lotus': 'premium',
 };
 
 /** Royale-only page features (beyond sections). */
@@ -92,8 +121,10 @@ export function sectionAllowed(section: Pick<SiteSection, 'type'>, tier: SiteTie
  */
 export function applySiteTier(doc: SiteDoc, tier: SiteTier): SiteDoc {
   const royale = tierAtLeast(tier, 'royale');
+  const design = doc.design && tierAtLeast(tier, DESIGN_TIER[doc.design]) ? doc.design : undefined;
   return {
     ...doc,
+    design,
     opening: tierAtLeast(tier, OPENING_TIER[doc.opening.kind]) ? doc.opening : { ...doc.opening, kind: 'envelope' },
     character: tierAtLeast(tier, CHARACTER_TIER[doc.character.kind]) ? doc.character : { ...doc.character, kind: 'auto' },
     access: royale ? doc.access : { mode: 'link' },
@@ -110,6 +141,7 @@ export function lockedInDoc(doc: SiteDoc, tier: SiteTier): Array<{ label: string
   for (const s of doc.sections) {
     if (!s.hidden && !sectionAllowed(s, tier)) out.push({ label: s.type, tier: SECTION_TIER[s.type] });
   }
+  if (doc.design && !tierAtLeast(tier, DESIGN_TIER[doc.design])) out.push({ label: `${doc.design} design`, tier: DESIGN_TIER[doc.design] });
   if (!tierAtLeast(tier, OPENING_TIER[doc.opening.kind])) out.push({ label: `${doc.opening.kind} opening`, tier: OPENING_TIER[doc.opening.kind] });
   if (!tierAtLeast(tier, CHARACTER_TIER[doc.character.kind])) out.push({ label: `${doc.character.kind} character`, tier: CHARACTER_TIER[doc.character.kind] });
   if (!tierAtLeast(tier, 'royale')) {

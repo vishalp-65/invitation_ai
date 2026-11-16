@@ -4,7 +4,7 @@ import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttribu
 /** Shared look for every text control: flat, 8px corners, the border carries hover/focus/error. */
 /** Colours/border/states only, no size or padding, so call sites can size it without class conflicts. */
 export const controlClass =
-  'rounded-[var(--radius-field)] border border-hairline bg-surface text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-ink focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
+  'rounded-[var(--radius-field)] border border-hairline bg-surface text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-primary focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
 const control = `${controlClass} w-full px-3 text-[0.95rem]`;
 
 /** Small form label. */

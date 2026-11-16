@@ -1,6 +1,6 @@
 'use client';
 
-import type { CheckoutDto, ProductCode } from '@cardai/shared';
+import { BRAND, type CheckoutDto, type ProductCode } from '@cardai/shared';
 import { api } from './api';
 import { track } from './track';
 
@@ -47,7 +47,7 @@ export async function buy(eventId: string, productCode: ProductCode, couponCode?
       order_id: order.providerOrderId,
       amount: order.amountPaise,
       currency: order.currency,
-      name: 'CardAI',
+      name: BRAND.name,
       description: order.productName,
       prefill: order.prefill,
       theme: { color: '#B5121B' },

@@ -1,22 +1,12 @@
 'use client';
 
 import { BRAND } from '@cardai/shared';
-import { Check } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 import { Logo } from '@/components/layout/site-header';
 import { AuthFlow } from './auth-flow';
-
-/** Three columns of real designs drifting past each other. */
-const COLUMNS = [
-  ['kanjeevaram-wine', 'golden-vows-onyx', 'marigold-mandap', 'botanical-sage'],
-  ['varmala-maroon', 'midnight-gold', 'genda-jharokha-maroon', 'peacock-plum'],
-  ['shubho-bibaho-maroon', 'deco-emerald', 'kalash-ivory', 'monogram-wine'],
-];
-
-const PERKS = ['Card, video and website from one form', 'Personal WhatsApp links and RSVP', '12 Indian languages, correct scripts'];
 
 /** Safe relative path from `?next=` (prevents open redirects). */
 export function useNextTarget() {
@@ -25,59 +15,40 @@ export function useNextTarget() {
 }
 
 /**
- * Desktop brand panel: a slow, endless wall of designs on solid ink, with the pitch on an opaque
- * band below. The motion is a CSS transform loop (compositor only), paused for reduced motion.
+ * Desktop showcase: three real designs, settled once on load, on a quiet grey panel.
+ * No looping motion, so the form stays the focus.
  */
-function BrandPanel() {
+function Showcase() {
+  const cards = [
+    { id: 'golden-vows-onyx', cls: '-translate-x-[62%] translate-y-[8%] -rotate-6', delay: '200ms' },
+    { id: 'kanjeevaram-wine', cls: 'translate-x-[62%] translate-y-[8%] rotate-6', delay: '200ms' },
+    { id: 'varmala-maroon', cls: 'z-10', delay: '80ms' },
+  ];
   return (
-    <section className="sticky top-0 hidden h-dvh flex-col overflow-hidden bg-primary text-on-primary lg:flex">
-      <div className="relative z-10 flex items-center justify-between px-12 py-8 xl:px-14">
-        <Logo tone="light" />
-        <span className="rounded-md border border-white/15 px-3 py-1 text-xs font-medium text-white/70">140+ designs</span>
-      </div>
-
-      <div className="relative min-h-0 flex-1 overflow-hidden" aria-hidden>
-        <div className="absolute -inset-x-6 -top-24 bottom-0 grid rotate-[-4deg] grid-cols-3 gap-4 px-10">
-          {COLUMNS.map((col, c) => (
-            <div key={c} className={c === 1 ? 'pt-24' : ''}>
-              <div
-                className="flex flex-col motion-safe:animate-[scroll-y_linear_infinite]"
-                style={{ animationDuration: `${48 + c * 8}s`, animationDirection: c === 1 ? 'reverse' : 'normal' }}
-              >
-                {[...col, ...col].map((id, i) => (
-                  <Image
-                    key={`${id}-${i}`}
-                    src={`/showcase/${id}.jpg`}
-                    alt=""
-                    width={432}
-                    height={768}
-                    sizes="180px"
-                    priority={i < 2}
-                    // margin (not gap) keeps the two halves exactly equal, so the loop has no jump
-                    className="mb-4 aspect-[9/16] w-full rounded-xl border border-white/10 bg-surface/5 object-cover"
-                  />
-                ))}
-              </div>
+    <aside className="sticky top-0 hidden h-dvh p-3 lg:block">
+      <div className="flex h-full flex-col items-center justify-center overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-sand px-10">
+        <div className="relative aspect-[9/16] w-[min(15rem,34%)]" aria-hidden>
+          {cards.map((c) => (
+            <div key={c.id} className={`absolute inset-0 ${c.cls}`}>
+              <Image
+                src={`/showcase/${c.id}.jpg`}
+                alt=""
+                width={432}
+                height={768}
+                sizes="240px"
+                priority
+                className="size-full animate-fade-up rounded-xl border border-hairline object-cover"
+                style={{ animationDelay: c.delay }}
+              />
             </div>
           ))}
         </div>
+        <div className="mt-16 max-w-sm text-center">
+          <p className="text-lg font-medium tracking-[-0.01em] text-ink">One form. A card, a video and a website.</p>
+          <p className="mt-2 text-sm leading-relaxed text-ink-soft">140+ designs in 12 Indian languages, shared on WhatsApp with RSVP.</p>
+        </div>
       </div>
-
-      <div className="relative z-10 border-t border-white/10 bg-primary px-12 pb-12 pt-9 xl:px-14">
-        <p className="font-display max-w-md text-[2.4rem] leading-[1.12]">शुभ कार्य की शुरुआत, एक निमंत्रण से।</p>
-        <p className="mt-2 text-white/60">Every celebration begins with an invitation.</p>
-        <ul className="mt-6 flex flex-col gap-2.5">
-          {PERKS.map((p) => (
-            <li key={p} className="flex items-center gap-3 text-[0.95rem] text-white/80">
-              <span className="grid size-5 shrink-0 place-items-center rounded-full bg-marigold text-night">
-                <Check className="size-3" strokeWidth={3} aria-hidden />
-              </span>
-              {p}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </section>
+    </aside>
   );
 }
 
@@ -99,34 +70,30 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
   const switchHref = signup ? `/login${qs}` : `/signup${qs}`;
 
   return (
-    <main className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <BrandPanel />
-
+    <main className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <section className="flex min-h-dvh flex-col">
-        <div className="flex items-center justify-between px-5 py-4 sm:px-8 lg:justify-end lg:px-12 lg:py-8">
-          <div className="lg:hidden">
-            <Logo />
-          </div>
+        <div className="flex h-16 items-center justify-between px-5 sm:px-8 lg:px-12">
+          <Logo />
           <p className="text-sm text-ink-soft">
-            <span className="hidden sm:inline">{signup ? 'Already have an account?' : `New to ${BRAND.name}?`} </span>
-            <Link
-              href={switchHref}
-              className="ml-1 inline-flex h-9 items-center rounded-lg border border-hairline px-4 font-semibold text-ink transition-colors hover:border-ink/30 hover:bg-ivory"
-            >
+            <span className="max-sm:hidden">{signup ? 'Already have an account?' : `New to ${BRAND.name}?`} </span>
+            <Link href={switchHref} className="font-medium text-ink underline decoration-hairline underline-offset-4 transition-colors hover:decoration-ink">
               {signup ? 'Log in' : 'Sign up'}
             </Link>
           </p>
         </div>
 
-        <div className="flex flex-1 flex-col justify-center px-5 pb-10 pt-4 sm:px-8 lg:px-14">
-          <div className="mx-auto w-full max-w-[25rem] animate-fade-up">
+        <div className="flex flex-1 flex-col justify-center px-5 py-10 sm:px-8 lg:px-12">
+          <div className="mx-auto w-full max-w-[22.5rem] animate-fade-up">
             <AuthFlow mode={mode} next={target} initialError={search.get('error')} onDone={() => router.replace(target)} />
-            <p className="mt-10 border-t border-hairline pt-5 text-center text-xs leading-relaxed text-ink-soft/80">
-              By continuing, you agree to the {BRAND.name} Terms of Service and Privacy Policy.
-            </p>
           </div>
         </div>
+
+        <p className="px-5 pb-6 text-center text-xs leading-relaxed text-ink-soft sm:px-8">
+          By continuing, you agree to the {BRAND.name} Terms of Service and Privacy Policy.
+        </p>
       </section>
+
+      <Showcase />
     </main>
   );
 }

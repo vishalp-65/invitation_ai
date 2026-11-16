@@ -8,4 +8,5 @@ export const COMPOSITIONS = {
   designCard: { id: COMPOSITION_IDS.designCard, ...CANVAS.story },
   designCardPrint: { id: COMPOSITION_IDS.designCardPrint, width: DESIGN_PRINT.width, height: DESIGN_PRINT.height },
   designVideo: { id: COMPOSITION_IDS.designVideo, ...CANVAS.story, fps: VIDEO.fps },
+  siteVideo: { id: COMPOSITION_IDS.siteVideo, ...CANVAS.story, fps: VIDEO.fps },
 } as const;

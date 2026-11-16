@@ -1,8 +1,9 @@
 'use client';
 
-import { BRAND, EVENT_TYPES, type EventCategory } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, EVENT_TYPES, type EventCategory } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ChevronDown, ChevronRight, Languages, LayoutGrid, LogOut, Menu, Plus, ShieldCheck, Store, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Languages, LayoutGrid, LogOut, Palette, PartyPopper, Plus, ShieldCheck, Sparkles, Store, Tag, X } from 'lucide-react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
@@ -11,30 +12,44 @@ import { useLogout, useMe } from '@/lib/hooks';
 import { isLightOnly, ThemeSegmented, ThemeToggle } from '@/lib/theme';
 import { AnnouncementBar } from './announcement-bar';
 
-export function Logo({ className = '', tone = 'dark' }: { className?: string; tone?: 'dark' | 'light' }) {
+export function Logo({ className = '', tone = 'dark', compact }: { className?: string; tone?: 'dark' | 'light'; compact?: boolean }) {
   return (
-    <Link href="/" className={clsx('flex shrink-0 items-center gap-2', className)} aria-label={`${BRAND.name} home`}>
-      {/* Toran-inspired mark: arch + marigold drop, in the trilogy. */}
-      <svg viewBox="0 0 32 32" className="size-8 shrink-0" aria-hidden>
-        <defs>
-          <linearGradient id="lg" x1="0" y1="0" x2="1" y2="1">
-            <stop offset="0" stopColor="#E2394A" />
-            <stop offset="1" stopColor="#8A0D14" />
-          </linearGradient>
-        </defs>
-        <path d="M4 30V14a12 12 0 0 1 24 0v16Z" fill="url(#lg)" />
-        <path d="M8 30V15a8 8 0 0 1 16 0v15" fill="none" stroke="#F2A900" strokeWidth="1.6" />
-        <circle cx="16" cy="19" r="3.4" fill="#F2A900" />
-        <path d="M16 4v3" stroke="#F2A900" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-      <span className={clsx('font-display text-[1.45rem] leading-none tracking-tight', tone === 'light' ? 'text-white' : 'text-ink')}>
-        {BRAND.name}
-      </span>
+    <Link href="/" className={clsx('flex shrink-0 items-center gap-2.5', className)} aria-label={`${BRAND.name} home`}>
+      <LogoMark tone={tone} className="size-7" />
+      {!compact && (
+        <span className={clsx('text-[1.25rem] font-semibold leading-none tracking-[-0.025em] [font-stretch:88%]', tone === 'light' ? 'text-white' : 'text-ink')}>
+          {BRAND.name.toLowerCase()}
+        </span>
+      )}
     </Link>
   );
 }
 
-function useSwitchLocale() {
+/**
+ * Noyta mark: the "n" drawn as a doorway arch with a diya flame above it (an invitation at your door).
+ * Plum tile in light mode, gold tile on dark grounds. Static copies live in /public/brand.
+ */
+export function LogoMark({ className = '', tone = 'dark' }: { className?: string; tone?: 'dark' | 'light' }) {
+  const light = tone === 'light';
+  return (
+    <svg viewBox="0 0 32 32" className={clsx('shrink-0', className)} aria-hidden>
+      <rect width="32" height="32" rx="9" className={light ? 'fill-gold-soft' : 'fill-primary'} />
+      <path
+        d="M10.5 25v-7.5a5.5 5.5 0 0 1 11 0V25"
+        fill="none"
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        className={light ? 'stroke-night' : 'stroke-ivory dark:stroke-night'}
+      />
+      <path
+        d="M16 3.8c1.7 2 2.3 3.3 2.3 4.3a2.3 2.3 0 0 1-4.6 0c0-1 .6-2.3 2.3-4.3Z"
+        className={light ? 'fill-plum' : 'fill-gold-soft dark:fill-plum'}
+      />
+    </svg>
+  );
+}
+
+export function useSwitchLocale() {
   const locale = useLocale();
   const router = useRouter();
   const next = locale === 'hi' ? 'en' : 'hi';
@@ -48,20 +63,19 @@ function useSwitchLocale() {
   };
 }
 
-export function LocaleSwitch({ tone = 'dark', compact }: { tone?: 'dark' | 'light'; compact?: boolean }) {
+export function LocaleSwitch({ tone = 'dark' }: { tone?: 'dark' | 'light'; compact?: boolean }) {
   const { next, label, switchTo } = useSwitchLocale();
   return (
     <button
       type="button"
       onClick={switchTo}
-      data-tip={compact ? (next === 'hi' ? 'हिन्दी में देखें' : 'View in English') : undefined}
       className={clsx(
-        'inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold transition-colors',
-        tone === 'light' ? 'text-white/90 hover:bg-white/10' : 'text-ink-soft hover:bg-mist hover:text-ink',
+        'inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors',
+        tone === 'light' ? 'text-white/80 hover:text-white' : 'text-ink-soft hover:text-ink',
       )}
       aria-label={next === 'hi' ? 'हिन्दी में देखें' : 'View in English'}
     >
-      <Languages className="size-4" />
+      <Languages className="size-4" aria-hidden />
       {label}
     </button>
   );
@@ -113,103 +127,98 @@ function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLE
 // ---------------------------------------------------------------- header
 
 /**
- * Site navigation. Full-width sticky bar, tuned for smooth scrolling:
- *  - no backdrop-filter (blurring scrolling content re-rasterises every frame)
- *  - the "scrolled" state comes from an IntersectionObserver on a sentinel, not a scroll listener
- *  - flat: a hairline border separates it from the page, the bar never changes size
+ * Site navigation: a floating "island".
+ *  - At the top of the page it sits flush with the page ground; once you scroll it tightens into a
+ *    bordered bar (flat, hairline, no shadow) and tucks away while you scroll down, back on scroll up.
+ *  - A single pill slides under whichever link the pointer is on.
+ *  - A thin gold line along its bottom edge shows reading progress (CSS scroll timeline, no JS).
+ *  - No backdrop-filter: blurring scrolling content re-rasterises every frame.
  * Desktop (lg+): links + Occasions mega menu + account menu. Below lg: a slide-in drawer.
  */
-export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
+export function SiteHeader() {
   const t = useTranslations('nav');
-  const { data: me } = useMe();
+  const { data: me, isLoading } = useMe();
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  const sentinel = useRef<HTMLDivElement>(null);
-  const light = tone === 'light' && !scrolled;
-
-  useEffect(() => {
-    const el = sentinel.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setScrolled(!e!.isIntersecting));
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  const headerRef = useRef<HTMLElement>(null);
+  const { scrolled, hidden } = useScrollState(headerRef, drawer);
   useEffect(() => setDrawer(false), [pathname]);
 
-  const linkCls = (active: boolean) =>
+  const active = (href: string) => pathname.startsWith(href);
+  const linkCls = (on: boolean) =>
     clsx(
-      'relative inline-flex h-9 items-center gap-1 rounded-lg px-3 text-[0.94rem] font-medium transition-colors',
-      light ? 'text-white/85 hover:bg-white/10 hover:text-white' : active ? 'text-ink' : 'text-ink-soft hover:bg-mist hover:text-ink',
-      // Current page: a short underline, quieter than a filled pill.
-      active && 'after:absolute after:inset-x-3 after:-bottom-[13px] after:h-0.5 after:rounded-full after:bg-accent',
+      'nav-link relative z-10 inline-flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition-colors duration-200',
+      on ? 'text-ink' : 'text-ink-soft hover:text-ink aria-expanded:text-ink',
     );
+  const loginHref = `/login${pathname && pathname !== '/' && pathname !== '/login' ? `?next=${encodeURIComponent(pathname)}` : ''}`;
 
   return (
     <>
       <AnnouncementBar />
-      {/* Marker at the top of the page: once it leaves the viewport, we're "scrolled". */}
-      <div ref={sentinel} className="pointer-events-none absolute left-0 top-0 h-6 w-px" aria-hidden />
-      <header className={clsx('sticky top-0 z-40 border-b transition-colors duration-200', light ? 'border-transparent bg-transparent' : 'border-hairline bg-surface')}>
-        <div className="mx-auto flex h-16 max-w-6xl items-center gap-2 px-4 sm:px-5">
-          <Logo tone={light ? 'light' : 'dark'} className="mr-3" />
+      <header
+        ref={headerRef}
+        data-scrolled={scrolled || undefined}
+        data-hidden={hidden || undefined}
+        className="group/nav sticky top-0 z-40 px-2 pt-0 transition-[transform,padding] duration-500 ease-[var(--ease-out-quint)] data-[scrolled]:pt-2 data-[hidden]:-translate-y-[calc(100%+4px)] sm:px-3 sm:data-[scrolled]:pt-3"
+      >
+        <div className="relative mx-auto flex h-16 max-w-6xl items-center rounded-[14px] border border-transparent px-3 transition-[max-width,height,background-color,border-color] duration-500 ease-[var(--ease-out-quint)] group-data-[scrolled]/nav:h-14 group-data-[scrolled]/nav:max-w-5xl group-data-[scrolled]/nav:border-hairline group-data-[scrolled]/nav:bg-surface sm:px-4">
+          <Logo className="mr-6 lg:mr-8" />
 
-          <nav className="hidden items-center gap-0.5 lg:flex" aria-label="Main">
+          <SlidingNav className="hidden lg:flex" label="Main">
             <OccasionsMenu linkCls={linkCls(false)} />
             {LINKS.map((n) => (
-              <Link key={n.href} href={n.href} aria-current={pathname.startsWith(n.href) ? 'page' : undefined} className={linkCls(pathname.startsWith(n.href))}>
+              <Link key={n.href} href={n.href} aria-current={active(n.href) ? 'page' : undefined} className={linkCls(active(n.href))}>
                 {t(n.key)}
+                {active(n.href) && <ActiveDot />}
               </Link>
             ))}
-            <Link href="/designer" aria-current={pathname.startsWith('/designer') ? 'page' : undefined} className={linkCls(pathname.startsWith('/designer'))}>
+            <Link href="/designer" aria-current={active('/designer') ? 'page' : undefined} className={linkCls(active('/designer'))}>
               {t('sell')}
+              {active('/designer') && <ActiveDot />}
             </Link>
-          </nav>
+          </SlidingNav>
 
           <div className="ml-auto flex items-center gap-1">
             <div className="hidden items-center gap-0.5 lg:flex">
-              <LocaleSwitch tone={light ? 'light' : 'dark'} />
+              <LocaleSwitch />
               <ThemeToggle compact />
-              <span className="mx-1.5 h-6 w-px bg-hairline" aria-hidden />
+              <span aria-hidden className="mx-1.5 h-5 w-px bg-hairline" />
             </div>
-            {me ? (
+            {/* Reserve the slot while the session loads so the bar doesn't jump. */}
+            {isLoading ? (
+              <span className="hidden h-9 w-40 sm:block" aria-hidden />
+            ) : me ? (
               <>
-                <Link
-                  href="/dashboard"
-                  aria-current={pathname.startsWith('/dashboard') ? 'page' : undefined}
-                  className={clsx(
-                    'hidden h-9 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold transition-colors sm:inline-flex',
-                    light ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-mist aria-[current=page]:tint-primary',
-                  )}
-                >
-                  <LayoutGrid className="size-4" />
-                  {t('myInvites')}
+                <Link href="/dashboard" className={clsx(linkCls(false), 'max-sm:hidden')}>
+                  {t('dashboard')}
                 </Link>
-                <CreateButton label={t('create')} />
+                {!pathname.startsWith('/create') && <CreateButton label={t('create')} />}
                 <AccountMenu />
               </>
             ) : (
               <>
-                <Link
-                  href={`/login${pathname && pathname !== '/' && pathname !== '/login' ? `?next=${encodeURIComponent(pathname)}` : ''}`}
-                  className={clsx('hidden h-9 items-center rounded-lg px-3 text-sm font-semibold transition-colors sm:inline-flex', light ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-mist')}
-                >
+                <Link href={loginHref} className={clsx(linkCls(false), 'max-sm:hidden')}>
                   {t('login')}
                 </Link>
-                <CreateButton label={t('create')} />
+                {!pathname.startsWith('/create') && <CreateButton label={t('create')} />}
               </>
             )}
             <button
               type="button"
-              className={clsx('grid size-10 place-items-center rounded-lg transition-colors lg:hidden', light ? 'text-white hover:bg-white/10' : 'text-ink hover:bg-mist')}
+              className="-mr-1 grid size-10 place-items-center rounded-lg text-ink transition-colors hover:bg-mist lg:hidden"
               aria-expanded={drawer}
               aria-controls="site-drawer"
               aria-label={t('menu')}
               onClick={() => setDrawer(true)}
             >
-              <Menu className="size-5" />
+              <MenuIcon open={drawer} />
             </button>
           </div>
+
+          {/* Reading progress: scales with the page's scroll position (scroll-driven animation). */}
+          <span aria-hidden className="pointer-events-none absolute inset-x-3 -bottom-px h-px overflow-hidden opacity-0 transition-opacity duration-300 group-data-[scrolled]/nav:opacity-100">
+            <span className="nav-progress block h-full origin-left bg-gold" />
+          </span>
         </div>
       </header>
       <MobileDrawer open={drawer} onClose={() => setDrawer(false)} />
@@ -217,24 +226,120 @@ export function SiteHeader({ tone = 'dark' }: { tone?: 'dark' | 'light' }) {
   );
 }
 
+function ActiveDot() {
+  return <span aria-hidden className="absolute bottom-0.5 left-1/2 size-1 -translate-x-1/2 rounded-full bg-gold" />;
+}
+
+/** Two bars that fold into an X. */
+function MenuIcon({ open }: { open: boolean }) {
+  return (
+    <span aria-hidden className="relative block h-3 w-[18px]">
+      <span className={clsx('absolute left-0 top-0 h-[1.75px] w-full rounded-full bg-current transition-transform duration-300 ease-[var(--ease-out-quint)]', open && 'translate-y-[5px] rotate-45')} />
+      <span className={clsx('absolute bottom-0 left-0 h-[1.75px] w-full rounded-full bg-current transition-transform duration-300 ease-[var(--ease-out-quint)]', open && '-translate-y-[5px] -rotate-45')} />
+    </span>
+  );
+}
+
+/**
+ * A nav row with one shared hover pill that glides between links (and to the focused link for
+ * keyboard users). Measures with offsetLeft/offsetWidth only on pointer/focus, never on scroll.
+ */
+function SlidingNav({ children, className, label }: { children: ReactNode; className?: string; label: string }) {
+  const ref = useRef<HTMLElement>(null);
+  const [pill, setPill] = useState({ x: 0, w: 0, on: false, instant: true });
+  const moveTo = (target: EventTarget | null) => {
+    const el = (target as HTMLElement | null)?.closest?.('.nav-link') as HTMLElement | null;
+    if (!el || !ref.current?.contains(el)) return;
+    const box = ref.current.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    setPill((p) => ({ x: r.left - box.left, w: r.width, on: true, instant: !p.on }));
+  };
+  return (
+    <nav
+      ref={ref}
+      aria-label={label}
+      className={clsx('relative items-center gap-0.5', className)}
+      onPointerOver={(e) => e.pointerType === 'mouse' && moveTo(e.target)}
+      onPointerLeave={() => setPill((p) => ({ ...p, on: false }))}
+      onFocus={(e) => moveTo(e.target)}
+      onBlur={() => setPill((p) => ({ ...p, on: false }))}
+    >
+      <span
+        aria-hidden
+        className="pointer-events-none absolute left-0 top-1/2 h-9 -translate-y-1/2 rounded-lg bg-mist transition-[transform,width,opacity] duration-300 ease-[var(--ease-out-quint)]"
+        style={{ width: pill.w, transform: `translate3d(${pill.x}px,-50%,0)`, opacity: pill.on ? 1 : 0, transitionProperty: pill.instant ? 'opacity' : undefined }}
+      />
+      {children}
+    </nav>
+  );
+}
+
+/**
+ * `scrolled` once the page leaves the top; `hidden` while scrolling down past the fold
+ * (never while the pointer or focus is inside the bar, or the drawer is open).
+ * rAF-throttled passive listener, state only changes on threshold crossings.
+ */
+function useScrollState(ref: React.RefObject<HTMLElement | null>, locked: boolean) {
+  const [scrolled, setScrolled] = useState(false);
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    let last = window.scrollY;
+    let raf = 0;
+    const update = () => {
+      raf = 0;
+      const y = window.scrollY;
+      const dy = y - last;
+      setScrolled(y > 8);
+      if (Math.abs(dy) > 6) {
+        const busy = locked || !!ref.current?.matches(':hover, :focus-within');
+        setHidden(dy > 0 && y > 480 && !busy);
+        last = y;
+      }
+      if (y < 480) setHidden(false);
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(raf);
+    };
+  }, [locked, ref]);
+  return { scrolled, hidden };
+}
+
 function CreateButton({ label }: { label: string }) {
   return (
     <Link
       href="/create"
-      className="inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-lg bg-primary px-3 text-sm font-semibold text-on-primary transition-colors hover:bg-primary-hover active:scale-[0.98] sm:px-4"
+      className="press group/cta relative ml-1 inline-flex h-9 items-center gap-1.5 overflow-hidden whitespace-nowrap rounded-lg bg-primary px-4 text-sm font-semibold text-on-primary transition-colors duration-150 hover:bg-primary-hover"
     >
-      <Plus className="size-4" strokeWidth={2.5} />
-      <span className="max-[360px]:hidden">{label}</span>
+      <Sparkles className="size-3.5 transition-transform duration-500 ease-[var(--ease-spring)] group-hover/cta:rotate-[18deg] group-hover/cta:scale-110" aria-hidden />
+      {label}
     </Link>
   );
 }
 
 // ---------------------------------------------------------------- Occasions mega menu
 
+/** First design made for an occasion: shown as the live preview in the mega menu. */
+const PREVIEW_FOR = (() => {
+  const map = new Map<string, string>();
+  for (const e of EVENT_TYPES) {
+    const tpl = BUILTIN_TEMPLATES.find((t) => t.eventTypes !== 'all' && (t.eventTypes as string[]).includes(e.id));
+    if (tpl) map.set(e.id, tpl.id);
+  }
+  return map;
+})();
+const designCount = (id: string) => BUILTIN_TEMPLATES.filter((t) => t.eventTypes === 'all' || (t.eventTypes as string[]).includes(id)).length;
+
 function OccasionsMenu({ linkCls }: { linkCls: string }) {
   const t = useTranslations('nav');
   const locale = useLocale();
   const [open, setOpen] = useState(false);
+  const [focus, setFocus] = useState('wedding');
   const ref = useRef<HTMLDivElement>(null);
   const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastPointer = useRef('');
@@ -249,8 +354,10 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
     setOpen(true);
   };
   const leave = () => {
-    hoverTimer.current = setTimeout(() => setOpen(false), 140);
+    hoverTimer.current = setTimeout(() => setOpen(false), 160);
   };
+  const ev = EVENT_TYPES.find((e) => e.id === focus) ?? EVENT_TYPES[0]!;
+  const previewId = PREVIEW_FOR.get(focus);
 
   return (
     <div ref={ref} className="relative" onPointerEnter={(e) => e.pointerType === 'mouse' && enter()} onPointerLeave={(e) => e.pointerType === 'mouse' && leave()}>
@@ -265,36 +372,72 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
         onKeyDown={() => (lastPointer.current = 'keyboard')}
       >
         {t('occasions')}
-        <ChevronDown className={clsx('size-4 opacity-70 transition-transform duration-150', open && 'rotate-180')} />
+        <ChevronDown className={clsx('size-4 opacity-70 transition-transform duration-200', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="absolute left-0 top-full z-50 pt-2">
-          <div className="w-[min(720px,calc(100vw-2rem))] origin-top-left animate-[pop-in_0.12s_ease-out] menu overflow-hidden p-0">
-            <div className="grid grid-cols-3 gap-1 p-3">
-              {OCCASION_GROUPS.map((g) => (
-                <div key={g.key}>
-                  <p className="px-2.5 pb-1.5 pt-1 text-xs font-semibold uppercase tracking-wide text-ink-soft">{t(g.key)}</p>
-                  <ul>
-                    {EVENT_TYPES.filter((e) => (g.cats as readonly string[]).includes(e.category) && e.id !== 'other').map((e) => (
-                      <li key={e.id}>
-                        <Link href={`/create?type=${e.id}`} onClick={close} className="menu-item">
-                          <span className="grid size-6 place-items-center rounded-md bg-mist text-[0.85rem]" aria-hidden>
-                            {e.emoji}
-                          </span>
-                          <span className="truncate">{occasionLabel(e, locale)}</span>
-                        </Link>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
+        <div className="absolute -left-3 top-full z-50 pt-3">
+          <div className="menu grid w-[min(860px,calc(100vw-2rem))] origin-top-left animate-[sheet-in_0.22s_var(--ease-out-quint)] grid-cols-[1fr_220px] overflow-hidden p-0">
+            <div className="flex flex-col">
+              <div className="grid grid-cols-3 gap-1 p-3">
+                {OCCASION_GROUPS.map((g) => (
+                  <div key={g.key}>
+                    <p className="px-2.5 pb-1.5 pt-1 text-[0.8125rem] font-semibold text-ink-soft">{t(g.key)}</p>
+                    <ul>
+                      {EVENT_TYPES.filter((e) => (g.cats as readonly string[]).includes(e.category) && e.id !== 'other').map((e) => (
+                        <li key={e.id}>
+                          <Link
+                            href={`/create?type=${e.id}`}
+                            onClick={close}
+                            onPointerEnter={() => setFocus(e.id)}
+                            onFocus={() => setFocus(e.id)}
+                            data-on={focus === e.id || undefined}
+                            className="menu-item data-[on]:bg-mist"
+                          >
+                            <span className="grid size-6 place-items-center rounded-md bg-sand text-[0.85rem]" aria-hidden>
+                              {e.emoji}
+                            </span>
+                            <span className="truncate">{occasionLabel(e, locale)}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-auto flex items-center justify-between border-t border-hairline bg-surface-2 px-5 py-3 text-sm">
+                <span className="text-ink-soft">{t('occasionsHint')}</span>
+                <Link href="/templates" onClick={close} className="group/all inline-flex items-center gap-1 font-semibold text-ink">
+                  {t('allDesigns')} <ChevronRight className="size-4 transition-transform duration-200 group-hover/all:translate-x-0.5" />
+                </Link>
+              </div>
             </div>
-            <div className="flex items-center justify-between border-t border-hairline bg-surface-2 px-5 py-3 text-sm">
-              <span className="text-ink-soft">{t('occasionsHint')}</span>
-              <Link href="/templates" onClick={close} className="inline-flex items-center gap-1 font-semibold text-ink hover:underline">
-                {t('allDesigns')} <ChevronRight className="size-4" />
-              </Link>
-            </div>
+
+            {/* Live preview of the occasion under the pointer. */}
+            <Link
+              href={`/create?type=${ev.id}`}
+              onClick={close}
+              tabIndex={-1}
+              className="group/pv relative flex flex-col border-l border-hairline bg-sand p-4"
+            >
+              <div className="relative aspect-[9/14] overflow-hidden rounded-lg ring-1 ring-black/5">
+                {previewId && (
+                  // Keyed so each occasion fades in rather than swapping abruptly.
+                  <Image
+                    key={previewId}
+                    src={`/showcase/${previewId}.jpg`}
+                    alt=""
+                    fill
+                    sizes="200px"
+                    className="animate-[fade-in_0.35s_ease-out] object-cover object-top transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover/pv:scale-[1.04]"
+                  />
+                )}
+              </div>
+              <p className="mt-3 truncate text-sm font-semibold">{occasionLabel(ev, locale)}</p>
+              <p className="text-[0.8125rem] text-ink-soft">
+                {locale === 'hi' ? `${designCount(ev.id)} डिज़ाइन` : `${designCount(ev.id)} designs`} ·{' '}
+                <span className="text-ink underline decoration-hairline underline-offset-4 group-hover/pv:decoration-ink">{locale === 'hi' ? 'शुरू करें' : 'Start'}</span>
+              </p>
+            </Link>
           </div>
         </div>
       )}
@@ -304,18 +447,18 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
 
 // ---------------------------------------------------------------- Account menu
 
-function Avatar({ size = 'size-9' }: { size?: string }) {
+export function Avatar({ size = 'size-9' }: { size?: string }) {
   const { data: me } = useMe();
   if (!me) return null;
   return me.avatarUrl ? (
     // eslint-disable-next-line @next/next/no-img-element -- provider avatar URL (Google), tiny
     <img src={me.avatarUrl} alt="" referrerPolicy="no-referrer" className={clsx(size, 'shrink-0 rounded-full object-cover')} />
   ) : (
-    <span className={clsx(size, 'grid shrink-0 place-items-center rounded-full bg-[linear-gradient(135deg,#E2394A,#8A0D14)] text-xs font-bold text-white')}>{initials(me.name, me.email)}</span>
+    <span className={clsx(size, 'grid shrink-0 place-items-center rounded-full bg-mist text-xs font-semibold text-ink ring-1 ring-inset ring-hairline')}>{initials(me.name, me.email)}</span>
   );
 }
 
-function AccountMenu() {
+export function AccountMenu({ className = 'hidden lg:block', align = 'right' }: { className?: string; align?: 'right' | 'left-up' }) {
   const t = useTranslations('nav');
   const { data: me } = useMe();
   const logout = useLogout();
@@ -330,7 +473,7 @@ function AccountMenu() {
   if (!me) return null;
 
   return (
-    <div ref={ref} className="relative hidden lg:block">
+    <div ref={ref} className={clsx('relative', className)}>
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -343,7 +486,13 @@ function AccountMenu() {
         <ChevronDown className={clsx('size-3.5 text-ink-soft transition-transform duration-150', open && 'rotate-180')} />
       </button>
       {open && (
-        <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-72 origin-top-right animate-[pop-in_0.12s_ease-out] menu">
+        <div
+          role="menu"
+          className={clsx(
+            'absolute z-50 w-72 animate-[sheet-in_0.18s_var(--ease-out-quint)] menu',
+            align === 'right' ? 'right-0 top-full mt-2 origin-top-right' : 'bottom-full left-0 mb-2 origin-bottom-left',
+          )}
+        >
           <div className="flex items-center gap-3 px-2.5 pb-3 pt-2">
             <Avatar size="size-10" />
             <div className="min-w-0">
@@ -434,7 +583,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   }, [open, onClose]);
 
   if (!open) return null;
-  const row = 'flex h-12 items-center gap-3 rounded-lg px-3 text-[1.02rem] font-medium transition-colors active:bg-mist hover:bg-mist';
+  const row = 'flex h-11 items-center gap-3 rounded-lg px-3 text-[0.95rem] font-medium transition-colors active:bg-mist hover:bg-mist';
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden" id="site-drawer">
@@ -443,7 +592,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         role="dialog"
         aria-modal="true"
         aria-label={t('menu')}
-        className="thin-scroll absolute inset-y-0 right-0 flex w-[min(380px,88vw)] animate-[drawer-in_0.2s_var(--ease-out-quint)] flex-col overflow-y-auto border-l border-hairline bg-surface text-ink"
+        className="thin-scroll absolute inset-y-0 right-0 flex w-[min(380px,88vw)] animate-[drawer-in_0.28s_var(--ease-out-quint)] flex-col overflow-y-auto border-l border-hairline bg-surface text-ink"
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-hairline px-4">
           <Logo />
@@ -452,7 +601,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           </button>
         </div>
 
-        <div className="flex flex-1 flex-col gap-1 p-3">
+        <div className="stagger flex flex-1 flex-col gap-1 p-3">
           {me && (
             <div className="mb-2 flex items-center gap-3 rounded-xl bg-mist/70 p-3">
               <Avatar size="size-10" />
@@ -462,8 +611,8 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
               </div>
             </div>
           )}
-          <Link href="/create" className="mb-2 flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary hover:bg-primary-hover">
-            <Plus className="size-5" strokeWidth={2.5} /> {t('create')}
+          <Link href="/create" className="mb-2 flex h-11 items-center justify-center rounded-lg bg-primary font-medium text-on-primary hover:bg-primary-hover">
+            {t('create')}
           </Link>
 
           {me && (
@@ -471,8 +620,9 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
               <LayoutGrid className="size-5 text-ink-soft" /> {t('myInvites')}
             </Link>
           )}
-          <button type="button" onClick={() => setOccasions((o) => !o)} aria-expanded={occasions} className={clsx(row, 'w-full justify-between text-left')}>
-            {t('occasions')}
+          <button type="button" onClick={() => setOccasions((o) => !o)} aria-expanded={occasions} className={clsx(row, 'w-full text-left')}>
+            <PartyPopper className="size-5 text-ink-soft" />
+            <span className="flex-1">{t('occasions')}</span>
             <ChevronDown className={clsx('size-5 text-ink-soft transition-transform duration-150', occasions && 'rotate-180')} />
           </button>
           {occasions && (
@@ -487,13 +637,16 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
               ))}
             </ul>
           )}
-          {LINKS.map((n) => (
-            <Link key={n.href} href={n.href} aria-current={pathname.startsWith(n.href) ? 'page' : undefined} className={clsx(row, 'aria-[current=page]:tint-primary')}>
-              {t(n.key)}
-            </Link>
-          ))}
+          {LINKS.map((n) => {
+            const Icon = n.href === '/templates' ? Palette : Tag;
+            return (
+              <Link key={n.href} href={n.href} aria-current={pathname.startsWith(n.href) ? 'page' : undefined} className={clsx(row, 'aria-[current=page]:tint-primary')}>
+                <Icon className="size-5 text-ink-soft" /> {t(n.key)}
+              </Link>
+            );
+          })}
           <Link href="/designer" className={row}>
-            {t('sell')}
+            <Store className="size-5 text-ink-soft" /> {t('sell')}
           </Link>
           {me?.role === 'admin' && (
             <Link href="/admin" className={row}>
@@ -510,7 +663,7 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
             </button>
           </div>
           {!isLightOnly(pathname) && (
-            <div className="flex items-center justify-between gap-2 text-sm">
+            <div className="flex flex-col gap-2 text-sm">
               <span className="text-ink-soft">{t('theme')}</span>
               <ThemeSegmented />
             </div>
@@ -539,19 +692,26 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
 
 export function SiteFooter() {
   return (
-    <footer className="relative bg-night text-white">
-      <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-[2fr_1fr_1fr_1fr]">
+    <footer className="relative bg-night text-white [color-scheme:dark]">
+      <div className="relative mx-auto grid max-w-6xl gap-10 px-5 py-14 sm:grid-cols-[2fr_1fr_1fr_1fr] sm:px-6">
         <div className="max-w-sm">
           <Logo tone="light" />
-          <p className="mt-4 text-white/70">
-            Invitation cards, video invites and invitation websites for every Indian family occasion — in your language.
+          <p className="mt-4 max-w-xs text-sm leading-relaxed text-white/60">
+            Invitation cards, video invites and invitation websites for every Indian family occasion, in your language.
           </p>
         </div>
         <FooterCol title="Make" links={[['/create', 'Make an invitation'], ['/templates', 'Designs'], ['/pricing', 'Pricing']]} />
         <FooterCol title="Occasions" links={[['/create?type=wedding', 'Wedding'], ['/create?type=griha-pravesh', 'Griha Pravesh'], ['/create?type=birthday', 'Birthday']]} />
         <FooterCol title="Company" links={[['/designer', 'Sell your designs'], ['/login', 'Log in'], ['/signup', 'Sign up']]} />
       </div>
-      <p className="relative border-t border-white/10 py-5 text-center text-sm text-white/50">Made in India, for every family.</p>
+      <div className="border-t border-white/10">
+        <p className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-1 px-5 py-5 text-sm text-white/50 sm:px-6">
+          <span>
+            © {new Date().getFullYear()} {BRAND.name}
+          </span>
+          <span>Made in India, for every family.</span>
+        </p>
+      </div>
     </footer>
   );
 }
@@ -559,11 +719,11 @@ export function SiteFooter() {
 function FooterCol({ title, links }: { title: string; links: Array<[string, string]> }) {
   return (
     <div>
-      <h3 className="font-sans text-sm font-semibold text-marigold">{title}</h3>
-      <ul className="mt-3 flex flex-col gap-2">
+      <h3 className="text-sm font-medium tracking-normal text-white">{title}</h3>
+      <ul className="mt-4 flex flex-col gap-2.5">
         {links.map(([href, label]) => (
           <li key={href}>
-            <Link href={href} className="text-white/75 transition-colors hover:text-white">
+            <Link href={href} className="text-sm text-white/60 transition-colors hover:text-white">
               {label}
             </Link>
           </li>

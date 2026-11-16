@@ -1,4 +1,4 @@
-import type { SiteDoc, Theme } from '@cardai/shared';
+import type { SiteDesign, SiteDoc, Theme } from '@cardai/shared';
 import type { CSSProperties } from 'react';
 
 function hexToRgb(hex: string): [number, number, number] {
@@ -30,8 +30,10 @@ function mix(a: string, b: string, t: number): string {
 }
 
 /** CSS variables for the page: template palette + the host's overrides + optional dark look. */
-export function siteVars(theme: Theme, look: SiteDoc['look'], fonts: { display: string; body: string }): CSSProperties {
-  const p = theme.palette;
+export function siteVars(theme: Theme, look: SiteDoc['look'], fonts: { display: string; body: string }, design: SiteDesign | null = null, latin = true): CSSProperties {
+  const p = design
+    ? { ...design.palette, backgroundAlt: design.bands[1]?.bg ?? mix(design.palette.background, design.palette.primary, 0.06), muted: mix(design.palette.text, design.palette.background, 0.35) }
+    : theme.palette;
   const primary = look.primary ?? p.primary;
   const accent = look.accent ?? p.accent;
   let bg = look.background ?? p.background;
@@ -39,6 +41,10 @@ export function siteVars(theme: Theme, look: SiteDoc['look'], fonts: { display: 
   let surface = p.surface;
   let text = p.text;
   let muted = p.muted;
+  // Design fonts are Latin-only; other scripts keep their language fonts.
+  const display = design && latin ? design.fonts.serif : fonts.display;
+  const body = design && latin ? design.fonts.body : fonts.body;
+  const script = design && latin ? design.fonts.script : fonts.display;
   if (look.dark) {
     bg = mix(primary, '#07060D', 0.82);
     bgAlt = mix(primary, '#07060D', 0.7);
@@ -67,12 +73,35 @@ export function siteVars(theme: Theme, look: SiteDoc['look'], fonts: { display: 
     '--inv-accent': accent,
     '--inv-text': text,
     '--inv-muted': muted,
-    '--inv-display': `"${fonts.display}", serif`,
-    '--inv-body': `"${fonts.body}", sans-serif`,
+    '--inv-display': `"${display}", serif`,
+    '--inv-script': `"${script}", "${display}", serif`,
+    '--inv-body': `"${body}", ${design ? 'serif' : 'sans-serif'}`,
   } as CSSProperties;
 }
 
 export function googleFontsHref(families: string[]): string {
   const uniq = [...new Set(families)];
-  return `https://fonts.googleapis.com/css2?${uniq.map((f) => `family=${f.replace(/ /g, '+')}:wght@400;600;700`).join('&')}&display=swap`;
+  // Some display families ship a single weight; asking for 600/700 would 400 the request.
+  const single = new Set(['Great Vibes', 'Pinyon Script', 'Italianno', 'Parisienne', 'Allura', 'Tenor Sans', 'Marcellus']);
+  return `https://fonts.googleapis.com/css2?${uniq.map((f) => `family=${f.replace(/ /g, '+')}${single.has(f) ? '' : ':wght@400;600;700'}`).join('&')}&display=swap`;
+}
+
+/** Section band colours for a design (text + headings recoloured per band). */
+export function bandVars(band: { bg: string; ink: string; primary: string }): CSSProperties {
+  return {
+    '--inv-bg': band.bg,
+    '--inv-bg-alt': band.bg,
+    '--inv-bg-a60': rgba(band.bg, 0.6),
+    '--inv-bg-a75': rgba(band.bg, 0.75),
+    '--inv-bg-a90': rgba(band.bg, 0.9),
+    '--inv-text': band.ink,
+    '--inv-muted': mix(band.ink, band.bg, 0.35),
+    '--inv-primary': band.primary,
+    '--inv-primary-deep': mix(band.primary, '#000000', 0.2),
+    '--inv-primary-a28': rgba(band.primary, 0.28),
+    '--inv-primary-a16': rgba(band.primary, 0.16),
+    '--inv-on-primary': readableOn(band.primary),
+    background: band.bg,
+    color: band.ink,
+  } as CSSProperties;
 }

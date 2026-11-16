@@ -26,7 +26,8 @@ export function FamilyShowcase({ limit = 8 }: { limit?: number }) {
 
   return (
     <div>
-      <div className="-mx-5 flex gap-2 overflow-x-auto px-5 pb-1 [scrollbar-width:none]" role="tablist" aria-label="Design styles">
+      <div className="-mx-5 overflow-x-auto px-5 pb-1 [scrollbar-width:none]">
+      <div className="inline-flex gap-1 rounded-lg border border-hairline bg-surface-2 p-1" role="tablist" aria-label="Design styles">
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -34,13 +35,14 @@ export function FamilyShowcase({ limit = 8 }: { limit?: number }) {
             aria-selected={tab === t.id}
             onClick={() => setTab(t.id)}
             className={clsx(
-              'h-10 shrink-0 rounded-lg px-4 text-[0.95rem] font-medium transition-colors',
-              tab === t.id ? 'bg-primary text-on-primary' : 'bg-mist text-ink hover:bg-line',
+              'h-8 shrink-0 rounded-md px-3.5 text-sm font-medium transition-colors',
+              tab === t.id ? 'bg-surface text-ink ring-1 ring-hairline' : 'text-ink-soft hover:text-ink',
             )}
           >
             {t.label}
           </button>
         ))}
+      </div>
       </div>
       <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-7 sm:gap-x-5 md:grid-cols-4">
         {families.map((f) => (

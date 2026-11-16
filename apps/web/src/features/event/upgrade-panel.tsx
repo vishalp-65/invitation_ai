@@ -2,7 +2,8 @@
 
 import { formatINR, type CouponQuoteDto, type EventDto, type ProductCode } from '@cardai/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Tag, X } from 'lucide-react';
+import { clsx } from 'clsx';
+import { Check, ShieldCheck, Tag, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -12,6 +13,7 @@ import { qk } from '@/lib/hooks';
 import { useOffers } from '@/lib/offers';
 import { track } from '@/lib/track';
 import { controlClass } from '@/components/ui/field';
+import { Panel, StatusPill } from './panel-ui';
 
 const ORDER: ProductCode[] = ['combo', 'website', 'website_royale', 'royale_upgrade', 'card', 'video', 'ai_clip', 'ai_backgrounds', 'site_year', 'print'];
 
@@ -71,77 +73,111 @@ export function UpgradePanel({ event }: { event: EventDto }) {
   }
 
   return (
-    <div>
-      <h2 className="text-2xl">Upgrade this invitation</h2>
-      <p className="mt-1 text-ink-soft">One-time payment for this event. Pay by UPI, card or wallet.</p>
-      {offers?.sale && (
-        <p className="mt-3 inline-flex items-center gap-2 rounded-lg bg-marigold/20 px-3 py-1.5 text-sm font-semibold">
-          <Tag className="size-4" /> {offers.sale.name}: {offers.sale.percentOff}% off
-        </p>
-      )}
-      <form onSubmit={(e) => void applyCoupon(e)} className="mt-4 flex max-w-md items-center gap-2">
-        {coupon ? (
-          <p className="flex h-11 flex-1 items-center gap-2 rounded-lg border border-leaf/40 bg-leaf/10 px-4 text-sm font-semibold text-leaf">
-            <Check className="size-4" /> {coupon.code} applied
-            <button type="button" onClick={() => setCoupon(null)} aria-label="Remove coupon" className="ml-auto rounded-lg p-1 hover:bg-leaf/15">
-              <X className="size-4" />
-            </button>
+    <div className="flex flex-col gap-6">
+      <Panel
+        title="Upgrade this invitation"
+        description="One-time payment for this event only. No subscription."
+        footer={
+          <p className="flex items-center gap-2 text-sm text-ink-soft">
+            <ShieldCheck className="size-4 text-leaf" aria-hidden />
+            Secure payment by UPI, card or wallet. Unlocks instantly.
           </p>
-        ) : (
-          <>
-            <label className="sr-only" htmlFor="coupon">
-              Coupon code
-            </label>
-            <input id="coupon" value={couponInput} onChange={(e) => setCouponInput(e.target.value.toUpperCase())} placeholder="Have a coupon code?" maxLength={24} className={`${controlClass} h-10 flex-1 px-3 font-mono text-sm uppercase tracking-wide`} />
-            <Button type="submit" variant="line" loading={checking} disabled={!couponInput.trim()}>
-              Apply
-            </Button>
-          </>
-        )}
-      </form>
-      <ul className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        }
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {offers?.sale ? (
+            <StatusPill tone="gold">
+              <Tag className="size-3.5" aria-hidden /> {offers.sale.name}: {offers.sale.percentOff}% off
+            </StatusPill>
+          ) : (
+            <span />
+          )}
+          <form onSubmit={(e) => void applyCoupon(e)} className="flex w-full items-center gap-2 sm:max-w-sm">
+            {coupon ? (
+              <p className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-leaf/40 bg-leaf/10 px-3 text-sm font-semibold text-leaf">
+                <Check className="size-4" /> {coupon.code} applied
+                <button type="button" onClick={() => setCoupon(null)} aria-label="Remove coupon" className="ml-auto rounded-md p-1 hover:bg-leaf/15">
+                  <X className="size-4" />
+                </button>
+              </p>
+            ) : (
+              <>
+                <label className="sr-only" htmlFor="coupon">
+                  Coupon code
+                </label>
+                <input
+                  id="coupon"
+                  value={couponInput}
+                  onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                  placeholder="Coupon code"
+                  maxLength={24}
+                  className={`${controlClass} h-10 min-w-0 flex-1 px-3 text-sm uppercase tracking-wide`}
+                />
+                <Button type="submit" variant="line" loading={checking} disabled={!couponInput.trim()}>
+                  Apply
+                </Button>
+              </>
+            )}
+          </form>
+        </div>
+      </Panel>
+
+      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {codes.map((code) => {
           const p = products[code];
           const q = coupon?.quotes[code];
           const pay = q ? q.totalPaise : p.pricePaise;
+          const was = q ? p.pricePaise : p.mrpPaise;
+          const save = was && was > pay ? Math.round((1 - pay / was) * 100) : 0;
           const owned = p.features.every((f) => event.features.includes(f)) && !p.credits;
+          const hl = p.highlight && !owned;
           return (
             <li
               key={code}
-              className={`flex flex-col rounded-[var(--radius-card)] p-6 ${p.highlight ? 'bg-primary text-on-primary lg:row-span-2' : 'panel'}`}
+              className={clsx(
+                'flex flex-col rounded-[16px] border p-5',
+                hl ? 'border-plum bg-plum text-white sm:col-span-2 lg:col-span-1 lg:row-span-2 dark:border-gold/40 dark:bg-plum-deep' : 'border-hairline bg-surface',
+                owned && 'opacity-80',
+              )}
             >
-              <h3 className="text-2xl">{p.name}</h3>
-              <p className="mt-2 flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-4xl">{formatINR(pay)}</span>
-                {(q || p.mrpPaise) && <s className="opacity-60">{formatINR(q ? p.pricePaise : p.mrpPaise!)}</s>}
-                {p.sale && !q && <span className="rounded-md bg-marigold px-2 py-0.5 text-xs font-bold text-[#1a1300]">{p.sale.percentOff}% off</span>}
+              <div className="flex items-start justify-between gap-2">
+                <h3 className="text-lg">{p.name}</h3>
+                {owned ? (
+                  <StatusPill tone="leaf">Unlocked</StatusPill>
+                ) : hl ? (
+                  <span className="rounded-md bg-gold-soft px-2 py-0.5 text-xs font-semibold text-[#2e1031]">Best value</span>
+                ) : (
+                  save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-semibold text-leaf">Save {save}%</span>
+                )}
+              </div>
+              <p className="mt-3 flex flex-wrap items-baseline gap-2">
+                <span className="font-display text-[2.25rem] leading-none">{formatINR(pay)}</span>
+                {was && was > pay && <s className="text-sm opacity-60">{formatINR(was)}</s>}
                 {q && <span className="rounded-md bg-leaf px-2 py-0.5 text-xs font-bold text-white">{q.code}</span>}
               </p>
-              <p className={`mt-3 ${p.highlight ? 'opacity-85' : 'text-ink-soft'}`}>{p.description}</p>
-              <div className="mt-auto pt-6">
+              <p className={clsx('mt-3 text-[0.9375rem]', hl ? 'text-white/85' : 'text-ink-soft')}>{p.description}</p>
+              <div className="mt-auto pt-5">
                 {owned ? (
-                  <p className="flex items-center gap-2 font-semibold">
-                    <Check className="size-5" /> Unlocked
+                  <p className="flex items-center gap-2 text-sm font-semibold text-leaf">
+                    <Check className="size-4" /> Already on this invitation
                   </p>
                 ) : (
                   <Button
-                    variant={p.highlight ? 'line' : 'solid'}
-                    className="w-full"
+                    variant={hl ? 'solid' : 'line'}
+                    className={clsx('w-full', hl && '!bg-white !text-[#2e1031] hover:!bg-white/90')}
                     onClick={() => purchase(code)}
                     loading={busy === code}
                   >
                     Pay {formatINR(pay)}
                   </Button>
                 )}
-                {code === 'ai_clip' && event.credits.ai_clip ? (
-                  <p className="mt-2 text-sm">{event.credits.ai_clip} credit available</p>
-                ) : null}
+                {code === 'ai_clip' && event.credits.ai_clip ? <p className="mt-2 text-sm">{event.credits.ai_clip} credit available</p> : null}
                 {code === 'site_year' && event.credits.site_extra_year ? (
-                  <p className="mt-2 text-sm">{event.credits.site_extra_year} extra year{event.credits.site_extra_year > 1 ? 's' : ''} added</p>
+                  <p className="mt-2 text-sm">
+                    {event.credits.site_extra_year} extra year{event.credits.site_extra_year > 1 ? 's' : ''} added
+                  </p>
                 ) : null}
-                {code === 'ai_backgrounds' && event.credits.ai_background ? (
-                  <p className="mt-2 text-sm">{event.credits.ai_background} AI backgrounds available</p>
-                ) : null}
+                {code === 'ai_backgrounds' && event.credits.ai_background ? <p className="mt-2 text-sm">{event.credits.ai_background} AI backgrounds available</p> : null}
               </div>
             </li>
           );

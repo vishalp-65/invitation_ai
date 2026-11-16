@@ -8,7 +8,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const { code } = await params;
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin;
   if (!/^[A-Za-z0-9-]{3,40}$/.test(code)) return NextResponse.redirect(new URL('/', appUrl));
-  const base = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
+  const base = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
   const res = await fetch(`${base}/api/public/s/${encodeURIComponent(code)}`, { cache: 'no-store' }).catch(() => null);
   // Only a real "not found" means the link is wrong; a hiccup on our side must not tell the
   // guest their invitation is gone.

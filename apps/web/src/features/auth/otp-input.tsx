@@ -76,8 +76,8 @@ export function OtpInput({
             if (pasted) commit(pasted, pasted.length);
           }}
           className={clsx(
-            'h-14 w-full min-w-0 rounded-lg border-2 bg-surface text-center font-display text-2xl tabular-nums text-ink caret-sindoor transition-colors duration-150 focus:border-ink focus:outline-none disabled:opacity-60 sm:h-16',
-            invalid ? 'border-sindoor' : d ? 'border-ink/60' : 'border-line',
+            'h-13 w-full min-w-0 rounded-lg border bg-surface text-center text-xl font-medium tabular-nums text-ink caret-primary transition-[border-color,box-shadow] duration-150 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 disabled:opacity-60',
+            invalid ? 'border-sindoor' : d ? 'border-ink/30' : 'border-hairline',
           )}
         />
       ))}

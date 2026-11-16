@@ -1,43 +1,52 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens — the trilogy: peacock indigo (ink), haldi marigold, sindoor red.
- * "Liquid glass": frosted, refractive panels floating over a slow mesh of the trilogy.
+ * Design tokens — the trilogy: peacock indigo (ink + primary), haldi marigold, sindoor red.
+ * Ground is a cool paper white; surfaces are solid, separated by hairlines (no shadows).
+ * One typeface, Anek Devanagari (Latin + Devanagari): display text is the same family, narrower and heavier.
  */
 @theme {
-  --color-night: #0f1233;
-  --color-ink: #1e2250;
-  --color-ink-soft: #4a4f7a;
+  /*
+   * Stationery palette: deep plum (ink + primary) with antique gold used sparingly
+   * (active markers, highlights, dark-mode primary). Warm off-white ground, solid surfaces,
+   * hairlines instead of shadows. Status colours (leaf / sindoor / marigold) are for status only.
+   */
+  --color-night: #1c0f1f;
+  --color-ink: #1e1524;
+  --color-ink-soft: #6e6372;
+  --color-plum: #4a1d4f;
+  --color-plum-deep: #2e1031;
+  --color-gold: #b08a3e;
+  --color-gold-soft: #e6c98a;
   --color-marigold: #f2a900;
   --color-marigold-soft: #ffd978;
   --color-marigold-deep: #c98700;
-  --color-sindoor: #b5121b;
+  --color-sindoor: #b3261e;
   --color-sindoor-soft: #e2394a;
-  --color-sindoor-deep: #8a0d14;
-  --color-mist: #f5f0e8;
-  --color-line: #e7dfd2;
+  --color-sindoor-deep: #8a1a14;
+  --color-mist: #f3eff0;
+  --color-line: #eae4e6;
   --color-paper: #ffffff;
-  --color-leaf: #2e7d4f;
-  /* Editorial surfaces (landing + auth): warm paper, no colour washes. */
-  --color-ivory: #fbf8f3;
-  --color-sand: #f3ede3;
-  --color-hairline: #e7dfd2;
+  --color-leaf: #2f7a52;
+  --color-ivory: #faf8f6;
+  --color-sand: #f4f0ee;
+  --color-hairline: #eae4e6;
   /* Semantic app tokens (flip in dark mode, see [data-theme] below). */
   --color-surface: #ffffff;
-  --color-surface-2: #fafafb;
-  --color-workspace: #eceef3;
-  --color-primary: #1e2250;
-  --color-primary-hover: #0f1233;
+  --color-surface-2: #fbf9f8;
+  --color-workspace: #f1edec;
+  --color-primary: #4a1d4f;
+  --color-primary-hover: #3a1540;
   --color-on-primary: #ffffff;
-  --color-accent: #f2a900;
-  --color-overlay: rgb(15 18 51 / 0.45);
-  /* Quiet tints for selected/hover states (create flow, pickers). */
-  --color-tint: #eef0fb;
-  --color-tint-strong: #dfe3f7;
-  --color-glow: #fff6dc;
+  --color-accent: #4a1d4f;
+  --color-overlay: rgb(30 21 36 / 0.42);
+  --color-tint: #f5eff5;
+  --color-tint-strong: #eadfeb;
+  --color-glow: #f5eff5;
 
-  --font-display: var(--font-tiro), 'Mukta', Georgia, serif;
-  --font-sans: var(--font-mukta), system-ui, sans-serif;
+  /* Instrument Sans (wdth + wght axes) for Latin; Devanagari falls through to Noto Sans Devanagari. */
+  --font-sans: var(--font-instrument), var(--font-deva), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: var(--font-instrument), var(--font-deva), system-ui, -apple-system, 'Segoe UI', sans-serif;
 
   /* Small, consistent corners: controls 8px, cards/menus 12px. Pill only for avatars/dots. */
   --radius-pill: 999px;
@@ -51,7 +60,14 @@
 
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 
+  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
   --animate-rise: rise 0.7s var(--ease-out-quint) both;
+  --animate-step-in: step-in 0.35s var(--ease-out-quint) both;
+  --animate-step-back: step-back 0.35s var(--ease-out-quint) both;
+  --animate-pop: pop 0.25s var(--ease-spring) both;
+  --animate-sway: sway 2.4s var(--ease-out-quint) both;
   --animate-drift-a: drift-a 22s ease-in-out infinite alternate;
   --animate-drift-b: drift-b 26s ease-in-out infinite alternate;
   --animate-marquee: marquee 60s linear infinite;
@@ -88,6 +104,28 @@
   @keyframes shimmer {
     to { background-position: -200% 0; }
   }
+  /* Wizard / sign-in steps slide in from the direction of travel. */
+  @keyframes step-in {
+    from { opacity: 0; transform: translate3d(20px, 0, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes step-back {
+    from { opacity: 0; transform: translate3d(-20px, 0, 0); }
+    to { opacity: 1; transform: none; }
+  }
+  /* A value landing in place (OTP digit, selected tick). */
+  @keyframes pop {
+    from { opacity: 0; transform: scale(0.7); }
+    to { opacity: 1; transform: none; }
+  }
+  /* The toran settles after being hung. */
+  @keyframes sway {
+    0% { opacity: 0; transform: translate3d(0, -100%, 0); }
+    35% { opacity: 1; transform: translate3d(0, 0, 0) skewX(-5deg); }
+    60% { transform: skewX(3deg); }
+    80% { transform: skewX(-1.5deg); }
+    100% { opacity: 1; transform: none; }
+  }
 }
 
 @custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *):not(:where([data-theme='light'] *)));
@@ -105,56 +143,58 @@
   }
   [data-theme='dark'] {
     color-scheme: dark;
-    --color-night: #07080f;
-    --color-ink: #e9eaf5;
-    --color-ink-soft: #a3a8c7;
-    --color-mist: #22263c;
-    --color-line: #2c3150;
-    --color-hairline: #2a2e4a;
-    --color-paper: #161a2e;
-    --color-ivory: #0e1122;
-    --color-sand: #14182c;
-    --color-leaf: #4cb27a;
-    --color-sindoor: #f0555e;
-    --color-sindoor-soft: #ff7a82;
+    --color-night: #0d080f;
+    --color-ink: #f1ecef;
+    --color-ink-soft: #a99daa;
+    --color-mist: #2a2130;
+    --color-line: #352b3c;
+    --color-hairline: #31283a;
+    --color-paper: #1e1722;
+    --color-ivory: #140f17;
+    --color-sand: #1a141e;
+    --color-leaf: #5cbf8a;
+    --color-sindoor: #f0666b;
+    --color-sindoor-soft: #ff8a8e;
     --color-marigold-soft: #6b5214;
-    --color-surface: #171a2e;
-    --color-surface-2: #12152a;
-    --color-workspace: #0a0c19;
-    --color-primary: #f2b632;
-    --color-primary-hover: #ffc94d;
-    --color-on-primary: #1a1300;
-    --color-accent: #f2b632;
+    --color-gold: #e6c98a;
+    --color-surface: #1e1722;
+    --color-surface-2: #231b28;
+    --color-workspace: #0e0a10;
+    --color-primary: #e6c98a;
+    --color-primary-hover: #f0d8a6;
+    --color-on-primary: #24161f;
+    --color-accent: #e6c98a;
     --color-overlay: rgb(0 0 0 / 0.6);
-    --color-tint: #1d2140;
-    --color-tint-strong: #282d55;
-    --color-glow: #2a2312;
+    --color-tint: #2a2027;
+    --color-tint-strong: #3a2c33;
+    --color-glow: #2a2027;
   }
   [data-theme='light'] {
-    --color-night: #0f1233;
-    --color-ink: #1e2250;
-    --color-ink-soft: #4a4f7a;
-    --color-mist: #f5f0e8;
-    --color-line: #e7dfd2;
-    --color-hairline: #e7dfd2;
+    --color-night: #1c0f1f;
+    --color-ink: #1e1524;
+    --color-ink-soft: #6e6372;
+    --color-mist: #f3eff0;
+    --color-line: #eae4e6;
+    --color-hairline: #eae4e6;
     --color-paper: #ffffff;
-    --color-ivory: #fbf8f3;
-    --color-sand: #f3ede3;
-    --color-leaf: #2e7d4f;
-    --color-sindoor: #b5121b;
+    --color-ivory: #faf8f6;
+    --color-sand: #f4f0ee;
+    --color-leaf: #2f7a52;
+    --color-sindoor: #b3261e;
     --color-sindoor-soft: #e2394a;
     --color-marigold-soft: #ffd978;
+    --color-gold: #b08a3e;
     --color-surface: #ffffff;
-    --color-surface-2: #fafafb;
-    --color-workspace: #eceef3;
-    --color-primary: #1e2250;
-    --color-primary-hover: #0f1233;
+    --color-surface-2: #fbf9f8;
+    --color-workspace: #f1edec;
+    --color-primary: #4a1d4f;
+    --color-primary-hover: #3a1540;
     --color-on-primary: #ffffff;
-    --color-accent: #f2a900;
-    --color-overlay: rgb(15 18 51 / 0.45);
-    --color-tint: #eef0fb;
-    --color-tint-strong: #dfe3f7;
-    --color-glow: #fff6dc;
+    --color-accent: #4a1d4f;
+    --color-overlay: rgb(30 21 36 / 0.42);
+    --color-tint: #f5eff5;
+    --color-tint-strong: #eadfeb;
+    --color-glow: #f5eff5;
   }
   /* Theme switch: no transition on everything (that's slow); the root just swaps vars. */
   html[data-theme-switching] * {
@@ -171,28 +211,51 @@
   body {
     overflow-x: clip;
     font-family: var(--font-sans);
-    font-size: 1.0625rem;
+    font-size: 1rem;
     line-height: 1.6;
     text-rendering: optimizeLegibility;
   }
+  /* Headings use the semi-condensed cut of Instrument Sans: taller, more like set type on a card. */
   h1,
   h2,
   h3 {
     font-family: var(--font-display);
-    font-weight: 400;
-    line-height: 1.1;
-    letter-spacing: -0.012em;
+    font-weight: 600;
+    font-stretch: 88%;
+    line-height: 1.08;
+    letter-spacing: -0.02em;
     text-wrap: balance;
+  }
+  h1 {
+    font-stretch: 82%;
+    letter-spacing: -0.025em;
+  }
+  h3 {
+    font-stretch: 94%;
+    letter-spacing: -0.01em;
+    line-height: 1.25;
+  }
+  /* Display text outside headings (prices, counts, names on tiles) gets the same cut. */
+  .font-display {
+    font-weight: 600;
+    font-stretch: 85%;
+    letter-spacing: -0.02em;
+  }
+  /* Devanagari needs headroom for matras and no negative tracking. */
+  :lang(hi) :is(h1, h2, h3),
+  :is(h1, h2, h3):lang(hi) {
+    line-height: 1.34;
+    letter-spacing: 0;
   }
   p {
     text-wrap: pretty;
   }
   :focus-visible {
-    outline: 2px solid var(--color-marigold);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
   ::selection {
-    background: var(--color-marigold-soft);
+    background: color-mix(in srgb, var(--color-gold) 30%, transparent);
     color: var(--color-ink);
   }
 }
@@ -260,7 +323,7 @@
     transition: transform 0.45s var(--ease-spring);
   }
   .press:active {
-    transform: scale(0.95);
+    transform: scale(0.97);
     transition-duration: 0.12s;
   }
 
@@ -269,7 +332,7 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
-    background: radial-gradient(120% 90% at 50% 0%, #262b6b 0%, var(--color-night) 60%);
+    background: radial-gradient(120% 90% at 50% 0%, #4a1d4f 0%, var(--color-night) 60%);
   }
   .mesh > span {
     position: absolute;
@@ -305,11 +368,11 @@
    * stays on the compositor; no blur filters (they repaint every frame on low-end phones). */
   [data-reveal] {
     opacity: 0;
-    transform: translate3d(0, 20px, 0);
+    transform: translate3d(0, 16px, 0);
     transition:
-      opacity 0.7s var(--ease-out-quint),
-      transform 0.8s var(--ease-out-quint);
-    transition-delay: calc(var(--d, 0) * 80ms);
+      opacity 0.6s var(--ease-out-quint),
+      transform 0.7s var(--ease-out-quint);
+    transition-delay: calc(var(--d, 0) * 70ms);
   }
   [data-reveal][data-in] {
     opacity: 1;
@@ -321,8 +384,8 @@
     display: inline-block;
     opacity: 0;
     transform: translate3d(0, 0.4em, 0);
-    animation: word-in 0.8s var(--ease-out-quint) forwards;
-    animation-delay: calc(80ms + var(--i) * 55ms);
+    animation: word-in 0.7s var(--ease-out-quint) forwards;
+    animation-delay: calc(60ms + var(--i) * 45ms);
   }
   @keyframes word-in {
     to {
@@ -383,7 +446,7 @@
   /* Native <select> with a quiet chevron (pair with pr-9). */
   .select {
     appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%238a8fb0' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23948795' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 0.7rem center;
     background-size: 1rem;
@@ -403,22 +466,34 @@
     font-weight: 600;
     white-space: nowrap;
   }
-  /* Thin label above section headings. */
+  /* Small section label: sentence case, brand red. */
   .eyebrow {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: var(--color-sindoor);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--color-ink-soft);
   }
-  .eyebrow::before {
-    content: '';
-    width: 1.5rem;
-    height: 1px;
-    background: currentColor;
+
+  /* Toran: the marigold-and-mango-leaf garland hung over a doorway. The one brand ornament;
+   * a repeating inline SVG, so it costs no request and no JS. */
+  .toran {
+    height: 22px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='44' height='22'%3E%3Cpath d='M0 1h44' stroke='%23c98700' stroke-width='1.5'/%3E%3Cpath d='M11 1c-4 6-3 13 0 18 3-5 4-12 0-18Z' fill='%232e7d4f'/%3E%3Cpath d='M33 1v3' stroke='%23c98700' stroke-width='1.5'/%3E%3Ccircle cx='33' cy='9.5' r='6' fill='%23f2a900'/%3E%3Ccircle cx='33' cy='9.5' r='2.4' fill='%23c98700'/%3E%3C/svg%3E")
+      repeat-x center top / 44px 22px;
+    transform-origin: top center;
+    pointer-events: none;
+  }
+
+  /* Text link with an underline that draws in from the left. */
+  .link-draw {
+    background: linear-gradient(currentColor, currentColor) no-repeat left bottom / 0 1.5px;
+    transition: background-size 0.3s var(--ease-out-quint);
+  }
+  :is(a, button):hover .link-draw,
+  .link-draw:hover {
+    background-size: 100% 1.5px;
   }
   /* Fade the ends of horizontal strips (a mask, not a colour). */
   .edge-fade {
@@ -480,8 +555,8 @@
   max-width: 260px;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  background: #12142a;
-  color: #f4f5fb;
+  background: #2a1430;
+  color: #f7f1f5;
   font: 600 0.78rem/1.3 var(--font-sans);
   pointer-events: none;
   opacity: 0;
@@ -492,8 +567,8 @@
   opacity: 1;
 }
 [data-theme='dark'] .tip-layer {
-  background: #f1f2f9;
-  color: #12142a;
+  background: #f1ecef;
+  color: #1e1524;
 }
 .tip-layer kbd {
   font: 600 0.7rem/1 var(--font-sans);
@@ -503,12 +578,7 @@
   opacity: 0.85;
 }
 [data-theme='dark'] .tip-layer kbd {
-  background: rgb(18 20 42 / 0.1);
-}
-
-@theme {
-  --ease-apple: cubic-bezier(0.16, 1, 0.3, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  background: rgb(30 21 36 / 0.1);
 }
 
 /* Phones: lighter blur keeps scrolling at 60fps on budget Android. */
@@ -521,7 +591,7 @@
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass {
-    background: rgb(40 45 100 / 0.92);
+    background: rgb(46 16 49 / 0.92);
   }
 }
 
@@ -698,3 +768,106 @@
     height: 22px;
   }
 }
+
+/* ================= App shell (signed-in pages) =================
+ * Sidebar width is one variable; <html data-sidebar="collapsed"> (set before paint) narrows it.
+ * Only width/margin animate, and only on the user's toggle — not on first paint. */
+.app-frame {
+  --sb: 248px;
+}
+[data-sidebar='collapsed'] .app-frame {
+  --sb: 72px;
+}
+.app-sidebar {
+  width: var(--sb);
+  transition: width 0.25s var(--ease-out-quint);
+}
+@media (min-width: 1024px) {
+  .app-main {
+    margin-left: var(--sb);
+    transition: margin-left 0.25s var(--ease-out-quint);
+  }
+}
+[data-sidebar='collapsed'] .app-sidebar .sb-label {
+  display: none;
+}
+
+/* Hero scene: pieces settle into place once on load. */
+@keyframes scene-in {
+  from {
+    opacity: 0;
+    translate: 0 24px;
+  }
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 8px, 0) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* ================= Landing + navbar interactions ================= */
+
+/* Navbar reading progress: driven by the page's scroll position, no JS. */
+.nav-progress {
+  transform: scaleX(0);
+}
+@supports (animation-timeline: scroll()) {
+  .nav-progress {
+    animation: nav-progress linear both;
+    animation-timeline: scroll(root);
+  }
+}
+@keyframes nav-progress {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* How-it-works step timer. */
+@keyframes how-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+/* FAQ: answers open with a height animation where the browser supports it. */
+.faq {
+  interpolate-size: allow-keywords;
+}
+.faq::details-content {
+  block-size: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition:
+    block-size 0.4s var(--ease-out-quint),
+    opacity 0.3s ease,
+    content-visibility 0.4s allow-discrete;
+}
+.faq[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+
+/* Drawer rows arrive one after another. */
+.stagger > * {
+  animation: fade-up 0.45s var(--ease-out-quint) both;
+}
+.stagger > :nth-child(2) { animation-delay: 30ms; }
+.stagger > :nth-child(3) { animation-delay: 60ms; }
+.stagger > :nth-child(4) { animation-delay: 90ms; }
+.stagger > :nth-child(5) { animation-delay: 120ms; }
+.stagger > :nth-child(6) { animation-delay: 150ms; }
+.stagger > :nth-child(7) { animation-delay: 180ms; }
+.stagger > :nth-child(n + 8) { animation-delay: 210ms; }

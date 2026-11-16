@@ -129,8 +129,8 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
               ))}
             </div>
             {latinNames && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-xl bg-glow p-3 pl-4">
-                <Languages className="size-4 shrink-0 text-marigold-deep dark:text-marigold" aria-hidden />
+              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-hairline bg-surface-2 p-3 pl-4">
+                <Languages className="size-4 shrink-0" aria-hidden />
                 <p className="flex-1 text-[0.95rem]">{hi ? `नाम ${lang.nativeName} लिपि में बदलें?` : `Your card is in ${lang.name}. Write the names in ${lang.name} script?`}</p>
                 <Button size="sm" variant="line" onClick={convertNames} loading={converting}>
                   {hi ? `${lang.nativeName} में बदलें` : `Convert to ${lang.nativeName}`}
@@ -185,7 +185,7 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
                 : hi ? 'AI के शब्द कार्ड पर लगे हैं।' : 'AI wording is on your card.'}
             </p>
             <Button variant="line" onClick={writeWithAi} loading={writing} className="shrink-0">
-              <Sparkles className="size-4 text-marigold-deep dark:text-marigold" />
+              <Sparkles className="size-4" />
               {hi ? `AI से ${lang.nativeName} में लिखें` : `Write in ${lang.name} with AI`}
             </Button>
           </div>
@@ -197,7 +197,7 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
         <div className="sticky top-24 rounded-[var(--radius-card)] border border-hairline bg-surface p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-leaf">
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-leaf">
                 <span className="size-1.5 animate-pulse rounded-full bg-leaf" aria-hidden />
                 {hi ? 'लाइव झलक' : 'Live preview'}
               </p>
@@ -230,7 +230,7 @@ function Section({ n, done, icon, title, sub, optional, hi, children }: { n: num
         <div className="min-w-0 flex-1">
           <h2 className="flex flex-wrap items-center gap-2 text-xl sm:text-2xl">
             {title}
-            {optional && <span className="rounded-md bg-surface-2 px-2.5 py-0.5 font-sans text-xs font-semibold text-ink-soft ring-1 ring-hairline">{hi ? 'वैकल्पिक' : 'Optional'}</span>}
+            {optional && <span className="rounded-md bg-surface-2 px-2.5 py-0.5 border border-hairline text-xs font-semibold tracking-normal text-ink-soft">{hi ? 'वैकल्पिक' : 'Optional'}</span>}
           </h2>
           <p className="mt-1 flex items-center gap-1.5 text-[0.95rem] text-ink-soft">
             <span className="text-ink-soft/70" aria-hidden>

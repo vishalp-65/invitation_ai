@@ -1,6 +1,7 @@
 'use client';
 
-import type { SiteOpening } from '@cardai/shared';
+import type { SiteDesign, SiteOpening } from '@cardai/shared';
+import { Ambient, SceneLayer, WaxSeal } from '@cardai/templates/scenes';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 
 /**
@@ -8,6 +9,9 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
  * start on phones. Every scene is transforms + opacity only, then the layer unmounts.
  */
 export function Opening({
+  design,
+  names,
+  connector,
   kind,
   label,
   greeting,
@@ -16,6 +20,9 @@ export function Opening({
   onOpen,
   motionOff,
 }: {
+  design: SiteDesign | null;
+  names: string[];
+  connector?: string;
   kind: SiteOpening;
   label: string;
   greeting: string | null;
@@ -28,9 +35,9 @@ export function Opening({
 
   useEffect(() => {
     if (state !== 'opening') return;
-    const t = setTimeout(() => setState('gone'), motionOff ? 0 : 2300);
+    const t = setTimeout(() => setState('gone'), motionOff ? 0 : kind === 'seal' || kind === 'lanterns' ? 2600 : 2300);
     return () => clearTimeout(t);
-  }, [state, motionOff]);
+  }, [state, motionOff, kind]);
 
   // Lock page scroll while the scene is up.
   useEffect(() => {
@@ -123,6 +130,89 @@ export function Opening({
         </>
       );
       break;
+    case 'seal': {
+      const wax = design?.palette.primary ?? 'var(--inv-primary)';
+      const paperDeep = design ? design.palette.primary : 'var(--inv-primary-deep)';
+      const gold = design?.palette.accent ?? 'var(--inv-accent)';
+      const sealFont = design?.fonts.script ?? 'serif';
+      scene = (
+        <>
+          <div className="inv-backdrop absolute inset-0" style={{ background: paperDeep }} />
+          {/* envelope back: four flaps meeting under the seal */}
+          <svg className="inv-env-body absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <polygon points="0,0 50,55 0,100" fill="#000" fillOpacity="0.12" />
+            <polygon points="100,0 50,55 100,100" fill="#000" fillOpacity="0.16" />
+            <polygon points="0,100 50,55 100,100" fill="#000" fillOpacity="0.06" />
+            <polyline points="0,100 50,55 100,100" fill="none" stroke={gold} strokeOpacity="0.5" strokeWidth="0.25" vectorEffect="non-scaling-stroke" />
+          </svg>
+          {/* embossed roses that glow gold while waiting (unstretched, so the motif keeps its shape) */}
+          <svg className="inv-env-body inv-emboss absolute inset-0 size-full" aria-hidden>
+            <defs>
+              <pattern id="inv-emboss" width="46" height="46" patternUnits="userSpaceOnUse">
+                <g fill="none" stroke={gold} strokeWidth="0.8" strokeLinecap="round">
+                  <circle cx="23" cy="20" r="6" />
+                  <path d="M20 20c0-3 5-3 5 0s-3 3-3 1" />
+                  <path d="M17 23c-6 2-9 7-8 11c5-1 8-5 8-11z" />
+                  <path d="M29 23c6 2 9 7 8 11c-5-1-8-5-8-11z" />
+                  <path d="M23 26v12" />
+                </g>
+              </pattern>
+            </defs>
+            <rect width="100%" height="100%" fill="url(#inv-emboss)" />
+          </svg>
+          <div className="inv-env-flap absolute inset-x-0 top-0 h-[55%]" style={{ background: paperDeep }}>
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.22))' }} />
+            <svg className="absolute inset-0 size-full" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+              <polyline points="0,0 50,100 100,0" fill="none" stroke={gold} strokeOpacity="0.55" strokeWidth="0.3" vectorEffect="non-scaling-stroke" />
+            </svg>
+          </div>
+          <div className="inv-env-light pointer-events-none absolute left-1/2 top-[55%] size-[30vmax] -translate-x-1/2 -translate-y-1/2 rounded-full" />
+          <button type="button" onClick={open} autoFocus aria-label={label} className="inv-seal absolute left-1/2 top-[55%] z-10 w-[clamp(112px,18vmin,190px)] -translate-x-1/2 -translate-y-1/2 rounded-full active:scale-95">
+            <WaxSeal size={112} color={wax} text={[...monogram].slice(0, 2).join('&')} font={sealFont} light />
+          </button>
+          <div className="inv-cta absolute inset-x-0 bottom-[11vh] z-10 flex flex-col items-center gap-2 px-8 text-center text-white">
+            {greeting && <p className="text-lg italic opacity-90">{greeting}</p>}
+            <p className="inv-script text-[clamp(1.9rem,4.5vmin,3rem)]">{title}</p>
+            <p className="mt-1 text-sm uppercase tracking-[0.25em] opacity-80">{label}</p>
+          </div>
+        </>
+      );
+      break;
+    }
+    case 'lanterns': {
+      const c = design?.scene.colors;
+      scene = (
+        <>
+          <div className="inv-backdrop absolute inset-0" style={{ background: c ? `linear-gradient(${c.skyTop}, ${c.skyBottom})` : 'linear-gradient(#16264F, #3E5C9A)' }}>
+            {design && <SceneLayer design={design} layer="sky" lite />}
+            {design && (
+              <div className="inv-scene-frame absolute inset-x-0 bottom-0 h-[70%] opacity-90">
+                <SceneLayer design={design} layer="mid" lite />
+              </div>
+            )}
+          </div>
+          <div className="inv-lantern-field absolute inset-0">
+            <Ambient kind="lanterns" colors={['#FFB547']} glow={c?.glow ?? '#FFB547'} density={motionOff ? 0.3 : 1.6} />
+          </div>
+          <div className="inv-cta relative z-10 flex flex-col items-center px-8 text-center text-white">
+            {greeting && <p className="mb-6 text-lg italic opacity-90">{greeting}</p>}
+            {names.length > 1 ? (
+              <p className="inv-display text-[clamp(2.2rem,10vw,4rem)] uppercase leading-[1.05] tracking-[0.08em] [text-shadow:0_2px_24px_rgb(0_0_0/0.45)]">
+                {names[0]}
+                <span className="my-1 block text-[0.3em] tracking-[0.5em]">{connector || '&'}</span>
+                {names[1]}
+              </p>
+            ) : (
+              <p className="inv-display text-[clamp(2rem,9vw,3.4rem)] leading-tight [text-shadow:0_2px_24px_rgb(0_0_0/0.45)]">{title}</p>
+            )}
+            <button type="button" onClick={open} autoFocus className="mt-10 h-14 rounded-full border border-white/70 bg-white/10 px-8 text-lg font-semibold text-white backdrop-blur-sm active:scale-95">
+              {label}
+            </button>
+          </div>
+        </>
+      );
+      break;
+    }
     case 'petals':
       scene = (
         <>
@@ -173,7 +263,7 @@ export function Opening({
   }
 
   return (
-    <div className="inv-opening" data-state={state} role="dialog" aria-label={title}>
+    <div className={`inv-opening inv-open-${kind}`} data-state={state} role="dialog" aria-label={title}>
       {scene}
     </div>
   );

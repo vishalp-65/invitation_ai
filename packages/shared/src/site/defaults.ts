@@ -1,6 +1,7 @@
 import { getEventType } from '../constants/event-types.js';
 import { attireFor, characterSuitsFaith, faithOf } from '../constants/faith.js';
 import type { Attire } from '../templates/types.js';
+import { getSiteDesign, type SiteDesignId } from './designs.js';
 import { siteDocSchema, type SiteCharacter, type SiteDoc, type SiteSection, type SiteSectionType } from './schema.js';
 
 /** Builder labels + public headings (English / Hindi; other languages fall back to English). */
@@ -24,6 +25,8 @@ export const SECTION_INFO: Record<SiteSectionType, { label: string; hi: string; 
   wishes: { label: 'Wishes', hi: 'शुभकामनाएँ', help: 'Guests leave blessings on the page.' },
   album: { label: 'Guest album', hi: 'मेहमानों की तस्वीरें', help: 'Guests upload their photos after the event.' },
   custom: { label: 'Text & photo', hi: 'विशेष', help: 'Anything else you want to say.' },
+  countdown: { label: 'Countdown', hi: 'उलटी गिनती', help: 'Live days / hours / minutes to the first function.' },
+  things: { label: 'Things to know', hi: 'ज़रूरी बातें', help: 'Hashtag, weather, parking, stay, Instagram and more.' },
   closing: { label: 'Closing', hi: 'आभार', help: 'Closing line and signature.' },
 };
 
@@ -83,7 +86,7 @@ function planFor(eventType: string): Plan {
   const t = getEventType(eventType);
   if (t.category === 'wedding') {
     return [
-      'hero', 'welcome', 'couple', 'story', 'schedule', 'dresscode', 'venue', 'gallery', 'video', 'family', 'travel', 'rsvp', 'gifts',
+      'hero', 'welcome', 'countdown', 'couple', 'story', 'schedule', 'venue', 'dresscode', 'gallery', 'video', 'family', 'travel', 'things', 'rsvp', 'gifts',
       ['livestream', { hidden: true }], ['updates', { hidden: true }], 'faq', 'wishes', ['album', { hidden: true }], 'closing',
     ];
   }
@@ -125,4 +128,30 @@ export function newSection(type: SiteSectionType, taken: Iterable<string>): Site
   let id: string = type;
   for (let n = 2; used.has(id); n++) id = `${type}-${n}`;
   return siteDocSchema.shape.sections.element.parse({ id, type });
+}
+
+/**
+ * Switch a page to a design pack (or back to classic with `null`). Takes the pack's opening and
+ * turns on the scene cover and ribbon schedule; the host's words and section order are kept.
+ */
+export function applyDesign(doc: SiteDoc, id: SiteDesignId | null): SiteDoc {
+  const d = getSiteDesign(id);
+  if (!d) {
+    return {
+      ...doc,
+      design: undefined,
+      sections: doc.sections.map((s) =>
+        s.type === 'hero' && s.variant === 'scene' ? { ...s, variant: 'classic' } : s.type === 'schedule' && s.variant === 'ribbon' ? { ...s, variant: 'timeline' } : s,
+      ),
+    };
+  }
+  return {
+    ...doc,
+    design: d.id,
+    opening: { ...doc.opening, kind: d.opening },
+    // The pack's ambient layer replaces the generic petals; its colours replace overrides.
+    motion: { ...doc.motion, petals: false },
+    look: { ...doc.look, primary: undefined, accent: undefined, background: undefined, ornament: 'none', dark: false },
+    sections: doc.sections.map((s) => (s.type === 'hero' ? { ...s, variant: 'scene' } : s.type === 'schedule' ? { ...s, variant: 'ribbon' } : s)),
+  };
 }

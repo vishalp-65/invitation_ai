@@ -9,3 +9,4 @@ export { DesignPage, fontsForPages, fontStack, type RenderGate } from './design/
 export { ASSETS, STICKERS, type AssetDef, type Sticker, type StickerCategory } from './design/assets';
 export { DesignCard, DesignVideo, planDesignVideo, useDesignFonts, DESIGN_VIDEO, type DesignRenderProps } from './design/compositions';
 export { elementMotion, entranceDelay } from './design/motion';
+export { SiteVideo, planSiteVideo, SITE_VIDEO, type SiteVideoProps, type SiteVideoFunction } from './site-video/SiteVideo';

@@ -1,8 +1,13 @@
 'use client';
 
 import {
+  applyDesign,
   ATTIRES,
   CHARACTER_TIER,
+  DESIGN_TIER,
+  designsFor,
+  getSiteDesign,
+  MUSIC_TRACKS,
   COUPLE_STYLES,
   getLanguage,
   LANGUAGES,
@@ -21,12 +26,15 @@ import {
   type SiteUpdateDto,
 } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Copy, Eye, EyeOff, Languages, Link2, Lock, Megaphone, Pin, Sparkles, Trash2, Wand2 } from 'lucide-react';
+import { SceneLayer } from '@cardai/templates/scenes';
+import { Check, Copy, Eye, EyeOff, Languages, Link2, Lock, Megaphone, Pin, Sparkles, Trash2, Wand2 } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Chip, Field, Input, Select, Textarea } from '@/components/ui/field';
 import { api, ApiError } from '@/lib/api';
+import { uploadAudio } from '@/lib/upload';
+import type { EditorCtx } from './section-editor';
 
 const LABEL: Record<string, string> = {
   none: 'None',
@@ -35,6 +43,8 @@ const LABEL: Record<string, string> = {
   curtain: 'Curtain',
   scroll: 'Royal scroll',
   petals: 'Petal burst',
+  seal: 'Wax seal',
+  lanterns: 'Sky lanterns',
   auto: 'Auto',
   couple: 'Couple',
   ganesha: 'Ganesha',
@@ -159,7 +169,66 @@ export function AiPanel({ eventId, beforeDraft, onDraft }: { eventId: string; be
 
 // ---------------- Look ----------------
 
-export function LookPanel({ doc, tier, setDoc, palette }: { doc: SiteDoc; tier: SiteTier; setDoc: (fn: (d: SiteDoc) => void) => void; palette: { primary: string; accent: string; background: string } }) {
+/** Thumbnail of a design: its four scene layers stacked, name on top. */
+function DesignThumb({ id, selected, locked, onClick }: { id: string; selected: boolean; locked: boolean; onClick: () => void }) {
+  const d = getSiteDesign(id);
+  if (!d) return null;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-pressed={selected}
+      className={`group relative aspect-[3/4] overflow-hidden rounded-[12px] border text-left ${selected ? 'border-2 border-accent' : 'border-hairline'}`}
+    >
+      {(['sky', 'far', 'mid', 'near'] as const).map((l) => (
+        <SceneLayer key={l} design={d} layer={l} lite time={0} />
+      ))}
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-1.5 pt-6 text-white">
+        <span className="block text-sm font-semibold leading-tight">{d.name}</span>
+        <span className="block text-[11px] leading-tight opacity-80">{d.region}</span>
+      </span>
+      {selected && <Check className="absolute right-1.5 top-1.5 size-5 rounded-full bg-accent p-0.5 text-white" aria-hidden />}
+      {d.isNew && !selected && <span className="absolute right-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">New</span>}
+      {locked && <Lock className="absolute left-1.5 top-1.5 size-5 rounded-full bg-black/50 p-1 text-white" aria-label="Site Premium" />}
+    </button>
+  );
+}
+
+export function LookPanel({
+  doc,
+  tier,
+  setDoc,
+  palette,
+  eventType = 'wedding',
+  community,
+  ctx,
+}: {
+  doc: SiteDoc;
+  tier: SiteTier;
+  setDoc: (fn: (d: SiteDoc) => void) => void;
+  palette: { primary: string; accent: string; background: string };
+  eventType?: string;
+  community?: string | null;
+  ctx?: EditorCtx;
+}) {
+  const designs = designsFor(eventType, community);
+  const [uploading, setUploading] = useState(false);
+  const songUrl = doc.music?.assetId ? ctx?.assets[doc.music.assetId] : undefined;
+  async function uploadSong(file: File) {
+    if (!ctx) return;
+    setUploading(true);
+    try {
+      const a = await uploadAudio(ctx.eventId, file);
+      ctx.addAsset(a.id, a.url);
+      setDoc((d) => void (d.music = { ...d.music, assetId: a.id }));
+      toast.success('Song added');
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+  const track = doc.music?.track ?? 'auto';
   const color = (key: 'primary' | 'accent' | 'background', label: string) => (
     <label className="flex items-center gap-2 text-sm font-semibold">
       <input
@@ -173,6 +242,68 @@ export function LookPanel({ doc, tier, setDoc, palette }: { doc: SiteDoc; tier: 
   );
   return (
     <div className="flex flex-col gap-7">
+      <Group title="Design" hint="Painted, animated looks. Your names, dates and venues fill in by themselves. Designs made for your tradition come first.">
+        <div className="grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setDoc((d) => void Object.assign(d, applyDesign(d, null)))}
+            aria-pressed={!doc.design}
+            className={`flex aspect-[3/4] flex-col items-center justify-center rounded-[12px] border p-2 text-center text-sm font-semibold ${!doc.design ? 'border-2 border-accent' : 'border-hairline'}`}
+          >
+            Classic
+            <span className="mt-1 text-[11px] font-normal text-ink-soft">Your card colours</span>
+          </button>
+          {designs.map((d) => (
+            <DesignThumb key={d.id} id={d.id} selected={doc.design === d.id} locked={!tierAtLeast(tier, DESIGN_TIER[d.id])} onClick={() => setDoc((x) => void Object.assign(x, applyDesign(x, d.id)))} />
+          ))}
+        </div>
+      </Group>
+
+      <Group title="Video invite style" hint="Used by “Cinematic video” in Share. Same design, music and words as this website.">
+        <div className="flex flex-wrap gap-2">
+          {(
+            [
+              ['cinematic', 'Cinematic film (30–50 s)'],
+              ['teaser', 'Save-the-date reel (15 s)'],
+              ['storybook', 'Storybook page turns'],
+            ] as const
+          ).map(([v, label]) => (
+            <Chip key={v} selected={(doc.video?.style ?? 'cinematic') === v} onClick={() => setDoc((d) => void (d.video = { style: v }))}>
+              {label}
+            </Chip>
+          ))}
+        </div>
+      </Group>
+
+      <Group title="Music" hint="Plays after the guest taps open. A song you upload in the Edit tab always wins.">
+        <Select aria-label="Background music" value={track} onChange={(e) => setDoc((d) => void (d.music = { track: e.target.value as SiteDoc['music']['track'] }))}>
+          <option value="auto">{doc.design ? 'Match the design' : 'None until you pick a design or a track'}</option>
+          <option value="none">No music</option>
+          {MUSIC_TRACKS.map((t) => (
+            <option key={t.id} value={t.id}>
+              {t.title}
+            </option>
+          ))}
+        </Select>
+        {ctx && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="inline-flex">
+              <input type="file" accept="audio/mpeg" hidden onChange={(e) => e.target.files?.[0] && uploadSong(e.target.files[0])} />
+              <span className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-hairline px-3 text-sm font-semibold">{uploading ? 'Uploading…' : songUrl ? 'Replace my song' : 'Upload my own song (MP3)'}</span>
+            </label>
+            {songUrl && (
+              <>
+                <audio src={songUrl} controls preload="none" className="h-9 max-w-full" />
+                <Button size="sm" variant="quiet" onClick={() => setDoc((d) => void (d.music = { ...d.music, assetId: undefined }))}>
+                  Remove
+                </Button>
+              </>
+            )}
+            <p className="w-full text-xs text-ink-soft">Only upload music you have the right to use. It plays instead of the library track.</p>
+          </div>
+        )}
+      </Group>
+
       <Group title="Opening" hint="What guests tap first. The tap also starts your music.">
         <div className="flex flex-wrap gap-2">
           {SITE_OPENINGS.map((o) => (

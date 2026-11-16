@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, eventFunctions, events, inArray, ne, type Database } from '@cardai/db';
+import { and, asc, desc, eq, eventFunctions, events, guests, inArray, ne, rsvps, sql, type Database } from '@cardai/db';
 import {
   eventSettingsSchema,
   getEventType,
@@ -23,6 +23,8 @@ const suffix = customAlphabet('abcdefghijkmnpqrstuvwxyz23456789', 4);
 
 export type EventRow = typeof events.$inferSelect;
 export type FunctionRow = typeof eventFunctions.$inferSelect;
+
+const OUTER_EVENT_ID = sql.raw('"events"."id"');
 
 @Injectable()
 export class EventsService {
@@ -92,6 +94,11 @@ export class EventsService {
         language: events.language,
         viewCount: events.viewCount,
         updatedAt: events.updatedAt,
+        // Dashboard summary: first function date, guest list size and confirmed headcount.
+        // The outer id is written out in full: Drizzle renders `${events.id}` unqualified inside a subquery.
+        firstStartsAt: sql<Date | null>`(select min(${eventFunctions.startsAt}) from ${eventFunctions} where ${eventFunctions.eventId} = ${OUTER_EVENT_ID})`.mapWith(eventFunctions.startsAt),
+        guestCount: sql<number>`(select count(*)::int from ${guests} where ${guests.eventId} = ${OUTER_EVENT_ID})`,
+        comingCount: sql<number>`(select coalesce(sum(${rsvps.headcount}), 0)::int from ${rsvps} where ${rsvps.eventId} = ${OUTER_EVENT_ID} and ${rsvps.status} = 'yes')`,
       })
       .from(events)
       .where(and(eq(events.userId, user.id), ne(events.status, 'archived')))

@@ -1,80 +1,441 @@
 'use client';
 
-import { EVENT_TYPES, groupByFamily, type EventTypeId } from '@cardai/shared';
+import { COLOR_FILTERS, COMMUNITIES, EVENT_TYPES, groupByFamily, STYLE_FILTERS, type EventTypeId, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
+import { Check, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useLocale } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
-import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/invite/template-search';
+import { TemplatePreview } from '@/components/invite/template-preview';
+import { COMMUNITY_LABEL, NoTemplates, useTemplateSearch, type TemplateSearchState } from '@/components/invite/template-search';
 import { designHref } from '@/components/marketing/family-showcase';
+import { Dialog } from '@/components/ui/dialog';
+import { controlClass } from '@/components/ui/field';
 import { useTemplates } from '@/lib/hooks';
 
-const FILTERS: Array<EventTypeId | 'all'> = [
+const OCCASIONS: Array<EventTypeId | 'all'> = [
   'all', 'wedding', 'engagement', 'reception', 'birthday', 'griha-pravesh', 'puja', 'baby-shower',
   'nikah', 'anand-karaj', 'christian-wedding', 'jagran', 'shop-opening', 'corporate',
 ];
 
-export function TemplateGallery() {
-  const locale = useLocale();
-  const [filter, setFilter] = useState<EventTypeId | 'all'>('all');
-  const [premiumOnly, setPremiumOnly] = useState(false);
-  const { data, isLoading } = useTemplates(filter === 'all' ? undefined : filter);
-  const search = useTemplateSearch(data);
-  const families = useMemo(() => groupByFamily(search.results.filter((t) => !premiumOnly || t.premium)), [search.results, premiumOnly]);
+type Price = 'all' | 'free' | 'premium';
+type Sort = 'recommended' | 'popular' | 'free' | 'az';
+type Family = { id: string; name: string; variants: TemplateDefinition[] };
+
+const SORTS: Array<[Sort, string, string]> = [
+  ['recommended', 'Recommended', 'सुझाए गए'],
+  ['popular', 'Most popular', 'सबसे लोकप्रिय'],
+  ['free', 'Free first', 'पहले मुफ़्त'],
+  ['az', 'Name A–Z', 'नाम A–Z'],
+];
+
+const STYLE_IDS = new Set<string>(STYLE_FILTERS.map((s) => s.id));
+const COLOR_IDS = new Set<string>(COLOR_FILTERS.map((c) => c.id));
+const list = (v: string | null, valid: Set<string>) => (v ? v.split(',').filter((x) => valid.has(x)) : []);
+const pick = <T extends string>(v: string | null, options: readonly T[], fallback: T): T => (options.includes(v as T) ? (v as T) : fallback);
+
+/** Sorts design families; "recommended" keeps the API order (featured first, or search relevance). */
+function sortFamilies(families: Family[], sort: Sort): Family[] {
+  if (sort === 'recommended') return families;
+  const uses = (f: Family) => f.variants.reduce((n, v) => n + (v.uses ?? 0), 0);
+  const free = (f: Family) => (f.variants.some((v) => !v.premium) ? 0 : 1);
+  const by: Record<Exclude<Sort, 'recommended'>, (a: Family, b: Family) => number> = {
+    popular: (a, b) => uses(b) - uses(a),
+    free: (a, b) => free(a) - free(b),
+    az: (a, b) => a.name.localeCompare(b.name),
+  };
+  return [...families].sort(by[sort]); // stable, so ties keep the recommended order
+}
+
+const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
+
+/** `inApp`: rendered inside the signed-in shell (shorter top bar, wider page gutters). */
+export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
+  const hi = useLocale() === 'hi';
+  // Filters live in the address bar, so a search can be shared, bookmarked and restored on Back.
+  const params = useSearchParams();
+  const [occasion, setOccasion] = useState<EventTypeId | 'all'>(() => pick(params.get('type'), OCCASIONS, 'all'));
+  const [price, setPrice] = useState<Price>(() => pick(params.get('price'), ['all', 'free', 'premium'] as const, 'all'));
+  const [sort, setSort] = useState<Sort>(() => pick(params.get('sort'), SORTS.map((s) => s[0]), 'recommended'));
+  const [previewId, setPreviewId] = useState<string | null>(() => params.get('design'));
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const { data, isLoading } = useTemplates(occasion === 'all' ? undefined : occasion);
+  const search = useTemplateSearch(data, {
+    q: params.get('q') ?? '',
+    colors: list(params.get('colour'), COLOR_IDS),
+    styles: list(params.get('style'), STYLE_IDS),
+    community: pick(params.get('tradition'), ['', ...COMMUNITIES], ''),
+  });
+  const { state, setState } = search;
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (state.q.trim()) next.set('q', state.q.trim());
+    if (occasion !== 'all') next.set('type', occasion);
+    if (price !== 'all') next.set('price', price);
+    if (state.colors.length) next.set('colour', state.colors.join(','));
+    if (state.styles.length) next.set('style', state.styles.join(','));
+    if (state.community) next.set('tradition', state.community);
+    if (sort !== 'recommended') next.set('sort', sort);
+    if (previewId) next.set('design', previewId);
+    const qs = next.toString().replaceAll('%2C', ',');
+    if (qs !== window.location.search.slice(1)) window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
+  }, [state, occasion, price, sort, previewId]);
+
+  const families = useMemo(
+    () => sortFamilies(groupByFamily(search.results.filter((t) => price === 'all' || (price === 'premium' ? t.premium : !t.premium))), sort),
+    [search.results, price, sort],
+  );
+  const previewFamily = useMemo(
+    () => (previewId ? (groupByFamily(data ?? []).find((f) => f.variants.some((v) => v.id === previewId)) ?? null) : null),
+    [data, previewId],
+  );
+  const hrefFor = (t: TemplateDefinition) => (occasion === 'all' ? designHref(t) : `/create?type=${occasion}&template=${t.id}`);
+  const colourways = families.reduce((n, f) => n + f.variants.length, 0);
+  const nRefine = state.styles.length + state.colors.length + (state.community ? 1 : 0) + (price !== 'all' ? 1 : 0);
+  const resetAll = () => {
+    search.reset();
+    setPrice('all');
+  };
+
+  const panel = <FilterPanel state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} />;
 
   return (
     <>
-      <div className="mt-8">
-        <TemplateSearchBar state={search.state} onChange={search.setState} hi={locale === 'hi'} count={families.length} />
+      {/* Search */}
+      <div className="mt-8 flex gap-2">
+        <label className="relative flex-1">
+          <span className="sr-only">{hi ? 'डिज़ाइन खोजें' : 'Search designs'}</span>
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ink-soft" aria-hidden />
+          <input
+            type="search"
+            value={state.q}
+            onChange={(e) => setState({ ...state, q: e.target.value })}
+            placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search shaadi, ganesha, maroon, floral…'}
+            className="h-12 w-full rounded-[var(--radius-control)] border border-hairline bg-surface pl-12 pr-11 text-base text-ink outline-none transition-colors placeholder:text-ink-soft/80 hover:border-ink/25 focus-visible:border-ink"
+            enterKeyHint="search"
+          />
+          {state.q && (
+            <button
+              type="button"
+              onClick={() => setState({ ...state, q: '' })}
+              className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-[var(--radius-control)] text-ink-soft hover:bg-mist hover:text-ink"
+              aria-label={hi ? 'साफ़ करें' : 'Clear search'}
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </label>
+        <button
+          type="button"
+          onClick={() => setSheetOpen(true)}
+          className="inline-flex h-12 shrink-0 items-center gap-2 rounded-[var(--radius-control)] border border-hairline bg-surface px-4 text-[0.95rem] font-medium hover:border-ink/25 lg:hidden"
+        >
+          <SlidersHorizontal className="size-4.5" aria-hidden />
+          {hi ? 'फ़िल्टर' : 'Filters'}
+          {nRefine > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary text-xs font-semibold text-on-primary">{nRefine}</span>}
+        </button>
       </div>
-      <div className="sticky top-[76px] z-20 -mx-5 mt-4 bg-surface/85 px-5 py-3 backdrop-blur-md">
-        <div className="flex gap-2 overflow-x-auto [scrollbar-width:none]" role="group" aria-label="Filter by occasion">
-          {FILTERS.map((f) => {
-            const ev = EVENT_TYPES.find((e) => e.id === f);
+
+      {/* Occasion tabs */}
+      <nav
+        className={
+          inApp
+            ? 'sticky top-14 z-20 -mx-4 mt-6 border-b border-hairline bg-ivory px-4 sm:-mx-6 sm:px-6 lg:top-16 lg:-mx-8 lg:px-8'
+            : 'sticky top-16 z-20 -mx-5 mt-6 border-b border-hairline bg-ivory px-5 sm:-mx-6 sm:px-6'
+        }
+        aria-label={hi ? 'अवसर' : 'Occasion'}
+      >
+        <div className="-mb-px flex gap-6 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] [scrollbar-width:none]">
+          {OCCASIONS.map((o) => {
+            const ev = EVENT_TYPES.find((e) => e.id === o);
+            const label = o === 'all' ? (hi ? 'सभी अवसर' : 'All occasions') : hi ? ev?.labelHi : ev?.label;
             return (
               <button
-                key={f}
+                key={o}
                 type="button"
-                aria-pressed={filter === f}
-                onClick={() => setFilter(f)}
+                aria-pressed={occasion === o}
+                onClick={() => setOccasion(o)}
                 className={clsx(
-                  'h-10 shrink-0 rounded-lg px-4 text-[0.95rem] font-medium transition-colors',
-                  filter === f ? 'bg-primary text-on-primary' : 'bg-mist hover:bg-line',
+                  'h-12 shrink-0 whitespace-nowrap border-b-2 text-[0.95rem] transition-colors',
+                  occasion === o ? 'border-primary font-semibold text-ink' : 'border-transparent text-ink-soft hover:text-ink',
                 )}
               >
-                {f === 'all' ? (locale === 'hi' ? 'सभी' : 'All') : locale === 'hi' ? ev?.labelHi : ev?.label}
+                {label}
               </button>
             );
           })}
         </div>
-        <label className="mt-3 flex w-max items-center gap-2 text-[0.95rem]">
-          <input type="checkbox" className="size-4 accent-[var(--color-ink)]" checked={premiumOnly} onChange={(e) => setPremiumOnly(e.target.checked)} />
-          Premium only
-        </label>
+      </nav>
+
+      <div className="mt-8 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-10">
+        {/* Desktop filters */}
+        <aside className="hidden lg:block" aria-label={hi ? 'फ़िल्टर' : 'Filters'}>
+          <div className="sticky top-[8.5rem] max-h-[calc(100dvh-10rem)] overflow-y-auto pb-6 [scrollbar-width:none]">
+            <div className="mb-5 flex h-6 items-center justify-between">
+              <p className="font-semibold">{hi ? 'फ़िल्टर' : 'Filters'}</p>
+              {nRefine > 0 && (
+                <button type="button" onClick={resetAll} className="text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">
+                  {hi ? 'सब हटाएँ' : 'Reset'}
+                </button>
+              )}
+            </div>
+            {panel}
+          </div>
+        </aside>
+
+        {/* Results */}
+        <section aria-live="polite" aria-busy={isLoading}>
+          <div className="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-2">
+            <p className="text-sm text-ink-soft">
+              {isLoading ? (
+                hi ? 'डिज़ाइन लोड हो रहे हैं…' : 'Loading designs…'
+              ) : hi ? (
+                <><span className="font-semibold text-ink">{families.length}</span> डिज़ाइन · {colourways} रंग</>
+              ) : (
+                <><span className="font-semibold text-ink">{families.length}</span> {families.length === 1 ? 'design' : 'designs'} · {colourways} colourways</>
+              )}
+            </p>
+            <ActiveChips state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} onReset={resetAll} />
+            <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
+              <span className="hidden sm:inline">{hi ? 'क्रम' : 'Sort'}</span>
+              <select
+                value={sort}
+                onChange={(e) => setSort(e.target.value as Sort)}
+                className={`${controlClass} select h-9 pl-3 pr-9 text-sm text-ink`}
+                aria-label={hi ? 'क्रम' : 'Sort designs'}
+              >
+                {SORTS.map(([id, en, h]) => (
+                  <option key={id} value={id}>{hi ? h : en}</option>
+                ))}
+              </select>
+            </label>
+          </div>
+
+          {isLoading ? (
+            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
+              {Array.from({ length: 8 }, (_, i) => (
+                <li key={i}>
+                  <div className="skeleton aspect-[9/16] w-full rounded-xl" />
+                  <div className="skeleton mt-3 h-4 w-2/3" />
+                </li>
+              ))}
+            </ul>
+          ) : families.length === 0 ? (
+            <div className="mt-5"><NoTemplates hi={hi} onReset={resetAll} /></div>
+          ) : (
+            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
+              {families.map((f, i) => (
+                <FamilyTile
+                  key={f.id}
+                  name={f.name}
+                  variants={f.variants}
+                  priority={i < 4}
+                  href={hrefFor}
+                  onOpen={(t) => setPreviewId(t.id)}
+                  meta
+                  hi={hi}
+                />
+              ))}
+            </ul>
+          )}
+        </section>
       </div>
 
-      {isLoading ? (
-        <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4" aria-busy>
-          {Array.from({ length: 8 }, (_, i) => (
-            <li key={i}>
-              <div className="skeleton aspect-[9/16] w-full" />
-              <div className="skeleton mt-3 h-4 w-2/3" />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <>
-          <p className="mt-4 text-ink-soft">
-            {families.length} designs, {families.reduce((n, f) => n + f.variants.length, 0)} colourways
-          </p>
-          {families.length === 0 && <div className="mt-6"><NoTemplates hi={locale === 'hi'} onReset={search.reset} /></div>}
-          <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4">
-            {families.map((f, i) => (
-              <FamilyTile key={f.id} name={f.name} variants={f.variants} priority={i < 4} href={(t) => (filter === 'all' ? designHref(t) : `/create?type=${filter}&template=${t.id}`)} />
-            ))}
-          </ul>
-        </>
-      )}
+      <TemplatePreview family={previewFamily} activeId={previewId} onSelect={setPreviewId} onClose={() => setPreviewId(null)} href={hrefFor} hi={hi} />
+
+      {/* Mobile filters */}
+      <Dialog focusField={false} open={sheetOpen} onClose={() => setSheetOpen(false)} title={hi ? 'फ़िल्टर' : 'Filters'}>
+        {panel}
+        <div className="sticky -bottom-5 -mx-5 mt-6 flex gap-2 border-t border-hairline bg-surface px-5 py-3">
+          <button type="button" onClick={resetAll} className="h-11 flex-1 rounded-[var(--radius-control)] border border-hairline font-medium hover:bg-mist">
+            {hi ? 'सब हटाएँ' : 'Reset'}
+          </button>
+          <button type="button" onClick={() => setSheetOpen(false)} className="h-11 flex-[2] rounded-[var(--radius-control)] bg-primary font-semibold text-on-primary hover:bg-primary-hover">
+            {hi ? `${families.length} डिज़ाइन देखें` : `Show ${families.length} designs`}
+          </button>
+        </div>
+      </Dialog>
     </>
+  );
+}
+
+function Section({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <fieldset className="border-t border-hairline py-5 first:border-t-0 first:pt-0">
+      <legend className="float-left mb-3 w-full text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft">{title}</legend>
+      <div className="clear-both">{children}</div>
+    </fieldset>
+  );
+}
+
+function FilterPanel({
+  state,
+  onChange,
+  price,
+  onPrice,
+  hi,
+}: {
+  state: TemplateSearchState;
+  onChange: (s: TemplateSearchState) => void;
+  price: Price;
+  onPrice: (p: Price) => void;
+  hi: boolean;
+}) {
+  const prices: Array<[Price, string]> = [
+    ['all', hi ? 'सभी' : 'All'],
+    ['free', hi ? 'मुफ़्त' : 'Free'],
+    ['premium', hi ? 'प्रीमियम' : 'Premium'],
+  ];
+  return (
+    <div>
+      <Section title={hi ? 'कीमत' : 'Price'}>
+        <div className="grid grid-cols-3 rounded-[var(--radius-control)] border border-hairline bg-surface p-0.5" role="radiogroup">
+          {prices.map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={price === id}
+              onClick={() => onPrice(id)}
+              className={clsx(
+                'h-8 rounded-[6px] text-sm font-medium transition-colors',
+                price === id ? 'bg-primary text-on-primary' : 'text-ink-soft hover:text-ink',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </Section>
+
+      <Section title={hi ? 'रंग' : 'Colour'}>
+        <div className="grid grid-cols-7 gap-2">
+          {COLOR_FILTERS.map((c) => {
+            const on = state.colors.includes(c.id);
+            const label = hi ? c.labelHi : c.label;
+            return (
+              <button
+                key={c.id}
+                type="button"
+                title={label}
+                aria-label={label}
+                aria-pressed={on}
+                onClick={() => onChange({ ...state, colors: toggle(state.colors, c.id) })}
+                className={clsx(
+                  'relative grid aspect-square w-full place-items-center rounded-full ring-offset-2 ring-offset-surface transition-[box-shadow]',
+                  on ? 'ring-2 ring-ink' : 'ring-1 ring-hairline hover:ring-ink/40',
+                )}
+                style={{ background: c.swatch }}
+              >
+                {on && <Check className="size-3.5 text-white mix-blend-difference" strokeWidth={3} aria-hidden />}
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section title={hi ? 'शैली' : 'Style'}>
+        <div className="flex flex-wrap gap-1.5">
+          {STYLE_FILTERS.map((s) => {
+            const on = state.styles.includes(s.id);
+            return (
+              <button
+                key={s.id}
+                type="button"
+                aria-pressed={on}
+                onClick={() => onChange({ ...state, styles: toggle(state.styles, s.id) })}
+                className={clsx(
+                  'h-8 rounded-[6px] border px-2.5 text-sm transition-colors',
+                  on ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
+                )}
+              >
+                {hi ? s.labelHi : s.label}
+              </button>
+            );
+          })}
+        </div>
+      </Section>
+
+      <Section title={hi ? 'परंपरा' : 'Tradition'}>
+        <select
+          value={state.community}
+          onChange={(e) => onChange({ ...state, community: e.target.value })}
+          className={`${controlClass} select h-10 w-full pl-3 pr-9 text-sm`}
+          aria-label={hi ? 'परंपरा' : 'Tradition'}
+        >
+          <option value="">{hi ? 'कोई भी' : 'Any tradition'}</option>
+          {COMMUNITIES.map((c) => (
+            <option key={c} value={c}>
+              {COMMUNITY_LABEL[c]?.[hi ? 1 : 0] ?? c}
+            </option>
+          ))}
+        </select>
+      </Section>
+    </div>
+  );
+}
+
+function ActiveChips({
+  state,
+  onChange,
+  price,
+  onPrice,
+  hi,
+  onReset,
+}: {
+  state: TemplateSearchState;
+  onChange: (s: TemplateSearchState) => void;
+  price: Price;
+  onPrice: (p: Price) => void;
+  hi: boolean;
+  onReset: () => void;
+}) {
+  const chips: Array<{ key: string; label: ReactNode; remove: () => void }> = [];
+  if (state.q.trim()) chips.push({ key: 'q', label: `“${state.q.trim()}”`, remove: () => onChange({ ...state, q: '' }) });
+  if (price !== 'all') chips.push({ key: 'price', label: price === 'free' ? (hi ? 'मुफ़्त' : 'Free') : hi ? 'प्रीमियम' : 'Premium', remove: () => onPrice('all') });
+  for (const id of state.colors) {
+    const c = COLOR_FILTERS.find((x) => x.id === id);
+    if (c)
+      chips.push({
+        key: `c-${id}`,
+        label: (
+          <>
+            <span className="size-3 rounded-full ring-1 ring-black/10" style={{ background: c.swatch }} aria-hidden />
+            {hi ? c.labelHi : c.label}
+          </>
+        ),
+        remove: () => onChange({ ...state, colors: toggle(state.colors, id) }),
+      });
+  }
+  for (const id of state.styles) {
+    const s = STYLE_FILTERS.find((x) => x.id === id);
+    if (s) chips.push({ key: `s-${id}`, label: hi ? s.labelHi : s.label, remove: () => onChange({ ...state, styles: toggle(state.styles, id) }) });
+  }
+  if (state.community)
+    chips.push({ key: 'comm', label: COMMUNITY_LABEL[state.community]?.[hi ? 1 : 0] ?? state.community, remove: () => onChange({ ...state, community: '' }) });
+
+  if (!chips.length) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      {chips.map((c) => (
+        <button
+          key={c.key}
+          type="button"
+          onClick={c.remove}
+          className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-tint pl-2.5 pr-1.5 text-sm text-ink transition-colors hover:bg-tint-strong"
+          aria-label={`${hi ? 'हटाएँ' : 'Remove'} ${typeof c.label === 'string' ? c.label : ''}`.trim()}
+        >
+          {c.label}
+          <X className="size-3.5 text-ink-soft" aria-hidden />
+        </button>
+      ))}
+      {chips.length > 1 && (
+        <button type="button" onClick={onReset} className="ml-1 text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">
+          {hi ? 'सब हटाएँ' : 'Clear all'}
+        </button>
+      )}
+    </div>
   );
 }

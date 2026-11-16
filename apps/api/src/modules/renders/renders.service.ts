@@ -32,8 +32,8 @@ export class RendersService {
     if (input.format === 'print_pdf') {
       await this.entitlements.require(event.id, 'print_pdf', 'Print-ready PDF is a paid feature');
     }
-    const watermark =
-      input.format === 'video' ? !features.has('video_hd') : input.format === 'print_pdf' ? false : !features.has('image_hd');
+    const isVideo = input.format === 'video' || input.format === 'site_video';
+    const watermark = isVideo ? !features.has('video_hd') : input.format === 'print_pdf' ? false : !features.has('image_hd');
 
     const inputHash = hashJson({
       v: 1,
@@ -42,6 +42,8 @@ export class RendersService {
       eventUpdatedAt: event.updatedAt.toISOString(),
       templateId: event.templateId,
       website: features.has('website_premium'),
+      // The cinematic video follows the website's design, music and words.
+      site: input.format === 'site_video' ? (event.site ?? null) : undefined,
     });
 
     const [existing] = await this.db
@@ -63,7 +65,7 @@ export class RendersService {
       {
         jobId: row!.id,
         // Paying customers jump the queue; video is heavier so it yields to quick stills.
-        priority: (watermark ? 10 : 1) + (input.format === 'video' ? 5 : 0),
+        priority: (watermark ? 10 : 1) + (isVideo ? 5 : 0),
       },
     );
     return this.toDto(row!);

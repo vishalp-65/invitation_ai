@@ -17,6 +17,7 @@ import {
   applySiteTier,
   BRAND,
   defaultSiteDoc,
+  siteDocSchema,
   siteExpiresAt,
   siteTier,
   type AlbumUploadInput,
@@ -57,6 +58,7 @@ export function sectionAssetIds(doc: SiteDoc): string[] {
     if (s.type === 'custom' && s.photoAssetId) ids.push(s.photoAssetId);
     if (s.type === 'gallery') ids.push(...s.assetIds);
   }
+  if (doc.music?.assetId) ids.push(doc.music.assetId);
   return ids;
 }
 
@@ -79,7 +81,10 @@ export class SitesService {
   // ---------------- helpers shared with the builder ----------------
 
   docOf(event: EventRow): SiteDoc {
-    return event.site ?? defaultSiteDoc({ eventType: event.type, community: event.community, primaryNames: event.content.primaryNames });
+    if (!event.site) return defaultSiteDoc({ eventType: event.type, community: event.community, primaryNames: event.content.primaryNames });
+    // Fill fields added since the doc was saved (design, music...) with their defaults.
+    const parsed = siteDocSchema.safeParse(event.site);
+    return parsed.success ? parsed.data : event.site;
   }
 
   async planOf(eventId: string): Promise<{ tier: SiteTier; features: Set<Feature>; extraYears: number }> {
@@ -149,9 +154,10 @@ export class SitesService {
     const s = event.settings;
     const sectionIds = sectionAssetIds(site);
     const ids = [...s.photoAssetIds, ...s.galleryAssetIds, ...(s.backgroundAssetId ? [s.backgroundAssetId] : []), ...sectionIds];
-    const [urls, musicUrl, coverUrl, videoUrl, updates, wishes, album, shortUrl] = await Promise.all([
+    const [urls, musicUrl, musicLibrary, coverUrl, videoUrl, updates, wishes, album, shortUrl] = await Promise.all([
       this.media.urlsFor(ids),
       this.media.musicUrl(s.musicTrackId),
+      premium || owner ? this.media.musicLibrary().then((l) => Object.fromEntries(l.items.map((t) => [t.id, t.url]))) : {},
       this.renders.coverUrl(event.id),
       this.latestVideoUrl(event.id),
       has('updates') ? this.listUpdates(event.id) : [],
@@ -188,6 +194,7 @@ export class SitesService {
         gallery: showGallery ? pick(s.galleryAssetIds) : [],
         backgroundUrl: s.backgroundAssetId ? (urls.get(s.backgroundAssetId) ?? null) : null,
         musicUrl: premium || owner ? musicUrl : null,
+        musicLibrary,
         coverUrl,
         videoUrl,
         assets: Object.fromEntries(sectionIds.map((id) => [id, urls.get(id)]).filter((e): e is [string, string] => Boolean(e[1]))),

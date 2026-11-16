@@ -10,7 +10,8 @@ import {
   type UpdateEventInput,
 } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ImagePlus, Sparkles, Wand2 } from 'lucide-react';
+import { Check, ImagePlus, Languages, Sparkles, Trash2 } from 'lucide-react';
+import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -20,6 +21,7 @@ import { qk, useTemplates } from '@/lib/hooks';
 import { useEventMedia } from './use-event-props';
 import { uploadPhoto } from '@/lib/upload';
 import { CardDetailsPanel } from './card-details-panel';
+import { Panel, StatusPill, ToggleRow } from './panel-ui';
 
 export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();
@@ -108,102 +110,121 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
   const photos = event.settings.photoAssetIds.map((id) => media?.find((m) => m.id === id)).filter(Boolean) as MediaAssetDto[];
   const background = media?.find((m) => m.id === event.settings.backgroundAssetId);
   const set = (patch: Partial<EventContent>) => setContent((c) => ({ ...c, ...patch }));
+  const dirty = title !== event.title || JSON.stringify(content) !== JSON.stringify(event.content);
+  const live = event.status === 'published';
 
   return (
-    <div className="flex flex-col gap-10">
-      {/* Words */}
-      <section className="flex flex-col gap-4">
-        <h2 className="text-2xl">Words</h2>
-        <Field label="Title (for your dashboard and link previews)">{(id) => <Input id={id} value={title} onChange={(e) => setTitle(e.target.value)} />}</Field>
-        <div className="grid gap-4 sm:grid-cols-2" lang={event.language}>
-          <Field label="Blessing line">{(id) => <Input id={id} value={content.invocation ?? ''} onChange={(e) => set({ invocation: e.target.value })} />}</Field>
-          <Field label="Heading">{(id) => <Input id={id} value={content.headline} onChange={(e) => set({ headline: e.target.value })} />}</Field>
-          {content.primaryNames.map((n, i) => (
-            <Field key={i} label={`Name ${i + 1}`}>
-              {(id) => (
-                <Input
-                  id={id}
-                  value={n}
-                  onChange={(e) => set({ primaryNames: content.primaryNames.map((x, j) => (j === i ? e.target.value : x)) })}
-                />
-              )}
-            </Field>
-          ))}
-        </div>
-        <Field label="Invitation line">{(id) => <Textarea id={id} rows={2} value={content.hostLine ?? ''} onChange={(e) => set({ hostLine: e.target.value })} />}</Field>
-        <Field label="Message">{(id) => <Textarea id={id} rows={3} value={content.message ?? ''} onChange={(e) => set({ message: e.target.value })} />}</Field>
-        <Field label="Family (one per line)">
-          {(id) => (
-            <Textarea
-              id={id}
-              rows={4}
-              value={content.familyLines.join('\n')}
-              onChange={(e) => set({ familyLines: e.target.value.split('\n').slice(0, 16) })}
-            />
-          )}
-        </Field>
-        <Field label="Closing line">{(id) => <Input id={id} value={content.closing ?? ''} onChange={(e) => set({ closing: e.target.value })} />}</Field>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button
-            onClick={() => save.mutate({ title, content: { ...content, familyLines: content.familyLines.map((l) => l.trim()).filter(Boolean) } })}
-            loading={save.isPending}
-          >
-            Save changes
-          </Button>
-          <label className="flex items-center gap-2 text-[0.95rem]">
-            <Wand2 className="size-4 text-sindoor" aria-hidden />
-            Translate to
-            <Select
-              className="h-10 w-auto"
-              value=""
-              disabled={aiBusy === 'translate'}
-              onChange={(e) => e.target.value && translate(e.target.value as LanguageCode)}
+    <div className="flex flex-col gap-6">
+      {/* ---------------- Words ---------------- */}
+      <Panel
+        title="Words on the card"
+        description="What your guests read. Changes show on the card, the video and the website."
+        footer={
+          <>
+            <Button
+              onClick={() => save.mutate({ title, content: { ...content, familyLines: content.familyLines.map((l) => l.trim()).filter(Boolean) } })}
+              loading={save.isPending}
+              disabled={!dirty}
             >
-              <option value="">choose…</option>
-              {LANGUAGES.filter((l) => l.code !== event.language).map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.nativeName}
-                </option>
-              ))}
-            </Select>
-          </label>
+              Save changes
+            </Button>
+            <span className="text-sm text-ink-soft" role="status">
+              {dirty ? 'You have unsaved changes' : 'All changes saved'}
+            </span>
+            <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
+              <Languages className="size-4" aria-hidden />
+              <span className="max-sm:sr-only">Translate to</span>
+              <Select
+                className="h-9 w-auto text-sm"
+                value=""
+                disabled={aiBusy === 'translate'}
+                onChange={(e) => e.target.value && translate(e.target.value as LanguageCode)}
+                aria-label="Translate the wording to"
+              >
+                <option value="">{aiBusy === 'translate' ? 'Translating…' : 'choose…'}</option>
+                {LANGUAGES.filter((l) => l.code !== event.language).map((l) => (
+                  <option key={l.code} value={l.code}>
+                    {l.nativeName}
+                  </option>
+                ))}
+              </Select>
+            </label>
+          </>
+        }
+      >
+        <div className="flex flex-col gap-4">
+          <Field label="Title" hint="Shown on your dashboard and in link previews.">
+            {(id, d) => <Input id={id} aria-describedby={d} value={title} onChange={(e) => setTitle(e.target.value)} />}
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-2" lang={event.language}>
+            <Field label="Blessing line">{(id) => <Input id={id} value={content.invocation ?? ''} onChange={(e) => set({ invocation: e.target.value })} />}</Field>
+            <Field label="Heading">{(id) => <Input id={id} value={content.headline} onChange={(e) => set({ headline: e.target.value })} />}</Field>
+            {content.primaryNames.map((n, i) => (
+              <Field key={i} label={content.primaryNames.length > 1 ? `Name ${i + 1}` : 'Name'}>
+                {(id) => (
+                  <Input id={id} value={n} onChange={(e) => set({ primaryNames: content.primaryNames.map((x, j) => (j === i ? e.target.value : x)) })} />
+                )}
+              </Field>
+            ))}
+          </div>
+          <div className="flex flex-col gap-4" lang={event.language}>
+            <Field label="Invitation line">{(id) => <Textarea id={id} rows={2} value={content.hostLine ?? ''} onChange={(e) => set({ hostLine: e.target.value })} />}</Field>
+            <Field label="Message">{(id) => <Textarea id={id} rows={3} value={content.message ?? ''} onChange={(e) => set({ message: e.target.value })} />}</Field>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Family" hint="One name per line.">
+                {(id, d) => (
+                  <Textarea id={id} aria-describedby={d} rows={4} value={content.familyLines.join('\n')} onChange={(e) => set({ familyLines: e.target.value.split('\n').slice(0, 16) })} />
+                )}
+              </Field>
+              <Field label="Closing line">{(id) => <Textarea id={id} rows={4} value={content.closing ?? ''} onChange={(e) => set({ closing: e.target.value })} />}</Field>
+            </div>
+          </div>
         </div>
-      </section>
+      </Panel>
 
-      <CardDetailsPanel event={event} onUpgrade={onUpgrade} />
+      {/* ---------------- Functions, pages, RSVP on the card ---------------- */}
+      <Panel>
+        <CardDetailsPanel event={event} onUpgrade={onUpgrade} />
+      </Panel>
 
-      {/* Design */}
-      <section>
-        <h2 className="text-2xl">Design</h2>
-        <div className="mt-4 flex flex-wrap gap-2">
+      {/* ---------------- Design ---------------- */}
+      <Panel title="Design" description="Switch any time. Your words stay the same." bodyClassName="!px-0">
+        <ul className="flex snap-x gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:thin] sm:px-6">
           {templates
             ?.filter((t) => templateSupportsEvent(t, event.type))
-            .map((t) => (
-              <button
-                key={t.id}
-                type="button"
-                aria-pressed={t.id === event.templateId}
-                onClick={() => save.mutate({ templateId: t.id })}
-                className="flex items-center gap-2 rounded-lg border border-hairline py-1.5 pl-1.5 pr-4 text-[0.95rem] font-medium hover:border-ink aria-pressed:border-ink aria-pressed:bg-primary aria-pressed:text-on-primary"
-              >
-                <span className="size-7 rounded-full border-2 border-white" style={{ background: t.theme.palette.background }} aria-hidden />
-                {t.name}
-              </button>
-            ))}
-        </div>
-      </section>
+            .map((t) => {
+              const on = t.id === event.templateId;
+              return (
+                <li key={t.id} className="w-28 shrink-0 snap-start">
+                  <button type="button" aria-pressed={on} onClick={() => save.mutate({ templateId: t.id })} className="group block w-full text-left">
+                    <span
+                      className={`relative block aspect-[9/16] overflow-hidden rounded-lg border transition-[border-color,box-shadow] ${on ? 'border-gold ring-2 ring-gold ring-offset-2 ring-offset-surface' : 'border-hairline group-hover:border-ink/30'}`}
+                    >
+                      <DesignThumb id={t.id} fallback={t.theme.palette.background} />
+                      {on && (
+                        <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-gold text-[#24161f]">
+                          <Check className="size-3.5" strokeWidth={3} aria-hidden />
+                        </span>
+                      )}
+                    </span>
+                    <span className="mt-1.5 block truncate text-[0.8125rem] font-medium">{t.name}</span>
+                  </button>
+                </li>
+              );
+            })}
+        </ul>
+      </Panel>
 
-      {/* Photos & AI art */}
-      <section>
-        <h2 className="text-2xl">Photos and AI art</h2>
-        <div className="mt-4 flex flex-wrap gap-3">
+      {/* ---------------- Photos & AI ---------------- */}
+      <Panel title="Photos and AI art" description="Up to 6 photos. Turn one into a hand-drawn caricature, or paint a background in your design's colours.">
+        <div className="flex flex-wrap gap-3">
           {photos.map((p) => (
-            <div key={p.id} className="flex flex-col items-center gap-1.5">
+            <div key={p.id} className="flex w-24 flex-col gap-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our CDN */}
-              <img src={p.url} alt="" className="size-24 rounded-lg object-cover" />
+              <img src={p.url} alt="" className="size-24 rounded-lg border border-hairline object-cover" />
               <button
                 type="button"
-                className="text-xs font-semibold text-sindoor"
+                className="text-xs font-semibold text-primary disabled:opacity-50"
                 onClick={() => aiImage('caricature', p.id)}
                 disabled={Boolean(aiBusy)}
               >
@@ -211,111 +232,108 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
               </button>
             </div>
           ))}
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="grid size-24 place-items-center rounded-lg border-2 border-dashed border-line text-ink-soft hover:border-ink"
-          >
-            <ImagePlus className="size-6" />
-            <span className="sr-only">Add photos</span>
-          </button>
+          {photos.length < 6 && (
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              className="flex size-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink/25 text-xs font-medium text-ink-soft transition-colors hover:border-primary hover:bg-tint hover:text-primary"
+            >
+              <ImagePlus className="size-5" aria-hidden />
+              Add photos
+            </button>
+          )}
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => onPhotos(e.target.files)} />
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
-          <div className="glass-light rounded-[var(--radius-card)] p-5">
-            <h3 className="text-xl">AI background art</h3>
-            <p className="mt-1 text-[0.95rem] text-ink-soft">A one-of-a-kind painted background in your design&apos;s colours.</p>
+        <div className="mt-6 grid gap-3 md:grid-cols-2">
+          <div className="flex flex-col rounded-xl border border-hairline p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[1.0625rem]">AI background art</h3>
+              {background && <StatusPill tone="leaf">In use</StatusPill>}
+            </div>
+            <p className="mt-1 text-sm text-ink-soft">A one-of-a-kind painted background in your design&apos;s colours.</p>
             {background && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={background.url} alt="Current AI background" className="mt-3 h-40 rounded-xl object-cover" />
+              <img src={background.url} alt="Current AI background" className="mt-3 h-32 w-full rounded-lg object-cover" />
             )}
-            <div className="mt-4 flex gap-2">
-              <Button size="sm" variant="brand" onClick={() => aiImage('background')} loading={aiBusy === 'background'}>
-                <Sparkles className="size-4" />
+            <div className="mt-auto flex gap-2 pt-4">
+              <Button size="sm" variant="line" onClick={() => aiImage('background')} loading={aiBusy === 'background'}>
+                <Sparkles className="size-4 text-gold" aria-hidden />
                 {background ? 'Paint another' : 'Paint background'}
               </Button>
               {background && (
                 <Button size="sm" variant="quiet" onClick={() => save.mutate({ settings: { backgroundAssetId: null } })}>
+                  <Trash2 className="size-4" aria-hidden />
                   Remove
                 </Button>
               )}
             </div>
           </div>
-          <div className="glass-light rounded-[var(--radius-card)] p-5">
-            <h3 className="text-xl">AI cinematic intro</h3>
-            <p className="mt-1 text-[0.95rem] text-ink-soft">A 6-second film-style opening for your video invite.</p>
-            <Button size="sm" variant="brand" className="mt-4" onClick={aiClip} loading={aiBusy === 'clip'}>
-              <Sparkles className="size-4" />
-              {event.credits.ai_clip ? `Create intro (${event.credits.ai_clip} credit)` : 'Unlock AI intro'}
-            </Button>
-            {event.settings.aiClipAssetId && <p className="mt-2 text-sm text-leaf">Intro added to your video.</p>}
+          <div className="flex flex-col rounded-xl border border-hairline p-4">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-[1.0625rem]">AI cinematic intro</h3>
+              {event.settings.aiClipAssetId ? <StatusPill tone="leaf">Added</StatusPill> : !event.credits.ai_clip && <StatusPill tone="gold">Paid</StatusPill>}
+            </div>
+            <p className="mt-1 text-sm text-ink-soft">A 6-second film-style opening for your video invite.</p>
+            <div className="mt-auto pt-4">
+              <Button size="sm" variant="line" onClick={aiClip} loading={aiBusy === 'clip'}>
+                <Sparkles className="size-4 text-gold" aria-hidden />
+                {event.credits.ai_clip ? `Create intro (${event.credits.ai_clip} credit)` : 'Unlock AI intro'}
+              </Button>
+            </div>
           </div>
         </div>
-      </section>
+      </Panel>
 
-      {/* Music & website */}
-      <section className="grid gap-6 md:grid-cols-2">
-        <Field label="Background music" hint="Used in the video and (with the Website plan) on your invitation website.">
-          {(id, desc) => (
-            <Select
-              id={id}
-              aria-describedby={desc}
-              value={event.settings.musicTrackId ?? ''}
-              onChange={(e) => save.mutate({ settings: { musicTrackId: e.target.value || null } })}
-            >
-              <option value="">No music</option>
-              {music?.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.title} ({m.mood})
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-        <div className="flex flex-col gap-3">
-          <span className="text-[0.95rem] font-semibold">Website</span>
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              className="size-5 accent-[var(--color-ink)]"
-              checked={event.settings.rsvpEnabled}
-              onChange={(e) => save.mutate({ settings: { rsvpEnabled: e.target.checked } })}
-            />
-            Ask guests to RSVP
-          </label>
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              className="size-5 accent-[var(--color-ink)]"
-              checked={event.settings.askMealPreference}
-              onChange={(e) => save.mutate({ settings: { askMealPreference: e.target.checked } })}
-            />
-            Ask meal preference
-          </label>
-          <label className="flex items-center gap-3">
-            <input
-              type="checkbox"
-              className="size-5 accent-[var(--color-ink)]"
-              checked={event.settings.askAccommodation}
-              onChange={(e) => save.mutate({ settings: { askAccommodation: e.target.checked } })}
-            />
-            Ask if they need a stay
-          </label>
-          <Button
-            variant="outline"
-            size="sm"
-            className="self-start"
-            onClick={() =>
-              api<EventDto>(`/events/${event.id}/${event.status === 'published' ? 'unpublish' : 'publish'}`, { method: 'POST' }).then((e) =>
-                qc.setQueryData(qk.event(event.id), e),
-              )
-            }
+      {/* ---------------- Music & website ---------------- */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Panel title="Music" description="Plays in the video, and on the website with a website plan.">
+          <Select
+            aria-label="Background music"
+            value={event.settings.musicTrackId ?? ''}
+            onChange={(e) => save.mutate({ settings: { musicTrackId: e.target.value || null } })}
           >
-            {event.status === 'published' ? 'Unpublish website' : 'Publish website'}
-          </Button>
-        </div>
-      </section>
+            <option value="">No music</option>
+            {music?.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.title} ({m.mood})
+              </option>
+            ))}
+          </Select>
+        </Panel>
+        <Panel
+          title="Website and replies"
+          bodyClassName="!pt-1"
+          footer={
+            <>
+              <StatusPill tone={live ? 'leaf' : 'muted'}>{live ? 'Live' : 'Not published'}</StatusPill>
+              <Button
+                variant={live ? 'line' : 'primary'}
+                size="sm"
+                className="ml-auto"
+                onClick={() =>
+                  api<EventDto>(`/events/${event.id}/${live ? 'unpublish' : 'publish'}`, { method: 'POST' }).then((e) => qc.setQueryData(qk.event(event.id), e))
+                }
+              >
+                {live ? 'Unpublish website' : 'Publish website'}
+              </Button>
+            </>
+          }
+        >
+          <div className="divide-y divide-hairline">
+            <ToggleRow label="Ask guests to RSVP" hint="Guests reply for each function." checked={event.settings.rsvpEnabled} onChange={(v) => save.mutate({ settings: { rsvpEnabled: v } })} />
+            <ToggleRow label="Ask meal preference" checked={event.settings.askMealPreference} onChange={(v) => save.mutate({ settings: { askMealPreference: v } })} />
+            <ToggleRow label="Ask if they need a stay" checked={event.settings.askAccommodation} onChange={(v) => save.mutate({ settings: { askAccommodation: v } })} />
+          </div>
+        </Panel>
+      </div>
     </div>
   );
+}
+
+/** Pre-rendered design thumbnail; admin-published designs have none, so fall back to the colour. */
+function DesignThumb({ id, fallback }: { id: string; fallback: string }) {
+  const [broken, setBroken] = useState(id.startsWith('adm-'));
+  if (broken) return <span className="block size-full" style={{ background: fallback }} aria-hidden />;
+  return <Image src={`/showcase/${id}.jpg`} alt="" width={216} height={384} sizes="112px" onError={() => setBroken(true)} className="size-full object-cover object-top" />;
 }

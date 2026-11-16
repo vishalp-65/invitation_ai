@@ -1,4 +1,5 @@
-export const RENDER_FORMATS = ['image', 'pdf', 'print_pdf', 'video'] as const;
+/** `site_video`: cinematic 9:16 video made from the website's design pack. */
+export const RENDER_FORMATS = ['image', 'pdf', 'print_pdf', 'video', 'site_video'] as const;
 export type RenderFormat = (typeof RENDER_FORMATS)[number];
 
 export const RENDER_STATUSES = ['queued', 'processing', 'completed', 'failed'] as const;
@@ -46,6 +47,7 @@ export const COMPOSITION_IDS = {
   designCard: 'DesignCard',
   designCardPrint: 'DesignCardPrint',
   designVideo: 'DesignVideo',
+  siteVideo: 'SiteVideo',
 } as const;
 
 /** Print size for layered designs: the 9:16 card at 1.5× (≈4.8×8.5 in at 337 DPI) plus bleed. */

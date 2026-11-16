@@ -35,7 +35,7 @@ export function MobileDock({ label, whatsappHref }: { label: string; whatsappHre
       aria-hidden={!show}
     >
       <div className="panel flex items-center gap-2 rounded-xl p-1.5">
-        <Link href="/create" tabIndex={show ? 0 : -1} className="press flex h-12 flex-1 items-center justify-center rounded-lg bg-primary font-semibold text-on-primary">
+        <Link href="/create" tabIndex={show ? 0 : -1} className="press flex h-12 flex-1 items-center justify-center rounded-lg bg-primary font-medium text-on-primary">
           {label}
         </Link>
         <a
@@ -44,7 +44,7 @@ export function MobileDock({ label, whatsappHref }: { label: string; whatsappHre
           rel="noopener"
           tabIndex={show ? 0 : -1}
           aria-label="Make it on WhatsApp"
-          className="press grid size-12 place-items-center rounded-full bg-leaf text-white"
+          className="press grid size-12 place-items-center rounded-lg border border-hairline text-ink"
         >
           <MessageCircle className="size-5" />
         </a>

@@ -6,6 +6,7 @@ import { InviteCard } from '../InviteCard';
 import { InviteVideo } from '../InviteVideo';
 import { DesignCard, DesignVideo, planDesignVideo, type DesignRenderProps } from '../design/compositions';
 import { sampleInviteProps } from '../sample';
+import { planSiteVideo, SiteVideo, type SiteVideoProps } from '../site-video/SiteVideo';
 
 const defaultProps = sampleInviteProps();
 // Remotion's generic props typing is stricter than our serialisable InviteProps.
@@ -13,6 +14,23 @@ const Card = InviteCard as ComponentType<Record<string, unknown>>;
 const Video = InviteVideo as ComponentType<Record<string, unknown>>;
 const DCard = DesignCard as ComponentType<Record<string, unknown>>;
 const DVideo = DesignVideo as ComponentType<Record<string, unknown>>;
+const SVideo = SiteVideo as ComponentType<Record<string, unknown>>;
+
+const siteVideoDefaults: SiteVideoProps = {
+  designId: 'rose-seal',
+  language: 'en',
+  timezone: 'Asia/Kolkata',
+  content: { ...defaultProps.content, primaryNames: ['Abhishek', 'Kanika'], headline: 'Wedding Celebration', connector: 'weds', hashtag: '#AbhiWedsKanika' },
+  functions: [
+    { name: 'Mehendi', startsAt: '2026-12-12T16:00:00+05:30', venueName: 'Rambagh Gardens', dressCode: 'Shades of green' },
+    { name: 'Sangeet', startsAt: '2026-12-13T19:00:00+05:30', venueName: 'Rambagh Palace' },
+    { name: 'Wedding', startsAt: '2026-12-14T18:00:00+05:30', venueName: 'Rambagh Palace', venueAddress: 'Bhawani Singh Rd, Jaipur' },
+  ],
+  musicUrl: null,
+  watermark: false,
+  watermarkText: BRAND.watermarkText,
+  link: 'https://example.test/s/abcde',
+};
 
 const designDefaults: DesignRenderProps = (() => {
   const template = BUILTIN_TEMPLATES.find((t) => t.design) ?? BUILTIN_TEMPLATES[0]!;
@@ -57,6 +75,18 @@ export function RemotionRoot() {
           const p = props as unknown as DesignRenderProps;
           return { durationInFrames: planDesignVideo(p.design, COMPOSITIONS.designVideo.fps, Boolean(p.aiClipUrl)).durationInFrames };
         }}
+      />
+      <Composition
+        id={COMPOSITIONS.siteVideo.id}
+        component={SVideo}
+        width={COMPOSITIONS.siteVideo.width}
+        height={COMPOSITIONS.siteVideo.height}
+        fps={COMPOSITIONS.siteVideo.fps}
+        durationInFrames={900}
+        defaultProps={siteVideoDefaults}
+        calculateMetadata={({ props }) => ({
+          durationInFrames: planSiteVideo((props as unknown as SiteVideoProps).functions.length, COMPOSITIONS.siteVideo.fps, (props as unknown as SiteVideoProps).style ?? 'cinematic').durationInFrames,
+        })}
       />
     </>
   );

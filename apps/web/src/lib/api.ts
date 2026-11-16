@@ -59,7 +59,7 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
 
 /** Server-side fetch (RSC / route handlers) straight to the API service. */
 export async function serverApi<T>(path: string, revalidateSec = 30): Promise<T> {
-  const base = process.env.API_INTERNAL_URL ?? 'http://localhost:4000';
+  const base = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
   const res = await fetch(`${base}/api${path}`, { next: { revalidate: revalidateSec } });
   if (!res.ok) throw new ApiError(res.status, `API ${res.status}`);
   return (await res.json()) as T;

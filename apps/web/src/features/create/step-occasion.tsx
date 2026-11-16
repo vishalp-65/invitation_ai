@@ -57,7 +57,7 @@ export function StepOccasion({ onPicked }: { onPicked: () => void }) {
                     onClick={() => d.set({ language: l.code, ...(d.contentIsDefault ? { content: { ...d.content, headline: '' } } : {}) })}
                     className={clsx(
                       'press h-10 shrink-0 rounded-lg border px-4 text-[0.95rem] font-medium transition-colors duration-200',
-                      on ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface-2 text-ink hover:border-ink/30 hover:bg-tint',
+                      on ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-mist',
                     )}
                   >
                     {l.nativeName}
@@ -93,7 +93,7 @@ export function StepOccasion({ onPicked }: { onPicked: () => void }) {
         if (!items.length) return null;
         return (
           <section key={cat} aria-labelledby={`cat-${cat}`}>
-            <h2 id={`cat-${cat}`} className="flex items-center gap-3 font-sans text-sm font-bold uppercase tracking-[0.14em] text-ink-soft">
+            <h2 id={`cat-${cat}`} className="flex items-center gap-3 text-lg font-semibold tracking-normal text-ink">
               {CATEGORY_LABEL[cat][hi ? 1 : 0]}
               <span className="h-px flex-1 bg-hairline" aria-hidden />
             </h2>
@@ -110,19 +110,22 @@ export function StepOccasion({ onPicked }: { onPicked: () => void }) {
                         onPicked();
                       }}
                       className={clsx(
-                        'group relative flex h-full min-h-[92px] w-full flex-col items-start gap-3 rounded-xl border bg-surface p-4 text-left transition-[border-color,box-shadow,transform] duration-200 ease-[var(--ease-out-quint)] hover:-translate-y-0.5',
-                        on ? 'border-primary shadow-[0_0_0_3px_var(--color-tint-strong)]' : 'border-hairline hover:border-ink/25',
+                        'group relative flex h-full min-h-[92px] w-full flex-col items-start gap-3 rounded-xl border p-4 text-left transition-[border-color,background-color,transform] duration-200 active:scale-[0.98]',
+                        on ? 'border-primary bg-tint' : 'border-hairline bg-surface hover:border-ink/25 hover:bg-surface-2',
                       )}
                     >
                       <span
-                        className={clsx('grid size-10 place-items-center rounded-xl text-xl transition-colors', on ? 'bg-glow' : 'bg-tint group-hover:bg-glow')}
+                        className={clsx(
+                          'grid size-10 place-items-center rounded-lg text-xl transition-transform duration-300 ease-[var(--ease-spring)] group-hover:scale-110',
+                          on ? 'bg-surface' : 'bg-tint',
+                        )}
                         aria-hidden
                       >
                         {e.emoji}
                       </span>
                       <span className="font-semibold leading-snug">{hi ? e.labelHi : e.label}</span>
                       {on && (
-                        <span className="absolute right-3 top-3 grid size-6 place-items-center rounded-full bg-primary text-on-primary">
+                        <span className="absolute right-3 top-3 grid size-6 animate-pop place-items-center rounded-full bg-primary text-on-primary">
                           <Check className="size-3.5" strokeWidth={3} aria-label={hi ? 'चुना गया' : 'Selected'} />
                         </span>
                       )}

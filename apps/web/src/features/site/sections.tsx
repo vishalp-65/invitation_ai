@@ -2,6 +2,7 @@
 
 import type { SiteDoc, SiteSection, SiteSectionOf } from '@cardai/shared';
 import { MandalaWatermark } from '@cardai/templates/art';
+import { SceneStill } from '@cardai/templates/scenes';
 import { BedDouble, Bus, CalendarPlus, ChevronDown, Clock, Hotel, MapPin, Phone, Shirt } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { Character } from './characters';
@@ -9,6 +10,7 @@ import { safeHref, useSite } from './context';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { AlbumSection, GiftsSection, LivestreamSection, UpdatesSection, WishesSection } from './interactive';
 import { RsvpForm } from './rsvp-form';
+import { CountdownSection, DesignDressCode, DesignVenue, RibbonSchedule, SceneHero, ScriptHeading, SealRsvp, ThingsSection } from './design-sections';
 
 const mapsUrl = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 
@@ -26,7 +28,7 @@ function Ornament() {
 }
 
 export function Shell({ section, children, tone = 'plain', wide = false }: { section: SiteSection; children: ReactNode; tone?: 'plain' | 'alt'; wide?: boolean }) {
-  const { heading } = useSite();
+  const { heading, design } = useSite();
   return (
     <section
       id={section.id}
@@ -35,10 +37,16 @@ export function Shell({ section, children, tone = 'plain', wide = false }: { sec
     >
       <div className={`mx-auto ${wide ? 'max-w-5xl' : 'max-w-3xl'}`}>
         <Reveal motion={section.motion}>
-          <h2 id={`${section.id}-h`} className="inv-display text-center text-[clamp(2rem,7vw,3rem)] leading-tight text-[var(--inv-primary)]">
-            {heading(section)}
-          </h2>
-          <Ornament />
+          {design ? (
+            <ScriptHeading id={`${section.id}-h`}>{heading(section)}</ScriptHeading>
+          ) : (
+            <>
+              <h2 id={`${section.id}-h`} className="inv-display text-center text-[clamp(2rem,7vw,3rem)] leading-tight text-[var(--inv-primary)]">
+                {heading(section)}
+              </h2>
+              <Ornament />
+            </>
+          )}
         </Reveal>
         <div className="mt-10">{children}</div>
       </div>
@@ -262,11 +270,18 @@ function Hero({ section, doc, started }: { section: SiteSectionOf<'hero'>; doc: 
 // ---------------- simple text sections ----------------
 
 function Welcome({ section }: { section: SiteSectionOf<'welcome'> }) {
-  const { content } = useSite();
+  const { content, design } = useSite();
   const body = section.body || content.message;
-  if (!body) return null;
+  // Design covers keep only the names; the host line moves here.
+  const host = design ? content.hostLine : undefined;
+  if (!body && !host) return null;
   return (
     <Shell section={section}>
+      {host && (
+        <Reveal motion={section.motion}>
+          <p className="mx-auto mb-6 max-w-xl text-center text-lg italic leading-relaxed opacity-90">{host}</p>
+        </Reveal>
+      )}
       <Reveal motion={section.motion} delay={1}>
         <p className="mx-auto max-w-2xl whitespace-pre-line text-center text-[1.3rem] leading-relaxed sm:text-2xl">{body}</p>
       </Reveal>
@@ -720,9 +735,26 @@ function Custom({ section }: { section: SiteSectionOf<'custom'> }) {
 }
 
 function Closing({ section }: { section: SiteSectionOf<'closing'> }) {
-  const { content: c, data } = useSite();
+  const { content: c, data, design, t } = useSite();
   const primary = data.site.look.primary ?? data.template.theme.palette.primary;
   const accent = data.site.look.accent ?? data.template.theme.palette.accent;
+  if (design) {
+    // Design pages end on their own painted scene, drawn still (no filters or loops).
+    const names = c.primaryNames.filter(Boolean);
+    return (
+      <section id={section.id} className="relative overflow-hidden pt-16 text-center">
+        <Reveal motion={section.motion} className="relative z-[1] px-6">
+          <p className="inv-script mx-auto max-w-xl text-[clamp(2.4rem,9vw,3.6rem)] leading-tight text-[var(--inv-primary)]">{c.closing || t('Hope to see you there!', 'आपकी प्रतीक्षा रहेगी')}</p>
+          {names.length > 0 && <p className="inv-script mt-3 text-[clamp(1.8rem,7vw,2.6rem)]">{names.join(' & ')}</p>}
+          {section.title && <p className="mt-3 text-lg opacity-85">{section.title}</p>}
+          {c.hashtag && <p className="inv-display mt-4 tracking-[0.12em] opacity-80">{c.hashtag}</p>}
+        </Reveal>
+        <div aria-hidden className="mx-auto -mt-6 max-w-xl pb-24 [mask-image:linear-gradient(transparent,#000_30%)]">
+          <SceneStill design={design} slot="venue" lite time={0} />
+        </div>
+      </section>
+    );
+  }
   return (
     <section id={section.id} className="relative overflow-hidden px-6 pb-36 pt-20 text-center">
       <Reveal motion={section.motion}>
@@ -744,9 +776,21 @@ function Closing({ section }: { section: SiteSectionOf<'closing'> }) {
 // ---------------- dispatcher ----------------
 
 export function SectionView({ section, doc, started }: { section: SiteSection; doc: SiteDoc; started: boolean }) {
+  // Design packs swap in their cinematic variants; everything else is shared.
+  if (doc.design) {
+    if (section.type === 'hero' && section.variant === 'scene') return <SceneHero section={section} doc={doc} started={started} />;
+    if (section.type === 'schedule' && section.variant === 'ribbon') return <RibbonSchedule section={section} />;
+    if (section.type === 'venue') return <DesignVenue section={section} />;
+    if (section.type === 'dresscode') return <DesignDressCode section={section} />;
+    if (section.type === 'rsvp') return <SealRsvp section={section} />;
+  }
   switch (section.type) {
     case 'hero':
       return <Hero section={section} doc={doc} started={started} />;
+    case 'countdown':
+      return <CountdownSection section={section} />;
+    case 'things':
+      return <ThingsSection section={section} />;
     case 'welcome':
       return <Welcome section={section} />;
     case 'couple':

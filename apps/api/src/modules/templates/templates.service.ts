@@ -1,4 +1,4 @@
-import { catalogTemplates, eq, marketplaceTemplates, templateOverrides, users, type Database } from '@cardai/db';
+import { catalogTemplates, count, eq, events, marketplaceTemplates, templateOverrides, users, type Database } from '@cardai/db';
 import {
   BUILTIN_TEMPLATES,
   searchTemplates,
@@ -42,10 +42,12 @@ export class TemplatesService {
   /** Every template including hidden ones (admin console). */
   async everything(): Promise<AdminTemplate[]> {
     if (this.cache && Date.now() - this.cache.at < CACHE_MS) return this.cache.items;
-    const [overrides, published] = await Promise.all([
+    const [overrides, published, usage] = await Promise.all([
       this.db.select().from(templateOverrides),
       this.db.select().from(catalogTemplates).where(eq(catalogTemplates.status, 'published')),
+      this.db.select({ id: events.templateId, n: count() }).from(events).groupBy(events.templateId),
     ]);
+    const uses = new Map(usage.map((u) => [u.id, Number(u.n)]));
     const byBase = new Map(BUILTIN_TEMPLATES.map((t) => [t.id, t]));
     const catalog: TemplateDefinition[] = published.flatMap((c) => {
       const base = byBase.get(c.baseTemplateId) ?? BUILTIN_TEMPLATES[0]!;
@@ -89,7 +91,7 @@ export class TemplatesService {
     const ov = new Map(overrides.map((o) => [o.templateId, o]));
     const items: AdminTemplate[] = [...catalog, ...BUILTIN_TEMPLATES, ...marketplace].map((t) => {
       const o = ov.get(t.id);
-      return { ...t, premium: o?.premium ?? t.premium, featured: o?.featured ?? false, hidden: o?.hidden ?? false };
+      return { ...t, premium: o?.premium ?? t.premium, featured: o?.featured ?? false, hidden: o?.hidden ?? false, uses: uses.get(t.id) ?? 0 };
     });
     this.cache = { at: Date.now(), items };
     return items;

@@ -6,13 +6,29 @@ const codeSchema = z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code');
 
 const nameSchema = z.string().trim().min(1, 'Enter your name').max(80);
 
-/** Sign in / sign up: a one-time code is emailed to this address. */
+export const PASSWORD_MIN = 8;
+
+export const passwordSchema = z
+  .string()
+  .min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters`)
+  .max(128, 'Use at most 128 characters')
+  .refine((v) => /[A-Za-z]/.test(v) && /\d/.test(v), 'Include at least one letter and one number');
+
+/** Sends a one-time code to this address (sign-up verification, or password reset). */
 export const requestOtpSchema = z.object({ email: emailSchema });
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 
-/** `name` is only used when the email creates a brand-new account (sign up). */
-export const verifyOtpSchema = z.object({ email: emailSchema, code: codeSchema, name: nameSchema.optional() });
-export type VerifyOtpInput = z.infer<typeof verifyOtpSchema>;
+/** Sign up: the emailed code proves the address, then the account is created with a password. */
+export const signupSchema = z.object({ email: emailSchema, code: codeSchema, name: nameSchema, password: passwordSchema });
+export type SignupInput = z.infer<typeof signupSchema>;
+
+/** Sign in. The password is only length-checked here so old/odd passwords never leak rule details. */
+export const loginSchema = z.object({ email: emailSchema, password: z.string().min(1, 'Enter your password').max(128) });
+export type LoginInput = z.infer<typeof loginSchema>;
+
+/** Forgot password: the emailed code authorises choosing a new one. */
+export const resetPasswordSchema = z.object({ email: emailSchema, code: codeSchema, password: passwordSchema });
+export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
 /** Google Identity Services ID token (a JWT). */
 export const googleSignInSchema = z.object({

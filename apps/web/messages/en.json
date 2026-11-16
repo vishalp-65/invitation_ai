@@ -18,12 +18,23 @@
     "language": "Language",
     "theme": "Theme",
     "menu": "Menu",
-    "close": "Close menu"
+    "close": "Close menu",
+    "dashboard": "Dashboard",
+    "invitations": "Invitations",
+    "guests": "Guests & RSVPs",
+    "orders": "Print orders",
+    "settings": "Settings",
+    "newInvite": "New invitation",
+    "collapse": "Collapse sidebar",
+    "expand": "Expand sidebar",
+    "home": "Home",
+    "guestsShort": "Guests",
+    "ordersShort": "Orders"
   },
   "hero": {
     "kicker": "Now in 12 Indian languages",
     "title": "Invitations as beautiful as the occasion.",
-    "body": "Write once in Hindi, Tamil, Marathi or any of 12 languages. Get a printed-quality card, a WhatsApp-ready video and an RSVP website — in two minutes.",
+    "body": "Write once in Hindi, Tamil, Marathi or any of 12 languages. Get a printed-quality card, a WhatsApp-ready video and an RSVP website, in two minutes.",
     "cta": "Create your invitation",
     "whatsapp": "Make it on WhatsApp",
     "free": "Free to try. HD from ₹79."

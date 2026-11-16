@@ -1,11 +1,11 @@
+import { BRAND } from '@cardai/shared';
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
-import { SiteHeader } from '@/components/layout/site-header';
+import { AppShell } from '@/components/layout/app-shell';
+
+// A plain string here would drop the site-wide "· Noyta" suffix for every page below.
+export const metadata: Metadata = { title: { default: 'Dashboard', template: `%s · ${BRAND.name}` } };
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <SiteHeader />
-      <main className="mx-auto max-w-6xl px-4 pb-24 pt-8 sm:px-6">{children}</main>
-    </>
-  );
+  return <AppShell>{children}</AppShell>;
 }

@@ -34,7 +34,7 @@ export class OtpService {
     return hmacSha256Hex(this.env.JWT_REFRESH_SECRET, `otp:${key}:${code}`);
   }
 
-  async request(email: string): Promise<{ expiresInSec: number; resendInSec: number }> {
+  async request(email: string, purpose: 'verification' | 'password reset' = 'verification'): Promise<{ expiresInSec: number; resendInSec: number }> {
     const k = this.key(email);
 
     if (!(await this.redis.set(`otp:cd:${k}`, '1', 'EX', RESEND_COOLDOWN_SEC, 'NX'))) {
@@ -58,7 +58,7 @@ export class OtpService {
       throw new ServiceUnavailableException('We could not send the code right now. Please try again.');
     }
     if (this.env.NODE_ENV === 'development') {
-      this.logger.warn(`Development OTP for ${email}: ${code}`);
+      this.logger.warn(`Development ${purpose} OTP for ${email}: ${code}`);
     }
     return { expiresInSec: OTP_TTL_SEC, resendInSec: RESEND_COOLDOWN_SEC };
   }

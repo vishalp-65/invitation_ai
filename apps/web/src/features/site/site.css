@@ -222,3 +222,132 @@
   .inv-root .inv-petal { animation: none; }
   .inv-root .inv-petal { display: none; }
 }
+
+/* =====================================================================
+ * Cinematic designs (painted scenes, ambient particles, seal / lantern openings)
+ * ===================================================================== */
+.inv-script { font-family: var(--inv-script, var(--inv-display)); }
+
+/* Scene loops (art from @cardai/templates/scenes; the video computes the same motion per frame). */
+.scn-sway { animation: scn-sway 7s ease-in-out infinite; }
+.scn-bob { animation: scn-bob 5s ease-in-out infinite; }
+.scn-flicker { animation: scn-flicker 1.8s ease-in-out infinite; }
+.scn-glide { animation: scn-glide 14s ease-in-out infinite; }
+.scn-shimmer { animation: scn-shimmer 4s ease-in-out infinite; }
+.scn-twinkle { animation: scn-twinkle 2.4s ease-in-out infinite; }
+@keyframes scn-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes scn-bob { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
+@keyframes scn-flicker { 0%, 100% { opacity: 0.8; transform: scale(1); } 30% { opacity: 1; transform: scale(1.06); } 60% { opacity: 0.7; transform: scale(0.97); } }
+@keyframes scn-glide { 0%, 100% { transform: translateX(-16px); } 50% { transform: translateX(16px); } }
+@keyframes scn-shimmer { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
+@keyframes scn-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+/* Ambient particles. */
+@keyframes scn-a-rise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translate3d(14px, -60vh, 0); }
+  92% { opacity: 1; }
+  100% { transform: translate3d(-10px, -125vh, 0); opacity: 0; }
+}
+@keyframes scn-a-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-24px, 55vh, 0) rotate(200deg); }
+  100% { transform: translate3d(18px, 112vh, 0) rotate(400deg); }
+}
+@keyframes scn-a-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(36px, -18px, 0); }
+  50% { transform: translate3d(8px, -36px, 0); }
+  75% { transform: translate3d(-30px, -12px, 0); }
+}
+@keyframes scn-a-twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1); } }
+
+/* Design bands: hide the band (and its divider) when its section has nothing to show. */
+.inv-band:not(:has(> section, > header)) { display: none; }
+
+/* Hero scene: layers drift on scroll (JS) and settle in on open. */
+.inv-scene-layer { position: absolute; inset: 0; will-change: transform; }
+.inv-scene-in { animation: inv-scene-in 2.4s var(--ease-out) both; }
+@keyframes inv-scene-in { from { transform: scale(1.12); opacity: 0; } to { transform: none; opacity: 1; } }
+.inv-paused .inv-scene-in { animation-play-state: paused; }
+
+/* Ribbon schedule: marker follows scroll progress along the line. */
+.inv-ribbon-fill { transform-origin: 50% 0; transform: scaleY(var(--p, 0)); }
+.inv-ribbon-marker { top: calc(var(--p, 0) * 100%); transition: top 0.15s linear; }
+
+/* Venue car drives in when revealed. */
+[data-sr] .inv-car { transform: translate3d(-120%, 0, 0); transition: transform 2.2s var(--ease-out) 0.3s; }
+[data-sr][data-in] .inv-car { transform: none; }
+
+/* Seal RSVP button breathes. */
+.inv-seal-btn { animation: inv-breathe 2.8s ease-in-out infinite; }
+@keyframes inv-breathe { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+
+/* ----- seal opening ----- */
+.inv-open-seal .inv-emboss { animation: inv-emboss 3.2s ease-in-out infinite; }
+/* opening: stop the glow and fade the motif with the paper */
+.inv-open-seal[data-state='opening'] .inv-emboss { animation: none; opacity: 0; transition: opacity 0.6s ease 0.4s; }
+@keyframes inv-emboss { 0%, 100% { opacity: 0.18; } 50% { opacity: 0.55; } }
+.inv-seal { transition: scale 0.6s var(--ease-out), opacity 0.5s ease; }
+.inv-open-seal .inv-seal { animation: inv-breathe 2.8s ease-in-out infinite; }
+.inv-open-seal[data-state='opening'] .inv-seal { animation: none; scale: 0.4; opacity: 0; }
+.inv-env-flap { transform-origin: 50% 0; clip-path: polygon(0 0, 100% 0, 50% 100%); transition: transform 1.1s var(--ease-soft) 0.35s; backface-visibility: hidden; }
+.inv-open-seal[data-state='opening'] .inv-env-flap { transform: perspective(1200px) rotateX(178deg); }
+.inv-env-light {
+  background: radial-gradient(circle, #fffaf0 0%, rgb(255 236 200 / 0.85) 25%, rgb(255 214 150 / 0.35) 50%, transparent 70%);
+  opacity: 0;
+  scale: 0.2;
+  transition: scale 1.5s var(--ease-out) 0.7s, opacity 0.6s ease 0.7s;
+}
+.inv-open-seal[data-state='opening'] .inv-env-light { opacity: 1; scale: 7; }
+.inv-env-body { transition: opacity 0.8s ease 1.6s; }
+.inv-open-seal[data-state='opening'] .inv-env-body,
+.inv-open-seal[data-state='opening'] .inv-env-flap { opacity: 0; transition-property: transform, opacity; transition-delay: 0.35s, 1.6s; transition-duration: 1.1s, 0.8s; }
+.inv-open-seal[data-state='opening'] .inv-backdrop { transition-delay: 1.5s; }
+
+/* ----- lantern opening ----- */
+.inv-open-lanterns .inv-backdrop,
+.inv-open-lanterns .inv-lantern-field { transition: transform 2.4s var(--ease-soft), opacity 1s ease 1.4s; }
+.inv-open-lanterns[data-state='opening'] .inv-backdrop { transform: scale(1.35) translate3d(0, 12%, 0); opacity: 0; }
+.inv-open-lanterns[data-state='opening'] .inv-lantern-field { transform: translate3d(0, -30%, 0); opacity: 0; }
+
+.inv-motion-off .scn-sway, .inv-motion-off .scn-bob, .inv-motion-off .scn-flicker, .inv-motion-off .scn-glide,
+.inv-motion-off .scn-shimmer, .inv-motion-off .scn-twinkle, .inv-motion-off .inv-scene-in, .inv-motion-off .inv-seal-btn { animation: none; }
+.inv-motion-off [data-sr] .inv-car { transform: none; transition: none; }
+@media (prefers-reduced-motion: reduce) {
+  .inv-root [class*='scn-'], .inv-root .inv-scene-in, .inv-root .inv-seal-btn, .inv-root .inv-seal { animation: none !important; }
+  .inv-root [data-sr] .inv-car { transform: none; transition: none; }
+}
+
+/* Performance: scene loops stop while the cover is off screen or still under the opening. */
+[data-off] [class*='scn-'],
+.inv-paused [class*='scn-'] { animation-play-state: paused; }
+
+/* Responsive scenes: the painted art is portrait. On tablets / desktops the sky fills the
+   screen and the scene sits in a centred portrait frame with soft edges, instead of being
+   scaled up until the building covers the names. */
+.inv-scene-frame {
+  left: 0;
+  right: 0;
+  /* 50svh = the art's own 1:2 shape, so it is never scaled taller than the screen. */
+  width: min(100%, 50svh);
+  margin-inline: auto;
+}
+@media (min-aspect-ratio: 3/5) {
+  .inv-scene-frame {
+    -webkit-mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+    mask-image: linear-gradient(90deg, transparent, #000 14%, #000 86%, transparent);
+  }
+}
+
+/* Seal grows with the screen (the SVG has a fixed size attribute). */
+.inv-seal svg { display: block; width: 100%; height: auto; }
+
+/* Fireworks: each burst grows and fades (one transform + opacity animation). */
+@keyframes scn-a-burst {
+  0% { transform: scale(0.1); opacity: 0; }
+  8% { opacity: 1; }
+  45% { transform: scale(1); opacity: 1; }
+  85%, 100% { transform: scale(1.05); opacity: 0; }
+}

@@ -3,6 +3,7 @@
 import {
   SECTION_INFO,
   SECTION_MOTIONS,
+  THING_ICONS,
   type EventFunctionDto,
   type SiteSection,
   type SiteSectionOf,
@@ -42,7 +43,8 @@ export function PhotoField({ label, value, onChange, ctx }: { label: string; val
   const [busy, setBusy] = useState(false);
   const [picking, setPicking] = useState(false);
   const url = value ? ctx.assets[value] : undefined;
-  const existing = Object.entries(ctx.assets);
+  // Photos only (the asset map also holds the website song).
+  const existing = Object.entries(ctx.assets).filter(([, u]) => !/\.mp3($|\?)/i.test(u));
 
   async function upload(file: File) {
     setBusy(true);
@@ -167,6 +169,20 @@ const AreaF = ({ label, value, onChange, max, hint, rows = 4 }: { label: string;
 );
 const optional = (v: string) => (v.trim() ? v : undefined);
 
+const THING_LABEL: Record<(typeof THING_ICONS)[number], string> = {
+  hashtag: 'Hashtag',
+  weather: 'Weather',
+  parking: 'Parking',
+  stay: 'Stay',
+  kids: 'Kids',
+  camera: 'Photos',
+  instagram: 'Social / Instagram',
+  phone: 'Contact',
+  gift: 'Gifts',
+  food: 'Food',
+  info: 'Info',
+};
+
 // ---------------- per type ----------------
 
 function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: Partial<SiteSection>) => void; ctx: EditorCtx }) {
@@ -181,6 +197,7 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
                 <option value="arch">Arch — photo in a temple arch</option>
                 <option value="photo">Photo — large photo, no character</option>
                 <option value="split">Compact — smaller character</option>
+                <option value="scene">Painted scene — for designs (Look tab)</option>
               </Select>
             )}
           </Field>
@@ -237,9 +254,10 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
       return (
         <Field label="Style" hint="Functions, dates and venues come from your invitation (Edit tab).">
           {(id, d) => (
-            <Select id={id} aria-describedby={d} value={section.variant} onChange={(e) => set({ variant: e.target.value as 'timeline' | 'cards' })}>
+            <Select id={id} aria-describedby={d} value={section.variant} onChange={(e) => set({ variant: e.target.value as 'timeline' | 'cards' | 'ribbon' })}>
               <option value="timeline">Timeline</option>
               <option value="cards">Cards</option>
+              <option value="ribbon">Ribbon — marker follows the scroll (designs)</option>
             </Select>
           )}
         </Field>
@@ -316,9 +334,14 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
               </Select>
             )}
           </Field>
-          <Chip selected={section.showMap} onClick={() => set({ showMap: !section.showMap })}>
-            Show map
-          </Chip>
+          <div className="flex flex-wrap gap-2">
+            <Chip selected={section.showMap} onClick={() => set({ showMap: !section.showMap })}>
+              Show map
+            </Chip>
+            <Chip selected={section.showArt} onClick={() => set({ showArt: !section.showArt })}>
+              Painted venue (designs)
+            </Chip>
+          </div>
         </>
       );
     case 'gallery':
@@ -435,6 +458,36 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
           <AreaF label="Text" value={section.body} onChange={(body) => set({ body })} max={1500} rows={6} />
           <PhotoField label="Photo" value={section.photoAssetId} onChange={(photoAssetId) => set({ photoAssetId })} ctx={ctx} />
         </>
+      );
+    case 'countdown':
+      return <TextF label="Line under the countdown" value={section.note} onChange={(note) => set({ note })} max={160} placeholder="We cannot wait to celebrate with you" />;
+    case 'things':
+      return (
+        <ListEditor
+          items={section.items}
+          onChange={(items) => set({ items })}
+          blank={{ icon: 'info' as (typeof THING_ICONS)[number], title: '', text: '' }}
+          max={12}
+          addLabel="Add item"
+          render={(it, s) => (
+            <>
+              <Field label="Icon">
+                {(id) => (
+                  <Select id={id} value={it.icon} onChange={(e) => s({ icon: e.target.value as (typeof THING_ICONS)[number] })}>
+                    {THING_ICONS.map((i) => (
+                      <option key={i} value={i}>
+                        {THING_LABEL[i]}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </Field>
+              <TextF label="Title" value={it.title} onChange={(title) => s({ title })} max={60} placeholder="Hashtag" />
+              <AreaF label="Text" value={it.text} onChange={(text) => s({ text })} max={300} rows={3} />
+              <TextF label="Link (optional)" value={it.url} onChange={(v) => s({ url: optional(v) })} max={500} hint="Instagram page, parking map, weather and so on." />
+            </>
+          )}
+        />
       );
     case 'updates':
       return <p className="text-sm text-ink-soft">Post updates from the Live tab on the day. They appear here within 30 seconds.</p>;

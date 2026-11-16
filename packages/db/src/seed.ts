@@ -1,4 +1,5 @@
 import { createDb } from './client.js';
+import { MUSIC_TRACKS } from '@cardai/shared';
 import { musicTracks, printPartners, users } from './schema.js';
 
 const url = process.env.DATABASE_URL;
@@ -32,6 +33,8 @@ await db
     { id: 'dhol-celebration', title: 'Dhol Celebration', mood: 'festive', storageKey: 'music/dhol-celebration.mp3', durationSec: 75, license: 'Add license reference' },
     { id: 'piano-modern', title: 'Modern Piano', mood: 'modern', storageKey: 'music/piano-modern.mp3', durationSec: 90, license: 'Add license reference' },
     { id: 'bhajan-bells', title: 'Temple Bells', mood: 'devotional', storageKey: 'music/bhajan-bells.mp3', durationSec: 80, license: 'Add license reference' },
+    // Mood tracks used by the cinematic website designs (MUSIC_TRACKS in @cardai/shared).
+    ...MUSIC_TRACKS.map((t) => ({ id: t.id, title: t.title, mood: t.mood, storageKey: t.storageKey, durationSec: t.durationSec, license: 'Add license reference' })),
   ])
   .onConflictDoNothing();
 

@@ -9,8 +9,8 @@ export type ThemePref = 'light' | 'dark' | 'system';
 export type Theme = 'light' | 'dark';
 
 const KEY = 'cardai-theme';
-/** Marketing and guest-facing pages keep the editorial light look. */
-const LIGHT_ONLY = /^\/(pricing\/?)?$|^\/i\/|^\/preview\//;
+/** Guest-facing invitation sites keep their own designed look; everything else follows the theme. */
+const LIGHT_ONLY = /^\/i\/|^\/preview\//;
 
 export function isLightOnly(pathname: string) {
   return LIGHT_ONLY.test(pathname);
@@ -20,7 +20,7 @@ export function isLightOnly(pathname: string) {
  * Runs in <head> before first paint so there's no light flash on dark devices.
  * Kept tiny and dependency-free; mirrors `resolve()` below.
  */
-export const THEME_BOOT_SCRIPT = `(()=>{try{var p=localStorage.getItem('${KEY}')||'system';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(${LIGHT_ONLY}.test(location.pathname))d=false;document.documentElement.dataset.theme=d?'dark':'light'}catch(e){}})()`;
+export const THEME_BOOT_SCRIPT = `(()=>{try{var p=localStorage.getItem('${KEY}')||'system';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(${LIGHT_ONLY}.test(location.pathname))d=false;document.documentElement.dataset.theme=d?'dark':'light';if(localStorage.getItem('cardai-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}})()`;
 
 // ---- tiny external store (no context, no re-render cascade)
 const listeners = new Set<() => void>();
@@ -56,7 +56,7 @@ function apply(theme: Theme) {
   root.setAttribute('data-theme-switching', '');
   root.dataset.theme = theme;
   requestAnimationFrame(() => requestAnimationFrame(() => root.removeAttribute('data-theme-switching')));
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'dark' ? '#0E1122' : '#FBF8F3');
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'dark' ? '#140F17' : '#FAF8F6'));
 }
 
 export function setThemePref(next: ThemePref) {
@@ -116,7 +116,7 @@ export function ThemeToggle({ className, compact }: { className?: string; compac
       aria-label={`Theme: ${META[p].label}. Switch to ${META[next].label}`}
       data-tip={`Theme: ${META[p].label}`}
       data-tip-kbd={`→ ${META[next].label}`}
-      className={clsx('grid place-items-center text-ink transition-colors hover:bg-mist', compact ? 'size-9 rounded-lg' : 'size-10 rounded-full', className)}
+      className={clsx('grid place-items-center text-ink-soft transition-colors hover:bg-mist hover:text-ink', compact ? 'size-9 rounded-lg' : 'size-10 rounded-full', className)}
     >
       <Icon className="size-[1.15rem]" />
     </button>
@@ -137,7 +137,7 @@ export function ThemeSegmented() {
             role="radio"
             aria-checked={p === o}
             onClick={() => setThemePref(o)}
-            className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-sm font-semibold text-ink-soft transition-colors aria-checked:bg-primary aria-checked:text-on-primary"
+            className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink aria-checked:bg-mist aria-checked:text-ink"
           >
             <Icon className="size-4" />
             {META[o].label}

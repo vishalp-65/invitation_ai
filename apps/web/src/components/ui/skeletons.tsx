@@ -6,13 +6,13 @@ export function Skeleton({ className = '' }: { className?: string }) {
 /** Shimmer placeholders shown instantly while a route streams in (no layout jump). */
 export function PageSkeleton({ variant = 'list' }: { variant?: 'list' | 'grid' | 'workspace' | 'form' }) {
   return (
-    <div className="mx-auto max-w-6xl px-5 pb-24 pt-8" aria-busy aria-label="Loading">
+    <div className="mx-auto max-w-6xl px-5 pb-24 pt-8 sm:px-6" aria-busy aria-label="Loading">
       <div className="skeleton h-10 w-2/3 max-w-sm" />
       <div className="skeleton mt-3 h-4 w-1/2 max-w-xs" />
       {variant === 'grid' && (
         <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} className="skeleton aspect-[9/16]" />
+            <div key={i} className="skeleton aspect-[4/5]" />
           ))}
         </div>
       )}

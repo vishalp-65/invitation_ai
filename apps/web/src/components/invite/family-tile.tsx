@@ -2,7 +2,7 @@
 
 import { sampleInviteProps, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { Check, Crown, Eye } from 'lucide-react';
+import { ArrowRight, Check, Crown, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { coverOf, TemplateCover } from './template-cover';
 import Link from 'next/link';
@@ -21,13 +21,18 @@ interface Props {
   priority?: boolean;
   /** Show a "Preview" button over the art (wizard). */
   onPreview?: (t: TemplateDefinition) => void;
+  /** Gallery: clicking the art opens a preview; `href` becomes a hover "Use this design" button. */
+  onOpen?: (t: TemplateDefinition) => void;
+  /** Show colourway count and Free/Premium under the name. */
+  meta?: boolean;
+  hi?: boolean;
 }
 
 /**
  * One design family: a pre-rendered thumbnail (fast, CDN-cached) + colourway swatches.
  * Marketplace designs have no pre-render, so they fall back to a lazy live thumbnail.
  */
-export function FamilyTile({ name, variants, href, onPick, selectedId, priority, onPreview }: Props) {
+export function FamilyTile({ name, variants, href, onPick, selectedId, priority, onPreview, onOpen, meta, hi }: Props) {
   const selectedIdx = variants.findIndex((v) => v.id === selectedId);
   const [active, setActive] = useState(selectedIdx >= 0 ? selectedIdx : 0);
   useEffect(() => {
@@ -66,7 +71,7 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
       )}
       {isSelected && (
         <span className="absolute left-2 top-2 inline-flex h-7 items-center gap-1 rounded-md bg-primary pl-1.5 pr-2.5 text-xs font-semibold text-on-primary">
-          <Check className="size-4 text-marigold dark:text-on-primary" strokeWidth={3} aria-hidden /> Selected
+          <Check className="size-4" strokeWidth={3} aria-hidden /> Selected
         </span>
       )}
     </div>
@@ -75,7 +80,19 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
   return (
     <li className="group/tile">
       <div className="relative">
-        {onPick ? (
+        {onOpen ? (
+          <button
+            type="button"
+            onClick={() => {
+              track('template_view', { templateId: t.id });
+              onOpen(t);
+            }}
+            aria-label={`${hi ? 'देखें' : 'Preview'} ${name}`}
+            className="group block w-full rounded-xl text-left"
+          >
+            {art}
+          </button>
+        ) : onPick ? (
           <button type="button" onClick={() => {
             track('template_select', { templateId: t.id });
             onPick(t);
@@ -85,6 +102,16 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
         ) : (
           <Link href={href?.(t) ?? '/create'} onClick={() => track('template_select', { templateId: t.id })} className="group block rounded-xl">
             {art}
+          </Link>
+        )}
+        {onOpen && href && (
+          <Link
+            href={href(t)}
+            onClick={() => track('template_select', { templateId: t.id })}
+            className="absolute inset-x-2.5 bottom-2.5 hidden h-10 items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-primary text-sm font-semibold text-on-primary opacity-0 transition-[opacity,transform] duration-200 hover:bg-primary-hover focus-visible:opacity-100 lg:inline-flex lg:translate-y-1 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100"
+          >
+            {hi ? 'यह डिज़ाइन चुनें' : 'Use this design'}
+            <ArrowRight className="size-4" aria-hidden />
           </Link>
         )}
         {onPreview && (
@@ -102,7 +129,16 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
         )}
       </div>
       <div className="mt-2.5 flex flex-col gap-2 px-0.5 lg:flex-row lg:items-center lg:justify-between">
-        <p className="truncate font-semibold">{name}</p>
+        <div className="min-w-0">
+          <p className="truncate font-semibold">{name}</p>
+          {meta && (
+            <p className="mt-0.5 truncate text-sm text-ink-soft">
+              {variants.length > 1 ? (hi ? `${variants.length} रंग` : `${variants.length} colourways`) : hi ? '1 रंग' : '1 colourway'}
+              {' · '}
+              {t.premium ? (hi ? 'प्रीमियम' : 'Premium') : hi ? 'मुफ़्त' : 'Free'}
+            </p>
+          )}
+        </div>
         {variants.length > 1 && (
           <div className="flex shrink-0 gap-1.5 lg:gap-1" role="group" aria-label={`${name} colours`}>
             {variants.map((v, i) => (

@@ -39,6 +39,8 @@ export function CreateWizard() {
   const [creating, setCreating] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
+  /** Direction of the last move, so the new step slides in from the side it came from. */
+  const [back, setBack] = useState(false);
   const { ensureLogin, dialog } = useRequireLogin('Verify your email to save your invitation');
 
   // Deep links: /create?type=griha-pravesh, or a design picked on the gallery (&template=…).
@@ -71,6 +73,7 @@ export function CreateWizard() {
   const template = findTemplate(d.templateId);
 
   function go(to: number) {
+    setBack(to < step);
     d.set({ step: to });
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -120,21 +123,18 @@ export function CreateWizard() {
     <div className="min-h-dvh bg-ivory pb-36">
       {dialog}
 
-      {/* Header band: solid night indigo, marigold marks progress. */}
-      <section className="border-b border-transparent bg-night text-white dark:border-hairline dark:bg-surface">
-        <div className="mx-auto max-w-7xl px-4 pb-8 pt-7 sm:px-6 sm:pb-10 sm:pt-9">
+      {/* Progress + the question for this step, on a plain surface. */}
+      <section className="border-b border-hairline bg-surface">
+        <div className="mx-auto max-w-6xl px-5 pb-7 pt-6 sm:px-6 sm:pb-9 sm:pt-7">
           <Stepper step={step} hi={hi} onJump={go} />
-          <div key={step} className="mt-7 animate-fade-up sm:mt-9">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-marigold">
-              {hi ? `चरण ${step + 1} / ${STEPS.length}` : `Step ${step + 1} of ${STEPS.length}`}
-            </p>
-            <h1 className="mt-2 text-[2.1rem] text-white sm:text-5xl">{hi ? meta.titleHi : meta.titleEn}</h1>
-            <p className="mt-2 max-w-xl text-white/70">{hi ? meta.subHi : meta.subEn}</p>
+          <div key={step} className={clsx('mt-7 sm:mt-9', back ? 'animate-step-back' : 'animate-step-in')}>
+            <h1 className="text-[2rem] sm:text-[2.75rem]">{hi ? meta.titleHi : meta.titleEn}</h1>
+            <p className="mt-2 max-w-xl text-ink-soft">{hi ? meta.subHi : meta.subEn}</p>
           </div>
         </div>
       </section>
 
-      <div key={step} className="mx-auto max-w-7xl animate-fade-up px-4 pt-8 sm:px-6 sm:pt-10">
+      <div key={step} className={clsx('mx-auto max-w-6xl px-5 pt-8 sm:px-6 sm:pt-10', back ? 'animate-step-back' : 'animate-step-in')}>
         {step === 0 && <StepOccasion onPicked={() => go(1)} />}
         {step === 1 && <StepDesign onUse={() => go(2)} />}
         {step === 2 && <StepQuick showErrors={showErrors} onChangeDesign={() => go(1)} />}
@@ -142,7 +142,7 @@ export function CreateWizard() {
 
       {/* Action dock: what you've chosen so far on the left, navigation on the right. */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 sm:px-6">
+        <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-3 sm:px-6">
           <div className="flex min-w-0 flex-1 items-center gap-3">
             {step > 0 && template ? (
               <Image
@@ -153,7 +153,7 @@ export function CreateWizard() {
                 className="hidden h-12 w-[27px] shrink-0 rounded-md object-cover sm:block"
               />
             ) : (
-              <span className="hidden size-11 shrink-0 place-items-center rounded-xl bg-tint text-xl sm:grid" aria-hidden>
+              <span className="hidden size-11 shrink-0 place-items-center rounded-lg bg-tint text-xl sm:grid" aria-hidden>
                 {ev.emoji}
               </span>
             )}
@@ -182,13 +182,13 @@ export function CreateWizard() {
           )}
           {last ? (
             <Button variant="solid" className="h-12 px-6 sm:px-8" onClick={create} loading={creating}>
-              <Sparkles className="size-4 text-marigold dark:text-on-primary" />
+              <Sparkles className="size-4" />
               {hi ? 'कार्ड बनाइए' : 'Create invitation'}
             </Button>
           ) : (
-            <Button variant="solid" className="h-12 px-6 sm:px-8" onClick={() => go(step + 1)}>
+            <Button variant="solid" className="group h-12 px-6 sm:px-8" onClick={() => go(step + 1)}>
               {step === 1 ? (hi ? 'यह डिज़ाइन चुनें' : 'Use this design') : hi ? 'आगे' : 'Continue'}
-              <ArrowRight className="size-4" />
+              <ArrowRight className="size-4 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:translate-x-1" />
             </Button>
           )}
         </div>
@@ -217,25 +217,25 @@ function Stepper({ step, hi, onJump }: { step: number; hi: boolean; onJump: (i: 
                 onClick={() => done && onJump(i)}
                 disabled={!done}
                 aria-current={current ? 'step' : undefined}
-                className="group flex items-center gap-2.5 rounded-full disabled:cursor-default"
+                className="group flex items-center gap-2.5 rounded-lg disabled:cursor-default"
               >
                 <span
                   className={clsx(
                     'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums transition-colors duration-300',
-                    current && 'bg-marigold text-night',
-                    done && 'bg-white/12 text-marigold group-hover:bg-white/20',
-                    !done && !current && 'border border-white/25 text-white/55',
+                    current && 'bg-primary text-on-primary',
+                    done && 'tint-primary group-hover:bg-tint-strong',
+                    !done && !current && 'border border-hairline text-ink-soft',
                   )}
                 >
-                  {done ? <Check className="size-4" strokeWidth={3} aria-hidden /> : i + 1}
+                  {done ? <Check className="size-4 animate-pop" strokeWidth={3} aria-hidden /> : i + 1}
                 </span>
-                <span className={clsx('text-sm font-semibold max-sm:hidden', current ? 'text-white' : done ? 'text-white/80 group-hover:text-white' : 'text-white/50')}>
+                <span className={clsx('text-sm font-semibold transition-colors max-sm:hidden', current ? 'text-ink' : done ? 'text-ink-soft group-hover:text-ink' : 'text-ink-soft/70')}>
                   {hi ? s.hi : s.en}
                 </span>
               </button>
               {i < STEPS.length - 1 && (
-                <span className="h-px flex-1 overflow-hidden bg-white/15" aria-hidden>
-                  <span className="block h-full origin-left bg-marigold transition-transform duration-500 ease-[var(--ease-out-quint)]" style={{ transform: `scaleX(${done ? 1 : 0})` }} />
+                <span className="h-0.5 flex-1 overflow-hidden rounded-full bg-hairline" aria-hidden>
+                  <span className="block h-full origin-left bg-primary transition-transform duration-500 ease-[var(--ease-out-quint)]" style={{ transform: `scaleX(${done ? 1 : 0})` }} />
                 </span>
               )}
             </li>

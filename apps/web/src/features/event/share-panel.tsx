@@ -1,17 +1,21 @@
 'use client';
 
 import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
-import { useQuery } from '@tanstack/react-query';
-import { Copy, Download, FileText, Film, Globe, Image as ImageIcon, MessageCircle, Printer, Share2 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles } from 'lucide-react';
+import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { api, ApiError } from '@/lib/api';
-import { useCreateRender, useRenders } from '@/lib/hooks';
+import { qk, useCreateRender, useRenders } from '@/lib/hooks';
 import { track } from '@/lib/track';
+import { IconTile, Panel, StatusPill } from './panel-ui';
 
 const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof ImageIcon; help: string; feature?: string }> = [
   { format: 'image', label: 'Image card', icon: ImageIcon, help: 'JPG pages for WhatsApp status and chats.' },
   { format: 'video', label: 'Video invite', icon: Film, help: 'MP4 with music, sized for WhatsApp. Takes 1–3 minutes.' },
+  { format: 'site_video', label: 'Cinematic video', icon: Sparkles, help: 'Your website design as a film: cinematic, 15-second save-the-date reel or storybook (choose in Website → Look).' },
   { format: 'pdf', label: 'PDF', icon: FileText, help: 'All pages in one file, with a QR code to your website.' },
   { format: 'print_pdf', label: 'Print-ready PDF', icon: Printer, help: '5×7 inch, 300 DPI, bleed and crop marks.', feature: 'print_pdf' },
 ];
@@ -33,11 +37,14 @@ async function shareFile(url: string, name: string, contentType: string) {
 }
 
 export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
+  const qc = useQueryClient();
   const { data: renders } = useRenders(event.id);
   const create = useCreateRender(event.id);
   const site = useQuery({ queryKey: ['site', event.id], queryFn: () => api<SiteSettingsDto>(`/events/${event.id}/site`) });
   const siteUrl = site.data?.vanityUrl ?? site.data?.shortUrl ?? (typeof window !== 'undefined' ? `${window.location.origin}/i/${event.slug}` : '');
   const live = event.status === 'published';
+  const [copied, setCopied] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   async function make(format: RenderDto['format']) {
     try {
@@ -48,113 +55,178 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
     }
   }
 
+  const copy = () =>
+    navigator.clipboard.writeText(siteUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    });
+
+  async function publish() {
+    setPublishing(true);
+    try {
+      const e = await api<EventDto>(`/events/${event.id}/publish`, { method: 'POST' });
+      qc.setQueryData(qk.event(event.id), e);
+      toast.success('Published. Your link is ready to share.');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not publish. Try again.');
+    } finally {
+      setPublishing(false);
+    }
+  }
+
   return (
-    <div className="flex flex-col gap-10">
-      <section className="rounded-[var(--radius-card)] bg-primary p-6 text-on-primary">
-        <h2 className="text-2xl">Your invitation website</h2>
+    <div className="flex flex-col gap-6">
+      {/* ---------------- The link ---------------- */}
+      <Panel
+        title="Invitation website"
+        description={live ? 'One link with every function, the map and RSVP. Send it to groups, or add guests for personal links.' : 'Publish to get a link you can send. You can keep editing after.'}
+      >
         {live ? (
-          <>
-            <p className="mt-2 break-all text-lg">{siteUrl}</p>
-            <div className="mt-5 flex flex-wrap gap-2">
+          <div className="flex flex-col gap-4">
+            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-1.5 pl-3.5">
+              <Globe className="size-4 shrink-0 text-ink-soft" aria-hidden />
+              <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium" title={siteUrl}>
+                {siteUrl.replace(/^https?:\/\//, '')}
+              </span>
+              <Button size="sm" variant="line" onClick={copy} aria-label="Copy link">
+                {copied ? <Check className="size-4 text-leaf" /> : <Copy className="size-4" />}
+                <span className="max-sm:hidden">{copied ? 'Copied' : 'Copy'}</span>
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <ButtonLink
                 href={whatsappShareUrl(`${event.title} — you are invited! ${siteUrl}`)}
                 target="_blank"
                 rel="noopener"
-                className="bg-leaf text-white hover:bg-leaf/90"
+                className="col-span-2"
+                onClick={() => track('share', { props: { kind: 'link' } })}
               >
-                <MessageCircle className="size-4" />
+                <WhatsAppIcon className="size-4" />
                 Share on WhatsApp
               </ButtonLink>
-              <Button
-                variant="outline"
-                className="border-white text-white hover:bg-surface hover:text-ink"
-                onClick={() => navigator.clipboard.writeText(siteUrl).then(() => toast.success('Link copied'))}
-              >
-                <Copy className="size-4" />
-                Copy link
-              </Button>
-              <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="quiet" className="text-white hover:bg-surface/10">
-                Open website
+              <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="line">
+                <ExternalLink className="size-4" aria-hidden />
+                Open
               </ButtonLink>
-              <ButtonLink href={`/builder/${event.id}`} variant="quiet" className="text-white hover:bg-surface/10">
-                <Globe className="size-4" />
+              <ButtonLink href={`/builder/${event.id}`} variant="line">
+                <Globe className="size-4" aria-hidden />
                 Design it
               </ButtonLink>
             </div>
-          </>
+          </div>
         ) : (
-          <p className="mt-2 text-white/80">The website is unpublished. Publish it from the Edit tab to share the link.</p>
+          <div className="flex flex-col gap-3 rounded-xl border border-dashed border-ink/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <StatusPill tone="muted">Not published</StatusPill>
+            <Button onClick={() => void publish()} loading={publishing}>
+              Publish website
+            </Button>
+          </div>
         )}
-      </section>
+      </Panel>
 
-      <section>
-        <h2 className="text-2xl">Download and share files</h2>
-        <ul className="mt-5 grid gap-4 md:grid-cols-2">
-          {FORMATS.map(({ format, label, icon: Icon, help, feature }) => {
+      {/* ---------------- Files ---------------- */}
+      <Panel title="Files to download and share" description="Each file is made from your latest details. Make it again after you change something." bodyClassName="!px-0 !pb-0">
+        <ul className="divide-y divide-hairline border-t border-hairline">
+          {FORMATS.map(({ format, label, icon, help, feature }) => {
             const r = renders?.find((x) => x.format === format);
             const locked = feature && !event.features.includes(feature);
             const busy = r && (r.status === 'queued' || r.status === 'processing');
+            const done = r?.status === 'completed';
             return (
-              <li key={format} className="flex flex-col gap-3 glass-light rounded-[var(--radius-card)] p-5">
-                <div className="flex items-start gap-3">
-                  <Icon className="mt-1 size-6 text-sindoor" aria-hidden />
-                  <div className="flex-1">
-                    <h3 className="text-xl">{label}</h3>
-                    <p className="text-[0.95rem] text-ink-soft">{help}</p>
+              <li key={format} className="flex flex-col gap-3 px-5 py-4 sm:px-6">
+                <div className="flex items-start gap-3.5">
+                  <IconTile icon={icon} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-[1.0625rem]">{label}</h3>
+                      {done && <StatusPill tone="leaf">Ready</StatusPill>}
+                      {r?.watermark && done && <StatusPill tone="muted">Watermark</StatusPill>}
+                      {locked && <StatusPill tone="gold">Paid</StatusPill>}
+                    </div>
+                    <p className="mt-0.5 text-sm text-ink-soft">{help}</p>
+                  </div>
+                  <div className="hidden shrink-0 sm:block">
+                    <Action locked={Boolean(locked)} done={done} busy={Boolean(busy)} pending={create.isPending && create.variables === format} label={label} onUpgrade={onUpgrade} onMake={() => make(format)} />
                   </div>
                 </div>
 
                 {busy && (
-                  <div aria-live="polite">
-                    <div className="h-2 overflow-hidden rounded-full bg-mist">
-                      <div className="h-full rounded-full bg-marigold transition-[width]" style={{ width: `${Math.max(r.progress, 5)}%` }} />
+                  <div aria-live="polite" className="sm:pl-[3.375rem]">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-mist">
+                      <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(r.progress, 5)}%` }} />
                     </div>
-                    <p className="mt-1 text-sm text-ink-soft">{r.status === 'queued' ? 'Waiting to start…' : `Making it… ${r.progress}%`}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{r.status === 'queued' ? 'Waiting to start…' : `Making it… ${r.progress}%`}</p>
                   </div>
                 )}
-                {r?.status === 'failed' && <p className="text-sm text-sindoor">{r.error ?? 'It failed. Make it again.'}</p>}
+                {r?.status === 'failed' && <p className="text-sm text-sindoor sm:pl-[3.375rem]">{r.error ?? 'It failed. Make it again.'}</p>}
 
-                {r?.status === 'completed' && (
-                  <div className="flex flex-wrap gap-2">
+                {done && (
+                  <div className="flex flex-wrap items-center gap-2 sm:pl-[3.375rem]">
                     {r.outputs.map((o, i) => {
                       const ext = o.contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin';
                       const name = `${event.slug}-${format}${r.outputs.length > 1 ? `-${i + 1}` : ''}.${ext}`;
                       return (
-                        <span key={o.url} className="flex gap-1">
-                          <Button size="sm" variant="outline" onClick={() => shareFile(o.url, name, o.contentType)}>
-                            <Share2 className="size-4" />
+                        <span key={o.url} className="inline-flex overflow-hidden rounded-lg border border-hairline">
+                          <button type="button" onClick={() => void shareFile(o.url, name, o.contentType)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-semibold hover:bg-mist">
+                            <Share2 className="size-3.5" aria-hidden />
                             {r.outputs.length > 1 ? `Page ${i + 1}` : 'Share'}
-                          </Button>
-                          <a href={o.url} download={name} className="grid size-9 place-items-center rounded-lg hover:bg-mist" aria-label={`Download ${name}`}>
-                            <Download className="size-4" />
+                          </button>
+                          <a href={o.url} download={name} className="grid w-8 place-items-center border-l border-hairline hover:bg-mist" aria-label={`Download ${name}`}>
+                            <Download className="size-3.5" />
                           </a>
                         </span>
                       );
                     })}
+                    {r.watermark && (
+                      <button type="button" onClick={onUpgrade} className="text-[0.8125rem] font-semibold text-primary underline-offset-4 hover:underline">
+                        Remove watermark
+                      </button>
+                    )}
                   </div>
                 )}
 
-                <div className="mt-auto flex items-center gap-3">
-                  {locked ? (
-                    <Button size="sm" variant="brand" onClick={onUpgrade}>
-                      Unlock
-                    </Button>
-                  ) : (
-                    <Button size="sm" onClick={() => make(format)} loading={create.isPending && create.variables === format} disabled={Boolean(busy)}>
-                      {r?.status === 'completed' ? 'Make again with latest changes' : `Make ${label.toLowerCase()}`}
-                    </Button>
-                  )}
-                  {r?.watermark && r.status === 'completed' && (
-                    <button type="button" onClick={onUpgrade} className="text-sm font-semibold text-sindoor underline underline-offset-4">
-                      Remove watermark
-                    </button>
-                  )}
+                <div className="sm:hidden">
+                  <Action locked={Boolean(locked)} done={done} busy={Boolean(busy)} pending={create.isPending && create.variables === format} label={label} onUpgrade={onUpgrade} onMake={() => make(format)} full />
                 </div>
               </li>
             );
           })}
         </ul>
-      </section>
+      </Panel>
     </div>
+  );
+}
+
+function Action({
+  locked,
+  done,
+  busy,
+  pending,
+  label,
+  onUpgrade,
+  onMake,
+  full,
+}: {
+  locked: boolean;
+  done: boolean;
+  busy: boolean;
+  pending: boolean;
+  label: string;
+  onUpgrade: () => void;
+  onMake: () => void;
+  full?: boolean;
+}) {
+  if (locked)
+    return (
+      <Button size="sm" variant="line" onClick={onUpgrade} className={full ? 'w-full' : undefined}>
+        <Crown className="size-4 text-gold" aria-hidden />
+        Unlock
+      </Button>
+    );
+  return (
+    <Button size="sm" variant="line" onClick={onMake} loading={pending} disabled={busy} className={full ? 'w-full' : undefined} aria-label={`${done ? 'Make again' : 'Make'}: ${label}`}>
+      {done ? <RefreshCw className="size-4" aria-hidden /> : null}
+      {done ? 'Make again' : 'Make'}
+    </Button>
   );
 }

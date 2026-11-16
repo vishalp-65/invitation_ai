@@ -1,13 +1,14 @@
 'use client';
 
-import { BRAND, getLanguage, RTL_LANGUAGES, type LanguageCode, type PublicSiteDto, type SiteDoc } from '@cardai/shared';
+import { BRAND, getLanguage, getSiteDesign, RTL_LANGUAGES, siteMusicUrl, type LanguageCode, type PublicSiteDto, type SiteDoc } from '@cardai/shared';
+import { Ambient, Divider } from '@cardai/templates/scenes';
 import { CalendarHeart, Languages, MapPin, Music2, Pause, Share2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { safeHref, SiteProvider } from './context';
 import { MotionContext, Petals, useEffectiveMotion } from './motion';
 import { Opening } from './opening';
 import { SectionView } from './sections';
-import { googleFontsHref, siteVars } from './theme';
+import { bandVars, googleFontsHref, siteVars } from './theme';
 import './site.css';
 
 const OPEN_LABEL: Record<string, string> = {
@@ -51,6 +52,16 @@ export function SiteRenderer({
   const openingKind = preview && replayKey === 0 ? 'none' : doc.opening.kind;
   const [started, setStarted] = useState(openingKind === 'none');
   const [playing, setPlaying] = useState(false);
+  const [musicBroken, setMusicBroken] = useState(false);
+  const design = getSiteDesign(doc.design);
+  const latin = lang.script === 'Latn';
+  const musicUrl = siteMusicUrl({
+    uploaded: doc.music?.assetId ? data.media.assets[doc.music.assetId] : null,
+    track: doc.music?.track ?? 'auto',
+    eventTrackUrl: data.media.musicUrl,
+    design,
+    library: data.media.musicLibrary ?? {},
+  });
   const audio = useRef<HTMLAudioElement>(null);
 
   // Builder: replaying the opening re-arms the scene.
@@ -66,11 +77,14 @@ export function SiteRenderer({
   }, [data.event.slug, guestToken, preview]);
 
   const fontsHref = useMemo(() => {
-    const families = [lang.fonts.display, lang.fonts.body, getLanguage(data.event.language).fonts.display];
+    const families: string[] =
+      design && latin
+        ? [design.fonts.script, design.fonts.serif, design.fonts.body]
+        : [lang.fonts.display, lang.fonts.body, getLanguage(data.event.language).fonts.display];
     return googleFontsHref(families);
-  }, [lang, data.event.language]);
+  }, [lang, data.event.language, design, latin]);
 
-  const vars = siteVars(data.template.theme, doc.look, lang.fonts);
+  const vars = siteVars(data.template.theme, doc.look, lang.fonts, design, latin);
   const ctxData = useMemo(() => ({ ...data, site: doc }), [data, doc]);
   const has = (t: SiteDoc['sections'][number]['type']) => doc.sections.some((s) => s.type === t && !s.hidden);
   const greeting = data.guest ? data.guest.salutation || data.guest.name : null;
@@ -79,8 +93,14 @@ export function SiteRenderer({
   const first = data.functions[0];
 
   function playMusic() {
-    if (!audio.current || !data.media.musicUrl) return;
-    void audio.current.play().then(() => setPlaying(true)).catch(() => undefined);
+    if (!audio.current || !musicUrl || musicBroken) return;
+    void audio.current
+      .play()
+      .then(() => setPlaying(true))
+      .catch((e: unknown) => {
+        // Missing library file (not added yet) → hide the button; autoplay blocks are ignored.
+        if (e instanceof DOMException && e.name === 'NotSupportedError') setMusicBroken(true);
+      });
   }
 
   async function share() {
@@ -105,6 +125,9 @@ export function SiteRenderer({
           dir={RTL_LANGUAGES.has(lang.code as LanguageCode) ? 'rtl' : 'ltr'}
         >
           <Opening
+            design={design}
+            names={names}
+            connector={content.connector}
             kind={openingKind}
             label={doc.opening.label || OPEN_LABEL[language] || 'Open invitation'}
             greeting={greeting}
@@ -117,12 +140,35 @@ export function SiteRenderer({
             }}
           />
           {doc.motion.petals && level === 'full' && started && <Petals colors={petalColors} />}
-
-          {doc.sections.map((s, i) => (
-            <div key={s.id} id={i === 1 ? 'main' : undefined} data-section={s.id}>
-              <SectionView section={s} doc={doc} started={started} />
+          {design && design.ambient !== 'none' && level !== 'off' && started && (
+            <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">
+              <Ambient kind={design.ambient} colors={design.scene.colors.bloom} glow={design.scene.colors.glow} density={level === 'subtle' ? 0.4 : 1} />
             </div>
-          ))}
+          )}
+
+          {(() => {
+            let band = 0;
+            return doc.sections.map((s, i) => {
+              const anchor = i === 1 ? 'main' : undefined;
+              if (!design || s.type === 'hero') {
+                return (
+                  <div key={s.id} id={anchor} data-section={s.id}>
+                    <SectionView section={s} doc={doc} started={started} />
+                  </div>
+                );
+              }
+              // Design pages: each section sits on the next colour band, joined by the pack's divider.
+              const b = design.bands[band++ % design.bands.length]!;
+              return (
+                <div key={s.id} id={anchor} data-section={s.id} className="inv-band relative" style={bandVars(b)}>
+                  <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] -translate-y-[calc(100%-1px)]">
+                    <Divider kind={design.divider} color={b.bg} accent={b.primary} />
+                  </div>
+                  <SectionView section={s} doc={doc} started={started} />
+                </div>
+              );
+            });
+          })()}
 
           {data.features.showBranding && (
             <footer className="pb-28 text-center text-sm opacity-75">
@@ -134,9 +180,9 @@ export function SiteRenderer({
 
           {/* Floating controls */}
           <div className="fixed right-3 top-3 z-40 flex flex-col gap-2">
-            {data.media.musicUrl && (
+            {musicUrl && !musicBroken && (
               <>
-                <audio ref={audio} src={data.media.musicUrl} loop preload="none" />
+                <audio ref={audio} src={musicUrl} loop preload="none" onError={() => setMusicBroken(true)} />
                 <button
                   type="button"
                   onClick={() => {

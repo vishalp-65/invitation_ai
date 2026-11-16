@@ -65,6 +65,7 @@ const FONT_LOADERS: Record<string, () => Promise<FontModule>> = {
   Montserrat: () => import('@remotion/google-fonts/Montserrat') as Promise<FontModule>,
   'Josefin Sans': () => import('@remotion/google-fonts/JosefinSans') as Promise<FontModule>,
   'Tenor Sans': () => import('@remotion/google-fonts/TenorSans') as Promise<FontModule>,
+  Italianno: () => import('@remotion/google-fonts/Italianno') as Promise<FontModule>,
   Fredoka: () => import('@remotion/google-fonts/Fredoka') as Promise<FontModule>,
   Pacifico: () => import('@remotion/google-fonts/Pacifico') as Promise<FontModule>,
   'Rozha One': () => import('@remotion/google-fonts/RozhaOne') as Promise<FontModule>,

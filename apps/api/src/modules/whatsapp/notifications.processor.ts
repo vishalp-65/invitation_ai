@@ -40,7 +40,7 @@ export class NotificationsProcessor extends WorkerHost {
     const url = this.storage.publicUrl(first.key);
     const editUrl = `${this.env.APP_URL}/dashboard/events/${render.eventId}`;
 
-    if (render.format === 'video') {
+    if (render.format === 'video' || render.format === 'site_video') {
       await this.wa.sendVideo(phone, url, '🎬 Your video invitation is ready! Forward it to your family and friends.');
     } else {
       for (const out of render.outputs.slice(0, 5)) {

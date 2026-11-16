@@ -54,7 +54,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
         <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
         {cats.length > 2 && (
           <div className="-mx-4 mt-3 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-5 sm:px-5">
-            <div className="flex w-max gap-1 rounded-lg bg-surface-2 p-1 ring-1 ring-hairline" role="group" aria-label={hi ? 'श्रेणी' : 'Category'}>
+            <div className="flex w-max gap-1 rounded-lg border border-hairline bg-surface-2 p-1" role="group" aria-label={hi ? 'श्रेणी' : 'Category'}>
               {cats.map((c) => (
                 <button
                   key={c}
@@ -62,7 +62,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
                   aria-pressed={cat === c}
                   onClick={() => setCat(c)}
                   className={clsx(
-                    'h-9 shrink-0 rounded-lg px-4 text-sm font-semibold transition-colors duration-200',
+                    'h-8 shrink-0 rounded-md px-3.5 text-sm font-semibold transition-colors duration-200',
                     cat === c ? 'bg-primary text-on-primary' : 'text-ink-soft hover:text-ink',
                   )}
                 >

@@ -2,6 +2,7 @@
 
 import { BUILTIN_TEMPLATES, type EventDto, type MeResponse, type RenderDto, type TemplateDefinition } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSyncExternalStore } from 'react';
 import { api, ApiError } from './api';
 import { track } from './track';
 
@@ -15,8 +16,18 @@ export const qk = {
   rsvpSummary: (id: string) => ['events', id, 'rsvp-summary'] as const,
 };
 
+const noopSubscribe = () => () => {};
+/**
+ * False during SSR and hydration, true afterwards. Layout pieces hydrate before nested page
+ * segments, so a query can resolve in between; data-driven markup waits for this to match the server.
+ */
+export function useHydrated() {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 export function useMe() {
-  return useQuery({
+  const hydrated = useHydrated();
+  const q = useQuery({
     queryKey: qk.me,
     queryFn: async () => {
       try {
@@ -28,6 +39,7 @@ export function useMe() {
     },
     staleTime: 5 * 60_000,
   });
+  return hydrated ? q : { ...q, data: undefined, isLoading: true as const };
 }
 
 /**

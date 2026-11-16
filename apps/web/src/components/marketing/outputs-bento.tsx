@@ -11,17 +11,14 @@ interface Step {
  * "One form, three invitations" as a static bento grid. Replaces the old pinned scroll story,
  * which re-rendered on every scroll frame; this one costs nothing after the reveal.
  */
-export function OutputsBento({ eyebrow, title, card, video, site }: { eyebrow: string; title: string; card: Step; video: Step; site: Step }) {
+export function OutputsBento({ title, card, video, site }: { eyebrow?: string; title: string; card: Step; video: Step; site: Step }) {
   return (
-    <section className="mx-auto max-w-6xl px-5 pb-20 pt-8 sm:pb-28 sm:pt-12">
-      <Reveal as="p" className="eyebrow">
-        {eyebrow}
-      </Reveal>
-      <Reveal as="h2" className="mt-4 max-w-2xl text-4xl sm:text-5xl">
+    <section className="mx-auto max-w-6xl px-5 py-20 sm:px-6 sm:py-24">
+      <Reveal as="h2" className="max-w-2xl text-[1.875rem] sm:text-[2.5rem]">
         {title}
       </Reveal>
 
-      <div className="mt-12 grid gap-4 md:grid-cols-6 md:grid-rows-[auto_auto]">
+      <div className="mt-10 grid gap-4 md:grid-cols-6 md:grid-rows-[auto_auto]">
         {/* Website: the tall hero tile */}
         <Reveal className="panel lift flex flex-col overflow-hidden rounded-[var(--radius-card)] md:col-span-3 md:row-span-2">
           <Copy icon={Globe2} {...site} />
@@ -66,10 +63,10 @@ export function OutputsBento({ eyebrow, title, card, video, site }: { eyebrow: s
 function Copy({ icon: Icon, title, body }: Step & { icon: typeof Film }) {
   return (
     <div className="p-6 sm:p-8">
-      <span className="grid size-10 place-items-center rounded-xl bg-sand text-sindoor">
+      <span className="grid size-10 place-items-center rounded-lg border border-hairline text-ink">
         <Icon className="size-5" aria-hidden />
       </span>
-      <h3 className="mt-5 text-2xl sm:text-[1.7rem]">{title}</h3>
+      <h3 className="mt-5 text-xl sm:text-2xl">{title}</h3>
       <p className="mt-2 max-w-sm text-ink-soft">{body}</p>
     </div>
   );

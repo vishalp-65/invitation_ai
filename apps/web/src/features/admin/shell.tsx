@@ -6,6 +6,7 @@ import { BarChart3, ExternalLink, LayoutDashboard, LayoutTemplate, ScrollText, S
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
+import { LogoMark } from '@/components/layout/site-header';
 import { ThemeToggle } from '@/lib/theme';
 import { useMe } from '@/lib/hooks';
 import { Skeleton } from './ui';
@@ -67,8 +68,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* Sidebar (desktop) */}
       <aside className="sticky top-0 hidden h-dvh w-64 shrink-0 flex-col border-r border-hairline bg-surface lg:flex">
         <div className="flex h-16 items-center gap-2 px-5">
-          <Link href="/admin" className="font-display text-xl">
-            {BRAND.name}
+          <Link href="/admin" className="flex items-center gap-2 text-lg font-semibold tracking-[-0.02em]">
+            <LogoMark className="size-7" />
+            {BRAND.name.toLowerCase()}
           </Link>
           <span className="rounded-md bg-marigold px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-[#1a1300]">Admin</span>
         </div>
@@ -105,8 +107,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
       {/* Top bar + scrollable tabs (phones & tablets) */}
       <header className="sticky top-0 z-30 border-b border-hairline bg-surface lg:hidden">
         <div className="flex h-14 items-center gap-2 px-4">
-          <Link href="/admin" className="font-display text-lg">
-            {BRAND.name}
+          <Link href="/admin" className="flex items-center gap-2 text-lg font-semibold tracking-[-0.02em]">
+            <LogoMark className="size-6" />
+            {BRAND.name.toLowerCase()}
           </Link>
           <span className="rounded-md bg-marigold px-2 py-0.5 text-[10px] font-bold uppercase text-[#1a1300]">Admin</span>
           <div className="ml-auto flex items-center gap-2">

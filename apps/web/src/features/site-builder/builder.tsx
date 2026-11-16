@@ -308,7 +308,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
         ) : (
           sectionsList
         ))}
-      {tab === 'look' && <LookPanel doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} />}
+      {tab === 'look' && <LookPanel doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} ctx={ctx} />}
       {tab === 'share' && <SharePanel event={event} settings={settings.data} doc={doc} setDoc={setDoc} onUpgrade={onUpgrade} />}
       {tab === 'live' && (
         <LivePanel

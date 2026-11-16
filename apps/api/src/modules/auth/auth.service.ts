@@ -1,11 +1,29 @@
 import { and, eq, isNotNull, sql, users, type Database } from '@cardai/db';
 import type { MeResponse, UpdateProfileInput, UserRole } from '@cardai/shared';
-import { ConflictException, ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Injectable,
+  Logger,
+  NotFoundException,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { ENV, type Env } from '../../config/env.js';
-import { DB } from '../../infra/infra.module.js';
+import { hashPassword, verifyPassword } from '../../common/crypto.js';
+import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { GoogleService, type GoogleProfile } from './google.service.js';
-import { OtpService } from './otp.service.js';
+import { OtpService, OTP_TTL_SEC } from './otp.service.js';
 import { TokenService, type IssuedTokens } from './token.service.js';
+
+const MAX_LOGIN_FAILS = 10;
+const LOGIN_FAIL_WINDOW_SEC = 15 * 60;
+const EXISTS_MSG = 'An account with this email already exists. Log in instead, or use "Forgot password".';
+/** Hash of a throwaway password; verified against for unknown accounts to equalise response time. */
+const DUMMY_HASH = hashPassword('timing-equaliser-not-a-real-password');
 
 type UserRow = typeof users.$inferSelect;
 export interface SignInResult {
@@ -16,31 +34,85 @@ export interface SignInResult {
 
 @Injectable()
 export class AuthService {
+  private readonly logger = new Logger(AuthService.name);
+
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly otp: OtpService,
     private readonly google: GoogleService,
     private readonly tokens: TokenService,
     @Inject(ENV) private readonly env: Env,
+    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
-  requestLoginOtp(email: string) {
+  /** Sign-up step 1: refuse addresses that already have an account, otherwise email a code. */
+  async requestSignupOtp(email: string) {
+    if (await this.findVerifiedByEmail(email)) throw new ConflictException(EXISTS_MSG);
     return this.otp.request(email);
   }
 
-  /**
-   * Sign in, or sign up on first use, by proving control of an email address. `name` is applied
-   * only to brand-new accounts (or ones that never had a name), never overwriting an existing one.
-   */
-  async verifyLoginOtp(email: string, code: string, name?: string, userAgent?: string): Promise<SignInResult> {
+  /** Sign-up step 2: the code proves the address, then the account is created with its password. */
+  async signup(email: string, code: string, name: string, password: string, userAgent?: string): Promise<SignInResult> {
+    if (await this.findVerifiedByEmail(email)) throw new ConflictException(EXISTS_MSG);
     await this.otp.verify(email, code);
-    const found = await this.upsertUserByEmail(email);
-    let user = found.user;
-    if (name && !user.name) {
-      const [named] = await this.db.update(users).set({ name }).where(eq(users.id, user.id)).returning();
-      if (named) user = toMe(named);
+    const [created] = await this.db
+      .insert(users)
+      .values({ email, emailVerifiedAt: new Date(), name, passwordHash: hashPassword(password) })
+      .onConflictDoNothing()
+      .returning();
+    if (!created) throw new ConflictException(EXISTS_MSG);
+    return this.finish(toMe(created), true, userAgent);
+  }
+
+  /**
+   * Email + password. Failures are deliberately uniform (unknown email, Google-only account and
+   * wrong password look the same) and capped per address to stop password guessing.
+   */
+  async login(email: string, password: string, userAgent?: string): Promise<SignInResult> {
+    const failKey = `login:fail:${email}`;
+    if (Number((await this.redis.get(failKey)) ?? 0) >= MAX_LOGIN_FAILS) {
+      throw new HttpException('Too many failed attempts. Try again in 15 minutes, or reset your password.', HttpStatus.TOO_MANY_REQUESTS);
     }
-    return this.finish(user, found.isNew, userAgent);
+    const row = await this.findVerifiedByEmail(email);
+    // Always spend one scrypt run so response time doesn't reveal whether the account exists.
+    const matches = verifyPassword(password, row?.passwordHash ?? DUMMY_HASH);
+    if (!row || !row.passwordHash || !matches) {
+      const fails = await this.redis.incr(failKey);
+      if (fails === 1) await this.redis.expire(failKey, LOGIN_FAIL_WINDOW_SEC);
+      throw new UnauthorizedException('Incorrect email or password.');
+    }
+    await this.redis.del(failKey);
+    return this.finish(toMe(row), false, userAgent);
+  }
+
+  /** Forgot password step 1. Silent for unknown emails so the form can't be used to probe accounts. */
+  async requestPasswordReset(email: string) {
+    if (!(await this.findVerifiedByEmail(email))) {
+      if (this.env.NODE_ENV === 'development') {
+        this.logger.warn(`Password reset OTP not generated: no verified account found for ${email}`);
+      }
+      return { expiresInSec: OTP_TTL_SEC, resendInSec: 30 };
+    }
+    return this.otp.request(email, 'password reset');
+  }
+
+  /** Forgot password step 2: the emailed code authorises a new password; every old session is revoked. */
+  async resetPassword(email: string, code: string, password: string, userAgent?: string): Promise<SignInResult> {
+    await this.otp.verify(email, code);
+    const row = await this.findVerifiedByEmail(email);
+    if (!row) throw new BadRequestException('This code has expired. Please request a new one.');
+    await this.db.update(users).set({ passwordHash: hashPassword(password) }).where(eq(users.id, row.id));
+    await this.tokens.revokeAll(row.id);
+    await this.redis.del(`login:fail:${email}`);
+    return this.finish(toMe(row), false, userAgent);
+  }
+
+  private async findVerifiedByEmail(email: string): Promise<UserRow | undefined> {
+    const [row] = await this.db
+      .select()
+      .from(users)
+      .where(and(sql`lower(${users.email}) = ${email}`, isNotNull(users.emailVerifiedAt)));
+    return row;
   }
 
   /**
@@ -90,16 +162,6 @@ export class AuthService {
     const [created] = await this.db.insert(users).values({ phone }).onConflictDoNothing().returning();
     if (created) return { user: toMe(created), isNew: true };
     const [raced] = await this.db.select().from(users).where(eq(users.phone, phone));
-    return { user: toMe(raced!), isNew: false };
-  }
-
-  private async upsertUserByEmail(email: string): Promise<{ user: MeResponse; isNew: boolean }> {
-    const verified = and(sql`lower(${users.email}) = ${email}`, isNotNull(users.emailVerifiedAt));
-    const [existing] = await this.db.select().from(users).where(verified);
-    if (existing) return { user: toMe(existing), isNew: false };
-    const [created] = await this.db.insert(users).values({ email, emailVerifiedAt: new Date() }).onConflictDoNothing().returning();
-    if (created) return { user: toMe(created), isNew: true };
-    const [raced] = await this.db.select().from(users).where(verified);
     return { user: toMe(raced!), isNew: false };
   }
 

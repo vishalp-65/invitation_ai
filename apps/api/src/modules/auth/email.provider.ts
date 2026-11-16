@@ -24,8 +24,8 @@ export class ResendEmailProvider implements EmailProvider {
       body: JSON.stringify({
         from: this.from,
         to: [email],
-        subject: `${code} is your ${this.brand} sign-in code`,
-        text: `Your ${this.brand} sign-in code is ${code}.\n\nIt expires in ${ttlMinutes} minutes. If you did not ask for it, you can ignore this email. Never share this code with anyone.`,
+        subject: `${code} is your ${this.brand} verification code`,
+        text: `Your ${this.brand} verification code is ${code}.\n\nIt expires in ${ttlMinutes} minutes. If you did not ask for it, you can ignore this email. Never share this code with anyone.`,
         html: renderOtpHtml(this.brand, code, ttlMinutes),
       }),
       signal: AbortSignal.timeout(10_000),
@@ -40,7 +40,7 @@ function renderOtpHtml(brand: string, code: string, ttlMinutes: number): string 
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:32px 16px">
 <table role="presentation" width="480" style="max-width:480px;background:#fff;border-radius:20px;padding:36px 32px">
 <tr><td style="font-size:20px;font-weight:700">${brand}</td></tr>
-<tr><td style="padding-top:20px;font-size:16px;line-height:1.5">Use this code to sign in to your account:</td></tr>
+<tr><td style="padding-top:20px;font-size:16px;line-height:1.5">Use this code to verify your email or reset your password:</td></tr>
 <tr><td align="center" style="padding:24px 0"><div style="display:inline-block;background:#f4f2fa;border-radius:14px;padding:16px 28px;font-size:34px;letter-spacing:10px;font-weight:700">${code}</div></td></tr>
 <tr><td style="font-size:14px;color:#4a4f7a;line-height:1.5">This code expires in ${ttlMinutes} minutes. If you did not request it, you can safely ignore this email. Never share this code with anyone.</td></tr>
 </table></td></tr></table></body></html>`;

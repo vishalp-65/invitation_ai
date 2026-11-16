@@ -3,6 +3,7 @@ import { LANGUAGE_CODES } from '../constants/languages.js';
 import { ATTIRES, COUPLE_STYLES } from '../templates/types.js';
 import { eventContentSchema } from '../schemas/events.js';
 import { webUrl } from '../schemas/common.js';
+import { MUSIC_TRACK_IDS, SITE_DESIGN_IDS } from './designs.js';
 
 /**
  * Invitation website ("site") document: an ordered list of sections plus page-wide look,
@@ -34,6 +35,8 @@ export const SITE_SECTION_TYPES = [
   'wishes',
   'album',
   'custom',
+  'countdown',
+  'things',
   'closing',
 ] as const;
 export type SiteSectionType = (typeof SITE_SECTION_TYPES)[number];
@@ -60,8 +63,12 @@ export const SITE_CHARACTERS = [
 export type SiteCharacter = (typeof SITE_CHARACTERS)[number];
 
 /** Tap-to-open scene shown before the page. */
-export const SITE_OPENINGS = ['none', 'envelope', 'doors', 'curtain', 'scroll', 'petals'] as const;
+export const SITE_OPENINGS = ['none', 'envelope', 'doors', 'curtain', 'scroll', 'petals', 'seal', 'lanterns'] as const;
 export type SiteOpening = (typeof SITE_OPENINGS)[number];
+
+/** Video invite made from the design: full film, 15-second save-the-date reel, or page-turn storybook. */
+export const VIDEO_STYLES = ['cinematic', 'teaser', 'storybook'] as const;
+export type VideoStyle = (typeof VIDEO_STYLES)[number];
 
 export const SITE_ORNAMENTS = ['none', 'mandala', 'florals', 'toran', 'stars'] as const;
 export const MOTION_LEVELS = ['full', 'subtle', 'off'] as const;
@@ -80,11 +87,15 @@ const base = {
 
 const photo = z.uuid().optional();
 
+/** Icons for "Things to know" cards (hashtag, weather, parking, stay, social...). */
+export const THING_ICONS = ['hashtag', 'weather', 'parking', 'stay', 'kids', 'camera', 'instagram', 'phone', 'gift', 'food', 'info'] as const;
+export type ThingIcon = (typeof THING_ICONS)[number];
+
 export const siteSectionSchema = z.discriminatedUnion('type', [
   z.object({
     ...base,
     type: z.literal('hero'),
-    variant: z.enum(['classic', 'photo', 'arch', 'split']).default('classic'),
+    variant: z.enum(['classic', 'photo', 'arch', 'split', 'scene']).default('classic'),
     showPhoto: z.boolean().default(true),
     showCountdown: z.boolean().default(true),
   }),
@@ -105,7 +116,7 @@ export const siteSectionSchema = z.discriminatedUnion('type', [
       .max(12)
       .default([]),
   }),
-  z.object({ ...base, type: z.literal('schedule'), variant: z.enum(['timeline', 'cards']).default('timeline') }),
+  z.object({ ...base, type: z.literal('schedule'), variant: z.enum(['timeline', 'cards', 'ribbon']).default('timeline') }),
   z.object({
     ...base,
     type: z.literal('dresscode'),
@@ -114,7 +125,7 @@ export const siteSectionSchema = z.discriminatedUnion('type', [
       .max(12)
       .default([]),
   }),
-  z.object({ ...base, type: z.literal('venue'), functionId: z.uuid().optional(), showMap: z.boolean().default(true) }),
+  z.object({ ...base, type: z.literal('venue'), functionId: z.uuid().optional(), showMap: z.boolean().default(true), showArt: z.boolean().default(true) }),
   z.object({
     ...base,
     type: z.literal('gallery'),
@@ -159,6 +170,15 @@ export const siteSectionSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('wishes') }),
   z.object({ ...base, type: z.literal('album'), note: text(200).default('') }),
   z.object({ ...base, type: z.literal('custom'), body: text(1500).default(''), photoAssetId: photo }),
+  z.object({ ...base, type: z.literal('countdown'), note: text(160).default('') }),
+  z.object({
+    ...base,
+    type: z.literal('things'),
+    items: z
+      .array(z.object({ icon: z.enum(THING_ICONS).default('info'), title: text(60), text: text(300).default(''), url: webUrl().optional() }))
+      .max(12)
+      .default([]),
+  }),
   z.object({ ...base, type: z.literal('closing') }),
 ]);
 export type SiteSection = z.infer<typeof siteSectionSchema>;
@@ -166,6 +186,18 @@ export type SiteSectionOf<T extends SiteSectionType> = Extract<SiteSection, { ty
 
 export const siteDocSchema = z.object({
   version: z.literal(1).default(1),
+  /** Cinematic design pack (painted scene, bands, opening, ambient). Unset = classic look. */
+  design: z.enum(SITE_DESIGN_IDS).optional(),
+  /** Style of the video invite rendered from this design. */
+  video: z.object({ style: z.enum(VIDEO_STYLES).default('cinematic') }).default({ style: 'cinematic' }),
+  /** Library track; `auto` = the design's mood track. The host's own upload always wins. */
+  music: z
+    .object({
+      track: z.enum(['auto', 'none', ...MUSIC_TRACK_IDS]).default('auto'),
+      /** The host's own MP3 (media asset), plays instead of any library track. */
+      assetId: z.uuid().optional(),
+    })
+    .default({ track: 'auto' }),
   look: z
     .object({
       /** Colour overrides on top of the template palette. */

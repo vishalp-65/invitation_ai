@@ -2,12 +2,15 @@
 
 import { whatsappShareUrl, type EventDto, type GuestDto, type GuestInput, type GuestStay } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { BedDouble, BookUser, ChevronRight, Copy, MessageCircle, MessageSquareText, Send, SkipForward, Trash2, UserPlus } from 'lucide-react';
+import { clsx } from 'clsx';
+import { BedDouble, BookUser, ChevronRight, Copy, MessageSquareText, Send, SkipForward, Trash2, UserPlus, Users } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Chip, Field, Input, Textarea } from '@/components/ui/field';
+import { Field, Input, Textarea } from '@/components/ui/field';
+import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { Panel, StatusPill, tableHead, type Tone } from './panel-ui';
 import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
 
@@ -37,12 +40,12 @@ function inviteMessage(event: EventDto, g: GuestDto) {
     : `${greeting}, you are warmly invited to ${event.title}. Please open your invitation: ${g.shortUrl}`;
 }
 
-function status(g: GuestDto) {
+function status(g: GuestDto): [string, Tone] {
   const replies = Object.values(g.rsvp);
   const yes = replies.filter((r) => r.status === 'yes').length;
-  if (replies.length) return yes ? `Coming (${yes})` : 'Not coming';
-  if (g.viewCount) return 'Opened';
-  return g.invitedAt ? 'Sent, not opened' : 'Not sent';
+  if (replies.length) return yes ? [`Coming to ${yes}`, 'leaf'] : ['Not coming', 'sindoor'];
+  if (g.viewCount) return [`Opened ${g.viewCount}×`, 'primary'];
+  return g.invitedAt ? ['Sent, not opened', 'gold'] : ['Not sent', 'muted'];
 }
 
 export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
@@ -130,100 +133,130 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
   const remove = (g: GuestDto) => api(`/events/${event.id}/guests/${g.id}`, { method: 'DELETE' }).then(refresh);
   const openStay = (g: GuestDto) => (royale ? setStayFor(g) : onUpgrade());
 
-  return (
-    <div>
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl">Guests</h2>
-          <p className="mt-1 max-w-xl text-ink-soft">
-            Every guest gets a personal short link that greets them by name. You see who opened it and who replied.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {supportsContacts && (
-            <Button variant="outline" onClick={pickContacts}>
-              <BookUser className="size-4" />
-              From contacts
-            </Button>
-          )}
-          <Button onClick={() => setAdding(true)}>
-            <UserPlus className="size-4" />
-            Add guests
-          </Button>
-        </div>
-      </div>
+  const addButtons = (
+    <>
+      {supportsContacts && (
+        <Button variant="line" onClick={pickContacts}>
+          <BookUser className="size-4" />
+          From contacts
+        </Button>
+      )}
+      <Button onClick={() => setAdding(true)}>
+        <UserPlus className="size-4" />
+        Add guests
+      </Button>
+    </>
+  );
+  const FILTERS = [
+    ['all', 'All guests'],
+    ['unsent', 'Not sent'],
+    ['unopened', 'Not opened'],
+    ['replied', 'Replied'],
+  ] as const;
 
-      {isLoading && <p className="mt-6 text-ink-soft">Loading guests…</p>}
-      {guests && guests.length === 0 && (
-        <p className="mt-8 glass-light rounded-[var(--radius-card)] p-6 text-ink-soft">
-          No guests yet. Add them one by one, paste a list, or pick from your phone contacts.
-        </p>
+  return (
+    <div className="flex flex-col gap-6">
+      <Panel
+        title="Guests"
+        description="Every guest gets a personal link that greets them by name. You see who opened it and who replied."
+        actions={guests && guests.length > 0 ? addButtons : undefined}
+      >
+        {isLoading && (
+          <div className="flex flex-col gap-2" aria-busy>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="skeleton h-14 rounded-xl" />
+            ))}
+          </div>
+        )}
+
+        {guests && guests.length === 0 && (
+          <div className="flex flex-col items-center rounded-xl border border-dashed border-ink/20 px-6 py-10 text-center">
+            <span className="grid size-12 place-items-center rounded-full bg-tint text-primary">
+              <Users className="size-5" aria-hidden />
+            </span>
+            <p className="mt-4 font-semibold">Add the people you're inviting</p>
+            <p className="mt-1 max-w-md text-sm text-ink-soft">One by one, paste a list from Excel or your notes, or pick from your phone contacts. You can send everyone their link on WhatsApp after.</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">{addButtons}</div>
+          </div>
+        )}
+
+        {guests && guests.length > 0 && (
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Filter guests">
+            {FILTERS.map(([f, label]) => (
+              <button
+                key={f}
+                type="button"
+                aria-pressed={filter === f}
+                onClick={() => setFilter(f)}
+                className={clsx(
+                  'rounded-xl border px-4 py-3 text-left transition-colors',
+                  filter === f ? 'border-primary bg-tint' : 'border-hairline hover:border-ink/25',
+                )}
+              >
+                <span className="block text-2xl font-semibold tabular-nums">{counts[f]}</span>
+                <span className={clsx('block text-[0.8125rem]', filter === f ? 'font-medium text-primary' : 'text-ink-soft')}>{label}</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </Panel>
+
+      {guests && guests.length > 0 && (counts.unsent > 0 || counts.unopened > 0) && (
+        <section className="flex flex-col gap-4 rounded-[16px] border border-hairline bg-surface p-5 sm:flex-row sm:items-center sm:p-6">
+          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#1fa855]/10 text-[#1fa855]">
+            <WhatsAppIcon className="size-5" />
+          </span>
+          <div className="flex-1">
+            <p className="font-semibold">Send to everyone, one tap each</p>
+            <p className="text-sm text-ink-soft">WhatsApp opens with each guest's personal link ready. Send, come back, tap the next. Free: it goes from your own WhatsApp.</p>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            {counts.unsent > 0 && (
+              <Button onClick={() => startQueue(guests.filter((g) => !g.invitedAt))}>
+                <Send className="size-4" /> Send to {counts.unsent}
+              </Button>
+            )}
+            {counts.unopened > 0 && (
+              <Button variant="line" onClick={() => startQueue(guests.filter((g) => g.invitedAt && !g.viewCount))}>
+                Remind {counts.unopened}
+              </Button>
+            )}
+          </div>
+        </section>
       )}
 
       {guests && guests.length > 0 && (
-        <>
-          <div className="mt-6 flex flex-col gap-4 rounded-[var(--radius-card)] bg-primary p-5 text-on-primary sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-lg font-semibold">Send to everyone, one tap each</p>
-              <p className="text-sm opacity-85">
-                WhatsApp opens with the guest’s personal short link ready. Send, come back, tap the next one. Free: it goes from your own WhatsApp.
-              </p>
-            </div>
-            <div className="flex shrink-0 flex-wrap gap-2">
-              <Button variant="line" onClick={() => startQueue(guests.filter((g) => !g.invitedAt))}>
-                <Send className="size-4" /> Send to {counts.unsent} not sent
-              </Button>
-              {counts.unopened > 0 && (
-                <Button variant="line" onClick={() => startQueue(guests.filter((g) => g.invitedAt && !g.viewCount))}>
-                  Remind {counts.unopened} who didn’t open
-                </Button>
-              )}
-            </div>
-          </div>
+        <section className="overflow-hidden rounded-[16px] border border-hairline bg-surface">
+          {shown.length === 0 && <p className="px-6 py-10 text-center text-sm text-ink-soft">Nobody in this list.</p>}
 
-          <div className="mt-5 flex flex-wrap gap-2" role="group" aria-label="Filter guests">
-            {(
-              [
-                ['all', 'All'],
-                ['unsent', 'Not sent'],
-                ['unopened', 'Not opened'],
-                ['replied', 'Replied'],
-              ] as const
-            ).map(([f, label]) => (
-              <Chip key={f} selected={filter === f} onClick={() => setFilter(f)}>
-                {label} ({counts[f]})
-              </Chip>
-            ))}
-          </div>
-
-          {/* Phones: card list */}
-          <ul className="mt-5 flex flex-col gap-3 md:hidden">
+          {/* Phones: rows */}
+          <ul className="divide-y divide-hairline md:hidden">
             {shown.map((g) => {
-              const yes = Object.values(g.rsvp).filter((r) => r.status === 'yes').length;
+              const [label, tone] = status(g);
               return (
-                <li key={g.id} className="glass-light rounded-xl p-4">
+                <li key={g.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="truncate font-semibold">{g.name}</p>
-                      <p className="text-sm text-ink-soft">
+                      <p className="truncate text-sm text-ink-soft">
                         {g.phone ?? 'No number'}
-                        {g.groupLabel ? ` · ${g.groupLabel}` : ''}
+                        {g.groupLabel ? `, ${g.groupLabel}` : ''}
                       </p>
                     </div>
-                    <span className={`shrink-0 rounded-md px-2.5 py-1 text-xs font-semibold ${yes ? 'bg-leaf/15 text-leaf' : 'bg-mist text-ink-soft'}`}>{status(g)}</span>
+                    <StatusPill tone={tone}>{label}</StatusPill>
                   </div>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" className="flex-1 bg-leaf text-white hover:bg-leaf/90" onClick={() => send(g)}>
-                      <MessageCircle className="size-4" />
-                      {g.invitedAt && !g.viewCount ? 'Remind' : 'Send on WhatsApp'}
+                  <div className="mt-3 flex gap-1.5">
+                    <Button size="sm" variant="line" className="flex-1" onClick={() => send(g)}>
+                      <WhatsAppIcon className="size-4 text-[#1fa855]" />
+                      {g.invitedAt && !g.viewCount ? 'Remind' : 'Send'}
                     </Button>
-                    <Button size="sm" variant="outline" aria-label={`Copy link for ${g.name}`} onClick={() => copy(g)}>
+                    <Button size="icon" variant="quiet" aria-label={`Copy link for ${g.name}`} onClick={() => copy(g)}>
                       <Copy className="size-4" />
                     </Button>
-                    <Button size="sm" variant="outline" aria-label={`Stay details for ${g.name}`} onClick={() => openStay(g)}>
+                    <Button size="icon" variant="quiet" aria-label={`Stay details for ${g.name}`} onClick={() => openStay(g)}>
                       <BedDouble className="size-4" />
                     </Button>
-                    <Button size="sm" variant="danger" aria-label={`Remove ${g.name}`} onClick={() => remove(g)}>
+                    <Button size="icon" variant="danger" aria-label={`Remove ${g.name}`} onClick={() => remove(g)}>
                       <Trash2 className="size-4" />
                     </Button>
                   </div>
@@ -232,46 +265,45 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
             })}
           </ul>
 
-          <div className="mt-5 hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[640px] text-left">
-              <thead className="border-b-2 border-ink text-[0.95rem]">
+          {/* Desktop: table */}
+          {shown.length > 0 && (
+            <table className="hidden w-full text-[0.9375rem] md:table">
+              <thead className={tableHead}>
                 <tr>
-                  <th className="py-2 pr-3 font-semibold">Guest</th>
-                  <th className="py-2 pr-3 font-semibold">Opened</th>
-                  <th className="py-2 pr-3 font-semibold">Reply</th>
-                  <th className="py-2 font-semibold">
+                  <th className="px-6 py-3 font-medium">Guest</th>
+                  <th className="px-3 py-3 font-medium">Group</th>
+                  <th className="px-3 py-3 font-medium">Status</th>
+                  <th className="px-6 py-3">
                     <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-line">
+              <tbody className="divide-y divide-hairline">
                 {shown.map((g) => {
-                  const replies = Object.values(g.rsvp);
-                  const yes = replies.filter((r) => r.status === 'yes').length;
+                  const [label, tone] = status(g);
                   return (
-                    <tr key={g.id}>
-                      <td className="py-3 pr-3">
-                        <p className="font-semibold">{g.name}</p>
-                        <p className="text-sm text-ink-soft">
-                          {g.phone ?? 'No number'}
-                          {g.groupLabel ? ` · ${g.groupLabel}` : ''}
-                        </p>
+                    <tr key={g.id} className="group transition-colors hover:bg-surface-2">
+                      <td className="px-6 py-3">
+                        <p className="font-medium">{g.name}</p>
+                        <p className="text-sm text-ink-soft">{g.phone ?? 'No number'}</p>
                       </td>
-                      <td className="py-3 pr-3 text-[0.95rem]">{g.viewCount > 0 ? `${g.viewCount}×` : g.invitedAt ? 'Sent, not yet' : 'Not sent'}</td>
-                      <td className="py-3 pr-3 text-[0.95rem]">{replies.length === 0 ? 'Waiting' : yes ? `Coming to ${yes}` : 'Not coming'}</td>
-                      <td className="py-3">
+                      <td className="px-3 py-3 text-sm text-ink-soft">{g.groupLabel ?? '–'}</td>
+                      <td className="px-3 py-3">
+                        <StatusPill tone={tone}>{label}</StatusPill>
+                      </td>
+                      <td className="px-6 py-3">
                         <div className="flex justify-end gap-1">
-                          <Button size="sm" className="bg-leaf text-white hover:bg-leaf/90" onClick={() => send(g)}>
-                            <MessageCircle className="size-4" />
+                          <Button size="sm" variant="line" onClick={() => send(g)}>
+                            <WhatsAppIcon className="size-4 text-[#1fa855]" />
                             {g.invitedAt && !g.viewCount ? 'Remind' : 'Send'}
                           </Button>
-                          <Button size="sm" variant="quiet" aria-label={`Copy link for ${g.name}`} onClick={() => copy(g)}>
+                          <Button size="icon" variant="quiet" aria-label={`Copy link for ${g.name}`} data-tip="Copy link" onClick={() => copy(g)}>
                             <Copy className="size-4" />
                           </Button>
-                          <Button size="sm" variant="quiet" aria-label={`Stay details for ${g.name}`} onClick={() => openStay(g)}>
+                          <Button size="icon" variant="quiet" aria-label={`Stay details for ${g.name}`} data-tip="Travel & stay" onClick={() => openStay(g)}>
                             <BedDouble className="size-4" />
                           </Button>
-                          <Button size="sm" variant="danger" aria-label={`Remove ${g.name}`} onClick={() => remove(g)}>
+                          <Button size="icon" variant="danger" aria-label={`Remove ${g.name}`} data-tip="Remove" onClick={() => remove(g)}>
                             <Trash2 className="size-4" />
                           </Button>
                         </div>
@@ -281,8 +313,8 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
                 })}
               </tbody>
             </table>
-          </div>
-        </>
+          )}
+        </section>
       )}
 
       <Dialog open={adding} onClose={() => setAdding(false)} title="Add guests">
@@ -313,15 +345,19 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
           </Button>
         </form>
 
-        <hr className="my-6 border-line" />
+        <div className="my-6 flex items-center gap-3 text-xs text-ink-soft">
+          <span className="h-px flex-1 bg-hairline" />
+          or paste many at once
+          <span className="h-px flex-1 bg-hairline" />
+        </div>
 
-        <Field label="Or paste a list" hint="One guest per line: name, mobile, group. Works with copy-paste from Excel.">
+        <Field label="Paste a list" hint="One guest per line: name, mobile, group. Works with copy-paste from Excel.">
           {(id, d) => (
             <Textarea id={id} aria-describedby={d} rows={5} value={paste} onChange={(e) => setPaste(e.target.value)} placeholder={'Gupta Ji, 9811111111, Bride side\nAnita, 9822222222'} />
           )}
         </Field>
         <Button
-          variant="outline"
+          variant="line"
           className="mt-3"
           disabled={!paste.trim()}
           loading={importMany.isPending}
@@ -369,12 +405,12 @@ function SendQueue({ ids, guests, onSend, onClose }: { ids: string[]; guests: Gu
             <p className="text-2xl">{g.salutation || g.name}</p>
             <p className="text-ink-soft">
               {g.phone ?? 'No number: WhatsApp will ask whom to send to'}
-              {g.groupLabel ? ` · ${g.groupLabel}` : ''}
+              {g.groupLabel ? `, ${g.groupLabel}` : ''}
             </p>
             <p className="mt-2 break-all text-sm text-ink-soft">{g.shortUrl}</p>
           </div>
-          <Button size="lg" className="bg-leaf text-white hover:bg-leaf/90" onClick={() => next('whatsapp')}>
-            <MessageCircle className="size-5" /> Send on WhatsApp
+          <Button size="lg" onClick={() => next('whatsapp')}>
+            <WhatsAppIcon className="size-5" /> Send on WhatsApp
           </Button>
           <div className="flex gap-2">
             {g.phone && (

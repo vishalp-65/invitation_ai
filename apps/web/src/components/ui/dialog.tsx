@@ -4,7 +4,22 @@ import { X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 
 /** Native <dialog>: focus trap, Esc and backdrop for free; slides up as a sheet on phones. */
-export function Dialog({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Dialog({
+  open,
+  onClose,
+  title,
+  children,
+  focusField = true,
+  size = 'md',
+}: {
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  children: ReactNode;
+  /** Move focus to the first field on open (off for filter sheets and previews). */
+  focusField?: boolean;
+  size?: 'md' | 'lg';
+}) {
   const ref = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -13,17 +28,17 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
     if (open && !el.open) {
       el.showModal();
       // showModal() focuses the first button (Close); put the cursor in the first field instead.
-      el.querySelector<HTMLElement>('input:not([type=hidden]), textarea, select')?.focus();
+      if (focusField) el.querySelector<HTMLElement>('input:not([type=hidden]), textarea, select')?.focus();
     }
     if (!open && el.open) el.close();
-  }, [open]);
+  }, [open, focusField]);
 
   return (
     <dialog
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className="fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[var(--radius-card)] border border-hairline bg-surface p-0 text-ink backdrop:bg-[var(--color-overlay)] sm:m-auto sm:max-w-lg sm:rounded-[var(--radius-card)]"
+      className={`fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[var(--radius-card)] border border-hairline bg-surface p-0 text-ink backdrop:bg-[var(--color-overlay)] sm:m-auto sm:rounded-[var(--radius-card)] ${size === 'lg' ? 'sm:max-w-4xl' : 'sm:max-w-lg'}`}
     >
       <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
         <h2 className="text-lg">{title}</h2>
@@ -31,7 +46,7 @@ export function Dialog({ open, onClose, title, children }: { open: boolean; onCl
           <X className="size-4.5" />
         </button>
       </div>
-      <div className="max-h-[75dvh] overflow-y-auto px-5 py-5">{children}</div>
+      <div className={`overflow-y-auto px-5 py-5 ${size === 'lg' ? 'max-h-[85dvh]' : 'max-h-[75dvh]'}`}>{children}</div>
     </dialog>
   );
 }

@@ -122,7 +122,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <h2 className="text-2xl">Card pages</h2>
+        <h2 className="text-xl">Card pages</h2>
         <p className="mt-1 text-[0.95rem] text-ink-soft">
           These fill the extra pages of your invitation: a page for your ceremonies, a family &amp; RSVP page and a save-the-date page. Leave anything blank to skip it. You can also delete any page in the editor.
         </p>
@@ -130,7 +130,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
 
       {/* Functions */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-xl">Functions &amp; ceremonies</h3>
+        <h3 className="text-[1.0625rem]">Functions &amp; ceremonies</h3>
         <ol className="flex flex-col gap-3">
           {fns.map((f, i) => (
             <li key={f.key} className="rounded-xl border border-hairline bg-surface p-4">
@@ -184,14 +184,14 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
       {/* Welcome & compliments */}
       <div className="grid gap-4 md:grid-cols-2" lang={event.language}>
         <div className="flex flex-col gap-3">
-          <h3 className="text-xl">Welcome (Swagatotsuk)</h3>
+          <h3 className="text-[1.0625rem]">Welcome (Swagatotsuk)</h3>
           <Field label="Heading" hint="e.g. Swagatotsuk, Darshanabhilashi, Eagerly awaiting you">
             {(id, desc) => <Input id={id} aria-describedby={desc} value={c.welcomeTitle ?? ''} onChange={(e) => setC({ ...c, welcomeTitle: e.target.value })} />}
           </Field>
           <Field label="Names (one per line)">{(id) => <Textarea id={id} rows={4} value={welcome} onChange={(e) => setWelcome(e.target.value)} />}</Field>
         </div>
         <div className="flex flex-col gap-3">
-          <h3 className="text-xl">Compliments</h3>
+          <h3 className="text-[1.0625rem]">Compliments</h3>
           <Field label="Heading" hint="e.g. With best compliments from, सौजन्य से">
             {(id, desc) => <Input id={id} aria-describedby={desc} value={c.complimentsTitle ?? ''} onChange={(e) => setC({ ...c, complimentsTitle: e.target.value })} />}
           </Field>
@@ -201,7 +201,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
 
       {/* RSVP */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-xl">RSVP on the card</h3>
+        <h3 className="text-[1.0625rem]">RSVP on the card</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {contacts.map((r, i) => (
             <div key={i} className="contents">

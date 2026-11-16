@@ -1,4 +1,4 @@
-# CardAI — invitation cards, video invites and invitation websites
+# Noyta — invitation cards, video invites and invitation websites
 
 One form → three outputs: a multi-page **image card**, an animated **video invite** (WhatsApp-sized) and an
 **invitation website** with per-function RSVP and personalised guest links. Built for Indian families

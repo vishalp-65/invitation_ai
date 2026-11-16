@@ -41,6 +41,8 @@ export interface PublicSiteDto {
     gallery: string[];
     backgroundUrl: string | null;
     musicUrl: string | null;
+    /** Library track URLs by id (design mood tracks and the website's own pick). */
+    musicLibrary: Record<string, string>;
     coverUrl: string | null;
     videoUrl: string | null;
     /** Public URLs of photos used inside sections (couple, story, custom...), by asset id. */

@@ -1,9 +1,9 @@
 'use client';
 
-import type { MeResponse } from '@cardai/shared';
+import { PASSWORD_MIN, type MeResponse } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { ArrowLeft, ArrowRight, Lock, Mail, MailCheck, User } from 'lucide-react';
+import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
@@ -13,6 +13,7 @@ import { OtpInput } from './otp-input';
 import { track } from '@/lib/track';
 
 type Mode = 'login' | 'signup';
+type View = Mode | 'forgot';
 
 interface Providers {
   google: { clientId: string; redirect: boolean } | null;
@@ -35,6 +36,13 @@ function parseEmail(raw: string): { email: string } | { error: string } {
   if (!v) return { error: 'Enter your email address' };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || v.length > 254) return { error: 'Enter a valid email address' };
   return { email: v };
+}
+
+/** Same rules as the API; returns an error message or undefined. */
+function parsePassword(v: string): string | undefined {
+  if (v.length < PASSWORD_MIN) return `Use at least ${PASSWORD_MIN} characters`;
+  if (!/[A-Za-z]/.test(v) || !/\d/.test(v)) return 'Include at least one letter and one number';
+  return undefined;
 }
 
 /** Gmail / Outlook / Yahoo shortcut on the "check your email" step. */
@@ -77,7 +85,7 @@ function GoogleRedirectButton({ mode, next }: { mode: Mode; next: string }) {
       href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}
       onClick={() => setBusy(true)}
       aria-busy={busy}
-      className="press flex h-12 w-full items-center justify-center gap-3 rounded-lg border border-hairline bg-surface text-[0.98rem] font-semibold text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-ivory focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-ink/10 aria-busy:pointer-events-none aria-busy:opacity-70"
+      className="press flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-hairline bg-surface text-[0.95rem] font-medium text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-mist aria-busy:pointer-events-none aria-busy:opacity-70"
     >
       {busy ? <span className="size-5 animate-spin rounded-full border-2 border-ink/20 border-t-ink" aria-hidden /> : <GoogleLogo />}
       {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
@@ -95,7 +103,7 @@ function IconInput({
 }: React.InputHTMLAttributes<HTMLInputElement> & { icon: ReactNode; invalid?: boolean; describedBy?: string }) {
   return (
     <div className="group relative">
-      <span className="pointer-events-none absolute inset-y-0 left-4 grid place-items-center text-ink-soft/70 transition-colors group-focus-within:text-ink">
+      <span className="pointer-events-none absolute inset-y-0 left-3.5 grid place-items-center text-ink-soft/70 transition-colors group-focus-within:text-primary">
         {icon}
       </span>
       <input
@@ -103,7 +111,7 @@ function IconInput({
         aria-invalid={invalid || undefined}
         aria-describedby={describedBy}
         className={clsx(
-          'h-12 w-full rounded-lg border bg-surface pl-11 pr-4 text-base text-ink transition-colors duration-150 placeholder:text-ink-soft/50 hover:border-ink/25 focus:border-ink/60 focus:outline-none',
+          'h-11 w-full rounded-lg border bg-surface pl-10 pr-3.5 text-[0.95rem] text-ink transition-[border-color,box-shadow] duration-150 placeholder:text-ink-soft/60 hover:border-ink/25 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10',
           invalid ? 'border-sindoor' : 'border-hairline',
         )}
         {...props}
@@ -115,12 +123,12 @@ function IconInput({
 function FieldBlock({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-semibold text-ink">
+      <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       {children}
       {error && (
-        <p id={`${id}-err`} className="text-sm text-sindoor">
+        <p id={`${id}-err`} className="animate-fade-up text-sm text-sindoor">
           {error}
         </p>
       )}
@@ -130,7 +138,7 @@ function FieldBlock({ id, label, error, children }: { id: string; label: string;
 
 function Alert({ children }: { children: ReactNode }) {
   return (
-    <p role="alert" className="rounded-xl border border-sindoor/20 bg-sindoor/[0.06] px-3.5 py-2.5 text-sm text-sindoor">
+    <p role="alert" className="animate-fade-up rounded-lg border border-sindoor/20 bg-sindoor/[0.06] px-3.5 py-2.5 text-sm text-sindoor">
       {children}
     </p>
   );
@@ -138,17 +146,17 @@ function Alert({ children }: { children: ReactNode }) {
 
 function Heading({ icon, title, subtitle }: { icon?: ReactNode; title: string; subtitle?: ReactNode }) {
   return (
-    <header className="mb-7">
-      {icon && <div className="mb-5 grid size-12 place-items-center rounded-xl bg-sand text-ink">{icon}</div>}
-      <h1 className="text-[1.85rem] leading-[1.15] tracking-tight sm:text-[2.1rem]">{title}</h1>
-      {subtitle && <p className="mt-2 text-[0.98rem] leading-relaxed text-ink-soft">{subtitle}</p>}
+    <header className="mb-8">
+      {icon && <div className="mb-6 grid size-11 animate-pop place-items-center rounded-lg border border-hairline text-ink">{icon}</div>}
+      <h1 className="text-[1.625rem] tracking-[-0.03em]">{title}</h1>
+      {subtitle && <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">{subtitle}</p>}
     </header>
   );
 }
 
 function Divider() {
   return (
-    <div className="my-6 flex items-center gap-4 text-xs font-medium uppercase tracking-[0.14em] text-ink-soft/70" role="separator">
+    <div className="my-5 flex items-center gap-3 text-xs text-ink-soft" role="separator">
       <span className="h-px flex-1 bg-hairline" />
       or
       <span className="h-px flex-1 bg-hairline" />
@@ -156,53 +164,142 @@ function Divider() {
   );
 }
 
+
+/** Password field with a show/hide toggle. */
+function PasswordInput({
+  id,
+  invalid,
+  describedBy,
+  autoComplete,
+  value,
+  onChange,
+  placeholder = 'Your password',
+  autoFocus,
+}: {
+  id: string;
+  invalid?: boolean;
+  describedBy?: string;
+  autoComplete: 'current-password' | 'new-password';
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  autoFocus?: boolean;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <div className="group relative">
+      <span className="pointer-events-none absolute inset-y-0 left-3.5 grid place-items-center text-ink-soft/70 transition-colors group-focus-within:text-primary">
+        <KeyRound className="size-[18px]" aria-hidden />
+      </span>
+      <input
+        id={id}
+        type={shown ? 'text' : 'password'}
+        aria-invalid={invalid || undefined}
+        aria-describedby={describedBy}
+        autoComplete={autoComplete}
+        autoCapitalize="none"
+        spellCheck={false}
+        placeholder={placeholder}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        maxLength={128}
+        autoFocus={autoFocus}
+        className={clsx(
+          'h-11 w-full rounded-lg border bg-surface pl-10 pr-12 text-[0.95rem] text-ink transition-[border-color,box-shadow] duration-150 placeholder:text-ink-soft/60 hover:border-ink/25 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10',
+          invalid ? 'border-sindoor' : 'border-hairline',
+        )}
+      />
+      <button
+        type="button"
+        onClick={() => setShown((s) => !s)}
+        aria-label={shown ? 'Hide password' : 'Show password'}
+        aria-pressed={shown}
+        className="absolute inset-y-0 right-1.5 my-auto grid size-9 place-items-center rounded-md text-ink-soft transition-colors hover:bg-mist hover:text-ink"
+      >
+        {shown ? <EyeOff className="size-[18px]" aria-hidden /> : <Eye className="size-[18px]" aria-hidden />}
+      </button>
+    </div>
+  );
+}
+
+/** Shown under "create a password" fields; turns green as each rule is met. */
+function PasswordRules({ value }: { value: string }) {
+  const rules = [
+    { ok: value.length >= PASSWORD_MIN, label: `${PASSWORD_MIN}+ characters` },
+    { ok: /[A-Za-z]/.test(value), label: 'A letter' },
+    { ok: /\d/.test(value), label: 'A number' },
+  ];
+  return (
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Password requirements">
+      {rules.map((r) => (
+        <li key={r.label} className={clsx('inline-flex items-center gap-1.5 transition-colors', r.ok ? 'text-leaf' : 'text-ink-soft')}>
+          <Check className={clsx('size-3.5', !r.ok && 'opacity-30')} strokeWidth={3} aria-hidden />
+          {r.label}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 /* ------------------------------------------------------------------------------------------ */
 
-/** Step 2: enter the 6-digit code that was emailed. */
+/**
+ * Enter the 6-digit code that was emailed. Used by sign-up (verifies the address, submits as soon as
+ * the sixth digit lands) and by "forgot password" (also collects the new password).
+ */
 function CodeStep({
   email,
-  name,
   initialCooldown,
   showHeading,
-  onVerified,
+  title = 'Check your email',
+  resendPath,
+  submitLabel,
+  withPassword,
+  onSubmit,
   onBack,
 }: {
   email: string;
-  name?: string;
   initialCooldown: number;
   showHeading: boolean;
-  onVerified: (res: { user: MeResponse; isNew: boolean }) => void;
+  title?: string;
+  resendPath: string;
+  submitLabel: string;
+  /** Also ask for a new password (reset flow); the code then isn't auto-submitted. */
+  withPassword?: boolean;
+  onSubmit: (code: string, password: string) => Promise<void>;
   onBack: () => void;
 }) {
   const [code, setCode] = useState('');
+  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [info, setInfo] = useState<string>();
   const [cooldown, setCooldown] = useCountdown(initialCooldown);
   const inbox = inboxLink(email);
+  const passwordError = withPassword ? parsePassword(password) : undefined;
 
-  const verify = useCallback(
+  const submit = useCallback(
     async (value: string) => {
-      if (busy || value.length !== 6) return;
+      if (busy || value.length !== 6 || passwordError) return;
       setBusy(true);
       setError(undefined);
       setInfo(undefined);
       try {
-        onVerified(await api<{ user: MeResponse; isNew: boolean }>('/auth/otp/verify', { method: 'POST', json: { email, code: value, name } }));
+        await onSubmit(value, password);
       } catch (e) {
         setError(errMsg(e, 'Could not verify the code. Check your connection and try again.'));
         setCode('');
         setBusy(false);
       }
     },
-    [busy, email, name, onVerified],
+    [busy, onSubmit, password, passwordError],
   );
 
   async function resend() {
     setError(undefined);
     setInfo(undefined);
     try {
-      const r = await api<{ resendInSec: number }>('/auth/otp/request', { method: 'POST', json: { email } });
+      const r = await api<{ resendInSec: number }>(resendPath, { method: 'POST', json: { email } });
       setCooldown(r.resendInSec);
       setCode('');
       setInfo('A new code is on its way.');
@@ -216,7 +313,7 @@ function CodeStep({
       {showHeading ? (
         <Heading
           icon={<MailCheck className="size-6" aria-hidden />}
-          title="Check your email"
+          title={title}
           subtitle={
             <>
               Enter the 6-digit code we sent to
@@ -227,26 +324,42 @@ function CodeStep({
       ) : (
         <p className="mb-5 text-ink-soft">
           Enter the 6-digit code we sent to
-              <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
+          <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
         </p>
       )}
 
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          void verify(code);
+          void submit(code);
         }}
         className="flex flex-col gap-5"
       >
         <div className="flex flex-col gap-2.5">
-          <OtpInput value={code} onChange={setCode} onComplete={(v) => void verify(v)} invalid={Boolean(error)} disabled={busy} />
+          <OtpInput
+            value={code}
+            onChange={setCode}
+            onComplete={withPassword ? undefined : (v) => void submit(v)}
+            invalid={Boolean(error)}
+            disabled={busy}
+          />
           <p role={error ? 'alert' : 'status'} aria-live="polite" className={clsx('min-h-5 text-sm', error ? 'text-sindoor' : 'text-leaf')}>
             {error ?? info}
           </p>
         </div>
 
-        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6} className="h-12 w-full rounded-lg text-base">
-          {busy ? 'Verifying…' : 'Verify and continue'}
+        {withPassword && (
+          <div className="flex flex-col gap-2">
+            <label htmlFor="auth-new-password" className="text-sm font-medium text-ink">
+              New password
+            </label>
+            <PasswordInput id="auth-new-password" autoComplete="new-password" placeholder="Choose a new password" value={password} onChange={setPassword} />
+            <PasswordRules value={password} />
+          </div>
+        )}
+
+        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6 || Boolean(passwordError)} className="h-11 w-full text-[0.95rem]">
+          {busy ? 'Please wait…' : submitLabel}
         </Button>
 
         {inbox && (
@@ -254,7 +367,7 @@ function CodeStep({
             href={inbox.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="press flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-[0.98rem] font-semibold text-ink transition-colors hover:border-ink/25 hover:bg-ivory"
+            className="press flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-[0.95rem] font-medium text-ink transition-colors hover:border-ink/25 hover:bg-mist"
           >
             <Mail className="size-4" aria-hidden />
             {inbox.label}
@@ -270,7 +383,7 @@ function CodeStep({
         {cooldown > 0 ? (
           <span className="tabular-nums text-ink-soft">Resend in {cooldown}s</span>
         ) : (
-          <button type="button" onClick={() => void resend()} className="font-semibold text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
+          <button type="button" onClick={() => void resend()} className="font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
             Resend code
           </button>
         )}
@@ -320,8 +433,8 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
             autoFocus
           />
         </FieldBlock>
-        <Button type="submit" variant="solid" size="lg" loading={busy} className="h-12 w-full rounded-lg text-base">
-          Get started <ArrowRight className="size-5" aria-hidden />
+        <Button type="submit" variant="solid" size="lg" loading={busy} className="h-11 w-full text-[0.95rem]">
+          Get started
         </Button>
         <button type="button" onClick={() => onDone()} className="text-center text-sm font-semibold text-ink-soft hover:text-ink">
           Skip for now
@@ -331,9 +444,10 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
   );
 }
 
+
 /**
- * The whole sign-in / sign-up journey: Google, or a one-time code sent to the email address.
- * The account is created automatically on first sign-in; sign-up just collects a name up front.
+ * The whole sign-in journey. Log in = email + password. Sign up = name, email, password, then a
+ * code emailed to verify the address. A code is otherwise only used by "Forgot password".
  */
 export function AuthFlow({
   mode = 'login',
@@ -357,16 +471,29 @@ export function AuthFlow({
     staleTime: 60 * 60_000,
   });
 
-  const signup = mode === 'signup';
+  const [view, setView] = useState<View>(mode);
+  const signup = view === 'signup';
+  const forgot = view === 'forgot';
   useEffect(() => track('signup_start', { props: { mode } }), [mode]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
+  const [password, setPassword] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [error, setError] = useState<string | undefined>(initialError ? GOOGLE_ERRORS[initialError] : undefined);
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState<{ email: string; resendInSec: number }>();
   const [askName, setAskName] = useState<MeResponse>();
+  /** True once the user has come back from the code step, so the form slides in from the left. */
+  const [returned, setReturned] = useState(false);
   const returnTo = next ?? (typeof window === 'undefined' ? '/dashboard' : window.location.pathname + window.location.search);
+
+  function go(v: View) {
+    setView(v);
+    setError(undefined);
+    setFieldErrors({});
+    setPassword('');
+    setReturned(true);
+  }
 
   function signedIn(user: MeResponse, isNew: boolean) {
     qc.setQueryData(qk.me, user);
@@ -374,23 +501,31 @@ export function AuthFlow({
     onDone(user);
   }
 
-  async function sendCode(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(undefined);
     const errs: typeof fieldErrors = {};
     const parsed = parseEmail(email);
     if ('error' in parsed) errs.email = parsed.error;
     if (signup && !name.trim()) errs.name = 'Enter your name';
+    if (signup) errs.password = parsePassword(password);
+    if (view === 'login' && !password) errs.password = 'Enter your password';
     setFieldErrors(errs);
-    if ('error' in parsed || errs.name) return;
+    if ('error' in parsed || errs.name || errs.password) return;
 
     setBusy(true);
     try {
-      const r = await api<{ resendInSec: number }>('/auth/otp/request', { method: 'POST', json: { email: parsed.email } });
+      if (view === 'login') {
+        const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/login', { method: 'POST', json: { email: parsed.email, password } });
+        signedIn(r.user, r.isNew);
+        return;
+      }
+      const path = signup ? '/auth/signup/request' : '/auth/password/forgot';
+      const r = await api<{ resendInSec: number }>(path, { method: 'POST', json: { email: parsed.email } });
       track('otp_requested', { props: { signup: Boolean(signup) } });
       setPending({ email: parsed.email, resendInSec: r.resendInSec });
     } catch (err) {
-      setError(errMsg(err, 'Could not send the code. Check your connection and try again.'));
+      setError(errMsg(err, view === 'login' ? 'Could not log in. Check your connection and try again.' : 'Could not send the code. Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -410,49 +545,93 @@ export function AuthFlow({
     [],
   );
 
-  if (askName) return <NameStep onDone={(u) => onDone(u ?? askName)} />;
+  if (askName)
+    return (
+      <div key="name" className="animate-step-in">
+        <NameStep onDone={(u) => onDone(u ?? askName)} />
+      </div>
+    );
 
   if (pending) {
+    const back = () => {
+      setReturned(true);
+      setPending(undefined);
+    };
     return (
-      <CodeStep
-        email={pending.email}
-        name={signup ? name.trim() || undefined : undefined}
-        initialCooldown={pending.resendInSec}
-        showHeading={heading}
-        onBack={() => setPending(undefined)}
-        onVerified={({ user, isNew }) => signedIn(user, isNew)}
-      />
+      <div key="code" className="animate-step-in">
+        {signup ? (
+          <CodeStep
+            email={pending.email}
+            initialCooldown={pending.resendInSec}
+            showHeading={heading}
+            resendPath="/auth/signup/request"
+            submitLabel="Verify and create account"
+            onBack={back}
+            onSubmit={async (code) => {
+              const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/signup', {
+                method: 'POST',
+                json: { email: pending.email, code, name: name.trim(), password },
+              });
+              signedIn(r.user, r.isNew);
+            }}
+          />
+        ) : (
+          <CodeStep
+            email={pending.email}
+            initialCooldown={pending.resendInSec}
+            showHeading={heading}
+            title="Reset your password"
+            resendPath="/auth/password/forgot"
+            submitLabel="Set password and log in"
+            withPassword
+            onBack={back}
+            onSubmit={async (code, newPassword) => {
+              const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/password/reset', {
+                method: 'POST',
+                json: { email: pending.email, code, password: newPassword },
+              });
+              signedIn(r.user, r.isNew);
+            }}
+          />
+        )}
+      </div>
     );
   }
 
-  return (
-    <>
-      {heading && (
-        <Heading
-          title={signup ? 'Create your account' : 'Welcome back'}
-          subtitle={signup ? 'Design your first invitation in minutes. No password needed.' : 'Sign in to continue to your invitations.'}
-        />
-      )}
+  const title = signup ? 'Create your account' : forgot ? 'Forgot your password?' : 'Welcome back';
+  const subtitle = signup
+    ? 'Design your first invitation in minutes. We’ll verify your email with a quick code.'
+    : forgot
+      ? 'Enter your email and we’ll send a code so you can choose a new password.'
+      : 'Log in with your email and password to continue to your invitations.';
+  const submitLabel = signup ? 'Continue' : forgot ? 'Send reset code' : 'Log in';
+  const busyLabel = signup || forgot ? 'Sending code…' : 'Logging in…';
 
-      {providersLoading ? (
-        <>
-          <div className="skeleton h-12 w-full rounded-lg" aria-hidden />
-          <Divider />
-        </>
-      ) : (
-        providers?.google && (
+  return (
+    <div key={view} className={returned ? 'animate-step-back' : undefined}>
+      {heading && <Heading title={title} subtitle={subtitle} />}
+      {!heading && forgot && <p className="mb-5 text-ink-soft">{subtitle}</p>}
+
+      {!forgot &&
+        (providersLoading ? (
           <>
-            {providers.google.redirect ? (
-              <GoogleRedirectButton mode={mode} next={returnTo} />
-            ) : (
-              <GoogleButton clientId={providers.google.clientId} mode={mode} onCredential={onGoogle} onError={setError} />
-            )}
+            <div className="skeleton h-11 w-full rounded-lg" aria-hidden />
             <Divider />
           </>
-        )
-      )}
+        ) : (
+          providers?.google && (
+            <>
+              {providers.google.redirect ? (
+                <GoogleRedirectButton mode={signup ? 'signup' : 'login'} next={returnTo} />
+              ) : (
+                <GoogleButton clientId={providers.google.clientId} mode={signup ? 'signup' : 'login'} onCredential={onGoogle} onError={setError} />
+              )}
+              <Divider />
+            </>
+          )
+        ))}
 
-      <form onSubmit={sendCode} className="flex flex-col gap-4" noValidate>
+      <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         {signup && (
           <FieldBlock id="auth-signup-name" label="Full name" error={fieldErrors.name}>
             <IconInput
@@ -486,18 +665,68 @@ export function AuthFlow({
           />
         </FieldBlock>
 
+        {!forgot && (
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-baseline justify-between gap-3">
+              <label htmlFor="auth-password" className="text-sm font-medium text-ink">
+                Password
+              </label>
+              {!signup && (
+                <button type="button" onClick={() => go('forgot')} className="text-sm font-medium text-ink-soft hover:text-ink">
+                  Forgot password?
+                </button>
+              )}
+            </div>
+            <PasswordInput
+              id="auth-password"
+              autoComplete={signup ? 'new-password' : 'current-password'}
+              placeholder={signup ? 'Create a password' : 'Your password'}
+              invalid={Boolean(fieldErrors.password)}
+              describedBy={fieldErrors.password ? 'auth-password-err' : undefined}
+              value={password}
+              onChange={setPassword}
+            />
+            {fieldErrors.password && (
+              <p id="auth-password-err" className="animate-fade-up text-sm text-sindoor">
+                {fieldErrors.password}
+              </p>
+            )}
+            {signup && <PasswordRules value={password} />}
+          </div>
+        )}
+
         {error && <Alert>{error}</Alert>}
 
-        <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 h-12 w-full rounded-lg text-base">
-          {busy ? 'Sending code…' : 'Continue with email'}
-          {!busy && <ArrowRight className="size-5" aria-hidden />}
-        </Button>
+        <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 h-11 w-full text-[0.95rem]">
+          {busy ? busyLabel : submitLabel}
+                  </Button>
       </form>
 
-      <p className="mt-6 flex items-start gap-2.5 text-sm leading-relaxed text-ink-soft">
-        <Lock className="mt-0.5 size-4 shrink-0 text-leaf" aria-hidden />
-        <span>We&apos;ll email you a one-time code. No password to create or remember.</span>
-      </p>
-    </>
+      {forgot ? (
+        <button type="button" onClick={() => go('login')} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-ink">
+          <ArrowLeft className="size-4" aria-hidden />
+          Back to log in
+        </button>
+      ) : (
+        <p className="mt-6 flex items-start gap-2 text-[0.8125rem] leading-relaxed text-ink-soft">
+          <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+          <span>
+            {signup
+              ? 'Your password is stored securely and never shared. You’ll only need a code to reset it.'
+              : 'Signed up with Google, or no password yet? Use “Forgot password?” to set one.'}
+          </span>
+        </p>
+      )}
+
+      {/* The page header has its own switch link; the sign-in dialog has none, so offer it here. */}
+      {!heading && !forgot && (
+        <p className="mt-4 text-sm text-ink-soft">
+          {signup ? 'Already have an account?' : 'New here?'}{' '}
+          <button type="button" onClick={() => go(signup ? 'login' : 'signup')} className="font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
+            {signup ? 'Log in' : 'Create an account'}
+          </button>
+        </p>
+      )}
+    </div>
   );
 }
