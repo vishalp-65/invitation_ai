@@ -20,8 +20,6 @@
     "test": "turbo run test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "infra:up": "docker compose up -d postgres redis minio minio-init",
-    "infra:down": "docker compose down",
     "db:generate": "npm run generate -w @cardai/db",
     "db:migrate": "npm run migrate -w @cardai/db",
     "db:seed": "npm run seed -w @cardai/db"

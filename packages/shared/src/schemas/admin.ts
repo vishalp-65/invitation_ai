@@ -14,6 +14,7 @@ export const TRACK_EVENTS = [
   'login', // server-side: existing account signed in
   'template_view', // opened / previewed a template
   'template_select', // chose a template for an invitation
+  'card_scanned', // read a photo of a printed card in /create
   'event_created',
   'editor_open',
   'render_download',

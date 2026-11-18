@@ -178,17 +178,17 @@ function DesignThumb({ id, selected, locked, onClick }: { id: string; selected: 
       type="button"
       onClick={onClick}
       aria-pressed={selected}
-      className={`group relative aspect-[3/4] overflow-hidden rounded-[12px] border text-left ${selected ? 'border-2 border-accent' : 'border-hairline'}`}
+      className={`group relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] border text-left ${selected ? 'border-2 border-accent' : 'border-ink/10'}`}
     >
       {(['sky', 'far', 'mid', 'near'] as const).map((l) => (
         <SceneLayer key={l} design={d} layer={l} lite time={0} />
       ))}
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-1.5 pt-6 text-white">
-        <span className="block text-sm font-semibold leading-tight">{d.name}</span>
+        <span className="block text-sm font-medium leading-tight">{d.name}</span>
         <span className="block text-[11px] leading-tight opacity-80">{d.region}</span>
       </span>
       {selected && <Check className="absolute right-1.5 top-1.5 size-5 rounded-full bg-accent p-0.5 text-white" aria-hidden />}
-      {d.isNew && !selected && <span className="absolute right-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase text-white">New</span>}
+      {d.isNew && !selected && <span className="absolute right-1.5 top-1.5 rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-medium uppercase text-white">New</span>}
       {locked && <Lock className="absolute left-1.5 top-1.5 size-5 rounded-full bg-black/50 p-1 text-white" aria-label="Site Premium" />}
     </button>
   );
@@ -230,12 +230,12 @@ export function LookPanel({
   }
   const track = doc.music?.track ?? 'auto';
   const color = (key: 'primary' | 'accent' | 'background', label: string) => (
-    <label className="flex items-center gap-2 text-sm font-semibold">
+    <label className="flex items-center gap-2 text-sm font-medium">
       <input
         type="color"
         value={doc.look[key] ?? palette[key]}
         onChange={(e) => setDoc((d) => void (d.look[key] = e.target.value.toUpperCase()))}
-        className="size-10 cursor-pointer rounded-full border border-hairline"
+        className="size-10 cursor-pointer rounded-full border border-ink/10"
       />
       {label}
     </label>
@@ -248,7 +248,7 @@ export function LookPanel({
             type="button"
             onClick={() => setDoc((d) => void Object.assign(d, applyDesign(d, null)))}
             aria-pressed={!doc.design}
-            className={`flex aspect-[3/4] flex-col items-center justify-center rounded-[12px] border p-2 text-center text-sm font-semibold ${!doc.design ? 'border-2 border-accent' : 'border-hairline'}`}
+            className={`flex aspect-[3/4] flex-col items-center justify-center rounded-[var(--radius-card)] border p-2 text-center text-sm font-medium ${!doc.design ? 'border-2 border-accent' : 'border-ink/10'}`}
           >
             Classic
             <span className="mt-1 text-[11px] font-normal text-ink-soft">Your card colours</span>
@@ -289,7 +289,7 @@ export function LookPanel({
           <div className="flex flex-wrap items-center gap-2">
             <label className="inline-flex">
               <input type="file" accept="audio/mpeg" hidden onChange={(e) => e.target.files?.[0] && uploadSong(e.target.files[0])} />
-              <span className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-hairline px-3 text-sm font-semibold">{uploading ? 'Uploading…' : songUrl ? 'Replace my song' : 'Upload my own song (MP3)'}</span>
+              <span className="inline-flex h-9 cursor-pointer items-center rounded-[8px] border border-ink/10 px-3 text-sm font-medium">{uploading ? 'Uploading…' : songUrl ? 'Replace my song' : 'Upload my own song (MP3)'}</span>
             </label>
             {songUrl && (
               <>
@@ -461,9 +461,9 @@ export function SharePanel({
   return (
     <div className="flex flex-col gap-8">
       <Group title="Your short links" hint="Every guest also gets their own personal short link in the Guests tab.">
-        <div className="flex items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-3">
+        <div className="flex items-center gap-2 rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
           <Link2 className="size-4 shrink-0 text-ink-soft" aria-hidden />
-          <span className="min-w-0 flex-1 truncate font-semibold">{settings.vanityUrl ?? settings.shortUrl}</span>
+          <span className="min-w-0 flex-1 truncate font-medium">{settings.vanityUrl ?? settings.shortUrl}</span>
           <Button size="sm" variant="line" onClick={() => copy(settings.vanityUrl ?? settings.shortUrl)}>
             <Copy className="size-4" /> Copy
           </Button>
@@ -517,8 +517,8 @@ export function SharePanel({
 
       <Group title="Second language" hint={royale ? 'Guests switch with one tap: Hindi for Dadi, English for friends.' : 'Part of Site Royale.'}>
         {doc.alt ? (
-          <div className="flex items-center justify-between gap-3 rounded-xl border border-hairline bg-surface-2 p-3">
-            <span className="flex items-center gap-2 font-semibold">
+          <div className="flex items-center justify-between gap-3 rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
+            <span className="flex items-center gap-2 font-medium">
               <Languages className="size-4" aria-hidden /> {getLanguage(doc.alt.language).name}
             </span>
             <Button size="sm" variant="danger" onClick={() => setDoc((d) => void (d.alt = undefined))}>
@@ -616,7 +616,7 @@ export function LivePanel({
         </div>
         <ul className="flex flex-col gap-2">
           {updates.data?.map((u) => (
-            <li key={u.id} className="flex items-start justify-between gap-2 rounded-xl border border-hairline bg-surface-2 p-3">
+            <li key={u.id} className="flex items-start justify-between gap-2 rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
               <p className="whitespace-pre-line text-sm">
                 {u.pinned && <Pin className="mr-1 inline size-3.5" aria-label="Pinned" />}
                 {u.text}
@@ -639,10 +639,10 @@ export function LivePanel({
         {wishes.data?.length ? (
           <ul className="flex flex-col gap-2">
             {wishes.data.map((w) => (
-              <li key={w.id} className={`flex items-start justify-between gap-2 rounded-xl border border-hairline bg-surface-2 p-3 ${w.hidden ? 'opacity-50' : ''}`}>
+              <li key={w.id} className={`flex items-start justify-between gap-2 rounded-xl border border-ink/10 bg-ink/[0.03] p-3 ${w.hidden ? 'opacity-50' : ''}`}>
                 <div className="text-sm">
                   <p className="whitespace-pre-line">{w.message}</p>
-                  <p className="mt-1 font-semibold text-ink-soft">— {w.name}</p>
+                  <p className="mt-1 font-medium text-ink-soft">— {w.name}</p>
                 </div>
                 <Button
                   size="sm"

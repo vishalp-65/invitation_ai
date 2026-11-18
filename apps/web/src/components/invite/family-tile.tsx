@@ -45,8 +45,8 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
   const art = (
     <div
       className={clsx(
-        'relative overflow-hidden rounded-xl bg-mist transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:-translate-y-1.5',
-        isSelected && 'ring-[3px] ring-primary ring-offset-[3px] ring-offset-ivory',
+        'relative overflow-clip border bg-ink/[0.04] transition-[transform,border-color] duration-500 ease-[var(--ease-out-quint)] group-hover:-translate-y-1.5',
+        isSelected ? 'border-ink ring-1 ring-ink' : 'border-ink/10 group-hover:border-ink/30',
       )}
     >
       {t.source === 'marketplace' ? (
@@ -60,18 +60,18 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
           width={432}
           height={768}
           sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 240px"
-          className="aspect-[9/16] w-full object-cover"
+          className="aspect-[9/16] w-full object-cover transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]"
           priority={priority}
         />
       )}
       {t.premium && (
-        <span className="glass absolute right-2 top-2 flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-white">
-          <Crown className="size-3.5 text-marigold" /> Premium
+        <span className="absolute right-2 top-2 flex items-center gap-1 bg-black/70 px-2 py-1 font-mono text-[0.625rem] uppercase tracking-wider text-white backdrop-blur">
+          <Crown className="size-3 text-amber" /> Premium
         </span>
       )}
       {isSelected && (
-        <span className="absolute left-2 top-2 inline-flex h-7 items-center gap-1 rounded-md bg-primary pl-1.5 pr-2.5 text-xs font-semibold text-on-primary">
-          <Check className="size-4" strokeWidth={3} aria-hidden /> Selected
+        <span className="absolute left-2 top-2 inline-flex h-7 animate-pop items-center gap-1 bg-ink pl-1.5 pr-2.5 font-mono text-[0.625rem] uppercase tracking-wider text-ivory">
+          <Check className="size-3.5" strokeWidth={2.5} aria-hidden /> Selected
         </span>
       )}
     </div>
@@ -88,7 +88,7 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
               onOpen(t);
             }}
             aria-label={`${hi ? 'देखें' : 'Preview'} ${name}`}
-            className="group block w-full rounded-xl text-left"
+            className="group block w-full text-left"
           >
             {art}
           </button>
@@ -96,11 +96,11 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
           <button type="button" onClick={() => {
             track('template_select', { templateId: t.id });
             onPick(t);
-          }} aria-pressed={isSelected} className="group block w-full rounded-xl text-left">
+          }} aria-pressed={isSelected} className="group block w-full text-left">
             {art}
           </button>
         ) : (
-          <Link href={href?.(t) ?? '/create'} onClick={() => track('template_select', { templateId: t.id })} className="group block rounded-xl">
+          <Link href={href?.(t) ?? '/create'} onClick={() => track('template_select', { templateId: t.id })} className="group block">
             {art}
           </Link>
         )}
@@ -108,7 +108,7 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
           <Link
             href={href(t)}
             onClick={() => track('template_select', { templateId: t.id })}
-            className="absolute inset-x-2.5 bottom-2.5 hidden h-10 items-center justify-center gap-1.5 rounded-[var(--radius-control)] bg-primary text-sm font-semibold text-on-primary opacity-0 transition-[opacity,transform] duration-200 hover:bg-primary-hover focus-visible:opacity-100 lg:inline-flex lg:translate-y-1 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100"
+            className="absolute inset-x-2.5 bottom-2.5 hidden h-10 items-center justify-center gap-1.5 rounded-full bg-primary text-sm font-medium text-on-primary opacity-0 transition-[opacity,transform] duration-200 hover:bg-primary-hover focus-visible:opacity-100 lg:inline-flex lg:translate-y-1 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100"
           >
             {hi ? 'यह डिज़ाइन चुनें' : 'Use this design'}
             <ArrowRight className="size-4" aria-hidden />
@@ -121,18 +121,18 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
               track('template_view', { templateId: t.id });
               onPreview(t);
             }}
-            className="absolute bottom-2.5 right-2.5 inline-flex h-8 items-center gap-1.5 rounded-md bg-surface/95 px-3 text-xs font-semibold text-ink transition-[opacity,transform] duration-200 hover:bg-surface lg:translate-y-1 lg:opacity-0 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100 lg:focus-visible:opacity-100"
+            className="absolute bottom-2.5 right-2.5 inline-flex h-9 items-center gap-1.5 rounded-full bg-ivory/95 px-3.5 text-xs font-medium text-ink backdrop-blur transition-[opacity,transform] duration-200 hover:bg-surface lg:translate-y-1 lg:opacity-0 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100 lg:focus-visible:opacity-100"
           >
             <Eye className="size-3.5" aria-hidden />
             Preview
           </button>
         )}
       </div>
-      <div className="mt-2.5 flex flex-col gap-2 px-0.5 lg:flex-row lg:items-center lg:justify-between">
+      <div className="mt-3 flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
         <div className="min-w-0">
-          <p className="truncate font-semibold">{name}</p>
+          <p className="truncate">{name}</p>
           {meta && (
-            <p className="mt-0.5 truncate text-sm text-ink-soft">
+            <p className="mt-1 truncate font-mono text-[0.6875rem] text-ink-soft">
               {variants.length > 1 ? (hi ? `${variants.length} रंग` : `${variants.length} colourways`) : hi ? '1 रंग' : '1 colourway'}
               {' · '}
               {t.premium ? (hi ? 'प्रीमियम' : 'Premium') : hi ? 'मुफ़्त' : 'Free'}

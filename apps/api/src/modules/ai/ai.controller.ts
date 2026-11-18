@@ -2,11 +2,13 @@ import {
   generateClipSchema,
   generateImageSchema,
   generateWordingSchema,
+  scanCardSchema,
   translateContentSchema,
   transliterateSchema,
   type GenerateClipInput,
   type GenerateImageInput,
   type GenerateWordingInput,
+  type ScanCardInput,
   type TransliterateInput,
 } from '@cardai/shared';
 import { Controller, Get, HttpCode, Post } from '@nestjs/common';
@@ -24,6 +26,14 @@ export class AiController {
   @RateLimit({ limit: 10, windowSec: 60 })
   wording(@CurrentUser() user: AuthUser, @ZBody(generateWordingSchema) body: GenerateWordingInput) {
     return this.ai.generateWording(user, body);
+  }
+
+  /** Upload a photo of a printed card; returns the details read off it. */
+  @Post('scan-card')
+  @HttpCode(200)
+  @RateLimit({ limit: 6, windowSec: 60 })
+  scanCard(@CurrentUser() user: AuthUser, @ZBody(scanCardSchema) body: ScanCardInput) {
+    return this.ai.scanCard(user, body);
   }
 
   @Post('transliterate')

@@ -125,12 +125,12 @@ export function PrintPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
         </Panel>
       </div>
 
-      <aside className="rounded-[16px] border border-hairline bg-surface p-5">
+      <aside className="rounded-[var(--radius-card)] border border-ink/10 bg-ink/[0.02] p-5">
         <h2 className="text-[1.0625rem]">How printing works</h2>
         <ol className="mt-4 flex flex-col gap-4">
           {STEPS.map((step, i) => (
             <li key={step} className="flex gap-3 text-sm">
-              <span className="grid size-6 shrink-0 place-items-center rounded-full border border-hairline text-xs font-semibold tabular-nums">{i + 1}</span>
+              <span className="grid size-6 shrink-0 place-items-center rounded-full border border-ink/10 text-xs font-medium tabular-nums">{i + 1}</span>
               <span className="pt-0.5 text-ink-soft">{step}</span>
             </li>
           ))}

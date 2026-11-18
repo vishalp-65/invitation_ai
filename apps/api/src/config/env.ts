@@ -63,6 +63,8 @@ const envSchema = z.object({
 
   OPENROUTER_API_KEY: z.string().optional(),
   AI_TEXT_MODELS: csv.default(['google/gemini-4-hydrogen']),
+  /** Image-reading models for card scans (first is primary). */
+  AI_VISION_MODELS: csv.default(['google/gemini-4-hydrogen', 'anthropic/claude-haiku-5.5']),
   AI_IMAGE_MODEL: z.string().default('google/gemini-3.1-flash-image'),
   AI_IMAGE_PREMIUM_MODEL: z.string().default('google/gemini-3-pro-image'),
   AI_VIDEO_MODEL: z.string().default('google/veo-3.1-lite'),

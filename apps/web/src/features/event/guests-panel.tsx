@@ -164,24 +164,24 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
         {isLoading && (
           <div className="flex flex-col gap-2" aria-busy>
             {[0, 1, 2].map((i) => (
-              <div key={i} className="skeleton h-14 rounded-xl" />
+              <div key={i} className="skeleton h-14" />
             ))}
           </div>
         )}
 
         {guests && guests.length === 0 && (
-          <div className="flex flex-col items-center rounded-xl border border-dashed border-ink/20 px-6 py-10 text-center">
-            <span className="grid size-12 place-items-center rounded-full bg-tint text-primary">
-              <Users className="size-5" aria-hidden />
+          <div className="flex flex-col items-center border border-dashed border-ink/20 px-6 py-12 text-center">
+            <span className="grid size-11 place-items-center border border-ink/15">
+              <Users className="size-5" strokeWidth={1.6} aria-hidden />
             </span>
-            <p className="mt-4 font-semibold">Add the people you're inviting</p>
+            <p className="mt-4 text-lg">Add the people you're inviting</p>
             <p className="mt-1 max-w-md text-sm text-ink-soft">One by one, paste a list from Excel or your notes, or pick from your phone contacts. You can send everyone their link on WhatsApp after.</p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">{addButtons}</div>
           </div>
         )}
 
         {guests && guests.length > 0 && (
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4" role="group" aria-label="Filter guests">
+          <div className="grid grid-cols-2 border-l border-t border-ink/10 sm:grid-cols-4" role="group" aria-label="Filter guests">
             {FILTERS.map(([f, label]) => (
               <button
                 key={f}
@@ -189,12 +189,13 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
                 aria-pressed={filter === f}
                 onClick={() => setFilter(f)}
                 className={clsx(
-                  'rounded-xl border px-4 py-3 text-left transition-colors',
-                  filter === f ? 'border-primary bg-tint' : 'border-hairline hover:border-ink/25',
+                  'relative border-b border-r border-ink/10 px-4 py-3.5 text-left transition-colors',
+                  filter === f ? 'bg-ink/[0.04]' : 'hover:bg-ink/[0.02]',
                 )}
               >
-                <span className="block text-2xl font-semibold tabular-nums">{counts[f]}</span>
-                <span className={clsx('block text-[0.8125rem]', filter === f ? 'font-medium text-primary' : 'text-ink-soft')}>{label}</span>
+                <span aria-hidden className={clsx('absolute inset-x-0 top-0 h-[2px] origin-left bg-gold transition-transform duration-300', filter === f ? 'scale-x-100' : 'scale-x-0')} />
+                <span className="block font-display text-2xl tabular-nums leading-tight">{counts[f]}</span>
+                <span className={clsx('mt-1 block font-mono text-[0.6875rem]', filter === f ? 'text-ink' : 'text-ink-soft')}>{label}</span>
               </button>
             ))}
           </div>
@@ -202,12 +203,12 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
       </Panel>
 
       {guests && guests.length > 0 && (counts.unsent > 0 || counts.unopened > 0) && (
-        <section className="flex flex-col gap-4 rounded-[16px] border border-hairline bg-surface p-5 sm:flex-row sm:items-center sm:p-6">
-          <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-[#1fa855]/10 text-[#1fa855]">
+        <section className="flex flex-col gap-4 border border-ink/10 bg-ink/[0.015] p-5 sm:flex-row sm:items-center sm:p-6">
+          <span className="grid size-10 shrink-0 place-items-center border border-ink/15 text-[#1fa855]">
             <WhatsAppIcon className="size-5" />
           </span>
           <div className="flex-1">
-            <p className="font-semibold">Send to everyone, one tap each</p>
+            <p>Send to everyone, one tap each</p>
             <p className="text-sm text-ink-soft">WhatsApp opens with each guest's personal link ready. Send, come back, tap the next. Free: it goes from your own WhatsApp.</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
@@ -226,18 +227,18 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
       )}
 
       {guests && guests.length > 0 && (
-        <section className="overflow-hidden rounded-[16px] border border-hairline bg-surface">
+        <section className="overflow-clip border border-ink/10 bg-ink/[0.015]">
           {shown.length === 0 && <p className="px-6 py-10 text-center text-sm text-ink-soft">Nobody in this list.</p>}
 
           {/* Phones: rows */}
-          <ul className="divide-y divide-hairline md:hidden">
+          <ul className="divide-y divide-ink/10 md:hidden">
             {shown.map((g) => {
               const [label, tone] = status(g);
               return (
                 <li key={g.id} className="p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="truncate font-semibold">{g.name}</p>
+                      <p className="truncate">{g.name}</p>
                       <p className="truncate text-sm text-ink-soft">
                         {g.phone ?? 'No number'}
                         {g.groupLabel ? `, ${g.groupLabel}` : ''}
@@ -278,14 +279,14 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-hairline">
+              <tbody className="divide-y divide-ink/10">
                 {shown.map((g) => {
                   const [label, tone] = status(g);
                   return (
-                    <tr key={g.id} className="group transition-colors hover:bg-surface-2">
+                    <tr key={g.id} className="group transition-colors hover:bg-ink/[0.025]">
                       <td className="px-6 py-3">
-                        <p className="font-medium">{g.name}</p>
-                        <p className="text-sm text-ink-soft">{g.phone ?? 'No number'}</p>
+                        <p>{g.name}</p>
+                        <p className="mt-0.5 font-mono text-[0.6875rem] text-ink-soft">{g.phone ?? 'No number'}</p>
                       </td>
                       <td className="px-3 py-3 text-sm text-ink-soft">{g.groupLabel ?? '–'}</td>
                       <td className="px-3 py-3">
@@ -346,9 +347,9 @@ export function GuestsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: 
         </form>
 
         <div className="my-6 flex items-center gap-3 text-xs text-ink-soft">
-          <span className="h-px flex-1 bg-hairline" />
+          <span className="h-px flex-1 bg-ink/10" />
           or paste many at once
-          <span className="h-px flex-1 bg-hairline" />
+          <span className="h-px flex-1 bg-ink/10" />
         </div>
 
         <Field label="Paste a list" hint="One guest per line: name, mobile, group. Works with copy-paste from Excel.">
@@ -398,8 +399,8 @@ function SendQueue({ ids, guests, onSend, onClose }: { ids: string[]; guests: Gu
         </div>
       ) : (
         <div className="flex flex-col gap-4">
-          <div className="h-1.5 overflow-hidden rounded-full bg-mist">
-            <div className="h-full rounded-full bg-leaf transition-[width]" style={{ width: `${(i / ids.length) * 100}%` }} />
+          <div className="h-px overflow-hidden bg-ink/10">
+            <div className="h-full bg-ink transition-[width] duration-500" style={{ width: `${(i / ids.length) * 100}%` }} />
           </div>
           <div>
             <p className="text-2xl">{g.salutation || g.name}</p>

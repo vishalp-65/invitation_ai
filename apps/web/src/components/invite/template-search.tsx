@@ -67,8 +67,8 @@ export function TemplateSearchBar({
   const nFilters = state.styles.length + state.colors.length + (state.community ? 1 : 0);
   const chip = (selected: boolean) =>
     clsx(
-      'inline-flex h-9 shrink-0 items-center gap-1.5 rounded-lg border px-3.5 text-sm font-medium transition-colors',
-      selected ? 'border-ink bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
+      'inline-flex h-9 shrink-0 items-center gap-1.5 border px-3.5 text-sm transition-colors',
+      selected ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink hover:border-ink/30',
     );
 
   return (
@@ -76,23 +76,23 @@ export function TemplateSearchBar({
       <div className="flex gap-2">
         <label className="relative flex-1">
           <span className="sr-only">{hi ? 'डिज़ाइन खोजें' : 'Search designs'}</span>
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-[18px] -translate-y-1/2 text-ink-soft" aria-hidden />
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-ink-soft" aria-hidden />
           <input
             type="search"
             value={state.q}
             onChange={(e) => onChange({ ...state, q: e.target.value })}
             placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search: shaadi, ganesha, maroon, floral, nikah…'}
-            className="h-11 w-full rounded-lg border border-hairline bg-surface pl-10 pr-10 text-[0.95rem] text-ink outline-none placeholder:text-ink-soft/80 focus-visible:border-ink"
+            className="h-12 w-full border border-ink/15 bg-transparent pl-11 pr-10 text-[0.95rem] text-ink outline-none transition-colors placeholder:text-ink-soft/70 hover:border-ink/30 focus-visible:border-ink"
             enterKeyHint="search"
           />
           {state.q && (
-            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-soft hover:bg-mist" aria-label={hi ? 'साफ़ करें' : 'Clear search'}>
+            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-soft hover:bg-ink/[0.04]" aria-label={hi ? 'साफ़ करें' : 'Clear search'}>
               <X className="size-4" />
             </button>
           )}
         </label>
         {compact && (
-          <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={chip(nFilters > 0) + ' h-11'}>
+          <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={chip(nFilters > 0) + ' h-12'}>
             <SlidersHorizontal className="size-4" aria-hidden />
             {nFilters ? nFilters : hi ? 'फ़िल्टर' : 'Filters'}
           </button>
@@ -133,7 +133,7 @@ export function TemplateSearchBar({
               </select>
             </label>
             {(nFilters > 0 || state.q) && (
-              <button type="button" onClick={() => onChange(EMPTY)} className="text-sm font-semibold underline underline-offset-4">
+              <button type="button" onClick={() => onChange(EMPTY)} className="text-sm font-medium underline underline-offset-4">
                 {hi ? 'सब हटाएँ' : 'Clear all'}
               </button>
             )}
@@ -148,10 +148,10 @@ export function TemplateSearchBar({
 /** Empty state when nothing matches. */
 export function NoTemplates({ hi = false, onReset }: { hi?: boolean; onReset: () => void }) {
   return (
-    <div className="rounded-xl border border-dashed border-hairline p-8 text-center">
-      <p className="font-semibold">{hi ? 'कोई डिज़ाइन नहीं मिला' : 'No designs match'}</p>
+    <div className="border border-dashed border-ink/15 px-6 py-14 text-center">
+      <p className="text-2xl">{hi ? 'कोई डिज़ाइन नहीं मिला' : 'No designs match'}</p>
       <p className="mt-1 text-sm text-ink-soft">{hi ? 'कम शब्द या दूसरा रंग आज़माएँ।' : 'Try fewer words or another colour.'}</p>
-      <button type="button" onClick={onReset} className="mt-3 text-sm font-semibold underline underline-offset-4">
+      <button type="button" onClick={onReset} className="mt-3 text-sm font-medium underline underline-offset-4">
         {hi ? 'फ़िल्टर हटाएँ' : 'Clear filters'}
       </button>
     </div>

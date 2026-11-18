@@ -12,12 +12,12 @@ export function Slider({ label, value, min, max, step = 1, onChange, suffix = ''
   const pct = ((value - min) / (max - min)) * 100;
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="flex items-center justify-between text-sm font-semibold text-ink-soft">
+      <span className="flex items-center justify-between text-sm font-medium text-ink-soft">
         {label}
         <span className="flex items-center gap-1">
           <input
             type="number"
-            className="w-16 rounded-md border border-hairline bg-surface px-1.5 py-0.5 text-right text-sm tabular-nums touch:h-9 touch:w-[4.5rem] touch:text-base text-ink focus:border-primary focus:outline-none"
+            className="w-16 rounded-md border border-ink/10 bg-ink/[0.02] px-1.5 py-0.5 text-right text-sm tabular-nums touch:h-9 touch:w-[4.5rem] touch:text-base text-ink focus:border-primary focus:outline-none"
             value={Math.round(value * 100) / 100}
             min={min}
             max={max}
@@ -62,8 +62,8 @@ export function NumberField({ label, value, onChange, min = -Infinity, max = Inf
     if (Number.isFinite(n) && n !== value) onChange(Math.min(max, Math.max(min, Math.round(n))));
   };
   return (
-    <label className={clsx('flex h-10 items-center gap-1.5 rounded-lg border border-hairline bg-surface px-2 focus-within:border-primary touch:h-11', disabled && 'opacity-50')}>
-      <span className="text-xs font-bold text-ink-soft">{label}</span>
+    <label className={clsx('flex h-10 items-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.02] px-2 focus-within:border-primary touch:h-11', disabled && 'opacity-50')}>
+      <span className="text-xs font-medium text-ink-soft">{label}</span>
       <input
         inputMode="numeric"
         disabled={disabled}
@@ -98,8 +98,8 @@ export function Seg<T extends string>({ options, value, onChange, label, scroll 
           {...(o.title ? tip(o.title) : {})}
           onClick={() => onChange(o.v)}
           className={clsx(
-            'flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 rounded-lg border px-2.5 touch:h-10 touch:min-w-10 text-sm font-semibold transition-colors duration-100',
-            o.v === value ? 'border-primary tint-primary' : 'border-hairline bg-surface text-ink hover:border-ink/40',
+            'flex h-9 min-w-9 shrink-0 items-center justify-center gap-1 border px-2.5 touch:h-11 touch:min-w-11 text-sm transition-colors duration-100',
+            o.v === value ? 'border-ink bg-ink text-ivory' : 'border-ink/10 bg-transparent text-ink hover:border-ink/40',
           )}
         >
           {o.label}
@@ -112,15 +112,15 @@ export function Seg<T extends string>({ options, value, onChange, label, scroll 
 /** Inspector group. Collapsible when `onToggle` is given. */
 export function Section({ title, children, collapsed, onToggle, action }: { title: string; children: ReactNode; collapsed?: boolean; onToggle?: () => void; action?: ReactNode }) {
   return (
-    <section className="border-b border-hairline px-4 py-3.5 last:border-0">
+    <section className="border-b border-ink/10 px-4 py-4 last:border-0">
       <div className="flex items-center justify-between gap-2">
         {onToggle ? (
           <button type="button" onClick={onToggle} aria-expanded={!collapsed} className="-mx-1 flex flex-1 items-center justify-between rounded-md px-1 py-0.5 text-left hover:text-ink touch:py-2">
-            <h3 className="font-sans text-[0.78rem] font-bold uppercase tracking-wide text-ink-soft">{title}</h3>
+            <h3 className="font-mono text-[0.6875rem] font-normal uppercase tracking-[0.08em] text-ink-soft">{title}</h3>
             <ChevronDown className={clsx('size-4 text-ink-soft transition-transform duration-150', collapsed && '-rotate-90')} />
           </button>
         ) : (
-          <h3 className="font-sans text-[0.78rem] font-bold uppercase tracking-wide text-ink-soft">{title}</h3>
+          <h3 className="font-mono text-[0.6875rem] font-normal uppercase tracking-[0.08em] text-ink-soft">{title}</h3>
         )}
         {action}
       </div>
@@ -199,7 +199,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => ref.current?.click()} {...tip('Custom colour')} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-hairline touch:size-11" style={{ background: value }}>
+        <button type="button" onClick={() => ref.current?.click()} {...tip('Custom colour')} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-ink/10 touch:size-11" style={{ background: value }}>
           <input
             ref={ref}
             type="color"
@@ -214,7 +214,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
             tabIndex={-1}
           />
         </button>
-        <label className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-hairline bg-surface px-2.5 focus-within:border-primary touch:h-11">
+        <label className="flex h-9 flex-1 items-center gap-1 rounded-lg border border-ink/10 bg-ink/[0.02] px-2.5 focus-within:border-primary touch:h-11">
           <span className="text-sm text-ink-soft">#</span>
           <input
             value={hex.replace('#', '')}
@@ -233,7 +233,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
           <button
             type="button"
             {...tip('Pick a colour from screen')}
-            className="grid size-9 shrink-0 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40 touch:size-11"
+            className="grid size-9 shrink-0 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40 touch:size-11"
             onClick={async () => {
               try {
                 const r = await new (window as unknown as { EyeDropper: new () => { open: () => Promise<{ sRGBHex: string }> } }).EyeDropper().open();
@@ -249,13 +249,13 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
       </div>
       {uniq.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-semibold text-ink-soft">In this design</p>
+          <p className="mb-1.5 text-xs font-medium text-ink-soft">In this design</p>
           <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{uniq.map(sw)}</div>
         </div>
       )}
       {rec.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-semibold text-ink-soft">Recent</p>
+          <p className="mb-1.5 text-xs font-medium text-ink-soft">Recent</p>
           <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{rec.map(sw)}</div>
         </div>
       )}

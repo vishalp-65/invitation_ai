@@ -5,15 +5,15 @@ import type { ButtonHTMLAttributes, ComponentProps } from 'react';
 type Variant = 'primary' | 'brand' | 'quiet' | 'outline' | 'danger' | 'solid' | 'line' | 'glass';
 type Size = 'xs' | 'sm' | 'md' | 'lg' | 'icon';
 
-/** Flat buttons: small 8px corners, no shadows; colour on hover, a slight squeeze on press. */
+/** Pill buttons (studio theme): solid ink or hairline outline, no shadows, a slight squeeze on press. */
 const base =
-  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--radius-control)] font-semibold transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none';
+  'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full font-medium transition-[color,background-color,border-color,transform] duration-150 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none select-none';
 const variants: Record<Variant, string> = {
   primary: 'bg-primary text-on-primary hover:bg-primary-hover',
   /** Alias of primary, kept for existing call sites. */
   solid: 'bg-primary text-on-primary hover:bg-primary-hover',
   brand: 'bg-sindoor text-white hover:bg-sindoor-deep',
-  line: 'border border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-mist',
+  line: 'border border-ink/20 bg-transparent text-ink hover:border-ink/60 hover:bg-ink/5',
   outline: 'border border-ink text-ink hover:bg-primary hover:text-on-primary',
   quiet: 'bg-transparent text-ink hover:bg-mist',
   danger: 'bg-transparent text-sindoor hover:bg-sindoor/10',

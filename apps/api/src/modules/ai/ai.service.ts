@@ -1,6 +1,7 @@
 import {
   backgroundImagePrompt,
   caricaturePrompt,
+  cardScanPrompt,
   intentPrompt,
   OpenRouterError,
   portraitCutoutPrompt,
@@ -24,6 +25,9 @@ import {
   getEventType,
   invocationFor,
   parsedEventIntentSchema,
+  scannedCardSchema,
+  type ScanCardInput,
+  type ScanCardResult,
   QUEUES,
   siteDraftOutputSchema,
   type SiteDraftInput,
@@ -38,7 +42,7 @@ import {
   type TransliterateInput,
 } from '@cardai/shared';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BadRequestException, HttpException, HttpStatus, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, HttpException, UnprocessableEntityException, HttpStatus, Inject, Injectable, Logger, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import { z } from 'zod';
 import type { AuthUser } from '../../common/auth.decorators.js';
@@ -377,6 +381,45 @@ export class AiService {
         await this.log('wording', user.id, { eventId, model: usage.model, costUsd: usage.costUsd?.toString(), input: { site: true } });
         return data;
       });
+    } catch (err) {
+      this.wrap(err);
+    }
+  }
+
+  // ---------------- Card scan: photo of a printed card → draft details ----------------
+
+  /**
+   * Reads an uploaded invitation card. Photos go to a vision model; when the browser could only send
+   * its own OCR text (vision unavailable), a text model structures that instead.
+   */
+  async scanCard(user: AuthUser, input: ScanCardInput): Promise<ScanCardResult> {
+    this.ensureConfigured();
+    await this.consumeQuota(user.id, 'scan');
+    const method = input.images.length ? 'vision' : 'ocr';
+    const { system } = cardScanPrompt(new Date().toISOString().slice(0, 10));
+    const userContent =
+      method === 'vision'
+        ? [
+            { type: 'text' as const, text: `Read this invitation card (${input.images.length} photo${input.images.length > 1 ? 's' : ''}).` },
+            ...input.images.map((url) => ({ type: 'image_url' as const, image_url: { url } })),
+          ]
+        : `Text read off the card by OCR (expect recognition errors; fix only obvious ones):
+
+${input.ocrText}`;
+    try {
+      const { data, usage } = await this.ai.chatJson({
+        models: method === 'vision' ? this.env.AI_VISION_MODELS : this.env.AI_TEXT_MODELS,
+        system,
+        user: userContent,
+        schema: scannedCardSchema,
+        schemaName: 'scanned_card',
+        temperature: 0,
+        maxTokens: 4000,
+        userId: user.id,
+      });
+      await this.log('intent', user.id, { model: usage.model, costUsd: usage.costUsd?.toString(), input: { scan: method, photos: input.images.length } });
+      if (!data.isInvitation) throw new UnprocessableEntityException('This doesn’t look like an invitation card. Try a clearer photo, or fill in the details yourself.');
+      return { ...data, method };
     } catch (err) {
       this.wrap(err);
     }

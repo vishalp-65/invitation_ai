@@ -1,10 +1,10 @@
 import { clsx } from 'clsx';
 import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
 
-/** Shared look for every text control: flat, 8px corners, the border carries hover/focus/error. */
+/** Shared look for every text control (studio theme): square, hairline border that carries hover/focus/error. */
 /** Colours/border/states only, no size or padding, so call sites can size it without class conflicts. */
 export const controlClass =
-  'rounded-[var(--radius-field)] border border-hairline bg-surface text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-primary focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
+  'rounded-[var(--radius-field)] border border-ink/15 bg-ink/[0.02] text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-ink focus:bg-transparent focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
 const control = `${controlClass} w-full px-3 text-[0.95rem]`;
 
 /** Small form label. */
@@ -66,8 +66,8 @@ export function Chip({
       type="button"
       aria-pressed={selected}
       className={clsx(
-        'inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] border px-3.5 text-sm font-medium transition-colors duration-150 disabled:opacity-50',
-        selected ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30 hover:bg-mist',
+        'inline-flex h-9 items-center gap-2 border px-4 text-sm transition-colors duration-150 disabled:opacity-50',
+        selected ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink-soft hover:border-ink/30 hover:text-ink',
         className,
       )}
       {...props}
@@ -78,10 +78,10 @@ export function Chip({
 type Tone = 'neutral' | 'good' | 'warn' | 'bad' | 'info';
 const tones: Record<Tone, string> = {
   neutral: '',
-  good: 'border-transparent bg-leaf/12 text-leaf',
-  warn: 'border-transparent bg-marigold/18 text-marigold-deep',
-  bad: 'border-transparent bg-sindoor/10 text-sindoor',
-  info: 'border-transparent bg-tint text-ink',
+  good: 'bg-leaf/12 text-leaf',
+  warn: 'bg-marigold/18 text-marigold-deep',
+  bad: 'bg-sindoor/10 text-sindoor',
+  info: 'bg-gold/12 text-gold',
 };
 
 /** Small status / count label (`.badge`). */

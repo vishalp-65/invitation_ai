@@ -41,7 +41,7 @@ export default function AdminActivityPage() {
   return (
     <>
       <PageHeader title="Admin log" description="Every change made from this console, newest first (last 100)." />
-      <section className="rounded-xl border border-hairline bg-surface">
+      <section className="border border-ink/10 bg-ink/[0.015]">
         {isLoading ? (
           <Skeleton className="m-5 h-48" />
         ) : !data?.length ? (
@@ -56,7 +56,7 @@ export default function AdminActivityPage() {
               <tr key={e.id}>
                 <td className="whitespace-nowrap text-ink-soft">{dateTime(e.createdAt)}</td>
                 <td>{e.admin ?? e.adminEmail ?? '—'}</td>
-                <td className="font-semibold">{ACTIONS[e.action] ?? e.action}</td>
+                <td className="font-medium">{ACTIONS[e.action] ?? e.action}</td>
                 <td className="max-w-48 truncate" title={e.target ?? ''}>
                   {e.targetLabel ?? e.target ?? '—'}
                 </td>

@@ -40,8 +40,8 @@ export default function MarketplaceAdminPage() {
       <PageHeader title="Marketplace & print" description="Approve designers and their templates, and move print orders along." />
       <div className="flex flex-col gap-10">
 
-        <section className="rounded-xl border border-hairline bg-surface p-5">
-          <h2 className="font-sans text-lg font-bold">Designers waiting</h2>
+        <section className="border border-ink/10 bg-ink/[0.015] p-5">
+          <h2 className="text-base font-medium">Designers waiting</h2>
           <ul className="mt-3 divide-y divide-line">
             {designers.data?.map((d) => (
               <li key={d.userId} className="flex flex-wrap items-center gap-3 py-3">
@@ -65,8 +65,8 @@ export default function MarketplaceAdminPage() {
           </ul>
         </section>
 
-        <section className="rounded-xl border border-hairline bg-surface p-5">
-          <h2 className="font-sans text-lg font-bold">Themes to review</h2>
+        <section className="border border-ink/10 bg-ink/[0.015] p-5">
+          <h2 className="text-base font-medium">Themes to review</h2>
           <ul className="mt-3 divide-y divide-line">
             {templates.data?.map(({ t, designer }) => (
               <li key={t.id} className="flex flex-wrap items-center gap-3 py-3">
@@ -93,8 +93,8 @@ export default function MarketplaceAdminPage() {
           </ul>
         </section>
 
-        <section className="rounded-xl border border-hairline bg-surface p-5">
-          <h2 className="font-sans text-lg font-bold">Print orders</h2>
+        <section className="border border-ink/10 bg-ink/[0.015] p-5">
+          <h2 className="text-base font-medium">Print orders</h2>
           <ul className="mt-3 divide-y divide-line">
             {prints.data?.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center gap-3 py-3">

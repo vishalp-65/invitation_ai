@@ -144,7 +144,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
         </div>
       )}
       {isDate ? (
-        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-lg border border-hairline bg-surface px-4 text-left font-semibold">
+        <button type="button" onClick={() => ctx.editDate(fnIndex ?? 0)} className="flex h-12 items-center justify-between rounded-lg border border-ink/10 bg-ink/[0.02] px-4 text-left font-medium">
           {shown}
           <PencilLine className="size-4" />
         </button>
@@ -155,14 +155,14 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
             onChange={(e) => setValue(e.target.value)}
             rows={Math.min(6, Math.max(2, value.split('\n').length + 1))}
             dir="auto"
-            className="w-full rounded-lg border border-hairline bg-surface p-3 text-base leading-snug focus:border-ink focus:outline-none"
+            className="w-full rounded-lg border border-ink/10 bg-ink/[0.02] p-3 text-base leading-snug focus:border-ink focus:outline-none"
             aria-label="Text"
           />
           <button
             type="button"
             disabled={value === shown}
             onClick={() => ctx.commitText(el, value)}
-            className="h-11 rounded-lg bg-primary font-semibold text-on-primary disabled:opacity-40"
+            className="h-11 rounded-lg bg-primary font-medium text-on-primary disabled:opacity-40"
           >
             Update text
           </button>
@@ -171,7 +171,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
       {info && (
         <button
           type="button"
-          className="flex items-center gap-1.5 self-start text-sm font-semibold text-ink-soft underline-offset-4 hover:underline"
+          className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft underline-offset-4 hover:underline"
           onClick={() => up(el.id, { bind: undefined, text: shown } as Partial<TextElement>)}
         >
           <Link2Off className="size-4" /> Unlink and type your own
@@ -194,7 +194,7 @@ function FontRow({ family, selected, supported, onPick }: { family: string; sele
       type="button"
       onClick={onPick}
       aria-pressed={selected}
-      className={clsx('flex h-12 w-full items-center justify-between rounded-lg px-3 text-left transition-colors', selected ? 'tint-primary font-semibold' : 'hover:bg-mist', !supported && 'opacity-45')}
+      className={clsx('flex h-12 w-full items-center justify-between rounded-lg px-3 text-left transition-colors', selected ? 'tint-primary font-medium' : 'hover:bg-ink/[0.04]', !supported && 'opacity-45')}
     >
       <span style={{ fontFamily: ready ? `"${family}"` : undefined, fontSize: 20 }} className="truncate">
         {family}
@@ -215,7 +215,7 @@ function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className={`${controlClass} h-10 px-3`} aria-label="Search fonts" />
       {groups.map((g) => (
         <div key={g}>
-          <p className="mb-1 text-xs font-bold uppercase tracking-wide text-ink-soft">{GROUP_LABEL[g]}</p>
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-soft">{GROUP_LABEL[g]}</p>
           {fonts
             .filter((f) => f.group === g)
             .map((f) => (
@@ -240,7 +240,7 @@ function TextSize({ el }: { el: TextElement }) {
 function TextFormat({ el }: { el: TextElement }) {
   const toggle = (on: boolean, patch: Partial<TextElement>, off: Partial<TextElement>) => up(el.id, on ? off : patch);
   const btn = (active: boolean, label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-lg border transition-colors', active ? 'border-primary tint-primary' : 'border-hairline bg-surface hover:border-ink/40')}>
+    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-lg border transition-colors', active ? 'border-primary tint-primary' : 'border-ink/10 bg-surface hover:border-ink/40')}>
       {icon}
     </button>
   );
@@ -330,7 +330,7 @@ function ArtOptions({ el }: { el: ArtElement }) {
     <div className="flex flex-col gap-4">
       {Object.entries(choices).map(([key, values]) => (
         <div key={key}>
-          <p className="mb-1.5 text-sm font-semibold text-ink-soft">{nice(key)}</p>
+          <p className="mb-1.5 text-sm font-medium text-ink-soft">{nice(key)}</p>
           <Seg
             label={key}
             value={String(el.opts?.[key] ?? values[0])}
@@ -402,7 +402,7 @@ function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) 
           setBusy(false);
         }
       }}
-      className="flex h-11 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold transition-colors hover:border-ink/40 disabled:opacity-50"
+      className="flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium transition-colors hover:border-ink/40 disabled:opacity-50"
     >
       {busy ? <Loader2 className="size-4 animate-spin" /> : <Eraser className="size-4" />}
       {busy ? 'Removing background…' : 'Remove background'}
@@ -419,7 +419,7 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
           const url = await ctx.pickImage();
           if (url) up(el.id, { src: url, bind: undefined } as Partial<ImageElement>);
         }}
-        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary"
+        className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary"
       >
         <ImageUp className="size-4" /> {el.src || el.bind ? 'Replace photo' : 'Add photo'}
       </button>
@@ -439,7 +439,7 @@ function ImageFilters({ el }: { el: ImageElement }) {
     <ul className="grid grid-cols-4 gap-2">
       {IMAGE_FILTERS.map((f) => (
         <li key={f}>
-          <button type="button" onClick={() => up(el.id, { filter: f } as Partial<ImageElement>)} aria-pressed={(el.filter ?? 'none') === f} className="group flex w-full flex-col items-center gap-1 text-xs font-semibold text-ink-soft aria-pressed:text-ink">
+          <button type="button" onClick={() => up(el.id, { filter: f } as Partial<ImageElement>)} aria-pressed={(el.filter ?? 'none') === f} className="group flex w-full flex-col items-center gap-1 text-xs font-medium text-ink-soft aria-pressed:text-ink">
             <span className="block aspect-square w-full overflow-hidden rounded-lg bg-mist ring-offset-2 ring-offset-surface group-aria-pressed:ring-2 group-aria-pressed:ring-primary">
               {src ? (
                 // eslint-disable-next-line @next/next/no-img-element -- tiny live preview
@@ -464,7 +464,7 @@ function ImageAdjust({ el }: { el: ImageElement }) {
       <Slider label="Contrast" min={-80} max={80} value={Math.round(((el.contrast ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { contrast: 1 + v / 100 } as Partial<ImageElement>)} />
       <Slider label="Saturation" min={-100} max={150} value={Math.round(((el.sat ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { sat: 1 + v / 100 } as Partial<ImageElement>)} />
       {touched && (
-        <button type="button" className="flex items-center gap-1.5 self-start text-sm font-semibold text-ink-soft hover:text-ink" onClick={() => up(el.id, { bright: 1, contrast: 1, sat: 1 } as Partial<ImageElement>)}>
+        <button type="button" className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft hover:text-ink" onClick={() => up(el.id, { bright: 1, contrast: 1, sat: 1 } as Partial<ImageElement>)}>
           <RotateCcw className="size-4" /> Reset adjustments
         </button>
       )}
@@ -479,10 +479,10 @@ function ImageCrop({ el }: { el: ImageElement }) {
       <Slider label="Left – right" min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
       <Slider label="Up – down" min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
       <div className="flex gap-2">
-        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
           <FlipHorizontal2 className="size-4" /> Mirror
         </button>
-        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
+        <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
           <RotateCcw className="size-4" /> Reset
         </button>
       </div>
@@ -493,7 +493,7 @@ function ImageCrop({ el }: { el: ImageElement }) {
 function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm font-semibold text-ink-soft">Fill</p>
+      <p className="text-sm font-medium text-ink-soft">Fill</p>
       <ColorPicker value={el.fill ?? '#FFFFFF'} onChange={(c) => up(el.id, { fill: c })} docColors={colors} />
       {el.shape !== 'line' && (
         <>
@@ -512,13 +512,13 @@ function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
 function Arrange({ el }: { el: DesignElement }) {
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+    <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
       {icon}
       {label}
     </button>
   );
   const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
-    <button type="button" disabled={el.locked} onClick={() => s().align(el.id, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40 disabled:opacity-40">
+    <button type="button" disabled={el.locked} onClick={() => s().align(el.id, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40 disabled:opacity-40">
       <Icon className="size-[1.1rem]" />
     </button>
   );
@@ -528,7 +528,7 @@ function Arrange({ el }: { el: DesignElement }) {
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Align to page</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">Align to page</p>
         <div className="grid grid-cols-6 gap-1.5">
           {al('left', 'Align left', AlignStartVertical)}
           {al('hcenter', 'Align centre', AlignCenterVertical)}
@@ -609,10 +609,10 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
           icon: FlipHorizontal2,
           render: () => (
             <div className="flex gap-2">
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipX: !el.flipX })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium" onClick={() => up(el.id, { flipX: !el.flipX })}>
                 <FlipHorizontal2 className="size-4" /> Left–right
               </button>
-              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold" onClick={() => up(el.id, { flipY: !el.flipY })}>
+              <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium" onClick={() => up(el.id, { flipY: !el.flipY })}>
                 <FlipVertical2 className="size-4" /> Up–down
               </button>
             </div>
@@ -655,10 +655,10 @@ export function InspectorPanel({ sections, title, onClose }: { sections: Inspect
   };
   return (
     <div>
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-hairline bg-surface px-4 py-3">
-        <p className="font-semibold">{title}</p>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-ivory/95 px-4 py-3 backdrop-blur">
+        <p className="kicker !text-ink">{title}</p>
         {onClose && (
-          <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-lg hover:bg-mist" {...tip('Deselect', 'Esc', 'left')}>
+          <button type="button" onClick={onClose} className="grid size-9 place-items-center border border-transparent text-ink-soft transition-colors hover:border-ink/15 hover:text-ink" {...tip('Deselect', 'Esc', 'left')}>
             <X className="size-4" />
           </button>
         )}
@@ -678,14 +678,14 @@ export function InspectorPanel({ sections, title, onClose }: { sections: Inspect
 function MultiArrange({ ids }: { ids: string[] }) {
   const s = useEditor.getState;
   const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
-    <button type="button" onClick={() => s().alignMany(ids, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-hairline bg-surface hover:border-ink/40">
+    <button type="button" onClick={() => s().alignMany(ids, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40">
       <Icon className="size-[1.1rem]" />
     </button>
   );
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Align to each other</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">Align to each other</p>
         <div className="grid grid-cols-6 gap-1.5">
           {al('left', 'Align left edges', AlignStartVertical)}
           {al('hcenter', 'Align centres', AlignCenterVertical)}
@@ -696,22 +696,22 @@ function MultiArrange({ ids }: { ids: string[] }) {
         </div>
       </div>
       <div>
-        <p className="mb-1.5 text-sm font-semibold text-ink-soft">Space evenly</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">Space evenly</p>
         <div className="grid grid-cols-2 gap-2">
-          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'x')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40 disabled:opacity-40">
+          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'x')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40 disabled:opacity-40">
             <AlignHorizontalSpaceAround className="size-4" /> Across
           </button>
-          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'y')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-sm font-semibold hover:border-ink/40 disabled:opacity-40">
+          <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'y')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40 disabled:opacity-40">
             <AlignVerticalSpaceAround className="size-4" /> Down
           </button>
         </div>
         {ids.length < 3 && <p className="mt-1.5 text-xs text-ink-soft">Select 3 or more to space them evenly.</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+        <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
           <ArrowUpToLine className="size-4" /> To front
         </button>
-        <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40">
+        <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
           <ArrowDownToLine className="size-4" /> To back
         </button>
       </div>
@@ -722,7 +722,7 @@ function MultiArrange({ ids }: { ids: string[] }) {
 function MultiActions({ ids, grouped, locked }: { ids: string[]; grouped: boolean; locked: boolean }) {
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void, danger = false) => (
-    <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-lg border border-hairline bg-surface px-3 text-sm font-semibold hover:border-ink/40', danger && 'text-sindoor')}>
+    <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40', danger && 'text-sindoor')}>
       {icon}
       {label}
     </button>

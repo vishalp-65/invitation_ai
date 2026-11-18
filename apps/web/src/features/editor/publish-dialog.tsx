@@ -60,11 +60,11 @@ export function PublishTemplateDialog({ onClose, event }: { onClose: () => void;
           Every customer will be able to pick this design. Photos are removed; text linked to invitation details fills in for each customer.
         </p>
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-ink-soft">Template name</span>
+          <span className="text-sm font-medium text-ink-soft">Template name</span>
           <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} required minLength={2} placeholder="e.g. Marigold Arch · Maroon" className={`${controlClass} h-10 px-3`} />
         </label>
         <div>
-          <p className="mb-2 text-sm font-semibold text-ink-soft">Suits these occasions</p>
+          <p className="mb-2 text-sm font-medium text-ink-soft">Suits these occasions</p>
           <div className="flex flex-wrap gap-2">
             {EVENT_TYPE_IDS.map((id) => (
               <Chip key={id} selected={types.includes(id)} onClick={() => setTypes((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))} className="h-9 text-sm">
@@ -74,23 +74,23 @@ export function PublishTemplateDialog({ onClose, event }: { onClose: () => void;
           </div>
         </div>
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-ink-soft">Search tags (comma separated)</span>
+          <span className="text-sm font-medium text-ink-soft">Search tags (comma separated)</span>
           <input value={tags} onChange={(e) => setTags(e.target.value)} placeholder="royal, floral, maroon, ganesha" className={`${controlClass} h-10 px-3`} />
         </label>
-        <label className="flex items-center gap-3 rounded-xl border border-hairline px-3 py-3">
+        <label className="flex items-center gap-3 rounded-xl border border-ink/10 px-3 py-3">
           <input type="checkbox" checked={premium} onChange={(e) => setPremium(e.target.checked)} className="size-5 accent-[var(--color-primary)]" />
           <span className="flex-1">
-            <span className="flex items-center gap-1.5 font-semibold">
+            <span className="flex items-center gap-1.5 font-medium">
               <Crown className="size-4 text-marigold" /> Premium template
             </span>
             <span className="text-sm text-ink-soft">Shown with the Premium badge in the gallery.</span>
           </span>
         </label>
-        <button type="submit" disabled={busy || !name.trim() || !types.length} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-60">
+        <button type="submit" disabled={busy || !name.trim() || !types.length} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Store className="size-4" />}
           Publish template
         </button>
-        <Link href="/admin/templates" className="text-center text-sm font-semibold text-ink-soft underline underline-offset-4">
+        <Link href="/admin/templates" className="text-center text-sm font-medium text-ink-soft underline underline-offset-4">
           Manage templates in the admin console
         </Link>
       </form>

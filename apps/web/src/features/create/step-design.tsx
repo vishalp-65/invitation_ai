@@ -50,11 +50,11 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="rounded-[var(--radius-card)] border border-hairline bg-surface p-4 sm:p-5">
+      <div className="border border-ink/10 bg-ink/[0.02] p-4 sm:p-6">
         <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
         {cats.length > 2 && (
-          <div className="-mx-4 mt-3 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-5 sm:px-5">
-            <div className="flex w-max gap-1 rounded-lg border border-hairline bg-surface-2 p-1" role="group" aria-label={hi ? 'श्रेणी' : 'Category'}>
+          <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-6 sm:px-6">
+            <div className="flex w-max gap-6 border-b border-ink/10" role="group" aria-label={hi ? 'श्रेणी' : 'Category'}>
               {cats.map((c) => (
                 <button
                   key={c}
@@ -62,8 +62,8 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
                   aria-pressed={cat === c}
                   onClick={() => setCat(c)}
                   className={clsx(
-                    'h-8 shrink-0 rounded-md px-3.5 text-sm font-semibold transition-colors duration-200',
-                    cat === c ? 'bg-primary text-on-primary' : 'text-ink-soft hover:text-ink',
+                    '-mb-px h-11 shrink-0 border-b text-sm transition-colors duration-200',
+                    cat === c ? 'border-ink text-ink' : 'border-transparent text-ink-soft hover:text-ink',
                   )}
                 >
                   {CAT_LABEL[c][hi ? 1 : 0]}
@@ -75,14 +75,14 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
       </div>
 
       {!isLoading && (
-        <p className="text-ink-soft">
+        <p className="font-mono text-xs text-ink-soft">
           {hi ? (
             <>
-              <strong className="font-semibold text-ink">{shown.length}</strong> डिज़ाइन · {ev.labelHi}
+              <strong className="font-medium text-ink">{shown.length}</strong> डिज़ाइन · {ev.labelHi}
             </>
           ) : (
             <>
-              <strong className="font-semibold text-ink">{shown.length}</strong> designs for {ev.label.toLowerCase()} · tap to select, colours below each
+              <strong className="font-normal text-ink">{shown.length}</strong> designs for {ev.label.split(' / ')[0]!.toLowerCase()} · tap to select · colours below each
             </>
           )}
         </p>
@@ -92,7 +92,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
         <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5" aria-busy>
           {Array.from({ length: 10 }, (_, i) => (
             <li key={i}>
-              <div className="skeleton aspect-[9/16] w-full rounded-xl" />
+              <div className="skeleton aspect-[9/16] w-full" />
               <div className="skeleton mt-3 h-4 w-2/3" />
             </li>
           ))}
@@ -100,7 +100,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
       ) : shown.length === 0 ? (
         <NoTemplates hi={hi} onReset={search.reset} />
       ) : (
-        <ul className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 sm:gap-x-5 lg:grid-cols-4 xl:grid-cols-5">
+        <ul className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 lg:grid-cols-4 xl:grid-cols-5">
           {shown.map((f, i) => (
             <FamilyTile
               key={f.id}
@@ -124,7 +124,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
             </p>
             <Button
               variant="solid"
-              className="h-12 w-full"
+              className="press h-12 w-full"
               onClick={() => {
                 d.set({ templateId: previewing.id });
                 setPreviewId(null);

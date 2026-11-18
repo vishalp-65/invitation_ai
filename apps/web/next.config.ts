@@ -11,6 +11,8 @@ const config: NextConfig = {
   transpilePackages: ['@cardai/templates'],
   poweredByHeader: false,
   images: {
+    // Serve AVIF/WebP to browsers that take them (card renders shrink a lot).
+    formats: ['image/avif', 'image/webp'],
     remotePatterns: [new URL(`${storageUrl}/**`)],
   },
   // Same-origin API: cookies stay first-party and no CORS preflight on every call.

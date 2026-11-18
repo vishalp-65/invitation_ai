@@ -20,11 +20,12 @@ export function isLightOnly(pathname: string) {
  * Runs in <head> before first paint so there's no light flash on dark devices.
  * Kept tiny and dependency-free; mirrors `resolve()` below.
  */
-export const THEME_BOOT_SCRIPT = `(()=>{try{var p=localStorage.getItem('${KEY}')||'system';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(${LIGHT_ONLY}.test(location.pathname))d=false;document.documentElement.dataset.theme=d?'dark':'light';if(localStorage.getItem('cardai-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}})()`;
+export const THEME_BOOT_SCRIPT = `(()=>{try{var p=localStorage.getItem('${KEY}')||'dark';var d=p==='dark'||(p==='system'&&matchMedia('(prefers-color-scheme: dark)').matches);if(${LIGHT_ONLY}.test(location.pathname))d=false;document.documentElement.dataset.theme=d?'dark':'light';if(localStorage.getItem('cardai-sidebar')==='collapsed')document.documentElement.dataset.sidebar='collapsed'}catch(e){}})()`;
 
 // ---- tiny external store (no context, no re-render cascade)
 const listeners = new Set<() => void>();
-let pref: ThemePref = 'system';
+/** First visit defaults to dark, the studio theme's native look. */
+let pref: ThemePref = 'dark';
 let loaded = false;
 
 function readPref(): ThemePref {
@@ -56,7 +57,7 @@ function apply(theme: Theme) {
   root.setAttribute('data-theme-switching', '');
   root.dataset.theme = theme;
   requestAnimationFrame(() => requestAnimationFrame(() => root.removeAttribute('data-theme-switching')));
-  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'dark' ? '#140F17' : '#FAF8F6'));
+  document.querySelectorAll('meta[name="theme-color"]').forEach((m) => m.setAttribute('content', theme === 'dark' ? '#050608' : '#F7F6F2'));
 }
 
 export function setThemePref(next: ThemePref) {
@@ -77,7 +78,7 @@ function subscribe(l: () => void) {
 }
 
 export function useThemePref(): ThemePref {
-  return useSyncExternalStore(subscribe, readPref, () => 'system');
+  return useSyncExternalStore(subscribe, readPref, () => 'dark');
 }
 
 /** Keeps <html data-theme> in sync with route changes and the OS setting. Mount once. */
@@ -127,7 +128,7 @@ export function ThemeToggle({ className, compact }: { className?: string; compac
 export function ThemeSegmented() {
   const p = useThemePref();
   return (
-    <div role="radiogroup" aria-label="Theme" className="inline-flex rounded-lg border border-hairline bg-surface p-0.5">
+    <div role="radiogroup" aria-label="Theme" className="inline-flex border border-ink/15 p-0.5">
       {ORDER.map((o) => {
         const Icon = META[o].icon;
         return (
@@ -137,9 +138,9 @@ export function ThemeSegmented() {
             role="radio"
             aria-checked={p === o}
             onClick={() => setThemePref(o)}
-            className="flex h-8 items-center gap-1.5 rounded-md px-3 text-sm font-medium text-ink-soft transition-colors hover:text-ink aria-checked:bg-mist aria-checked:text-ink"
+            className="flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] text-ink-soft transition-colors duration-200 hover:text-ink aria-checked:bg-ink/[0.08] aria-checked:text-ink"
           >
-            <Icon className="size-4" />
+            <Icon className="size-3.5" strokeWidth={1.75} />
             {META[o].label}
           </button>
         );

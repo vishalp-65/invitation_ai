@@ -23,6 +23,20 @@
         "@cardai/api"
       ],
       "port": 4000
+    },
+    {
+      "name": "api-local-redis",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "-w",
+        "@cardai/api"
+      ],
+      "env": {
+        "REDIS_URL": "redis://localhost:6379"
+      },
+      "port": 4000
     }
   ]
 }

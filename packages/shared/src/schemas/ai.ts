@@ -73,3 +73,69 @@ export const parsedEventIntentSchema = z.object({
   community: z.enum(COMMUNITIES).nullable(),
 });
 export type ParsedEventIntent = z.infer<typeof parsedEventIntentSchema>;
+
+// ---------------- Card scan (upload a photo of a printed card) ----------------
+
+export const SCAN_MAX_IMAGES = 4;
+/** Per-image cap on the base64 data URL the browser sends (it resizes to ~1800px JPEG first). */
+export const SCAN_MAX_IMAGE_CHARS = 1_400_000;
+
+export const scanCardSchema = z
+  .object({
+    images: z
+      .array(
+        z
+          .string()
+          .max(SCAN_MAX_IMAGE_CHARS, 'Photo is too large')
+          .refine((s) => /^data:image\/(jpeg|png|webp);base64,/.test(s.slice(0, 40)), 'Unsupported image'),
+      )
+      .max(SCAN_MAX_IMAGES)
+      .default([]),
+    /** Fallback: text the browser read off the photos itself (OCR) when the vision model is unavailable. */
+    ocrText: z.string().trim().max(8000).optional(),
+  })
+  .refine((v) => v.images.length > 0 || Boolean(v.ocrText), { message: 'Add a photo of the card' });
+export type ScanCardInput = z.infer<typeof scanCardSchema>;
+
+export const SCAN_FIELDS = ['eventType', 'language', 'names', 'parentage', 'date', 'time', 'venue', 'hosts', 'wording'] as const;
+export type ScanField = (typeof SCAN_FIELDS)[number];
+
+const nstr = z.string().nullable();
+
+/** What the model reads off a card. Lengths are trimmed when it is applied to a draft. */
+export const scannedCardSchema = z.object({
+  isInvitation: z.boolean().describe('false when the photos are not an invitation or event document'),
+  eventType: z.enum(EVENT_TYPE_IDS).nullable(),
+  language: z.enum(LANGUAGE_CODES).nullable().describe('main language of the printed text'),
+  community: z.enum(COMMUNITIES).nullable(),
+  primaryNames: z.array(z.string()).describe('the person/couple the event is for; wedding: [groom, bride] as printed'),
+  primaryDetails: z.array(z.string()).describe('parentage line under each primary name, same order'),
+  hosts: nstr.describe('who is inviting, e.g. "Mrs. Sunita & Mr. Ramesh Sharma"'),
+  invocation: nstr,
+  headline: nstr,
+  hostLine: nstr,
+  connector: nstr,
+  message: nstr,
+  familyTitle: nstr,
+  familyLines: z.array(z.string()),
+  welcomeTitle: nstr,
+  welcomeLines: z.array(z.string()),
+  complimentsTitle: nstr,
+  complimentsLines: z.array(z.string()),
+  closing: nstr,
+  note: nstr,
+  hashtag: nstr,
+  rsvpContacts: z.array(z.object({ name: z.string(), phone: z.string() })),
+  functions: z.array(
+    z.object({
+      name: z.string(),
+      date: nstr.describe('YYYY-MM-DD'),
+      time: nstr.describe('HH:mm 24h'),
+      venueName: nstr,
+      venueAddress: nstr,
+    }),
+  ),
+  uncertain: z.array(z.enum(SCAN_FIELDS)).describe('fields that were blurry, ambiguous or guessed'),
+});
+export type ScannedCard = z.infer<typeof scannedCardSchema>;
+export type ScanCardResult = ScannedCard & { method: 'vision' | 'ocr' };

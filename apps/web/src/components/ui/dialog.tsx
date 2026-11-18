@@ -38,15 +38,15 @@ export function Dialog({
       ref={ref}
       onClose={onClose}
       onClick={(e) => e.target === ref.current && onClose()}
-      className={`fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[var(--radius-card)] border border-hairline bg-surface p-0 text-ink backdrop:bg-[var(--color-overlay)] sm:m-auto sm:rounded-[var(--radius-card)] ${size === 'lg' ? 'sm:max-w-4xl' : 'sm:max-w-lg'}`}
+      className={`fixed m-0 mt-auto w-full max-w-none animate-[sheet-up_0.2s_var(--ease-out-quint)] rounded-t-[var(--radius-card)] border border-ink/15 bg-ivory p-0 text-ink backdrop:bg-[var(--color-overlay)] sm:m-auto sm:rounded-[var(--radius-card)] ${size === 'lg' ? 'sm:max-w-4xl' : 'sm:max-w-lg'}`}
     >
-      <div className="flex items-center justify-between border-b border-hairline px-5 py-3.5">
-        <h2 className="text-lg">{title}</h2>
-        <button type="button" onClick={onClose} className="grid size-8 place-items-center rounded-[var(--radius-control)] text-ink-soft transition-colors hover:bg-mist hover:text-ink" aria-label="Close">
+      <div className="flex items-center justify-between border-b border-ink/10 px-6 py-4">
+        <h2 className="text-2xl">{title}</h2>
+        <button type="button" onClick={onClose} className="grid size-9 place-items-center border border-ink/10 text-ink-soft transition-colors hover:border-ink/30 hover:text-ink" aria-label="Close">
           <X className="size-4.5" />
         </button>
       </div>
-      <div className={`overflow-y-auto px-5 py-5 ${size === 'lg' ? 'max-h-[85dvh]' : 'max-h-[75dvh]'}`}>{children}</div>
+      <div className={`overflow-y-auto px-6 py-6 ${size === 'lg' ? 'max-h-[85dvh]' : 'max-h-[75dvh]'}`}>{children}</div>
     </dialog>
   );
 }

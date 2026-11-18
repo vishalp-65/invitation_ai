@@ -39,7 +39,7 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
       ) : (
         <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-xl" aria-label="Edit the card">
           <DesignView page={doc.pages[current]!} data={data} language={event.language} />
-          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-lg bg-surface/95 font-semibold text-ink opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+          <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-lg bg-surface/95 font-medium text-ink opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
             <Brush className="size-4" /> Edit the card
           </span>
         </Link>

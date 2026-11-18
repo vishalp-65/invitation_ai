@@ -53,14 +53,14 @@ export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () 
       <div className="flex flex-col gap-5 pb-2">
         {GROUPS.map((g) => (
           <section key={g.title}>
-            <h3 className="mb-2 font-sans text-xs font-bold uppercase tracking-wide text-ink-soft">{g.title}</h3>
+            <h3 className="mb-2 font-sans text-xs font-medium uppercase tracking-wide text-ink-soft">{g.title}</h3>
             <ul className="flex flex-col">
               {g.items.map(([label, keys]) => (
-                <li key={label} className="flex items-center justify-between gap-3 border-b border-hairline py-2 text-sm last:border-0">
+                <li key={label} className="flex items-center justify-between gap-3 border-b border-ink/10 py-2 text-sm last:border-0">
                   <span>{label}</span>
                   <span className="flex gap-1">
                     {keys.map((k) => (
-                      <kbd key={k} className="rounded-md border border-hairline bg-mist px-1.5 py-0.5 font-sans text-xs font-semibold">
+                      <kbd key={k} className="rounded-md border border-ink/10 bg-mist px-1.5 py-0.5 font-sans text-xs font-medium">
                         {k}
                       </kbd>
                     ))}

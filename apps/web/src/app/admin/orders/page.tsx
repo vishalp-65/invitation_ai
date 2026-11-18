@@ -43,7 +43,7 @@ export default function AdminOrdersPage() {
       <PageHeader
         title="Orders"
         description="Every checkout, with what was charged, discounts and coupons."
-        actions={data && <span className="rounded-lg bg-surface px-4 py-2 text-sm font-semibold">Collected: {inr(data.paidPaise)}</span>}
+        actions={data && <span className="flex items-baseline gap-2 border border-ink/15 px-4 py-2"><span className="font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-soft">Collected</span><span className="font-display text-lg tabular-nums">{inr(data.paidPaise)}</span></span>}
       />
       <div className="mb-4">
         <Segmented
@@ -62,7 +62,7 @@ export default function AdminOrdersPage() {
           ]}
         />
       </div>
-      <section className="rounded-xl border border-hairline bg-surface">
+      <section className="border border-ink/10 bg-ink/[0.015]">
         {isLoading ? (
           <Skeleton className="m-5 h-48" />
         ) : !data?.items.length ? (
@@ -75,14 +75,14 @@ export default function AdminOrdersPage() {
               {data.items.map((o) => (
                 <tr key={o.id}>
                   <td>
-                    <p className="font-semibold">{o.userName ?? 'No name'}</p>
+                    <p className="font-medium">{o.userName ?? 'No name'}</p>
                     <p className="text-xs text-ink-soft">{o.userEmail ?? '—'}</p>
                   </td>
                   <td>{PRODUCTS[o.productCode as ProductCode]?.name ?? o.productCode}</td>
                   <td className="max-w-44 truncate text-ink-soft" title={o.eventTitle ?? ''}>
                     {o.eventTitle ?? '—'}
                   </td>
-                  <td className="font-semibold tabular-nums">{inr(o.amountPaise)}</td>
+                  <td className="font-medium tabular-nums">{inr(o.amountPaise)}</td>
                   <td className="whitespace-nowrap text-ink-soft">
                     {o.discountPaise > 0 ? `−${inr(o.discountPaise)}` : '—'}
                     {o.couponCode && (

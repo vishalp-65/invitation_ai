@@ -77,7 +77,7 @@ export function OtpInput({
           }}
           className={clsx(
             'h-13 w-full min-w-0 rounded-lg border bg-surface text-center text-xl font-medium tabular-nums text-ink caret-primary transition-[border-color,box-shadow] duration-150 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10 disabled:opacity-60',
-            invalid ? 'border-sindoor' : d ? 'border-ink/30' : 'border-hairline',
+            invalid ? 'border-sindoor' : d ? 'border-ink/30' : 'border-ink/10',
           )}
         />
       ))}

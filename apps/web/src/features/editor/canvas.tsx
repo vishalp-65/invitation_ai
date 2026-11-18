@@ -753,20 +753,20 @@ function MultiFrame({
             </button>
           ))}
         <div
-          className={`pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-hairline bg-surface p-1 text-ink ${above ? 'bottom-full mb-3' : 'top-full mt-4'}`}
+          className={`pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center gap-0.5 rounded-lg border border-ink/10 bg-ink/[0.02] p-1 text-ink ${above ? 'bottom-full mb-3' : 'top-full mt-4'}`}
           onPointerDown={(e) => e.stopPropagation()}
         >
-          <span className="whitespace-nowrap px-2 text-xs font-semibold text-ink-soft">{els.length} items</span>
+          <span className="whitespace-nowrap px-2 text-xs font-medium text-ink-soft">{els.length} items</span>
           {grouped ? (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Ungroup', 'Ctrl+Shift+G', 'top')} onClick={() => s().ungroup(ids)}>
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip('Ungroup', 'Ctrl+Shift+G', 'top')} onClick={() => s().ungroup(ids)}>
               <Ungroup className="size-4" /> Ungroup
             </button>
           ) : (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-semibold hover:bg-mist" {...tip('Group', 'Ctrl+G', 'top')} onClick={() => s().group(ids)}>
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip('Group', 'Ctrl+G', 'top')} onClick={() => s().group(ids)}>
               <Group className="size-4" /> Group
             </button>
           )}
-          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicateMany(ids)}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicateMany(ids)}>
             <Copy className="size-4" />
           </button>
           <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().removeMany(ids)}>
@@ -827,29 +827,29 @@ function SelectionFrame({
           type="button"
           {...tip('Rotate', 'Shift: 15° steps')}
           onPointerDown={(e) => e.button === 0 && onRotate(e)}
-          className="absolute left-1/2 top-full mt-3 grid size-8 -translate-x-1/2 touch:mt-4 touch:size-10 cursor-grab place-items-center rounded-lg border border-hairline bg-surface text-ink"
+          className="absolute left-1/2 top-full mt-3 grid size-8 -translate-x-1/2 touch:mt-4 touch:size-10 cursor-grab place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] text-ink"
         >
           <RotateCw className="size-4" />
         </button>
       )}
       {/* Quick actions pill, counter-rotated so it stays upright */}
       <div
-        className={`absolute left-1/2 flex items-center gap-0.5 rounded-lg border border-hairline bg-surface p-1 text-ink ${above ? 'bottom-full mb-3 touch:mb-5' : 'top-full mt-14 touch:mt-[4.5rem]'}`}
+        className={`absolute left-1/2 flex items-center gap-0.5 rounded-lg border border-ink/10 bg-ink/[0.02] p-1 text-ink ${above ? 'bottom-full mb-3 touch:mb-5' : 'top-full mt-14 touch:mt-[4.5rem]'}`}
         style={{ transform: `translateX(-50%) rotate(${-el.rot}deg)` }}
         onPointerDown={(e) => e.stopPropagation()}
       >
         {onEdit && (
-          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Edit text', 'Enter', 'top')} onClick={onEdit}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Edit text', 'Enter', 'top')} onClick={onEdit}>
             <PencilLine className="size-4" />
           </button>
         )}
         {el.locked ? (
-          <button type="button" className="flex h-8 items-center gap-1 rounded-lg px-2.5 touch:h-10 text-sm font-semibold hover:bg-mist" onClick={() => s().update(el.id, { locked: false })}>
+          <button type="button" className="flex h-8 items-center gap-1 rounded-lg px-2.5 touch:h-10 text-sm font-medium hover:bg-ink/[0.04]" onClick={() => s().update(el.id, { locked: false })}>
             <Lock className="size-4" /> Unlock
           </button>
         ) : (
           <>
-            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-mist" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicate(el.id)}>
+            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicate(el.id)}>
               <Copy className="size-4" />
             </button>
             <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().remove(el.id)}>

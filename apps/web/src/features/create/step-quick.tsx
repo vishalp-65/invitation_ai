@@ -1,6 +1,6 @@
 'use client';
 
-import { getEventType, getLanguage, type EventContent } from '@cardai/shared';
+import { getEventType, getLanguage, type EventContent, type ScanField } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { CalendarDays, Check, Languages, MapPin, Paintbrush, Sparkles, Users } from 'lucide-react';
 import { useLocale } from 'next-intl';
@@ -14,6 +14,7 @@ import { defaultWording } from './default-wording';
 import { DraftPreview } from './draft-preview';
 import { emptyFunction, useDraft, type Draft } from './draft-store';
 import { findTemplate } from '@/lib/hooks';
+import { CheckBadge, FLAGGED, FunctionList, resolveScanField, ScanReview } from './scan/scan-review';
 
 /** The function shown on the card: the ceremony itself for weddings, else the first one. */
 export function mainFunctionName(type: Parameters<typeof getEventType>[0]): string {
@@ -34,7 +35,7 @@ export function detailsProblem(d: Pick<Draft, 'type' | 'names' | 'functions'>, h
  * Details, in three short cards beside a live preview of the chosen design. Only names, date and
  * venue are required; everything else is edited on the card later.
  */
-export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean; onChangeDesign: () => void }) {
+export function StepQuick({ showErrors, onChangeDesign, onRescan }: { showErrors: boolean; onChangeDesign: () => void; onRescan: () => void }) {
   const d = useDraft();
   const hi = useLocale() === 'hi';
   const ev = getEventType(d.type);
@@ -46,10 +47,14 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
   const [writing, setWriting] = useState(false);
   const { ensureLogin, dialog } = useRequireLogin(hi ? 'AI के लिए अपना ईमेल सत्यापित करें' : 'Verify your email to use AI');
   const latinNames = d.language !== 'en' && d.names.some((n) => /[a-z]/i.test(n));
+  const scanned = d.source === 'scan';
+  /** Fields the card scan was unsure about, until the user edits them. */
+  const check = (f: ScanField) => scanned && Boolean(d.scan?.uncertain.includes(f));
 
   // One function to start with (more are added in the editor); untouched drafts get the main one.
   useEffect(() => {
     const s = useDraft.getState();
+    if (s.source === 'scan') return; // every function read off the card is kept
     const name = mainFunctionName(s.type);
     if (s.functions.length !== 1 || (!s.functions[0]!.venueName && s.functions[0]!.name !== name)) {
       const keep = s.functions.find((f) => f.venueName) ?? emptyFunction(name);
@@ -66,6 +71,14 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
       ? { ...defaultWording(s.type, s.language, names, s.hosts, s.community), primaryNames: names.filter(Boolean) }
       : { ...s.content, primaryNames: names.filter(Boolean) };
     d.set({ names, content });
+    resolveScanField('names');
+  };
+
+  const setParentage = (i: number, v: string) => {
+    const parentage = [...d.parentage] as [string, string];
+    parentage[i] = v;
+    d.set({ parentage, content: { ...useDraft.getState().content, primaryDetails: parentage.filter(Boolean) } });
+    resolveScanField('parentage');
   };
 
   async function convertNames() {
@@ -114,22 +127,30 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
 
   let n = 0;
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-14">
       {dialog}
-      <div className="flex min-w-0 flex-col gap-5">
+      <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+        {scanned && <ScanReview hi={hi} onRescan={onRescan} />}
         {people > 0 && (
-          <Section n={++n} done={namesDone} icon={<Users className="size-4" />} title={people === 2 ? (hi ? 'जोड़े के नाम' : 'The couple') : hi ? 'किसके लिए' : 'Who it’s for'} sub={hi ? 'जैसे कार्ड पर छपना चाहिए।' : 'Exactly as they should appear on the card.'}>
+          <Section n={++n} done={namesDone} flag={check('names') || check('parentage')} hi={hi} icon={<Users className="size-4" />} title={people === 2 ? (hi ? 'जोड़े के नाम' : 'The couple') : hi ? 'किसके लिए' : 'Who it’s for'} sub={hi ? 'जैसे कार्ड पर छपना चाहिए।' : 'Exactly as they should appear on the card.'}>
             <div className={clsx('grid gap-4', people === 2 && 'sm:grid-cols-2')}>
               {Array.from({ length: people }, (_, i) => (
                 <Field key={i} label={nameLabel(i)} error={err(!d.names[i]?.trim(), hi ? 'नाम ज़रूरी है' : 'Required')}>
                   {(id, desc) => (
-                    <Input id={id} aria-describedby={desc} aria-invalid={Boolean(err(!d.names[i]?.trim(), 'x'))} value={d.names[i]} lang={d.language} autoComplete="off" placeholder={people === 2 ? (i === 0 ? 'Aarav' : 'Diya') : 'Ananya'} onChange={(e) => setName(i, e.target.value)} />
+                    <Input id={id} aria-describedby={desc} aria-invalid={Boolean(err(!d.names[i]?.trim(), 'x'))} className={clsx(check('names') && FLAGGED)} value={d.names[i]} lang={d.language} autoComplete="off" placeholder={people === 2 ? (i === 0 ? 'Aarav' : 'Diya') : 'Ananya'} onChange={(e) => setName(i, e.target.value)} />
                   )}
                 </Field>
               ))}
+              {scanned &&
+                people === 2 &&
+                [0, 1].map((i) => (
+                  <Field key={`p${i}`} label={hi ? 'माता-पिता की पंक्ति' : 'Parents line'} hint={hi ? 'वैकल्पिक' : 'Optional, e.g. “S/o Mr. & Mrs. Sharma”'}>
+                    {(id) => <Input id={id} value={d.parentage[i]} lang={d.language} className={clsx(check('parentage') && FLAGGED)} onChange={(e) => setParentage(i, e.target.value)} />}
+                  </Field>
+                ))}
             </div>
             {latinNames && (
-              <div className="mt-4 flex flex-wrap items-center gap-3 rounded-lg border border-hairline bg-surface-2 p-3 pl-4">
+              <div className="mt-5 flex flex-wrap items-center gap-3 border border-ink/10 bg-ink/[0.03] p-3 pl-4">
                 <Languages className="size-4 shrink-0" aria-hidden />
                 <p className="flex-1 text-[0.95rem]">{hi ? `नाम ${lang.nativeName} लिपि में बदलें?` : `Your card is in ${lang.name}. Write the names in ${lang.name} script?`}</p>
                 <Button size="sm" variant="line" onClick={convertNames} loading={converting}>
@@ -140,7 +161,19 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
           </Section>
         )}
 
-        {fn && (
+        {scanned ? (
+          <Section
+            n={++n}
+            done={d.functions.every((f) => f.date && f.venueName.trim())}
+            flag={check('date') || check('time') || check('venue')}
+            hi={hi}
+            icon={<CalendarDays className="size-4" />}
+            title={hi ? 'कार्यक्रम' : 'Functions'}
+            sub={hi ? `कार्ड पर ${d.functions.length} कार्यक्रम मिले। तारीख़ और स्थान ज़रूरी हैं।` : `${d.functions.length} ${d.functions.length === 1 ? 'function' : 'functions'} found on your card. Date and venue are required.`}
+          >
+            <FunctionList hi={hi} showErrors={showErrors} check={check} />
+          </Section>
+        ) : fn && (
           <Section n={++n} done={whenDone} icon={<CalendarDays className="size-4" />} title={hi ? 'कब और कहाँ' : 'When & where'} sub={hi ? `${fn.name} की तारीख और स्थान। बाकी कार्यक्रम एडिटर में जोड़ें।` : `For the ${fn.name.toLowerCase()}. Add more functions in the editor.`}>
             <div className="grid gap-4 sm:grid-cols-2">
               <Field label={hi ? 'तारीख' : 'Date'} error={err(!fn.date, hi ? 'तारीख ज़रूरी है' : 'Required')}>
@@ -164,7 +197,7 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
           </Section>
         )}
 
-        <Section n={n + 1} optional hi={hi} done={Boolean(d.hosts.trim())} icon={<Sparkles className="size-4" />} title={hi ? 'निमंत्रक और शब्द' : 'Hosts & wording'} sub={hi ? 'कौन आमंत्रित कर रहा है, और कार्ड के शब्द।' : 'Who is inviting, and the words on the card.'}>
+        <Section n={n + 1} optional hi={hi} flag={check('hosts') || check('wording')} done={Boolean(d.hosts.trim())} icon={<Sparkles className="size-4" />} title={hi ? 'निमंत्रक और शब्द' : 'Hosts & wording'} sub={hi ? 'कौन आमंत्रित कर रहा है, और कार्ड के शब्द।' : 'Who is inviting, and the words on the card.'}>
           <Field label={hi ? 'आमंत्रित करने वाले' : 'Who is inviting'}>
             {(id) => (
               <Input
@@ -173,20 +206,23 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
                 placeholder={hi ? 'श्रीमती सुनीता एवं श्री रमेश शर्मा' : 'Mrs. Sunita & Mr. Ramesh Sharma'}
                 onChange={(e) => {
                   const s = useDraft.getState();
+                  resolveScanField('hosts');
                   d.set({ hosts: e.target.value, ...(s.contentIsDefault ? { content: { ...defaultWording(s.type, s.language, s.names, e.target.value, s.community), primaryNames: s.names.filter(Boolean) } } : {}) });
                 }}
               />
             )}
           </Field>
-          <div className="mt-4 flex flex-col gap-3 rounded-xl border border-dashed border-hairline bg-surface-2 p-4 sm:flex-row sm:items-center">
+          <div className="mt-5 flex flex-col gap-3 border border-dashed border-ink/15 p-4 sm:flex-row sm:items-center">
             <p className="flex-1 text-[0.95rem] text-ink-soft">
-              {d.contentIsDefault
-                ? hi ? 'अभी कार्ड पर सामान्य शब्द हैं।' : 'Your card has standard wording right now.'
-                : hi ? 'AI के शब्द कार्ड पर लगे हैं।' : 'AI wording is on your card.'}
+              {scanned
+                ? hi ? 'आपके छपे कार्ड के शब्द वैसे ही लगाए गए हैं। हर पंक्ति एडिटर में बदल सकते हैं।' : 'The wording from your printed card is used as is. Change any line in the editor.'
+                : d.contentIsDefault
+                  ? hi ? 'अभी कार्ड पर सामान्य शब्द हैं।' : 'Your card has standard wording right now.'
+                  : hi ? 'AI के शब्द कार्ड पर लगे हैं।' : 'AI wording is on your card.'}
             </p>
             <Button variant="line" onClick={writeWithAi} loading={writing} className="shrink-0">
               <Sparkles className="size-4" />
-              {hi ? `AI से ${lang.nativeName} में लिखें` : `Write in ${lang.name} with AI`}
+              {scanned ? (hi ? 'AI से नए शब्द' : 'Rewrite with AI') : hi ? `AI से ${lang.nativeName} में लिखें` : `Write in ${lang.name} with AI`}
             </Button>
           </div>
         </Section>
@@ -194,22 +230,22 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
 
       {/* Live preview of the chosen design: sticky beside the form on desktop. */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 rounded-[var(--radius-card)] border border-hairline bg-surface p-5">
-          <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="sticky top-24 border border-ink/10 bg-ink/[0.02]">
+          <div className="flex items-center justify-between gap-3 border-b border-ink/10 px-5 py-4">
             <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-sm font-semibold text-leaf">
-                <span className="size-1.5 animate-pulse rounded-full bg-leaf" aria-hidden />
+              <p className="flex items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-wider text-gold">
+                <span className="size-1.5 animate-pulse rounded-full bg-gold" aria-hidden />
                 {hi ? 'लाइव झलक' : 'Live preview'}
               </p>
-              <p className="mt-0.5 truncate font-semibold">{template?.family?.name ?? template?.name}</p>
+              <p className="mt-1 truncate">{template?.family?.name ?? template?.name}</p>
             </div>
             <Button variant="line" size="sm" onClick={onChangeDesign} className="shrink-0">
               <Paintbrush className="size-3.5" />
               {hi ? 'बदलें' : 'Change'}
             </Button>
           </div>
-          <div className="rounded-xl bg-workspace p-5">
-            <DraftPreview className="mx-auto max-w-[280px]" />
+          <div className="editor-stage p-6">
+            <DraftPreview className="mx-auto max-w-[290px]" />
           </div>
         </div>
       </aside>
@@ -217,22 +253,26 @@ export function StepQuick({ showErrors, onChangeDesign }: { showErrors: boolean;
   );
 }
 
-function Section({ n, done, icon, title, sub, optional, hi, children }: { n: number; done: boolean; icon: ReactNode; title: string; sub: string; optional?: boolean; hi?: boolean; children: ReactNode }) {
+function Section({ n, done, flag, icon, title, sub, optional, hi, children }: { n: number; done: boolean; flag?: boolean; icon: ReactNode; title: string; sub: string; optional?: boolean; hi?: boolean; children: ReactNode }) {
   return (
-    <section className="rounded-[var(--radius-card)] border border-hairline bg-surface p-5 sm:p-7">
-      <header className="mb-5 flex items-start gap-4">
+    <section className={clsx('border bg-ink/[0.02] p-5 transition-colors duration-500 sm:p-7', flag ? 'border-gold/50' : done ? 'border-ink/20' : 'border-ink/10')}>
+      <header className="mb-6 flex items-start gap-4 sm:gap-5">
         <span
-          className={clsx('grid size-9 shrink-0 place-items-center rounded-full text-sm font-bold transition-colors duration-300', done ? 'bg-leaf text-white' : 'bg-tint text-primary')}
+          className={clsx(
+            'grid size-10 shrink-0 place-items-center border font-mono text-xs transition-colors duration-500',
+            done ? 'border-ink bg-ink text-ivory' : 'border-ink/15 text-ink-soft',
+          )}
           aria-hidden
         >
-          {done ? <Check className="size-4" strokeWidth={3} /> : n}
+          {done ? <Check className="size-4 animate-pop" strokeWidth={2.5} /> : String(n).padStart(2, '0')}
         </span>
         <div className="min-w-0 flex-1">
-          <h2 className="flex flex-wrap items-center gap-2 text-xl sm:text-2xl">
+          <h2 className="flex flex-wrap items-center gap-2.5 text-lg sm:text-xl">
             {title}
-            {optional && <span className="rounded-md bg-surface-2 px-2.5 py-0.5 border border-hairline text-xs font-semibold tracking-normal text-ink-soft">{hi ? 'वैकल्पिक' : 'Optional'}</span>}
+            {optional && <span className="border border-ink/15 px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-wider text-ink-soft">{hi ? 'वैकल्पिक' : 'Optional'}</span>}
+            {flag && <CheckBadge hi={hi} />}
           </h2>
-          <p className="mt-1 flex items-center gap-1.5 text-[0.95rem] text-ink-soft">
+          <p className="mt-1 flex items-center gap-1.5 text-sm text-ink-soft">
             <span className="text-ink-soft/70" aria-hidden>
               {icon}
             </span>

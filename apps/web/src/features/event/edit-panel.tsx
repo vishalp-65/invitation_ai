@@ -198,11 +198,11 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                 <li key={t.id} className="w-28 shrink-0 snap-start">
                   <button type="button" aria-pressed={on} onClick={() => save.mutate({ templateId: t.id })} className="group block w-full text-left">
                     <span
-                      className={`relative block aspect-[9/16] overflow-hidden rounded-lg border transition-[border-color,box-shadow] ${on ? 'border-gold ring-2 ring-gold ring-offset-2 ring-offset-surface' : 'border-hairline group-hover:border-ink/30'}`}
+                      className={`relative block aspect-[9/16] overflow-hidden rounded-lg border transition-[border-color,box-shadow] ${on ? 'border-gold ring-2 ring-gold ring-offset-2 ring-offset-surface' : 'border-ink/10 group-hover:border-ink/30'}`}
                     >
                       <DesignThumb id={t.id} fallback={t.theme.palette.background} />
                       {on && (
-                        <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-gold text-[#24161f]">
+                        <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-ink text-ivory">
                           <Check className="size-3.5" strokeWidth={3} aria-hidden />
                         </span>
                       )}
@@ -221,10 +221,10 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           {photos.map((p) => (
             <div key={p.id} className="flex w-24 flex-col gap-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our CDN */}
-              <img src={p.url} alt="" className="size-24 rounded-lg border border-hairline object-cover" />
+              <img src={p.url} alt="" className="size-24 rounded-lg border border-ink/10 object-cover" />
               <button
                 type="button"
-                className="text-xs font-semibold text-primary disabled:opacity-50"
+                className="text-xs font-medium text-primary disabled:opacity-50"
                 onClick={() => aiImage('caricature', p.id)}
                 disabled={Boolean(aiBusy)}
               >
@@ -236,7 +236,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex size-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink/25 text-xs font-medium text-ink-soft transition-colors hover:border-primary hover:bg-tint hover:text-primary"
+              className="flex size-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink/25 text-xs font-medium text-ink-soft transition-colors hover:border-primary hover:bg-ink/[0.04] hover:text-primary"
             >
               <ImagePlus className="size-5" aria-hidden />
               Add photos
@@ -246,7 +246,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
         </div>
 
         <div className="mt-6 grid gap-3 md:grid-cols-2">
-          <div className="flex flex-col rounded-xl border border-hairline p-4">
+          <div className="flex flex-col rounded-xl border border-ink/10 p-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-[1.0625rem]">AI background art</h3>
               {background && <StatusPill tone="leaf">In use</StatusPill>}
@@ -269,7 +269,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
               )}
             </div>
           </div>
-          <div className="flex flex-col rounded-xl border border-hairline p-4">
+          <div className="flex flex-col rounded-xl border border-ink/10 p-4">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-[1.0625rem]">AI cinematic intro</h3>
               {event.settings.aiClipAssetId ? <StatusPill tone="leaf">Added</StatusPill> : !event.credits.ai_clip && <StatusPill tone="gold">Paid</StatusPill>}
@@ -320,7 +320,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             </>
           }
         >
-          <div className="divide-y divide-hairline">
+          <div className="divide-y divide-ink/10">
             <ToggleRow label="Ask guests to RSVP" hint="Guests reply for each function." checked={event.settings.rsvpEnabled} onChange={(v) => save.mutate({ settings: { rsvpEnabled: v } })} />
             <ToggleRow label="Ask meal preference" checked={event.settings.askMealPreference} onChange={(v) => save.mutate({ settings: { askMealPreference: v } })} />
             <ToggleRow label="Ask if they need a stay" checked={event.settings.askAccommodation} onChange={(v) => save.mutate({ settings: { askAccommodation: v } })} />

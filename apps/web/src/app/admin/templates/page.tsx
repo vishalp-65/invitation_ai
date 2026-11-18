@@ -125,7 +125,7 @@ export default function AdminTemplatesPage() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, tag, family…" className={`${controlClass} h-10 w-full pl-9 pr-3 text-sm`} />
           </label>
           {tab !== 'trending' && tab !== 'popular' && (
-            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort by" className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-semibold`}>
+            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort by" className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}>
               <option value="uses">Most used</option>
               <option value="views">Most viewed</option>
               <option value="revenue">Most revenue</option>
@@ -151,27 +151,27 @@ export default function AdminTemplatesPage() {
       ) : (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {shown.map((t, i) => (
-            <li key={t.id} className={clsx('group flex flex-col overflow-hidden rounded-xl border border-hairline bg-surface', t.hidden && 'opacity-70')}>
+            <li key={t.id} className={clsx('group flex flex-col overflow-hidden border border-ink/10 bg-ink/[0.015] transition-colors hover:border-ink/25', t.hidden && 'opacity-70')}>
               <div className="relative p-2 pb-0">
                 <TemplateThumb id={t.id} name={t.name} coverPage={t.coverPage} />
                 <div className="absolute left-3.5 top-3.5 flex flex-wrap gap-1">
-                  {(tab === 'trending' || tab === 'popular') && <span className="grid size-6 place-items-center rounded-full bg-surface text-xs font-bold">{i + 1}</span>}
+                  {(tab === 'trending' || tab === 'popular') && <span className="grid size-6 place-items-center bg-ivory font-mono text-[0.6875rem]">{String(i + 1).padStart(2, '0')}</span>}
                   {t.featured && (
-                    <span className="inline-flex items-center gap-1 rounded-md bg-marigold px-2 py-0.5 text-[11px] font-bold text-[#1a1300]">
-                      <Star className="size-3" /> Featured
+                    <span className="inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[0.5625rem] uppercase tracking-[0.08em] bg-ink text-ivory">
+                      <Star className="size-2.5" /> Featured
                     </span>
                   )}
-                  {t.hidden && <span className="rounded-md bg-night/80 px-2 py-0.5 text-[11px] font-bold text-white">Hidden</span>}
+                  {t.hidden && <span className="inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[0.5625rem] uppercase tracking-[0.08em] bg-ivory/90 text-ink-soft">Hidden</span>}
                 </div>
                 {t.trend >= 30 && t.last7 >= 2 && (
-                  <span className="absolute right-3.5 top-3.5 inline-flex items-center gap-0.5 rounded-md bg-sindoor px-2 py-0.5 text-[11px] font-bold text-white">
-                    <Flame className="size-3" /> +{t.trend}%
+                  <span className="absolute right-3.5 top-3.5 inline-flex items-center gap-1 px-1.5 py-0.5 font-mono text-[0.5625rem] uppercase tracking-[0.08em] bg-gold text-ivory">
+                    <Flame className="size-2.5" /> +{t.trend}%
                   </span>
                 )}
               </div>
               <div className="flex flex-1 flex-col gap-2 p-3">
                 <div className="min-w-0">
-                  <p className="truncate font-semibold" title={t.name}>
+                  <p className="truncate text-[0.9375rem]" title={t.name}>
                     {t.name}
                   </p>
                   <div className="mt-0.5 flex flex-wrap gap-1">
@@ -186,18 +186,18 @@ export default function AdminTemplatesPage() {
                     {t.source === 'marketplace' && <Badge tone="info">Marketplace</Badge>}
                   </div>
                 </div>
-                <dl className="grid grid-cols-3 gap-1 text-center text-xs">
-                  <div className="rounded-lg bg-mist px-1 py-1.5">
-                    <dt className="text-ink-soft">Uses</dt>
-                    <dd className="font-bold tabular-nums">{num(t.invitations)}</dd>
+                <dl className="grid grid-cols-3 border-l border-t border-ink/10 text-center">
+                  <div className="border-b border-r border-ink/10 px-1 py-1.5">
+                    <dt className="font-mono text-[0.5625rem] uppercase tracking-[0.06em] text-ink-soft">Uses</dt>
+                    <dd className="text-sm tabular-nums">{num(t.invitations)}</dd>
                   </div>
-                  <div className="rounded-lg bg-mist px-1 py-1.5">
-                    <dt className="text-ink-soft">Views</dt>
-                    <dd className="font-bold tabular-nums">{num(t.views)}</dd>
+                  <div className="border-b border-r border-ink/10 px-1 py-1.5">
+                    <dt className="font-mono text-[0.5625rem] uppercase tracking-[0.06em] text-ink-soft">Views</dt>
+                    <dd className="text-sm tabular-nums">{num(t.views)}</dd>
                   </div>
-                  <div className="rounded-lg bg-mist px-1 py-1.5">
-                    <dt className="text-ink-soft">Revenue</dt>
-                    <dd className="font-bold tabular-nums">{compactINR(t.revenuePaise)}</dd>
+                  <div className="border-b border-r border-ink/10 px-1 py-1.5">
+                    <dt className="font-mono text-[0.5625rem] uppercase tracking-[0.06em] text-ink-soft">Revenue</dt>
+                    <dd className="text-sm tabular-nums">{compactINR(t.revenuePaise)}</dd>
                   </div>
                 </dl>
                 <div className="mt-auto flex items-center gap-1 pt-1">
@@ -279,9 +279,9 @@ export default function AdminTemplatesPage() {
 function Step({ n, title, children }: { n: number; title: string; children: React.ReactNode }) {
   return (
     <li className="flex gap-3">
-      <span className="grid size-7 shrink-0 place-items-center rounded-full bg-primary text-sm font-bold text-on-primary">{n}</span>
+      <span className="grid size-7 shrink-0 place-items-center border border-ink/20 font-mono text-xs">{String(n).padStart(2, '0')}</span>
       <div>
-        <p className="font-semibold">{title}</p>
+        <p className="font-medium">{title}</p>
         <p className="text-ink-soft">{children}</p>
       </div>
     </li>
@@ -297,9 +297,9 @@ function IconBtn({ label, onClick, children, active, danger }: { label: string; 
       aria-pressed={active}
       data-tip={label}
       className={clsx(
-        'grid size-8 place-items-center rounded-full transition-colors',
-        danger ? 'text-ink-soft hover:bg-sindoor/10 hover:text-sindoor' : 'text-ink-soft hover:bg-mist hover:text-ink',
-        active && 'bg-marigold/20 text-marigold-deep',
+        'grid size-8 place-items-center transition-colors',
+        danger ? 'text-ink-soft hover:bg-sindoor/10 hover:text-sindoor' : 'text-ink-soft hover:bg-ink/[0.04] hover:text-ink',
+        active && 'bg-ink/[0.08] !text-ink',
       )}
     >
       {children}
@@ -336,7 +336,7 @@ function EditCatalogDialog({ t, onClose }: { t: TemplateStat; onClose: () => voi
       <div className="flex flex-col gap-4">
         <Field label="Name">{(id) => <Input id={id} value={name} onChange={(e) => setName(e.target.value)} maxLength={60} />}</Field>
         <div>
-          <p className="mb-2 text-[0.95rem] font-semibold">Occasions</p>
+          <p className="mb-2 text-[0.95rem] font-medium">Occasions</p>
           <div className="flex flex-wrap gap-2">
             {EVENT_TYPE_IDS.map((id) => (
               <Chip key={id} selected={types.includes(id)} onClick={() => setTypes((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]))} className="h-9 text-sm">

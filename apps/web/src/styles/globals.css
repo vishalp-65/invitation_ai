@@ -1,58 +1,65 @@
 @import 'tailwindcss';
 
 /*
- * Design tokens — the trilogy: peacock indigo (ink + primary), haldi marigold, sindoor red.
- * Ground is a cool paper white; surfaces are solid, separated by hairlines (no shadows).
- * One typeface, Anek Devanagari (Latin + Devanagari): display text is the same family, narrower and heavier.
+ * Design tokens — monochrome "studio" theme (2026-11-18).
+ * Near-black ground + warm off-white ink in dark (the native look); a warm paper version in light.
+ * One accent, a soft rose (--color-gold, kept for compatibility), for live markers, ticks and progress.
+ * Type: Instrument Sans for display (regular, tight) and UI/body, JetBrains Mono for labels.
+ * Light values live here; [data-theme='dark'] below overrides them.
  */
 @theme {
-  /*
-   * Stationery palette: deep plum (ink + primary) with antique gold used sparingly
-   * (active markers, highlights, dark-mode primary). Warm off-white ground, solid surfaces,
-   * hairlines instead of shadows. Status colours (leaf / sindoor / marigold) are for status only.
-   */
-  --color-night: #1c0f1f;
-  --color-ink: #1e1524;
-  --color-ink-soft: #6e6372;
-  --color-plum: #4a1d4f;
-  --color-plum-deep: #2e1031;
-  --color-gold: #b08a3e;
-  --color-gold-soft: #e6c98a;
+  --color-night: oklch(0.045 0.008 260);
+  --color-ink: oklch(0.14 0.008 260);
+  --color-ink-soft: oklch(0.47 0.012 90);
+  --color-plum: oklch(0.12 0.008 260);
+  --color-plum-deep: oklch(0.08 0.008 260);
+  --color-gold: #b34f92;
+  --color-gold-soft: #f3cbe6;
+  --color-rose: #eca8d6;
+  --color-violet: #a78bfa;
+  --color-cyan: #67e8f9;
+  --color-amber: #fbbf24;
   --color-marigold: #f2a900;
   --color-marigold-soft: #ffd978;
   --color-marigold-deep: #c98700;
   --color-sindoor: #b3261e;
   --color-sindoor-soft: #e2394a;
   --color-sindoor-deep: #8a1a14;
-  --color-mist: #f3eff0;
-  --color-line: #eae4e6;
-  --color-paper: #ffffff;
+  --color-mist: oklch(0.945 0.005 90);
+  --color-line: oklch(0.9 0.006 90);
+  --color-paper: oklch(0.995 0.002 90);
   --color-leaf: #2f7a52;
-  --color-ivory: #faf8f6;
-  --color-sand: #f4f0ee;
-  --color-hairline: #eae4e6;
+  --color-ivory: oklch(0.975 0.004 90);
+  --color-sand: oklch(0.96 0.005 90);
+  --color-hairline: oklch(0.9 0.006 90);
   /* Semantic app tokens (flip in dark mode, see [data-theme] below). */
-  --color-surface: #ffffff;
-  --color-surface-2: #fbf9f8;
-  --color-workspace: #f1edec;
-  --color-primary: #4a1d4f;
-  --color-primary-hover: #3a1540;
-  --color-on-primary: #ffffff;
-  --color-accent: #4a1d4f;
-  --color-overlay: rgb(30 21 36 / 0.42);
-  --color-tint: #f5eff5;
-  --color-tint-strong: #eadfeb;
-  --color-glow: #f5eff5;
+  --color-surface: oklch(0.995 0.002 90);
+  --color-surface-2: oklch(0.985 0.003 90);
+  --color-workspace: oklch(0.955 0.005 90);
+  --color-primary: oklch(0.14 0.008 260);
+  --color-primary-hover: oklch(0.26 0.008 260);
+  --color-on-primary: oklch(0.98 0.004 90);
+  --color-accent: oklch(0.14 0.008 260);
+  --color-overlay: rgb(10 11 14 / 0.45);
+  --color-tint: oklch(0.94 0.006 90);
+  --color-tint-strong: oklch(0.9 0.006 90);
+  --color-glow: oklch(0.94 0.006 90);
 
-  /* Instrument Sans (wdth + wght axes) for Latin; Devanagari falls through to Noto Sans Devanagari. */
+  /* Instrument Sans everywhere; Devanagari falls through to Noto Sans Devanagari. */
   --font-sans: var(--font-instrument), var(--font-deva), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Display = Instrument Sans at regular weight, tight tracking: what the studio template actually renders. */
   --font-display: var(--font-instrument), var(--font-deva), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, 'SFMono-Regular', monospace;
 
-  /* Small, consistent corners: controls 8px, cards/menus 12px. Pill only for avatars/dots. */
+  /* Nearly square corners, like the studio template. Buttons are pills. */
   --radius-pill: 999px;
-  --radius-control: 8px;
-  --radius-field: 8px;
-  --radius-card: 12px;
+  --radius-control: 4px;
+  --radius-field: 4px;
+  --radius-card: 4px;
+  /* Tighten Tailwind's scale too, so rounded-lg / rounded-xl across the app read nearly square. */
+  --radius-md: 3px;
+  --radius-lg: 4px;
+  --radius-xl: 6px;
 
   /* Flat UI: no drop shadows anywhere. Separation comes from hairline borders and surface tints.
    * Clearing the scale means `shadow-sm/md/lg/…` utilities simply don't exist. */
@@ -74,7 +81,13 @@
   --animate-shimmer: shimmer 1.4s linear infinite;
   --animate-card-in: card-in 0.9s var(--ease-out-quint) both;
   --animate-fade-up: fade-up 0.7s var(--ease-out-quint) both;
+  --animate-scan: scan 2.2s ease-in-out infinite;
 
+  /* Card-scan: a light bar sweeping down a photo while it is read. */
+  @keyframes scan {
+    0% { transform: translateY(-100%); }
+    100% { transform: translateY(900%); }
+  }
   @keyframes rise {
     from { opacity: 0; transform: translateY(18px); }
     to { opacity: 1; transform: none; }
@@ -143,58 +156,32 @@
   }
   [data-theme='dark'] {
     color-scheme: dark;
-    --color-night: #0d080f;
-    --color-ink: #f1ecef;
-    --color-ink-soft: #a99daa;
-    --color-mist: #2a2130;
-    --color-line: #352b3c;
-    --color-hairline: #31283a;
-    --color-paper: #1e1722;
-    --color-ivory: #140f17;
-    --color-sand: #1a141e;
+    --color-night: oklch(0.035 0.008 260);
+    --color-ink: oklch(0.94 0.005 90);
+    --color-ink-soft: oklch(0.6 0.015 90);
+    --color-mist: oklch(0.12 0.008 260);
+    --color-line: oklch(0.18 0.008 260);
+    --color-hairline: oklch(0.18 0.008 260);
+    --color-paper: oklch(0.09 0.008 260);
+    --color-ivory: oklch(0.06 0.008 260);
+    --color-sand: oklch(0.08 0.008 260);
     --color-leaf: #5cbf8a;
     --color-sindoor: #f0666b;
     --color-sindoor-soft: #ff8a8e;
     --color-marigold-soft: #6b5214;
-    --color-gold: #e6c98a;
-    --color-surface: #1e1722;
-    --color-surface-2: #231b28;
-    --color-workspace: #0e0a10;
-    --color-primary: #e6c98a;
-    --color-primary-hover: #f0d8a6;
-    --color-on-primary: #24161f;
-    --color-accent: #e6c98a;
-    --color-overlay: rgb(0 0 0 / 0.6);
-    --color-tint: #2a2027;
-    --color-tint-strong: #3a2c33;
-    --color-glow: #2a2027;
-  }
-  [data-theme='light'] {
-    --color-night: #1c0f1f;
-    --color-ink: #1e1524;
-    --color-ink-soft: #6e6372;
-    --color-mist: #f3eff0;
-    --color-line: #eae4e6;
-    --color-hairline: #eae4e6;
-    --color-paper: #ffffff;
-    --color-ivory: #faf8f6;
-    --color-sand: #f4f0ee;
-    --color-leaf: #2f7a52;
-    --color-sindoor: #b3261e;
-    --color-sindoor-soft: #e2394a;
-    --color-marigold-soft: #ffd978;
-    --color-gold: #b08a3e;
-    --color-surface: #ffffff;
-    --color-surface-2: #fbf9f8;
-    --color-workspace: #f1edec;
-    --color-primary: #4a1d4f;
-    --color-primary-hover: #3a1540;
-    --color-on-primary: #ffffff;
-    --color-accent: #4a1d4f;
-    --color-overlay: rgb(30 21 36 / 0.42);
-    --color-tint: #f5eff5;
-    --color-tint-strong: #eadfeb;
-    --color-glow: #f5eff5;
+    --color-gold: #eca8d6;
+    --color-gold-soft: #5a3350;
+    --color-surface: oklch(0.09 0.008 260);
+    --color-surface-2: oklch(0.105 0.008 260);
+    --color-workspace: oklch(0.045 0.008 260);
+    --color-primary: oklch(0.94 0.005 90);
+    --color-primary-hover: oklch(0.84 0.005 90);
+    --color-on-primary: oklch(0.06 0.008 260);
+    --color-accent: oklch(0.94 0.005 90);
+    --color-overlay: rgb(0 0 0 / 0.65);
+    --color-tint: oklch(0.14 0.01 260);
+    --color-tint-strong: oklch(0.18 0.01 260);
+    --color-glow: oklch(0.14 0.01 260);
   }
   /* Theme switch: no transition on everything (that's slow); the root just swaps vars. */
   html[data-theme-switching] * {
@@ -212,39 +199,33 @@
     overflow-x: clip;
     font-family: var(--font-sans);
     font-size: 1rem;
-    line-height: 1.6;
-    text-rendering: optimizeLegibility;
+    line-height: 1.5;
   }
-  /* Headings use the semi-condensed cut of Instrument Sans: taller, more like set type on a card. */
+  /* Display headings: Instrument Sans, regular weight, tight leading (the studio look). */
   h1,
-  h2,
-  h3 {
+  h2 {
     font-family: var(--font-display);
-    font-weight: 600;
-    font-stretch: 88%;
-    line-height: 1.08;
-    letter-spacing: -0.02em;
+    font-weight: 400;
+    line-height: 0.95;
+    letter-spacing: -0.025em;
     text-wrap: balance;
   }
-  h1 {
-    font-stretch: 82%;
+  /* Small headings stay in the UI sans, medium weight. */
+  h3 {
+    font-weight: 500;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+    text-wrap: balance;
+  }
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 400;
     letter-spacing: -0.025em;
   }
-  h3 {
-    font-stretch: 94%;
-    letter-spacing: -0.01em;
-    line-height: 1.25;
-  }
-  /* Display text outside headings (prices, counts, names on tiles) gets the same cut. */
-  .font-display {
-    font-weight: 600;
-    font-stretch: 85%;
-    letter-spacing: -0.02em;
-  }
   /* Devanagari needs headroom for matras and no negative tracking. */
-  :lang(hi) :is(h1, h2, h3),
-  :is(h1, h2, h3):lang(hi) {
-    line-height: 1.34;
+  :lang(hi) :is(h1, h2, h3, .font-display),
+  :is(h1, h2, h3, .font-display):lang(hi) {
+    line-height: 1.3;
     letter-spacing: 0;
   }
   p {
@@ -255,7 +236,7 @@
     outline-offset: 2px;
   }
   ::selection {
-    background: color-mix(in srgb, var(--color-gold) 30%, transparent);
+    background: color-mix(in srgb, var(--color-rose) 35%, transparent);
     color: var(--color-ink);
   }
 }
@@ -332,7 +313,7 @@
     position: absolute;
     inset: 0;
     overflow: hidden;
-    background: radial-gradient(120% 90% at 50% 0%, #4a1d4f 0%, var(--color-night) 60%);
+    background: radial-gradient(120% 90% at 50% 0%, oklch(0.14 0.01 260) 0%, var(--color-night) 60%);
   }
   .mesh > span {
     position: absolute;
@@ -395,9 +376,10 @@
   }
 
   /* Card: flat surface with a hairline. Corners come from rounded-[var(--radius-card)]. */
+  /* Studio panel: a faint ink wash and a 10% ink hairline, square corners. */
   .panel {
-    background: var(--color-surface);
-    border: 1px solid var(--color-hairline);
+    background: color-mix(in srgb, var(--color-ink) 2%, var(--color-ivory));
+    border: 1px solid color-mix(in srgb, var(--color-ink) 10%, transparent);
   }
   /* Interactive cards: the border darkens on hover. No movement, no shadow. */
   .lift {
@@ -405,7 +387,7 @@
   }
   @media (hover: hover) {
     .lift:hover {
-      border-color: color-mix(in srgb, var(--color-ink) 28%, transparent);
+      border-color: color-mix(in srgb, var(--color-ink) 30%, transparent);
     }
   }
   /* Dropdowns, popovers and context menus. */
@@ -458,12 +440,13 @@
     gap: 0.25rem;
     height: 1.375rem;
     padding: 0 0.5rem;
-    border-radius: 6px;
-    border: 1px solid var(--color-hairline);
-    background: var(--color-surface-2);
+    border-radius: 0;
+    border: 0;
+    background: color-mix(in srgb, var(--color-ink) 10%, transparent);
     color: var(--color-ink-soft);
-    font-size: 0.75rem;
-    font-weight: 600;
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-weight: 400;
     white-space: nowrap;
   }
   /* Small section label: sentence case, brand red. */
@@ -471,8 +454,9 @@
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 400;
     color: var(--color-ink-soft);
   }
 
@@ -555,9 +539,9 @@
   max-width: 260px;
   padding: 0.3rem 0.6rem;
   border-radius: 6px;
-  background: #2a1430;
-  color: #f7f1f5;
-  font: 600 0.78rem/1.3 var(--font-sans);
+  background: oklch(0.14 0.008 260);
+  color: oklch(0.96 0.004 90);
+  font: 500 0.78rem/1.3 var(--font-sans);
   pointer-events: none;
   opacity: 0;
   transition: opacity 0.09s ease-out;
@@ -567,11 +551,11 @@
   opacity: 1;
 }
 [data-theme='dark'] .tip-layer {
-  background: #f1ecef;
-  color: #1e1524;
+  background: oklch(0.94 0.005 90);
+  color: oklch(0.1 0.008 260);
 }
 .tip-layer kbd {
-  font: 600 0.7rem/1 var(--font-sans);
+  font: 400 0.7rem/1 var(--font-mono);
   padding: 0.18rem 0.35rem;
   border-radius: 4px;
   background: rgb(255 255 255 / 0.14);
@@ -591,7 +575,7 @@
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   .glass {
-    background: rgb(46 16 49 / 0.92);
+    background: rgb(10 11 14 / 0.92);
   }
 }
 
@@ -871,3 +855,356 @@
 .stagger > :nth-child(6) { animation-delay: 150ms; }
 .stagger > :nth-child(7) { animation-delay: 180ms; }
 .stagger > :nth-child(n + 8) { animation-delay: 210ms; }
+
+/* ================= Studio landing (template-derived) ================= */
+
+/* Mono section label with a short rule before it: "—— Process". */
+.kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--color-ink-soft);
+}
+.kicker::before {
+  content: '';
+  width: 3rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
+}
+.kicker-center::after {
+  content: '';
+  width: 3rem;
+  height: 1px;
+  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
+}
+
+/* Outlined display text ("results."). */
+.text-stroke {
+  -webkit-text-stroke: 1.5px currentColor;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Film grain over a section. */
+.grain {
+  position: relative;
+}
+/* One viewport-sized fixed layer with a small tiled texture (not a page-tall rasterised SVG). */
+.grain::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-size: 200px 200px;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Rose → violet → cyan → amber sweep for one highlighted word. */
+.word-gradient {
+  background: linear-gradient(45deg, #eca8d6 0%, #a78bfa 25%, #67e8f9 50%, #fbbf24 75%, #eca8d6 100%);
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 3s ease infinite;
+}
+@keyframes gradient-shift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+/* Timed fill for steppers / testimonial progress bars (set animation-duration inline). */
+@keyframes bar-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
+.bar-fill {
+  animation: bar-fill 6s linear forwards;
+}
+@keyframes slide-in-x {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.slide-in-x {
+  animation: slide-in-x 0.5s ease-out both;
+}
+@keyframes dot-pulse {
+  0%,
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.4);
+  }
+}
+@keyframes draw-line {
+  0% {
+    stroke-dashoffset: 1000;
+    opacity: 0;
+  }
+  15% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0.7;
+  }
+  100% {
+    stroke-dashoffset: 0;
+    opacity: 0;
+  }
+}
+.draw-line {
+  stroke: var(--color-gold);
+  stroke-width: 1.2;
+  fill: none;
+  stroke-dasharray: 1000;
+  animation: draw-line 3s ease-in-out infinite;
+}
+/* Slow vertical drift for the hero card wall. */
+@keyframes wall-up {
+  to {
+    transform: translate3d(0, -50%, 0);
+  }
+}
+
+/* Display sizes (unlayered so they beat utilities). Devanagari gets more line-height and no negative tracking. */
+.display-xl {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(3.25rem, 9vw, 8rem);
+  line-height: 0.9;
+  letter-spacing: -0.025em;
+}
+.display-hero {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.6rem, 6.4vw, 7rem);
+  line-height: 0.92;
+  letter-spacing: -0.025em;
+}
+.display-md {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+}
+:lang(hi) :is(.display-xl, .display-hero, .display-md),
+:is(.display-xl, .display-hero, .display-md):lang(hi) {
+  line-height: 1.22;
+  letter-spacing: 0;
+}
+:lang(hi) .display-xl {
+  font-size: clamp(2.6rem, 7vw, 6rem);
+}
+:lang(hi) .display-hero {
+  font-size: clamp(2.2rem, 5.2vw, 5.5rem);
+}
+
+/* Signed-in page titles: same display type as the landing page, one size down. */
+.page-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(1.75rem, 2.6vw, 2.375rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+:lang(hi) .page-title,
+.page-title:lang(hi) {
+  line-height: 1.25;
+  letter-spacing: 0;
+}
+/* A kicker with bottom margin sits on its own line above a heading. */
+.kicker.mb-5 {
+  display: flex;
+  width: fit-content;
+}
+/* In signed-in screens and the create flow the kicker is a quiet label, a step smaller. */
+.app-main .kicker,
+.admin-main .kicker,
+.page-title-kicker {
+  font-size: 0.75rem;
+}
+.app-main .kicker::before,
+.admin-main .kicker::before {
+  width: 2rem;
+}
+
+/* Signed-in tables: column headers as small mono labels (studio template style). */
+.app-main thead th,
+.admin-main thead th {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 400;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-soft);
+}
+
+/* ================= Motion & performance (2026-11-18) ================= */
+
+/* Hero word letters: blur-to-sharp in CSS, staggered by inline animation-delay. */
+.letter-in {
+  display: inline-block;
+  white-space: pre;
+  animation: letter-in 0.5s cubic-bezier(0.33, 1, 0.68, 1) both;
+  transition: color 0.4s ease;
+}
+@keyframes letter-in {
+  from {
+    opacity: 0;
+    filter: blur(16px);
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+/* Below-the-fold sections skip layout/paint until they approach the viewport. */
+.cv-auto {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 1000px;
+}
+
+/* Scroll-linked motion: driven by the compositor via scroll timelines, zero JS.
+ * Browsers without scroll timelines simply show the static layout. */
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    /* Hero: copy drifts up and fades, video eases back, as you scroll past it (timeline = the hero). */
+    .hero-scroll {
+      view-timeline: --hero block;
+    }
+    .hero-scroll .hero-copy {
+      animation: hero-copy-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 80%;
+    }
+    .hero-scroll .hero-media {
+      animation: hero-media-out linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+    /* Gentle parallax for imagery: moves a little slower than the page. */
+    .parallax {
+      animation: parallax linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    .parallax-slow {
+      animation: parallax-slow linear both;
+      animation-timeline: view();
+      animation-range: cover 0% cover 100%;
+    }
+    /* Big section headings scale in a touch as they enter. */
+    .scroll-grow {
+      animation: scroll-grow linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 100%;
+    }
+  }
+}
+@keyframes hero-copy-out {
+  to {
+    opacity: 0;
+    transform: translate3d(0, -12vh, 0);
+  }
+}
+@keyframes hero-media-out {
+  to {
+    transform: scale(1.08);
+    opacity: 0.4;
+  }
+}
+@keyframes parallax {
+  from {
+    transform: translate3d(0, 6%, 0);
+  }
+  to {
+    transform: translate3d(0, -6%, 0);
+  }
+}
+@keyframes parallax-slow {
+  from {
+    transform: translate3d(0, 12%, 0);
+  }
+  to {
+    transform: translate3d(0, -12%, 0);
+  }
+}
+@keyframes scroll-grow {
+  from {
+    transform: scale(0.96);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+/* Pointer spotlight / halo driven by CSS variables set directly on the element (no React state). */
+.spot {
+  --mx: 50%;
+  --my: 50%;
+}
+.spot-glow {
+  background: radial-gradient(var(--spot-r, 220px) circle at var(--mx) var(--my), color-mix(in srgb, var(--color-ink) var(--spot-a, 10%), transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+@media (hover: hover) {
+  .spot:hover .spot-glow {
+    opacity: 1;
+  }
+}
+
+/* Comfortable touch targets for small controls on coarse pointers. */
+@media (pointer: coarse) {
+  .tap-pad {
+    position: relative;
+  }
+  .tap-pad::before {
+    content: '';
+    position: absolute;
+    inset: -12px -2px;
+  }
+}
+
+/* A wrapper around a collapsible art slot disappears with it on phones/tablets while it has no art. */
+@media (max-width: 1023px) {
+  .art-wrap:has(> [data-empty]) {
+    display: none;
+  }
+}
+/* Same, at every size (the footer banner): no art, no empty band. */
+.art-wrap-all:has(> [data-empty]) {
+  display: none;
+}
+
+/* Editor workspace: the studio dot grid (one static background, no extra layers). */
+.editor-stage {
+  background-color: var(--color-workspace);
+  background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 12%, transparent) 1px, transparent 1.2px);
+  background-size: 24px 24px;
+}

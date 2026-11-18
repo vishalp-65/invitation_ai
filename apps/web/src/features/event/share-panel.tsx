@@ -83,7 +83,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
       >
         {live ? (
           <div className="flex flex-col gap-4">
-            <div className="flex items-center gap-2 rounded-xl border border-hairline bg-surface-2 p-1.5 pl-3.5">
+            <div className="flex items-center gap-2 rounded-xl border border-ink/10 bg-ink/[0.03] p-1.5 pl-3.5">
               <Globe className="size-4 shrink-0 text-ink-soft" aria-hidden />
               <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium" title={siteUrl}>
                 {siteUrl.replace(/^https?:\/\//, '')}
@@ -126,7 +126,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
 
       {/* ---------------- Files ---------------- */}
       <Panel title="Files to download and share" description="Each file is made from your latest details. Make it again after you change something." bodyClassName="!px-0 !pb-0">
-        <ul className="divide-y divide-hairline border-t border-hairline">
+        <ul className="divide-y divide-ink/10 border-t border-ink/10">
           {FORMATS.map(({ format, label, icon, help, feature }) => {
             const r = renders?.find((x) => x.format === format);
             const locked = feature && !event.features.includes(feature);
@@ -152,7 +152,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
 
                 {busy && (
                   <div aria-live="polite" className="sm:pl-[3.375rem]">
-                    <div className="h-1.5 overflow-hidden rounded-full bg-mist">
+                    <div className="h-px overflow-hidden bg-ink/10">
                       <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(r.progress, 5)}%` }} />
                     </div>
                     <p className="mt-1 text-xs text-ink-soft">{r.status === 'queued' ? 'Waiting to start…' : `Making it… ${r.progress}%`}</p>
@@ -166,19 +166,19 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                       const ext = o.contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin';
                       const name = `${event.slug}-${format}${r.outputs.length > 1 ? `-${i + 1}` : ''}.${ext}`;
                       return (
-                        <span key={o.url} className="inline-flex overflow-hidden rounded-lg border border-hairline">
-                          <button type="button" onClick={() => void shareFile(o.url, name, o.contentType)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-semibold hover:bg-mist">
+                        <span key={o.url} className="inline-flex overflow-hidden rounded-lg border border-ink/10">
+                          <button type="button" onClick={() => void shareFile(o.url, name, o.contentType)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-medium hover:bg-ink/[0.04]">
                             <Share2 className="size-3.5" aria-hidden />
                             {r.outputs.length > 1 ? `Page ${i + 1}` : 'Share'}
                           </button>
-                          <a href={o.url} download={name} className="grid w-8 place-items-center border-l border-hairline hover:bg-mist" aria-label={`Download ${name}`}>
+                          <a href={o.url} download={name} className="grid w-8 place-items-center border-l border-ink/10 hover:bg-ink/[0.04]" aria-label={`Download ${name}`}>
                             <Download className="size-3.5" />
                           </a>
                         </span>
                       );
                     })}
                     {r.watermark && (
-                      <button type="button" onClick={onUpgrade} className="text-[0.8125rem] font-semibold text-primary underline-offset-4 hover:underline">
+                      <button type="button" onClick={onUpgrade} className="text-[0.8125rem] font-medium text-primary underline-offset-4 hover:underline">
                         Remove watermark
                       </button>
                     )}

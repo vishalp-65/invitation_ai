@@ -96,7 +96,7 @@ export default function AdminUsersPage() {
               setPage(1);
             }}
             aria-label="Role"
-            className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-semibold`}
+            className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}
           >
             <option value="">All roles</option>
             <option value="user">Customers</option>
@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <section className={clsx('rounded-xl border border-hairline bg-surface transition-opacity', isFetching && !isLoading && 'opacity-70')}>
+      <section className={clsx('border border-ink/10 bg-ink/[0.015] transition-opacity', isFetching && !isLoading && 'opacity-70')}>
         {isLoading ? (
           <div className="space-y-2 p-5">
             {Array.from({ length: 6 }, (_, i) => (
@@ -124,12 +124,12 @@ export default function AdminUsersPage() {
           <>
             <Table head={['Person', 'Role', 'Joined', 'Last active', 'Invites', 'Paid', 'Spent', '']}>
               {data.items.map((u) => (
-                <tr key={u.id} onClick={() => setOpen(u.id)} className="cursor-pointer hover:bg-surface-2">
+                <tr key={u.id} onClick={() => setOpen(u.id)} className="cursor-pointer">
                   <td>
                     <div className="flex items-center gap-3">
                       <Avatar u={u} />
                       <div className="min-w-0">
-                        <p className="truncate font-semibold">{u.name ?? 'No name'}</p>
+                        <p className="truncate font-medium">{u.name ?? 'No name'}</p>
                         <p className="truncate text-xs text-ink-soft">{u.email ?? u.phone ?? '—'}</p>
                       </div>
                     </div>
@@ -141,7 +141,7 @@ export default function AdminUsersPage() {
                   <td className="whitespace-nowrap text-ink-soft">{ago(u.lastSeenAt)}</td>
                   <td className="tabular-nums">{num(u.events)}</td>
                   <td className="tabular-nums">{num(u.orders)}</td>
-                  <td className="font-semibold tabular-nums">{u.spentPaise ? inr(u.spentPaise) : '—'}</td>
+                  <td className="font-medium tabular-nums">{u.spentPaise ? inr(u.spentPaise) : '—'}</td>
                   <td>{u.disabledAt && <Badge tone="bad">Disabled</Badge>}</td>
                 </tr>
               ))}
@@ -161,7 +161,7 @@ function Avatar({ u }: { u: Pick<UserRow, 'name' | 'email' | 'avatarUrl'> }) {
     // eslint-disable-next-line @next/next/no-img-element
     <img src={u.avatarUrl} alt="" className="size-9 shrink-0 rounded-full object-cover" referrerPolicy="no-referrer" />
   ) : (
-    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-tint text-sm font-bold">{(u.name ?? u.email ?? '?').slice(0, 1).toUpperCase()}</span>
+    <span className="grid size-9 shrink-0 place-items-center rounded-full border border-ink/15 font-mono text-xs">{(u.name ?? u.email ?? '?').slice(0, 1).toUpperCase()}</span>
   );
 }
 
@@ -198,11 +198,11 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="User details">
       <button type="button" aria-label="Close" className="absolute inset-0 bg-[var(--color-overlay)]" onClick={onClose} />
-      <div className="relative flex h-full w-full max-w-xl animate-[sheet-up_0.2s_var(--ease-out-quint)] flex-col overflow-hidden border-l border-hairline bg-surface sm:animate-none">
-        <div className="flex items-center justify-between border-b border-hairline px-5 py-4">
-          <h2 className="font-sans text-lg font-bold">User</h2>
-          <button type="button" onClick={onClose} className="rounded-lg bg-ink/5 p-2 hover:bg-ink/10" aria-label="Close">
-            <X className="size-5" />
+      <div className="relative flex h-full w-full max-w-xl animate-[sheet-up_0.2s_var(--ease-out-quint)] flex-col overflow-hidden border-l border-ink/10 bg-ivory sm:animate-none">
+        <div className="flex items-center justify-between border-b border-ink/10 px-5 py-4">
+          <h2 className="font-mono text-[0.6875rem] uppercase tracking-[0.1em] text-ink-soft">User details</h2>
+          <button type="button" onClick={onClose} className="grid size-9 place-items-center border border-ink/15 transition-colors hover:bg-ink/[0.05]" aria-label="Close">
+            <X className="size-4" />
           </button>
         </div>
         {isLoading || !data || !u ? (
@@ -215,7 +215,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="flex items-start gap-4 p-5">
               <Avatar u={u} />
               <div className="min-w-0 flex-1">
-                <p className="text-xl font-semibold">{u.name ?? 'No name'}</p>
+                <p className="text-xl">{u.name ?? 'No name'}</p>
                 <p className="flex items-center gap-1.5 truncate text-sm text-ink-soft">
                   <Mail className="size-3.5" /> {u.email ?? '—'} {u.google && <Badge>Google</Badge>}
                 </p>
@@ -226,22 +226,22 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </div>
               </div>
             </div>
-            <dl className="mx-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            <dl className="mx-5 grid grid-cols-2 border-l border-t border-ink/10 sm:grid-cols-4">
               {[
                 ['Joined', shortDate(u.createdAt)],
                 ['Last active', ago(u.lastSeenAt)],
                 ['Invitations', num(data.events.length)],
                 ['Total spent', inr(data.spentPaise)],
               ].map(([k, v]) => (
-                <div key={k} className="rounded-xl bg-mist px-3 py-2">
-                  <dt className="text-xs text-ink-soft">{k}</dt>
-                  <dd className="font-semibold">{v}</dd>
+                <div key={k} className="border-b border-r border-ink/10 px-3 py-2.5">
+                  <dt className="font-mono text-[0.5625rem] uppercase tracking-[0.08em] text-ink-soft">{k}</dt>
+                  <dd className="mt-1 text-sm tabular-nums">{v}</dd>
                 </div>
               ))}
             </dl>
 
-            <div className="m-5 flex flex-wrap items-center gap-2 rounded-xl border border-hairline p-3">
-              <label className="flex items-center gap-2 text-sm font-semibold">
+            <div className="m-5 flex flex-wrap items-center gap-2 border border-ink/10 p-3">
+              <label className="flex items-center gap-2 text-sm font-medium">
                 <ShieldCheck className="size-4 text-ink-soft" /> Role
                 <select
                   value={u.role}
@@ -291,11 +291,11 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="p-5 pt-3">
               {tab === 'activity' &&
                 (data.activity.length ? (
-                  <ol className="relative ml-2 border-l border-hairline">
+                  <ol className="relative ml-2 border-l border-ink/10">
                     {data.activity.map((a, i) => (
                       <li key={i} className="mb-3 ml-4">
-                        <span className={clsx('absolute -left-[5px] mt-1.5 size-2.5 rounded-full', a.name === 'purchase' ? 'bg-leaf' : a.name === 'signup' ? 'bg-marigold' : 'bg-ink-soft/50')} />
-                        <p className="text-sm font-semibold">{EVENT_LABELS[a.name] ?? a.name}</p>
+                        <span className={clsx('absolute -left-[4.5px] mt-1.5 size-2 rounded-full', a.name === 'purchase' ? 'bg-leaf' : a.name === 'signup' ? 'bg-gold' : 'bg-ink-soft/50')} />
+                        <p className="text-sm">{EVENT_LABELS[a.name] ?? a.name}</p>
                         <p className="text-xs text-ink-soft">
                           {dateTime(a.createdAt)}
                           {a.path && ` · ${a.path}`}
@@ -310,11 +310,11 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 ))}
               {tab === 'events' &&
                 (data.events.length ? (
-                  <ul className="divide-y divide-hairline">
+                  <ul className="divide-y divide-ink/10">
                     {data.events.map((e) => (
                       <li key={e.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold">{e.title}</p>
+                          <p className="truncate font-medium">{e.title}</p>
                           <p className="truncate text-xs text-ink-soft">
                             {e.type} · {e.templateId} · {shortDate(e.createdAt)}
                           </p>
@@ -331,18 +331,18 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 ))}
               {tab === 'orders' &&
                 (data.orders.length ? (
-                  <ul className="divide-y divide-hairline">
+                  <ul className="divide-y divide-ink/10">
                     {data.orders.map((o) => (
                       <li key={o.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
                         <div className="min-w-0">
-                          <p className="truncate font-semibold">{PRODUCTS[o.productCode as ProductCode]?.name ?? o.productCode}</p>
+                          <p className="truncate font-medium">{PRODUCTS[o.productCode as ProductCode]?.name ?? o.productCode}</p>
                           <p className="text-xs text-ink-soft">
                             {dateTime(o.paidAt ?? o.createdAt)}
                             {o.couponCode && ` · ${o.couponCode}`}
                           </p>
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
-                          <span className="font-semibold tabular-nums">{inr(o.amountPaise)}</span>
+                          <span className="font-medium tabular-nums">{inr(o.amountPaise)}</span>
                           <Badge tone={o.status === 'paid' ? 'good' : o.status === 'failed' ? 'bad' : 'neutral'}>{o.status}</Badge>
                         </div>
                       </li>

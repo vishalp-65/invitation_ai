@@ -122,7 +122,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <h2 className="text-xl">Card pages</h2>
+        <h2 className="text-base font-medium">Card pages</h2>
         <p className="mt-1 text-[0.95rem] text-ink-soft">
           These fill the extra pages of your invitation: a page for your ceremonies, a family &amp; RSVP page and a save-the-date page. Leave anything blank to skip it. You can also delete any page in the editor.
         </p>
@@ -133,17 +133,17 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
         <h3 className="text-[1.0625rem]">Functions &amp; ceremonies</h3>
         <ol className="flex flex-col gap-3">
           {fns.map((f, i) => (
-            <li key={f.key} className="rounded-xl border border-hairline bg-surface p-4">
+            <li key={f.key} className="rounded-xl border border-ink/10 bg-ink/[0.02] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="flex items-center gap-2 font-semibold">
+                <span className="flex items-center gap-2 font-medium">
                   <span aria-hidden>{ICON_EMOJI[functionIcon(f.name)] ?? '🌸'}</span>
                   {f.name || `Function ${i + 1}`}
                 </span>
                 <span className="flex text-ink-soft">
-                  <button type="button" aria-label="Move earlier" className="grid size-8 place-items-center rounded hover:bg-mist disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}>
+                  <button type="button" aria-label="Move earlier" className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}>
                     <ArrowUp className="size-4" />
                   </button>
-                  <button type="button" aria-label="Move later" className="grid size-8 place-items-center rounded hover:bg-mist disabled:opacity-30" disabled={i === fns.length - 1} onClick={() => move(i, 1)}>
+                  <button type="button" aria-label="Move later" className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === fns.length - 1} onClick={() => move(i, 1)}>
                     <ArrowDown className="size-4" />
                   </button>
                   <button type="button" aria-label="Remove function" className="grid size-8 place-items-center rounded text-sindoor hover:bg-sindoor/10 disabled:opacity-30" disabled={fns.length <= 1} onClick={() => setFns((l) => l.filter((x) => x.key !== f.key))}>

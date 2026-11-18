@@ -286,7 +286,8 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
   );
 }
 
-function Layer(props: { el: DesignElement; index: number; total: number; data: DesignData | null; t?: number; language?: string; gate?: RenderGate; placeholders?: boolean; onMeasure?: (id: string, h: number) => void; fontsReady: boolean }) {
+/** Memoized: elements are replaced immutably, so dragging one layer re-renders only that layer. */
+const Layer = memo(function Layer(props: { el: DesignElement; index: number; total: number; data: DesignData | null; t?: number; language?: string; gate?: RenderGate; placeholders?: boolean; onMeasure?: (id: string, h: number) => void; fontsReady: boolean }) {
   const { el, t } = props;
   const motion = t === undefined ? null : elementMotion(el, props.index, t);
   const flip = el.type === 'art' && (el.flipX || el.flipY) ? `scale(${el.flipX ? -1 : 1}, ${el.flipY ? -1 : 1})` : '';
@@ -345,7 +346,7 @@ function Layer(props: { el: DesignElement; index: number; total: number; data: D
       <div style={{ width: '100%', height: '100%', transform: flip || undefined }}>{body}</div>
     </div>
   );
-}
+});
 
 /** Renders one card page. Pure React (no Remotion hooks) so the editor can use it directly. */
 export const DesignPage = memo(function DesignPage({ page, data, width, t, hidden, placeholders, onMeasure, gate, language, fontsReady = true, className, style }: DesignPageProps) {

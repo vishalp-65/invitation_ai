@@ -61,9 +61,9 @@ export function PhotoField({ label, value, onChange, ctx }: { label: string; val
 
   return (
     <div>
-      <p className="text-[0.95rem] font-semibold">{label}</p>
+      <p className="text-[0.95rem] font-medium">{label}</p>
       <div className="mt-1.5 flex items-center gap-3">
-        <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-hairline bg-surface-2">
+        <div className="grid size-16 shrink-0 place-items-center overflow-hidden rounded-xl border border-ink/10 bg-ink/[0.03]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           {url ? <img src={url} alt="" className="size-full object-cover" /> : <ImagePlus className="size-5 text-ink-soft" aria-hidden />}
         </div>
@@ -130,9 +130,9 @@ function ListEditor<T>({
   return (
     <div className="flex flex-col gap-3">
       {items.map((item, i) => (
-        <div key={i} className="rounded-xl border border-hairline bg-surface-2 p-3">
+        <div key={i} className="rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
           <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-ink-soft">#{i + 1}</span>
+            <span className="text-xs font-medium uppercase tracking-wider text-ink-soft">#{i + 1}</span>
             <div className="flex gap-0.5">
               <Button size="sm" variant="quiet" disabled={i === 0} onClick={() => move(i, -1)} aria-label="Move up">
                 <ArrowUp className="size-4" />
@@ -287,7 +287,7 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
               <TextF label="What to wear" value={d.label} onChange={(label) => s({ label })} max={60} placeholder="Shades of yellow" />
               <TextF label="Note" value={d.note} onChange={(note) => s({ note })} max={160} />
               <div>
-                <p className="text-[0.95rem] font-semibold">Colours</p>
+                <p className="text-[0.95rem] font-medium">Colours</p>
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   {d.colors.map((c, i) => (
                     <span key={i} className="relative">
@@ -296,7 +296,7 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
                         value={c}
                         aria-label={`Colour ${i + 1}`}
                         onChange={(e) => s({ colors: d.colors.map((x, j) => (j === i ? e.target.value.toUpperCase() : x)) })}
-                        className="size-10 cursor-pointer rounded-full border border-hairline"
+                        className="size-10 cursor-pointer rounded-full border border-ink/10"
                       />
                       <button
                         type="button"
@@ -357,7 +357,7 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
             )}
           </Field>
           <div>
-            <p className="text-[0.95rem] font-semibold">Photos</p>
+            <p className="text-[0.95rem] font-medium">Photos</p>
             <p className="text-sm text-ink-soft">Tap to include. None selected = your invitation’s gallery photos.</p>
             <div className="mt-2 grid grid-cols-4 gap-1.5">
               {Object.entries(ctx.assets).map(([id, src]) => {
@@ -512,7 +512,7 @@ export function SectionEditor({ section, onChange, ctx, locked }: { section: Sit
         <p className="text-sm text-ink-soft">{info.help}</p>
       </div>
       {locked && (
-        <button type="button" onClick={ctx.onUpgrade} className="flex items-center gap-2 rounded-xl bg-marigold/15 px-3 py-2 text-left text-sm font-semibold">
+        <button type="button" onClick={ctx.onUpgrade} className="flex items-center gap-2 rounded-xl bg-marigold/15 px-3 py-2 text-left text-sm font-medium">
           <Lock className="size-4 shrink-0" aria-hidden />
           Guests see this section with Site {locked === 'royale' ? 'Royale' : 'Premium'}. Try it here, upgrade any time.
         </button>
@@ -532,7 +532,7 @@ export function SectionEditor({ section, onChange, ctx, locked }: { section: Sit
       </Field>
       {section.type !== 'hero' && (
         <div>
-          <p className="flex items-center gap-1.5 text-[0.95rem] font-semibold">
+          <p className="flex items-center gap-1.5 text-[0.95rem] font-medium">
             Who sees this {!royale && <Lock className="size-3.5 text-ink-soft" aria-label="Site Royale" />}
           </p>
           <p className="text-sm text-ink-soft">{ctx.groups.length ? 'Pick guest groups, or leave empty for everyone.' : 'Add a group to guests (e.g. “Family”, “Office”) to show sections only to them.'}</p>

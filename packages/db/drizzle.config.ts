@@ -5,7 +5,7 @@ export default defineConfig({
   schema: './src/schema.ts',
   out: './drizzle',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgres://cardai:cardai@localhost:5432/cardai',
+    url: process.env.DATABASE_URL_DIRECT || process.env.DATABASE_URL || '',
   },
   casing: 'snake_case',
   strict: true,

@@ -82,7 +82,7 @@ function PreviewFrame({ data, doc, replay, scrollTo, device }: { data: PublicSit
 
   return (
     <div className={`mx-auto h-full ${device === 'phone' ? 'w-[390px] max-w-full' : 'w-full'} transition-[width] duration-300`}>
-      <div className={`h-full overflow-hidden bg-black ${device === 'phone' ? 'rounded-[44px] border-[10px] border-[#14141c]' : 'rounded-xl border border-hairline'}`}>
+      <div className={`h-full overflow-hidden bg-black ${device === 'phone' ? 'rounded-[44px] border-[10px] border-[#14141c]' : 'rounded-xl border border-ink/10'}`}>
         <iframe ref={frame} src="/preview/site" title="Website preview" className="size-full border-0 bg-white" />
       </div>
     </div>
@@ -244,11 +244,11 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
         return (
           <div
             key={s.id}
-            className={`flex items-center gap-1 rounded-xl border p-1.5 pl-3 transition-colors ${selected === s.id ? 'border-primary bg-surface' : 'border-hairline bg-surface-2'} ${s.hidden ? 'opacity-60' : ''}`}
+            className={`flex items-center gap-1 rounded-xl border p-1.5 pl-3 transition-colors ${selected === s.id ? 'border-primary bg-surface' : 'border-ink/10 bg-surface-2'} ${s.hidden ? 'opacity-60' : ''}`}
           >
             <button type="button" className="flex min-w-0 flex-1 items-center gap-2 py-1.5 text-left" onClick={() => select(s.id)}>
               <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold">{s.title || SECTION_INFO[s.type].label}</span>
+                <span className="block truncate font-medium">{s.title || SECTION_INFO[s.type].label}</span>
                 {s.audience.length > 0 && <span className="block truncate text-xs text-ink-soft">Only: {s.audience.join(', ')}</span>}
               </span>
               {lockedHere && <Lock className="size-3.5 shrink-0 text-ink-soft" aria-label={`Needs ${TIER_NAME[needs]}`} />}
@@ -334,18 +334,18 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
   return (
     <div className="flex h-svh flex-col bg-workspace text-ink">
       {/* Top bar */}
-      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-hairline bg-surface px-3 sm:px-5">
-        <Link href={`/dashboard/events/${eventId}`} className="grid size-10 place-items-center rounded-lg hover:bg-mist" aria-label="Back to invitation">
+      <header className="flex h-16 shrink-0 items-center gap-2 border-b border-ink/10 bg-surface px-3 sm:px-5">
+        <Link href={`/dashboard/events/${eventId}`} className="grid size-10 place-items-center rounded-lg hover:bg-ink/[0.04]" aria-label="Back to invitation">
           <ChevronLeft className="size-5" />
         </Link>
         <div className="min-w-0 flex-1">
-          <p className="truncate font-semibold">{event.title}</p>
+          <p className="truncate font-medium">{event.title}</p>
           <p className="flex items-center gap-1.5 text-xs text-ink-soft" aria-live="polite">
             {save === 'saved' ? <Check className="size-3.5" aria-hidden /> : <CloudUpload className="size-3.5" aria-hidden />}
             {saveLabel} · {TIER_NAME[tier]}
           </p>
         </div>
-        <div className="hidden items-center gap-1 rounded-lg border border-hairline p-1 lg:flex">
+        <div className="hidden items-center gap-1 rounded-lg border border-ink/10 p-1 lg:flex">
           <Button size="sm" variant={device === 'phone' ? 'primary' : 'quiet'} onClick={() => setDevice('phone')} aria-label="Phone preview">
             <Smartphone className="size-4" />
           </Button>
@@ -359,7 +359,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
         </Button>
         {event.status === 'published' ? (
           <>
-            <Button size="sm" variant="line" className="hidden sm:inline-flex" onClick={() => navigator.clipboard.writeText(liveUrl).then(() => toast.success('Link copied'))}>
+            <Button size="sm" variant="line" className="max-sm:!hidden" onClick={() => navigator.clipboard.writeText(liveUrl).then(() => toast.success('Link copied'))}>
               <Copy className="size-4" /> Copy link
             </Button>
             <ButtonLink size="sm" href={`/i/${event.slug}`} target="_blank" variant="primary">
@@ -394,8 +394,8 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
 
       <div className="flex min-h-0 flex-1">
         {/* Editing column */}
-        <aside className={`${mobileView === 'edit' ? 'flex' : 'hidden'} w-full min-w-0 flex-col border-r border-hairline bg-surface lg:flex lg:w-[420px] lg:shrink-0`}>
-          <nav className="flex shrink-0 border-b border-hairline" role="tablist" aria-label="Builder tools">
+        <aside className={`${mobileView === 'edit' ? 'flex' : 'hidden'} w-full min-w-0 flex-col border-r border-ink/10 bg-surface lg:flex lg:w-[420px] lg:shrink-0`}>
+          <nav className="flex shrink-0 border-b border-ink/10" role="tablist" aria-label="Builder tools">
             {TABS.map(({ id, label, icon: Icon }) => (
               <button
                 key={id}
@@ -403,7 +403,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
                 role="tab"
                 aria-selected={tab === id}
                 onClick={() => setTab(id)}
-                className="flex h-14 flex-1 flex-col items-center justify-center gap-0.5 border-b-2 border-transparent text-xs font-semibold text-ink-soft aria-selected:border-ink aria-selected:text-ink"
+                className="flex h-14 flex-1 flex-col items-center justify-center gap-0.5 border-b-2 border-transparent text-xs font-medium text-ink-soft aria-selected:border-ink aria-selected:text-ink"
               >
                 <Icon className="size-4" aria-hidden />
                 {label}
@@ -421,7 +421,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
 
       {/* Phones: edit / preview switch */}
       <div className="fixed inset-x-0 bottom-0 z-20 flex justify-center p-3 lg:hidden">
-        <div className="flex rounded-lg border border-hairline bg-surface p-1">
+        <div className="flex rounded-lg border border-ink/10 bg-ink/[0.02] p-1">
           <Button size="sm" variant={mobileView === 'edit' ? 'primary' : 'quiet'} onClick={() => setMobileView('edit')}>
             Edit
           </Button>
@@ -438,11 +438,11 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             const used = doc.sections.some((s) => s.type === t);
             return (
               <li key={t}>
-                <button type="button" onClick={() => add(t)} className="flex h-full w-full flex-col rounded-xl border border-hairline bg-surface-2 p-3 text-left hover:border-ink/30">
-                  <span className="flex items-center gap-1.5 font-semibold">
+                <button type="button" onClick={() => add(t)} className="flex h-full w-full flex-col rounded-xl border border-ink/10 bg-ink/[0.03] p-3 text-left hover:border-ink/30">
+                  <span className="flex items-center gap-1.5 font-medium">
                     {SECTION_INFO[t].label}
                     {!tierAtLeast(tier, needs) && (
-                      <span className="rounded-lg bg-marigold/20 px-1.5 text-[10px] font-bold uppercase tracking-wide">{needs === 'royale' ? 'Royale' : 'Premium'}</span>
+                      <span className="rounded-lg bg-marigold/20 px-1.5 text-[10px] font-medium uppercase tracking-wide">{needs === 'royale' ? 'Royale' : 'Premium'}</span>
                     )}
                     {used && <span className="text-xs font-normal text-ink-soft">· added</span>}
                   </span>

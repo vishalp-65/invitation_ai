@@ -77,14 +77,14 @@ export function TrendChart({
         {ticks.map((t) => (
           <g key={t}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(t)} y2={y(t)} stroke="var(--color-hairline)" strokeDasharray={t ? '3 4' : undefined} />
-            <text x={PAD.l - 8} y={y(t) + 4} textAnchor="end" className="fill-ink-soft text-[11px] tabular-nums">
+            <text x={PAD.l - 8} y={y(t) + 4} textAnchor="end" className="fill-ink-soft font-mono text-[10px] tabular-nums">
               {format(t)}
             </text>
           </g>
         ))}
         {data.map((d, i) =>
           i % labelEvery === 0 || i === data.length - 1 ? (
-            <text key={d.day} x={x(i)} y={H - 6} textAnchor="middle" className="fill-ink-soft text-[11px]">
+            <text key={d.day} x={x(i)} y={H - 6} textAnchor="middle" className="fill-ink-soft font-mono text-[10px]">
               {dayLabel(d.day)}
             </text>
           ) : null,
@@ -92,31 +92,31 @@ export function TrendChart({
         {kind === 'area' ? (
           <>
             <path d={area} fill={`url(#${gid})`} />
-            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+            <path d={line} fill="none" stroke="var(--color-primary)" strokeWidth={1.5} strokeLinejoin="round" strokeLinecap="round" />
           </>
         ) : (
           data.map((d, i) => {
             const top = y(d.value);
             const hh = PAD.t + ih - top;
             return hh > 0 ? (
-              <rect key={d.day} x={x(i) - barW / 2} y={top} width={barW} height={hh} rx={Math.min(4, barW / 2)} fill="var(--color-primary)" opacity={hover === null || hover === i ? 1 : 0.45} />
+              <rect key={d.day} x={x(i) - barW / 2} y={top} width={barW} height={hh} fill="var(--color-primary)" opacity={hover === null || hover === i ? 1 : 0.45} />
             ) : null;
           })
         )}
         {h && hover !== null && (
           <g pointerEvents="none">
             <line x1={x(hover)} x2={x(hover)} y1={PAD.t} y2={PAD.t + ih} stroke="var(--color-ink-soft)" strokeOpacity={0.4} />
-            {kind === 'area' && <circle cx={x(hover)} cy={y(h.value)} r={5} fill="var(--color-primary)" stroke="var(--color-surface)" strokeWidth={2} />}
+            {kind === 'area' && <circle cx={x(hover)} cy={y(h.value)} r={4} fill="var(--color-gold)" stroke="var(--color-ivory)" strokeWidth={2} />}
           </g>
         )}
       </svg>
       {h && hover !== null && (
         <div
-          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap rounded-xl border border-hairline bg-surface px-3 py-1.5 text-xs"
+          className="pointer-events-none absolute top-0 z-10 -translate-x-1/2 whitespace-nowrap border border-ink/15 bg-ivory px-3 py-1.5 text-xs"
           style={{ left: `${(x(hover) / W) * 100}%` }}
         >
-          <div className="text-ink-soft">{dayLabel(h.day)}</div>
-          <div className="font-bold tabular-nums">
+          <div className="font-mono text-[0.625rem] uppercase tracking-[0.06em] text-ink-soft">{dayLabel(h.day)}</div>
+          <div className="font-medium tabular-nums">
             {format(h.value)} <span className="font-normal text-ink-soft">{label.toLowerCase()}</span>
           </div>
         </div>
@@ -135,10 +135,10 @@ export function BarList({ items, format = (v) => String(v), empty = 'No data yet
         <li key={i.key} className="group" title={i.hint}>
           <div className="mb-1 flex items-baseline justify-between gap-3 text-sm">
             <span className="min-w-0 truncate">{i.label}</span>
-            <span className="shrink-0 font-semibold tabular-nums">{format(i.value)}</span>
+            <span className="shrink-0 font-mono text-xs tabular-nums">{format(i.value)}</span>
           </div>
-          <div className="h-2 rounded-full bg-mist">
-            <div className="h-2 rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(2, (i.value / max) * 100)}%` }} />
+          <div className="h-px bg-ink/10">
+            <div className="h-px bg-ink transition-[width] duration-500" style={{ width: `${Math.max(2, (i.value / max) * 100)}%` }} />
           </div>
         </li>
       ))}
@@ -163,10 +163,10 @@ export function Funnel({ steps }: { steps: Array<{ key: string; label: string; c
                 ↓ {prev && s.count <= prev ? `${stepRate.toFixed(0)}% continued` : prev ? 'Some people skip the step above' : '—'}
               </div>
             )}
-            <div className="relative overflow-hidden rounded-xl bg-mist">
-              <div className="absolute inset-y-0 left-0 rounded-xl bg-primary/15" style={{ width: `${Math.max(share, s.count ? 1.5 : 0)}%` }} />
+            <div className="relative overflow-hidden border border-ink/10">
+              <div className="absolute inset-y-0 left-0 bg-ink/[0.07]" style={{ width: `${Math.max(share, s.count ? 1.5 : 0)}%` }} />
               <div className="relative flex items-center justify-between gap-3 px-3 py-2 text-sm">
-                <span className="font-semibold">{s.label}</span>
+                <span>{s.label}</span>
                 <span className="tabular-nums">
                   <strong>{s.count.toLocaleString('en-IN')}</strong>
                   <span className="ml-2 text-ink-soft">{top ? `${share.toFixed(1)}%` : ''}</span>
@@ -197,19 +197,19 @@ export function Heatmap({ cells }: { cells: Array<{ dow: number; hour: number; c
         <div className="grid grid-cols-[40px_repeat(24,1fr)] gap-[2px]">
           <span />
           {Array.from({ length: 24 }, (_, h) => (
-            <span key={h} className="text-center text-[10px] text-ink-soft">
+            <span key={h} className="text-center font-mono text-[9px] text-ink-soft">
               {h % 3 === 0 ? (h === 0 ? '12a' : h < 12 ? `${h}a` : h === 12 ? '12p' : `${h - 12}p`) : ''}
             </span>
           ))}
           {grid.map((row, d) => (
             <div key={d} className="contents">
-              <span className="text-xs leading-5 text-ink-soft">{DAYS[d]}</span>
+              <span className="font-mono text-[10px] uppercase leading-5 text-ink-soft">{DAYS[d]}</span>
               {row.map((v, h) => (
                 <span
                   key={h}
                   onPointerEnter={() => setHover({ d, h })}
                   onPointerLeave={() => setHover(null)}
-                  className={clsx('h-5 rounded-[3px]', hover?.d === d && hover.h === h && 'ring-2 ring-ink')}
+                  className={clsx('h-5', hover?.d === d && hover.h === h && 'ring-1 ring-ink')}
                   style={{ background: v ? `color-mix(in oklab, var(--color-primary) ${Math.round(12 + (v / max) * 88)}%, var(--color-surface))` : 'var(--color-mist)' }}
                   aria-label={`${DAYS[d]} ${h}:00 — ${v} page views`}
                 />

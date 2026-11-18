@@ -67,9 +67,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ---------------- Sidebar (desktop) ---------------- */}
       <aside
         aria-label={t('dashboard')}
-        className="app-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-hairline bg-surface lg:flex"
+        className="app-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-ink/10 bg-ivory lg:flex"
       >
-        <div className="flex h-16 shrink-0 items-center gap-2 border-b border-hairline px-4">
+        <div className="flex h-16 shrink-0 items-center gap-2 border-b border-ink/10 px-5">
           <Logo compact={collapsed} />
         </div>
 
@@ -78,8 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             href="/create"
             data-tip={collapsed ? t('newInvite') : undefined}
             className={clsx(
-              'flex h-10 items-center gap-2 rounded-lg bg-primary text-sm font-semibold text-on-primary transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-[0.98]',
-              collapsed ? 'justify-center' : 'px-3.5',
+              'flex h-10 items-center gap-2 rounded-full bg-primary text-sm font-medium text-on-primary transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-[0.98]',
+              collapsed ? 'justify-center' : 'justify-center px-4',
             )}
           >
             <Plus className="size-4 shrink-0" aria-hidden />
@@ -91,13 +91,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           {items.map((i) => (
             <SideLink key={i.key} item={i} label={t(i.key)} active={i.match(pathname)} collapsed={collapsed} />
           ))}
-          <div className="my-3 h-px bg-hairline" />
+          <div className="my-3 h-px bg-ink/10" />
           {more.map((i) => (
             <SideLink key={i.key} item={i} label={t(i.key)} active={i.match(pathname)} collapsed={collapsed} />
           ))}
         </nav>
 
-        <div className="flex flex-col gap-0.5 border-t border-hairline p-3">
+        <div className="flex flex-col gap-0.5 border-t border-ink/10 p-3">
           <SideLink item={SETTINGS} label={t('settings')} active={SETTINGS.match(pathname)} collapsed={collapsed} />
           <button
             type="button"
@@ -105,7 +105,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             aria-label={collapsed ? t('expand') : t('collapse')}
             data-tip={collapsed ? t('expand') : undefined}
             className={clsx(
-              'flex h-9 items-center gap-3 rounded-lg text-sm font-medium text-ink-soft transition-colors hover:bg-mist hover:text-ink',
+              'flex h-9 items-center gap-3 text-sm text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink',
               collapsed ? 'justify-center' : 'px-3',
             )}
           >
@@ -117,10 +117,10 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* ---------------- Main column ---------------- */}
       <div className="app-main flex min-h-dvh flex-col">
-        <header className="sticky top-0 z-30 border-b border-hairline bg-ivory">
+        <header className="sticky top-0 z-30 border-b border-ink/10 bg-ivory/80 backdrop-blur-xl">
           <div className="flex h-14 items-center gap-2 px-4 sm:px-6 lg:h-16 lg:px-8">
             <Logo className="lg:hidden" />
-            <p className="hidden text-sm font-medium text-ink-soft lg:block">{current ? t(current.key) : t('dashboard')}</p>
+            <p className="sr-only">{current ? t(current.key) : t('dashboard')}</p>
             <div className="ml-auto flex items-center gap-0.5">
               <span className="max-sm:hidden">
                 <LocaleSwitch />
@@ -134,13 +134,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main id="main" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-8 sm:px-6 lg:px-8 lg:pb-16">{children}</main>
+        <main id="main" className="mx-auto w-full max-w-[1200px] flex-1 px-4 pb-28 pt-10 sm:px-6 lg:px-10 lg:pb-20 lg:pt-14">{children}</main>
       </div>
 
       {/* ---------------- Tab bar (phones / tablets) ---------------- */}
       <nav
         aria-label="Dashboard"
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)] lg:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 border-t border-ink/10 bg-ivory/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
       >
         <ul className="mx-auto grid h-16 max-w-md grid-cols-5 items-center px-2">
           <TabLink item={MAIN[0]!} label={t('invitations')} active={MAIN[0]!.match(pathname)} />
@@ -149,7 +149,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link
               href="/create"
               aria-label={t('newInvite')}
-              className="grid size-11 place-items-center rounded-xl bg-primary text-on-primary transition-transform active:scale-95"
+              className="grid size-11 place-items-center rounded-full bg-primary text-on-primary transition-transform active:scale-95"
             >
               <Plus className="size-5" />
             </Link>
@@ -171,16 +171,16 @@ function SideLink({ item, label, active, collapsed }: { item: NavItem; label: st
       aria-label={collapsed ? label : undefined}
       data-tip={collapsed ? label : undefined}
       className={clsx(
-        'relative flex h-9 shrink-0 items-center gap-3 rounded-lg text-sm font-medium transition-colors',
+        'relative flex h-10 shrink-0 items-center gap-3 border text-sm transition-colors',
         collapsed ? 'justify-center' : 'px-3',
-        active ? 'tint-primary' : 'text-ink-soft hover:bg-mist hover:text-ink',
+        active ? 'border-ink/20 bg-ink/[0.04] text-ink' : 'border-transparent text-ink-soft hover:border-ink/10 hover:text-ink',
       )}
     >
-      {/* Gold marker on the active item. */}
+      {/* Rose marker on the active item. */}
       <span
         aria-hidden
         className={clsx(
-          'absolute -left-3 top-1.5 bottom-1.5 w-[3px] rounded-r-full bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]',
+          'absolute -left-3 top-2 bottom-2 w-[2px] bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]',
           active ? 'scale-y-100' : 'scale-y-0',
         )}
       />
@@ -198,8 +198,8 @@ function TabLink({ item, label, active }: { item: NavItem; label: string; active
         href={item.href}
         aria-current={active ? 'page' : undefined}
         className={clsx(
-          'flex h-14 flex-col items-center justify-center gap-1 rounded-lg text-[0.6875rem] font-medium transition-colors',
-          active ? 'text-primary' : 'text-ink-soft',
+          'flex h-14 flex-col items-center justify-center gap-1 font-mono text-[0.625rem] transition-colors',
+          active ? 'text-ink' : 'text-ink-soft',
         )}
       >
         <Icon className="size-5" strokeWidth={active ? 2.2 : 1.8} aria-hidden />

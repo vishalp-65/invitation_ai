@@ -94,7 +94,7 @@ export function UpgradePanel({ event }: { event: EventDto }) {
           )}
           <form onSubmit={(e) => void applyCoupon(e)} className="flex w-full items-center gap-2 sm:max-w-sm">
             {coupon ? (
-              <p className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-leaf/40 bg-leaf/10 px-3 text-sm font-semibold text-leaf">
+              <p className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-leaf/40 bg-leaf/10 px-3 text-sm font-medium text-leaf">
                 <Check className="size-4" /> {coupon.code} applied
                 <button type="button" onClick={() => setCoupon(null)} aria-label="Remove coupon" className="ml-auto rounded-md p-1 hover:bg-leaf/15">
                   <X className="size-4" />
@@ -135,36 +135,36 @@ export function UpgradePanel({ event }: { event: EventDto }) {
             <li
               key={code}
               className={clsx(
-                'flex flex-col rounded-[16px] border p-5',
-                hl ? 'border-plum bg-plum text-white sm:col-span-2 lg:col-span-1 lg:row-span-2 dark:border-gold/40 dark:bg-plum-deep' : 'border-hairline bg-surface',
+                'flex flex-col rounded-[var(--radius-card)] border p-5',
+                hl ? 'border-plum bg-plum text-white sm:col-span-2 lg:col-span-1 lg:row-span-2 dark:border-gold/40 dark:bg-plum-deep' : 'border-ink/10 bg-surface',
                 owned && 'opacity-80',
               )}
             >
               <div className="flex items-start justify-between gap-2">
-                <h3 className="text-lg">{p.name}</h3>
+                <h3 className="text-base font-medium">{p.name}</h3>
                 {owned ? (
                   <StatusPill tone="leaf">Unlocked</StatusPill>
                 ) : hl ? (
-                  <span className="rounded-md bg-gold-soft px-2 py-0.5 text-xs font-semibold text-[#2e1031]">Best value</span>
+                  <span className="whitespace-nowrap bg-ink px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-widest text-ivory">Best value</span>
                 ) : (
-                  save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-semibold text-leaf">Save {save}%</span>
+                  save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-medium text-leaf">Save {save}%</span>
                 )}
               </div>
               <p className="mt-3 flex flex-wrap items-baseline gap-2">
-                <span className="font-display text-[2.25rem] leading-none">{formatINR(pay)}</span>
+                <span className="font-display text-3xl leading-none">{formatINR(pay)}</span>
                 {was && was > pay && <s className="text-sm opacity-60">{formatINR(was)}</s>}
-                {q && <span className="rounded-md bg-leaf px-2 py-0.5 text-xs font-bold text-white">{q.code}</span>}
+                {q && <span className="rounded-md bg-leaf px-2 py-0.5 text-xs font-medium text-white">{q.code}</span>}
               </p>
               <p className={clsx('mt-3 text-[0.9375rem]', hl ? 'text-white/85' : 'text-ink-soft')}>{p.description}</p>
               <div className="mt-auto pt-5">
                 {owned ? (
-                  <p className="flex items-center gap-2 text-sm font-semibold text-leaf">
+                  <p className="flex items-center gap-2 text-sm font-medium text-leaf">
                     <Check className="size-4" /> Already on this invitation
                   </p>
                 ) : (
                   <Button
                     variant={hl ? 'solid' : 'line'}
-                    className={clsx('w-full', hl && '!bg-white !text-[#2e1031] hover:!bg-white/90')}
+                    className={clsx('w-full', hl && '!bg-white !text-black hover:!bg-white/90')}
                     onClick={() => purchase(code)}
                     loading={busy === code}
                   >

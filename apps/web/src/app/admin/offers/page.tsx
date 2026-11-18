@@ -101,11 +101,11 @@ export default function AdminOffersPage() {
 
 function SectionCard({ title, description, action, children }: { title: string; description: string; action?: ReactNode; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-hairline bg-surface">
-      <header className="flex flex-wrap items-start justify-between gap-3 px-5 py-4">
+    <section className="border border-ink/10 bg-ink/[0.015]">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/10 px-5 py-3.5">
         <div>
-          <h2 className="font-sans text-base font-bold">{title}</h2>
-          <p className="text-sm text-ink-soft">{description}</p>
+          <h2 className="text-[0.9375rem] font-medium">{title}</h2>
+          <p className="mt-0.5 text-[0.8125rem] text-ink-soft">{description}</p>
         </div>
         {action}
       </header>
@@ -117,7 +117,7 @@ function SectionCard({ title, description, action, children }: { title: string; 
 function ProductPicker({ value, onChange }: { value: ProductCode[]; onChange: (v: ProductCode[]) => void }) {
   return (
     <div>
-      <p className="mb-2 text-[0.95rem] font-semibold">Applies to</p>
+      <p className="mb-2 text-[0.95rem] font-medium">Applies to</p>
       <div className="flex flex-wrap gap-2">
         <Chip selected={!value.length} onClick={() => onChange([])} className="h-9 text-sm">
           All products
@@ -174,10 +174,10 @@ function Coupons() {
             return (
               <tr key={c.id}>
                 <td>
-                  <p className="font-mono font-bold tracking-wide">{c.code}</p>
+                  <p className="font-mono font-medium tracking-wide">{c.code}</p>
                   {c.description && <p className="text-xs text-ink-soft">{c.description}</p>}
                 </td>
-                <td className="font-semibold">{c.kind === 'percent' ? `${c.value}% off` : `${inr(c.value)} off`}</td>
+                <td className="font-medium">{c.kind === 'percent' ? `${c.value}% off` : `${inr(c.value)} off`}</td>
                 <td className="max-w-48 truncate text-ink-soft" title={productNames(c.productCodes)}>
                   {productNames(c.productCodes)}
                 </td>
@@ -340,8 +340,8 @@ function Sales() {
             const st = liveState(s);
             return (
               <tr key={s.id}>
-                <td className="font-semibold">{s.name}</td>
-                <td className="font-semibold">{s.percentOff}% off</td>
+                <td className="font-medium">{s.name}</td>
+                <td className="font-medium">{s.percentOff}% off</td>
                 <td className="max-w-48 truncate text-ink-soft">{productNames(s.productCodes)}</td>
                 <td className="whitespace-nowrap text-ink-soft">
                   {shortDate(s.startsAt)} → {shortDate(s.endsAt)}
@@ -455,8 +455,8 @@ function Banners() {
           {data.map((b) => {
             const st = liveState(b);
             return (
-              <li key={b.id} className="overflow-hidden rounded-xl border border-hairline">
-                <div className={clsx('px-4 py-2 text-center text-sm font-semibold', TONE_CLASS[b.tone])}>
+              <li key={b.id} className="overflow-hidden border border-ink/10">
+                <div className={clsx('px-4 py-2 text-center text-sm font-medium', TONE_CLASS[b.tone])}>
                   {b.message} {b.ctaLabel && <span className="underline underline-offset-4">{b.ctaLabel}</span>}
                 </div>
                 <div className="flex flex-wrap items-center gap-2 px-4 py-2.5 text-sm">
@@ -523,7 +523,7 @@ function BannerDialog({ banner, onClose, onSaved }: { banner: Banner | null; onC
   return (
     <Dialog open onClose={onClose} title={banner ? 'Edit banner' : 'New banner'}>
       <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
-        <div className={clsx('rounded-xl px-4 py-2 text-center text-sm font-semibold', TONE_CLASS[tone])}>
+        <div className={clsx('px-4 py-2 text-center text-sm', TONE_CLASS[tone])}>
           {message || 'Your message appears here'} {ctaLabel && <span className="underline underline-offset-4">{ctaLabel}</span>}
         </div>
         <Field label="Message">{(id) => <Input id={id} value={message} onChange={(e) => setMessage(e.target.value)} required minLength={3} maxLength={160} placeholder="Diwali sale: 25% off every video invite" />}</Field>
@@ -583,11 +583,11 @@ function Prices() {
           {data.map((p) => (
             <tr key={p.code}>
               <td>
-                <p className="font-semibold">{p.name}</p>
+                <p className="font-medium">{p.name}</p>
                 <p className="max-w-sm truncate text-xs text-ink-soft">{p.description}</p>
               </td>
               <td className="whitespace-nowrap">
-                <span className="font-semibold tabular-nums">{inr(p.basePricePaise)}</span>
+                <span className="font-medium tabular-nums">{inr(p.basePricePaise)}</span>
                 {p.override?.pricePaise != null && (
                   <span className="ml-2">
                     <Badge tone="info">Edited · was {inr(PRODUCTS[p.code].pricePaise)}</Badge>
@@ -595,7 +595,7 @@ function Prices() {
                 )}
               </td>
               <td className="whitespace-nowrap tabular-nums text-ink-soft">{p.override?.mrpPaise ?? PRODUCTS[p.code].mrpPaise ? inr((p.override?.mrpPaise ?? PRODUCTS[p.code].mrpPaise)!) : '—'}</td>
-              <td className="whitespace-nowrap">{p.sale ? <span className="font-semibold text-leaf">{inr(p.pricePaise)} · {p.sale.percentOff}% off</span> : <span className="text-ink-soft">No sale</span>}</td>
+              <td className="whitespace-nowrap">{p.sale ? <span className="font-medium text-leaf">{inr(p.pricePaise)} · {p.sale.percentOff}% off</span> : <span className="text-ink-soft">No sale</span>}</td>
               <td className="text-right">
                 <Button size="sm" variant="line" className="h-8 px-3" onClick={() => setEditing(p)}>
                   <Pencil className="size-3.5" /> Edit
@@ -657,7 +657,7 @@ function PriceDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void
             {(id, d) => <Input id={id} aria-describedby={d} type="number" min={1} step={1} value={mrp} onChange={(e) => setMrp(e.target.value)} />}
           </Field>
         </div>
-        <p className="flex items-center gap-2 rounded-xl bg-mist px-3 py-2 text-sm text-ink-soft">
+        <p className="flex items-center gap-2 border border-dashed border-ink/15 px-3 py-2 text-[0.8125rem] text-ink-soft">
           <Tag className="size-4" /> Existing paid orders keep the price they were bought at.
         </p>
         <div className="flex flex-wrap justify-end gap-2">
@@ -682,10 +682,10 @@ function RowActions({ active, onToggle, onEdit, onDelete }: { active: boolean; o
   return (
     <div className="flex items-center justify-end gap-1">
       <Toggle checked={active} onChange={onToggle} label={active ? 'Pause' : 'Activate'} />
-      <button type="button" onClick={onEdit} aria-label="Edit" data-tip="Edit" className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-mist hover:text-ink">
+      <button type="button" onClick={onEdit} aria-label="Edit" data-tip="Edit" className="grid size-8 place-items-center text-ink-soft transition-colors hover:bg-ink/[0.05] hover:text-ink">
         <Pencil className="size-4" />
       </button>
-      <button type="button" onClick={onDelete} aria-label="Delete" data-tip="Delete" className="grid size-8 place-items-center rounded-lg text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">
+      <button type="button" onClick={onDelete} aria-label="Delete" data-tip="Delete" className="grid size-8 place-items-center text-ink-soft transition-colors hover:bg-sindoor/10 hover:text-sindoor">
         <Trash2 className="size-4" />
       </button>
     </div>

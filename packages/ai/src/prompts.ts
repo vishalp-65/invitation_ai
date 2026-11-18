@@ -140,6 +140,26 @@ export function intentPrompt(today: string) {
   };
 }
 
+// ---------------- Card scan (photo of a printed card) ----------------
+
+export function cardScanPrompt(today: string) {
+  return {
+    system: [
+      'You read photographed or scanned Indian invitation cards (wedding cards, kankotri, nimantran patrika, e-cards, event flyers) and extract their details as JSON.',
+      'Several photos may be pages of the same card (front, inside, function inserts): combine them into one answer.',
+      'COPY TEXT EXACTLY AS PRINTED, in the same script and spelling. Never translate, transliterate, summarise or invent text. Use null / [] for anything not on the card.',
+      'language: the main language of the printed text (for bilingual cards, the language of the names and main body).',
+      'eventType: the occasion, one of the allowed ids (vivah/shaadi/lagna = wedding, sagai/roka/ring ceremony = engagement, nikah, anand-karaj, church wedding = christian-wedding, griha pravesh/vastu = griha-pravesh, katha/path = puja, etc.).',
+      'primaryNames: just the names of the person/couple the event is for, without honorifics such as Chi./Sau./चि./सौ.का. For weddings: [groom, bride]. primaryDetails: the parentage line printed with each name ("S/o Mr. & Mrs. …", "सुपुत्र श्री …"), same order.',
+      'hosts: the inviting family/people. hostLine: the sentence that invites guests. invocation: the sacred line at the top (e.g. "॥ श्री गणेशाय नमः ॥"). headline: the card title (e.g. "शुभ विवाह", "Wedding Invitation"). connector: the word between the two names ("weds", "संग", "&").',
+      'message: the main invitation paragraph. familyTitle/familyLines: e.g. "विनीत" and the names under it, one line each. welcomeTitle/welcomeLines: "स्वागतोत्सुक"/"दर्शनाभिलाषी" lists. complimentsTitle/complimentsLines: "With best compliments"/"शुभेच्छु" lists. note: e.g. the children’s request line ("बाल मनुहार"). rsvpContacts: name + phone digits.',
+      `functions: every ceremony with its own date and time. Today is ${today}. date as YYYY-MM-DD (if the year is missing, use the next occurrence after today; ignore Hindu calendar dates when a Gregorian date is printed). time as 24h HH:mm ("सायं 7 बजे" = 19:00, "प्रातः 10 बजे" = 10:00), null if not printed. venueName: the hall/hotel/home name; venueAddress: street/area/city. If one venue is printed for all functions, repeat it. Keep function names as printed.`,
+      'community only when the card states it or shows a faith ceremony (nikah, anand karaj, church, Jain mantra); never infer religion from surnames; otherwise null.',
+      'uncertain: list every field you could not read clearly or had to guess. isInvitation: false only if the photos are clearly not an invitation or event document.',
+    ].join('\n'),
+  };
+}
+
 // ---------------- Images ----------------
 
 export function backgroundImagePrompt(opts: { eventLabel: string; theme: Theme; extra?: string; faith: Faith }) {

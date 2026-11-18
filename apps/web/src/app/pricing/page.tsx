@@ -42,9 +42,14 @@ export default async function PricingPage() {
   return (
     <>
       <SiteHeader />
-      <main id="main" className="mx-auto max-w-6xl px-5 py-12 sm:px-6 sm:py-16">
-        <h1 className="max-w-2xl text-[2.5rem] leading-[1.05] sm:text-[3.5rem]">Pay once per event. No subscription.</h1>
-        <p className="mt-4 max-w-2xl text-lg text-ink-soft">
+      <main id="main" className="mx-auto max-w-[1400px] px-6 py-16 lg:px-12 lg:py-24">
+        <span className="kicker mb-8">Pricing</span>
+        <h1 className="display-md max-w-4xl">
+          Pay once per event.
+          <br />
+          <span className="text-stroke">No subscription.</span>
+        </h1>
+        <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink-soft">
           Make and share for free. Pay only when you want HD files without the watermark, the video, or RSVP. UPI, cards and wallets accepted.
         </p>
         {sale && (
@@ -54,7 +59,7 @@ export default async function PricingPage() {
         )}
 
         <div className="mt-12 grid gap-6 lg:grid-cols-[1fr_2fr]">
-          <section className="flex flex-col rounded-[16px] border border-hairline bg-surface p-7">
+          <section className="flex flex-col rounded-[var(--radius-card)] border border-hairline bg-surface p-7">
             <h2 className="text-2xl">Free</h2>
             <p className="mt-1 text-sm text-ink-soft">Everything you need to make and share.</p>
             <p className="font-display mt-4 text-5xl">₹0</p>
@@ -79,16 +84,16 @@ export default async function PricingPage() {
                 <div
                   key={code}
                   className={clsx(
-                    'relative flex flex-col rounded-[16px] border p-6',
+                    'relative flex flex-col rounded-[var(--radius-card)] border p-6',
                     p.highlight ? 'border-plum bg-plum text-white sm:col-span-2 dark:border-gold/40 dark:bg-plum-deep' : 'border-hairline bg-surface',
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <h2 className="text-xl">{p.name}</h2>
                     {p.highlight ? (
-                      <span className="rounded-md bg-gold-soft px-2 py-0.5 text-xs font-semibold text-[#2e1031]">Best value</span>
+                      <span className="whitespace-nowrap bg-ink px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-widest text-ivory">Best value</span>
                     ) : (
-                      save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-semibold text-leaf">Save {save}%</span>
+                      save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-medium text-leaf">Save {save}%</span>
                     )}
                   </div>
                   <p className="mt-3 flex flex-wrap items-baseline gap-x-2">
@@ -104,7 +109,7 @@ export default async function PricingPage() {
                   <ButtonLink
                     href="/create"
                     variant={p.highlight ? 'solid' : 'line'}
-                    className={clsx('mt-6 w-full sm:w-auto sm:self-start', p.highlight && '!bg-white !text-[#2e1031] hover:!bg-white/90')}
+                    className={clsx('mt-6 w-full sm:w-auto sm:self-start', p.highlight && '!bg-white !text-black hover:!bg-white/90')}
                   >
                     {p.highlight ? 'Get the combo' : 'Make an invitation'}
                   </ButtonLink>
@@ -119,20 +124,20 @@ export default async function PricingPage() {
           <p className="mt-2 max-w-2xl text-ink-soft">
             Try every section, opening and character for free in the builder. Guests see the parts your plan includes.
           </p>
-          <div className="mt-6 overflow-x-auto rounded-[16px] border border-hairline bg-surface">
+          <div className="mt-6 overflow-x-auto rounded-[var(--radius-card)] border border-hairline bg-surface">
             <table className="w-full min-w-[640px] text-left text-[0.95rem]">
               <thead className="bg-surface-2 text-sm">
                 <tr className="border-b border-hairline">
-                  <th className="sticky left-0 bg-surface-2 p-4 font-semibold">Feature</th>
-                  <th className="p-4 font-semibold">
+                  <th className="sticky left-0 bg-surface-2 p-4 font-medium">Feature</th>
+                  <th className="p-4 font-medium">
                     Free
                     <span className="block font-normal text-ink-soft">₹0</span>
                   </th>
-                  <th className="bg-tint p-4 font-semibold">
+                  <th className="bg-tint p-4 font-medium">
                     {PRODUCTS.website.name}
                     <span className="block font-normal text-ink-soft">{formatINR(PRODUCTS.website.pricePaise)}</span>
                   </th>
-                  <th className="p-4 font-semibold">
+                  <th className="p-4 font-medium">
                     {PRODUCTS.website_royale.name}
                     <span className="block font-normal text-ink-soft">{formatINR(PRODUCTS.website_royale.pricePaise)}</span>
                   </th>
@@ -181,15 +186,15 @@ export default async function PricingPage() {
             <h2 className="text-2xl">Questions</h2>
             <dl className="mt-4 flex flex-col gap-4">
               <div>
-                <dt className="font-semibold">Is it a subscription?</dt>
+                <dt className="font-medium">Is it a subscription?</dt>
                 <dd className="text-ink-soft">No. You pay once for one event, and edits stay free until the event.</dd>
               </div>
               <div>
-                <dt className="font-semibold">Can I change the design after paying?</dt>
+                <dt className="font-medium">Can I change the design after paying?</dt>
                 <dd className="text-ink-soft">Yes. Switch designs, edit words and remake files as often as you like.</dd>
               </div>
               <div>
-                <dt className="font-semibold">I live abroad. Can I pay?</dt>
+                <dt className="font-medium">I live abroad. Can I pay?</dt>
                 <dd className="text-ink-soft">Yes, international cards work. Your guests in India get the same WhatsApp-friendly files.</dd>
               </div>
             </dl>

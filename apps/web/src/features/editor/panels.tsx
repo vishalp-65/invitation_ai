@@ -125,7 +125,7 @@ function MyTemplates({ event, data, close }: Pick<PanelProps, 'event' | 'data' |
   if (isLoading) return <div className="grid grid-cols-2 gap-3">{[0, 1].map((i) => <div key={i} className="skeleton aspect-[9/16]" />)}</div>;
   if (!items.length)
     return (
-      <div className="rounded-xl border border-dashed border-hairline p-5 text-center text-sm text-ink-soft">
+      <div className="rounded-xl border border-dashed border-ink/10 p-5 text-center text-sm text-ink-soft">
         <BookmarkPlus className="mx-auto mb-2 size-6" />
         Nothing saved yet. Use <strong>More → Save as my template</strong> to reuse a design you love.
       </div>
@@ -146,7 +146,7 @@ function MyTemplates({ event, data, close }: Pick<PanelProps, 'event' | 'data' |
           >
             <DesignView page={t.design.pages[coverPageIndex(t.design)]!} data={data} language={event.language} lazy />
           </button>
-          <p className="mt-1.5 truncate pr-7 text-sm font-semibold">{t.name}</p>
+          <p className="mt-1.5 truncate pr-7 text-sm font-medium">{t.name}</p>
           <button type="button" onClick={() => void remove(t)} {...tip('Delete template')} className="absolute bottom-0 right-0 grid size-7 touch:size-9 place-items-center rounded-lg text-ink-soft hover:bg-sindoor/10 hover:text-sindoor">
             <Trash2 className="size-3.5" />
           </button>
@@ -164,7 +164,7 @@ function TemplateTile({ name, variants, current, onPick }: { name: string; varia
       <button type="button" onClick={() => onPick(t)} className={clsx('block w-full overflow-hidden rounded-lg bg-mist ring-offset-2', t.id === current && 'ring-2 ring-ink')}>
         {t.doc ? <TemplateCover id={t.id} name={t.name} coverPage={coverOf(t.doc)} /> : <Image src={`/showcase/${t.id}.jpg`} alt={t.name} width={216} height={384} sizes="160px" className="aspect-[9/16] w-full object-cover" />}
       </button>
-      <p className="mt-1.5 truncate text-sm font-semibold">{name}</p>
+      <p className="mt-1.5 truncate text-sm font-medium">{name}</p>
       {variants.length > 1 && (
         <div className="mt-1 flex flex-wrap gap-1.5 touch:gap-2">
           {variants.map((v, k) => (
@@ -228,7 +228,7 @@ function TextPanel({ event, data, close }: PanelProps) {
   return (
     <div className="flex flex-col gap-2 p-4">
       {presets.map((p) => (
-        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-lg border border-hairline bg-surface px-4 text-left hover:border-ink/40" style={p.style}>
+        <button key={p.label} type="button" onClick={p.run} className="h-14 rounded-lg border border-ink/10 bg-ink/[0.02] px-4 text-left hover:border-ink/40" style={p.style}>
           {p.label}
         </button>
       ))}
@@ -239,7 +239,7 @@ function TextPanel({ event, data, close }: PanelProps) {
             <button
               key={b.bind}
               type="button"
-              className="rounded-lg border border-hairline bg-surface px-3 py-1.5 text-sm hover:border-ink/40"
+              className="rounded-lg border border-ink/10 bg-ink/[0.02] px-3 py-1.5 text-sm hover:border-ink/40"
               onClick={() => add(displayText({ text: '', bind: b.bind }, data), latin ? 'Cormorant Garamond' : lang.fonts.body, 40, { bind: b.bind })}
             >
               {b.label}
@@ -310,7 +310,7 @@ function ElementsPanel({ close }: PanelProps) {
             { label: 'Ring', node: <div className="size-12 rounded-full ring-4 ring-[#C9973F]" />, run: () => addShape('ellipse', { fill: null, stroke: '#C9973F', strokeW: 8 }) },
             { label: 'Frame', node: <div className="h-12 w-10 ring-2 ring-[#C9973F]" />, run: () => addShape('rect', { fill: null, stroke: '#C9973F', strokeW: 5, w: 700, h: 1100, x: 190, y: 410 }) },
           ].map((s) => (
-            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-xs font-semibold hover:border-ink/40">
+            <button key={s.label} type="button" onClick={s.run} className="flex aspect-square flex-col items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-xs font-medium hover:border-ink/40">
               {s.node}
               {s.label}
             </button>
@@ -320,9 +320,9 @@ function ElementsPanel({ close }: PanelProps) {
         <ul className="grid grid-cols-3 gap-2.5">
           {STICKERS.filter((s) => s.category === cat).map((s) => (
             <li key={s.id}>
-              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-lg border border-hairline bg-surface p-1.5 hover:border-ink/40">
+              <button type="button" onClick={() => addSticker(s)} title={s.label} className="flex w-full flex-col items-center gap-1 rounded-lg border border-ink/10 bg-ink/[0.02] p-1.5 hover:border-ink/40">
                 <StickerPreview sticker={s} size={84} />
-                <span className="w-full truncate text-center text-[0.7rem] font-semibold text-ink-soft">{s.label}</span>
+                <span className="w-full truncate text-center text-[0.7rem] font-medium text-ink-soft">{s.label}</span>
               </button>
             </li>
           ))}
@@ -352,7 +352,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
           const url = await pickImage();
           if (url) addPhoto(url);
         }}
-        className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary"
+        className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary"
       >
         <ImagePlus className="size-5" /> Upload a photo
       </button>
@@ -379,7 +379,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex flex-col gap-1.5">
-      <span className="text-sm font-semibold text-ink-soft">{label}</span>
+      <span className="text-sm font-medium text-ink-soft">{label}</span>
       {children}
     </label>
   );
@@ -429,7 +429,7 @@ function DetailsPanel({ event, data, writer }: PanelProps) {
           </Field>
         </>
       )}
-      <a href={`/dashboard/events/${event.id}?tab=edit`} className="text-sm font-semibold underline underline-offset-4">
+      <a href={`/dashboard/events/${event.id}?tab=edit`} className="text-sm font-medium underline underline-offset-4">
         All functions, family names and wording
       </a>
     </div>
@@ -452,12 +452,12 @@ function PagesPanel({ data, event }: PanelProps) {
               <DesignView page={p} data={data} language={event.language} lazy />
             </button>
             <div className="flex items-center justify-between text-ink-soft">
-              <span className="text-xs font-semibold">{i + 1}</span>
+              <span className="text-xs font-medium">{i + 1}</span>
               <span className="flex">
-                <button type="button" aria-label="Move earlier" className="grid size-7 place-items-center rounded-md hover:bg-mist touch:size-10 disabled:opacity-30" disabled={i === 0} onClick={() => s().movePage(i, -1)}>
+                <button type="button" aria-label="Move earlier" className="grid size-7 place-items-center rounded-md hover:bg-ink/[0.04] touch:size-10 disabled:opacity-30" disabled={i === 0} onClick={() => s().movePage(i, -1)}>
                   <ArrowUp className="size-3.5" />
                 </button>
-                <button type="button" aria-label="Move later" className="grid size-7 place-items-center rounded-md hover:bg-mist touch:size-10 disabled:opacity-30" disabled={i === doc.pages.length - 1} onClick={() => s().movePage(i, 1)}>
+                <button type="button" aria-label="Move later" className="grid size-7 place-items-center rounded-md hover:bg-ink/[0.04] touch:size-10 disabled:opacity-30" disabled={i === doc.pages.length - 1} onClick={() => s().movePage(i, 1)}>
                   <ArrowDown className="size-3.5" />
                 </button>
                 <button type="button" aria-label="Delete page" className="grid size-7 place-items-center rounded-md text-sindoor touch:size-10 hover:bg-sindoor/10 disabled:opacity-30" disabled={doc.pages.length <= 1} onClick={() => s().deletePage(i)}>
@@ -469,10 +469,10 @@ function PagesPanel({ data, event }: PanelProps) {
         ))}
       </ul>
       <div className="grid grid-cols-2 gap-2">
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-surface font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('blank')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium disabled:opacity-40">
           <Plus className="size-4" /> Add page
         </button>
-        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-hairline bg-surface font-semibold disabled:opacity-40">
+        <button type="button" disabled={doc.pages.length >= 8} onClick={() => s().addPage('duplicate')} className="flex h-11 items-center justify-center gap-1.5 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium disabled:opacity-40">
           <Copy className="size-4" /> Duplicate
         </button>
       </div>

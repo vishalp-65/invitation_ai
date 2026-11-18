@@ -4,7 +4,7 @@ import { BRAND } from '@cardai/shared';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect } from 'react';
+import { Suspense, useEffect, useRef } from 'react';
 import { Logo } from '@/components/layout/site-header';
 import { AuthFlow } from './auth-flow';
 
@@ -15,10 +15,18 @@ export function useNextTarget() {
 }
 
 /**
- * Desktop showcase: three real designs, settled once on load, on a quiet grey panel.
- * No looping motion, so the form stays the focus.
+ * Desktop showcase: three real designs over the studio hero video (same as the landing page),
+ * with a serif line underneath. Always dark: it sits on video.
  */
 function Showcase() {
+  // The panel only shows on large screens: start the (small) video there, and not for reduced motion.
+  const video = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = video.current;
+    if (!v || !window.matchMedia('(min-width: 1024px) and (prefers-reduced-motion: no-preference)').matches) return;
+    v.preload = 'auto';
+    v.play().catch(() => {});
+  }, []);
   const cards = [
     { id: 'golden-vows-onyx', cls: '-translate-x-[62%] translate-y-[8%] -rotate-6', delay: '200ms' },
     { id: 'kanjeevaram-wine', cls: 'translate-x-[62%] translate-y-[8%] rotate-6', delay: '200ms' },
@@ -26,7 +34,11 @@ function Showcase() {
   ];
   return (
     <aside className="sticky top-0 hidden h-dvh p-3 lg:block">
-      <div className="flex h-full flex-col items-center justify-center overflow-hidden rounded-[var(--radius-card)] border border-hairline bg-sand px-10">
+      <div className="relative flex h-full flex-col items-center justify-center overflow-hidden rounded-[var(--radius-card)] bg-black px-10 text-white [color-scheme:dark]">
+        <video ref={video} muted loop playsInline preload="none" poster="/video/hero-poster.jpg" aria-hidden className="absolute inset-0 h-full w-full object-cover opacity-60">
+          <source src="/video/hero-sm.mp4" type="video/mp4" />
+        </video>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/10 to-black/80" />
         <div className="relative aspect-[9/16] w-[min(15rem,34%)]" aria-hidden>
           {cards.map((c) => (
             <div key={c.id} className={`absolute inset-0 ${c.cls}`}>
@@ -37,15 +49,15 @@ function Showcase() {
                 height={768}
                 sizes="240px"
                 priority
-                className="size-full animate-fade-up rounded-xl border border-hairline object-cover"
+                className="size-full animate-fade-up border border-white/15 object-cover"
                 style={{ animationDelay: c.delay }}
               />
             </div>
           ))}
         </div>
-        <div className="mt-16 max-w-sm text-center">
-          <p className="text-lg font-medium tracking-[-0.01em] text-ink">One form. A card, a video and a website.</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">140+ designs in 12 Indian languages, shared on WhatsApp with RSVP.</p>
+        <div className="relative mt-16 max-w-md text-center">
+          <p className="font-display text-4xl leading-[1.05]">One form. A card, a video and a website.</p>
+          <p className="mt-4 font-mono text-xs leading-relaxed text-white/55">140+ designs · 12 Indian languages · RSVP on WhatsApp</p>
         </div>
       </div>
     </aside>

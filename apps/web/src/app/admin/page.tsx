@@ -2,7 +2,7 @@
 
 import { PRODUCTS, type AnalyticsRange, type ProductCode } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
-import { CreditCard, Eye, IndianRupee, Percent, Sparkles, TrendingUp, UserPlus, Users } from 'lucide-react';
+import { CreditCard, Eye, IndianRupee, Mail, Percent, TrendingUp, UserPlus, Users } from 'lucide-react';
 import Link from 'next/link';
 import { useState } from 'react';
 import { BarList, Funnel, TrendChart } from '@/features/admin/charts';
@@ -61,7 +61,7 @@ export default function AdminOverviewPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-6">
-          <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <StatCard label="Revenue" icon={<IndianRupee className="size-4" />} value={compactINR(data.current.revenuePaise)} delta={<Delta now={data.current.revenuePaise} before={data.previous.revenuePaise} />} hint={`${inr(data.totals.revenuePaise)} all time`} />
             <StatCard label="Visitors" icon={<Eye className="size-4" />} value={num(data.current.visitors)} delta={<Delta now={data.current.visitors} before={data.previous.visitors} />} hint="Unique browsers" />
             <StatCard label="Sign-ups" icon={<UserPlus className="size-4" />} value={num(data.current.signups)} delta={<Delta now={data.current.signups} before={data.previous.signups} />} hint={`${num(data.totals.users)} users in total`} />
@@ -73,7 +73,7 @@ export default function AdminOverviewPage() {
             />
             <StatCard label="Paid orders" icon={<CreditCard className="size-4" />} value={num(data.current.orders)} delta={<Delta now={data.current.orders} before={data.previous.orders} />} hint={data.current.orders ? `Avg ${inr(Math.round(data.current.revenuePaise / data.current.orders))}` : undefined} />
             <StatCard label="Paying customers" icon={<Users className="size-4" />} value={num(data.current.payingUsers)} hint={`${pct(data.totals.payingUsers, data.totals.users)} of all users have paid`} />
-            <StatCard label="Invitations made" icon={<Sparkles className="size-4" />} value={num(data.current.eventsCreated)} delta={<Delta now={data.current.eventsCreated} before={data.previous.eventsCreated} />} hint={`${num(data.totals.events)} all time`} />
+            <StatCard label="Invitations made" icon={<Mail className="size-4" />} value={num(data.current.eventsCreated)} delta={<Delta now={data.current.eventsCreated} before={data.previous.eventsCreated} />} hint={`${num(data.totals.events)} all time`} />
             <StatCard label="Discounts given" icon={<TrendingUp className="size-4" />} value={compactINR(data.current.discountPaise)} hint="Sales + coupons on paid orders" />
           </div>
 
@@ -105,38 +105,38 @@ export default function AdminOverviewPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-5">
-            <Card title="Most used templates" description="Invitations made with each template (all time)" action={<Link href={`/admin/templates?range=${range}`} className="text-sm font-semibold underline underline-offset-4">All templates</Link>} className="lg:col-span-3">
+            <Card title="Most used templates" description="Invitations made with each template (all time)" action={<Link href={`/admin/templates?range=${range}`} className="inline-flex items-center gap-1 font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft transition-colors hover:text-ink">All templates →</Link>} className="lg:col-span-3">
               <ul className="grid grid-cols-3 gap-3 sm:grid-cols-6">
                 {data.topTemplates.map((t, i) => (
                   <li key={t.id} className="min-w-0">
                     <div className="relative">
                       <TemplateThumb id={t.id} name={t.name} coverPage={t.coverPage} />
-                      <span className="absolute left-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-surface text-xs font-bold">{i + 1}</span>
+                      <span className="absolute left-0 top-0 grid size-6 place-items-center bg-ivory font-mono text-[0.625rem]">{String(i + 1).padStart(2, '0')}</span>
                     </div>
-                    <p className="mt-1.5 truncate text-xs font-semibold">{t.name}</p>
-                    <p className="text-xs text-ink-soft">{num(t.invitations)} uses</p>
+                    <p className="mt-1.5 truncate text-xs">{t.name}</p>
+                    <p className="font-mono text-[0.625rem] text-ink-soft">{num(t.invitations)} uses</p>
                   </li>
                 ))}
               </ul>
             </Card>
-            <Card title="Latest payments" action={<Link href="/admin/orders" className="text-sm font-semibold underline underline-offset-4">All orders</Link>} className="lg:col-span-2" pad={false}>
+            <Card title="Latest payments" action={<Link href="/admin/orders" className="inline-flex items-center gap-1 font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft transition-colors hover:text-ink">All orders →</Link>} className="lg:col-span-2" pad={false}>
               {data.recentOrders.length ? (
-                <ul className="divide-y divide-hairline">
+                <ul className="divide-y divide-ink/10">
                   {data.recentOrders.map((o) => (
                     <li key={o.id} className="flex items-center justify-between gap-3 px-5 py-3 text-sm">
                       <div className="min-w-0">
-                        <p className="truncate font-semibold">{o.name ?? o.email ?? 'Customer'}</p>
-                        <p className="truncate text-ink-soft">
+                        <p className="truncate">{o.name ?? o.email ?? 'Customer'}</p>
+                        <p className="truncate text-[0.8125rem] text-ink-soft">
                           {PRODUCTS[o.product as ProductCode]?.name ?? o.product}
                           {o.coupon && ` · ${o.coupon}`} · {ago(o.paidAt)}
                         </p>
                       </div>
-                      <span className="font-semibold tabular-nums">{inr(o.amount)}</span>
+                      <span className="font-display tabular-nums">{inr(o.amount)}</span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="px-5 pb-5 text-sm text-ink-soft">No payments yet.</p>
+                <p className="p-5 text-sm text-ink-soft">No payments yet.</p>
               )}
             </Card>
           </div>

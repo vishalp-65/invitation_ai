@@ -15,7 +15,8 @@ async function bootstrap() {
     AppModule,
     new FastifyAdapter({
       trustProxy: true,
-      bodyLimit: 2 * 1024 * 1024,
+      // Card scans send up to 4 resized photos as base64 (~5 MB worst case).
+      bodyLimit: 6 * 1024 * 1024,
       genReqId: (req: { headers: Record<string, string | string[] | undefined> }) =>
         (req.headers['x-request-id'] as string | undefined) ?? randomUUID(),
     }),

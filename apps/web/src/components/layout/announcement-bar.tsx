@@ -42,7 +42,7 @@ export function AnnouncementBar() {
   const external = b.ctaUrl?.startsWith('https://');
 
   return (
-    <div role="region" aria-label="Offer" className={clsx('relative z-50 flex items-center justify-center gap-3 px-10 py-2 text-center text-sm font-semibold', TONE[b.tone])}>
+    <div role="region" aria-label="Offer" className={clsx('relative z-50 flex items-center justify-center gap-3 px-10 py-2 text-center text-sm font-medium', TONE[b.tone])}>
       <span>{b.message}</span>
       {b.ctaUrl && b.ctaLabel && (
         <Link href={b.ctaUrl} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})} className="shrink-0 underline underline-offset-4">

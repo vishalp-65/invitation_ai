@@ -140,6 +140,7 @@ export const UPGRADE_FEATURES = ['image_hd', 'video_hd', 'website_premium'] as c
 /** Free-tier daily AI quotas per user (cost guardrails). */
 export const FREE_AI_QUOTA_PER_DAY = {
   wording: 15,
+  scan: 10,
   transliteration: 200,
   image: 3,
 } as const;

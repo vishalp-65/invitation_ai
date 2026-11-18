@@ -89,7 +89,7 @@ export function RangePicker() {
 
 export function Segmented<T extends string>({ value, onChange, options, label }: { value: T; onChange: (v: T) => void; options: Array<{ value: T; label: string; count?: number }>; label: string }) {
   return (
-    <div role="radiogroup" aria-label={label} className="inline-flex max-w-full shrink-0 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[10px] border border-hairline bg-surface p-0.5">
+    <div role="radiogroup" aria-label={label} className="inline-flex max-w-full shrink-0 overflow-x-auto border border-ink/15 p-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {options.map((o) => (
         <button
           key={o.value}
@@ -97,10 +97,10 @@ export function Segmented<T extends string>({ value, onChange, options, label }:
           role="radio"
           aria-checked={o.value === value}
           onClick={() => onChange(o.value)}
-          className="whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-ink aria-checked:bg-primary aria-checked:text-on-primary"
+          className="whitespace-nowrap px-3 py-1.5 text-[0.8125rem] text-ink-soft transition-colors duration-200 hover:text-ink aria-checked:bg-ink/[0.08] aria-checked:text-ink"
         >
           {o.label}
-          {o.count !== undefined && <span className="ml-1.5 opacity-70">{o.count}</span>}
+          {o.count !== undefined && <span className="ml-1.5 font-mono text-[0.6875rem] opacity-60">{o.count}</span>}
         </button>
       ))}
     </div>
@@ -111,10 +111,11 @@ export function Segmented<T extends string>({ value, onChange, options, label }:
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
-        <h1 className="text-3xl leading-tight sm:text-4xl">{title}</h1>
-        {description && <p className="mt-1 max-w-2xl text-ink-soft">{description}</p>}
+        <span className="kicker mb-5">Admin</span>
+        <h1 className="page-title">{title}</h1>
+        {description && <p className="mt-2 max-w-2xl text-ink-soft">{description}</p>}
       </div>
       {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
@@ -123,45 +124,45 @@ export function PageHeader({ title, description, actions }: { title: string; des
 
 export function Card({ title, description, action, children, className, pad = true }: { title?: string; description?: string; action?: ReactNode; children: ReactNode; className?: string; pad?: boolean }) {
   return (
-    <section className={clsx('rounded-xl border border-hairline bg-surface', className)}>
+    <section className={clsx('overflow-clip border border-ink/10 bg-ink/[0.015]', className)}>
       {(title || action) && (
-        <header className="flex items-start justify-between gap-3 px-5 pt-4">
-          <div>
-            {title && <h2 className="font-sans text-base font-bold">{title}</h2>}
-            {description && <p className="text-sm text-ink-soft">{description}</p>}
+        <header className="flex flex-wrap items-start justify-between gap-3 border-b border-ink/10 px-5 py-3.5">
+          <div className="min-w-0">
+            {title && <h2 className="text-[0.9375rem] font-medium">{title}</h2>}
+            {description && <p className="mt-0.5 text-[0.8125rem] text-ink-soft">{description}</p>}
           </div>
           {action}
         </header>
       )}
-      <div className={clsx(pad && 'p-5', !pad && (title || action) && 'pt-3')}>{children}</div>
+      <div className={clsx(pad && 'p-5')}>{children}</div>
     </section>
   );
 }
 
 export function Delta({ now, before, invert }: { now: number; before: number; invert?: boolean }) {
-  if (!before && !now) return <span className="text-xs text-ink-soft">No data yet</span>;
-  if (!before) return <span className="text-xs font-semibold text-ink-soft">New this period</span>;
+  if (!before && !now) return <span className="font-mono text-[0.6875rem] text-ink-soft">No data yet</span>;
+  if (!before) return <span className="font-mono text-[0.6875rem] text-ink-soft">New this period</span>;
   const change = ((now - before) / before) * 100;
   const flat = Math.abs(change) < 0.5;
   const good = invert ? change < 0 : change > 0;
   const Icon = flat ? Minus : change > 0 ? ArrowUpRight : ArrowDownRight;
   return (
-    <span className={clsx('inline-flex items-center gap-0.5 text-xs font-semibold', flat ? 'text-ink-soft' : good ? 'text-leaf' : 'text-sindoor')}>
-      <Icon className="size-3.5" aria-hidden />
+    <span className={clsx('inline-flex items-center gap-0.5 font-mono text-[0.6875rem]', flat ? 'text-ink-soft' : good ? 'text-leaf' : 'text-sindoor')}>
+      <Icon className="size-3" aria-hidden />
       {flat ? 'No change' : `${Math.abs(change).toFixed(0)}%`}
-      <span className="font-normal text-ink-soft">&nbsp;vs previous</span>
+      <span className="text-ink-soft">&nbsp;vs prev.</span>
     </span>
   );
 }
 
 export function StatCard({ label, value, hint, delta, icon }: { label: string; value: ReactNode; hint?: ReactNode; delta?: ReactNode; icon?: ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-xl border border-hairline bg-surface p-4 sm:p-5">
-      <div className="flex items-center justify-between gap-2 text-sm font-semibold text-ink-soft">
+    <div className="flex min-w-0 flex-col gap-1.5 border border-ink/10 bg-ink/[0.015] px-4 py-4 sm:px-5">
+      <div className="flex items-center justify-between gap-2 font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-soft sm:text-[0.6875rem]">
         <span className="truncate">{label}</span>
-        {icon && <span className="text-ink-soft/70">{icon}</span>}
+        {icon && <span className="text-ink-soft/60 [&_svg]:size-3.5">{icon}</span>}
       </div>
-      <div className="font-display text-3xl leading-tight tabular-nums">{value}</div>
+      <div className="mt-1 font-display text-[1.625rem] leading-none tabular-nums sm:text-[1.75rem]">{value}</div>
       {delta}
       {hint && <div className="text-xs text-ink-soft">{hint}</div>}
     </div>
@@ -172,9 +173,9 @@ export { Badge } from '@/components/ui/field';
 
 export function Empty({ icon, title, children }: { icon?: ReactNode; title: string; children?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-hairline px-6 py-10 text-center">
-      {icon && <div className="text-ink-soft">{icon}</div>}
-      <p className="font-semibold">{title}</p>
+    <div className="flex flex-col items-center gap-2 border border-dashed border-ink/15 px-6 py-12 text-center">
+      {icon && <div className="mb-2 grid size-10 place-items-center border border-ink/15 text-ink [&_svg]:size-[1.1rem]">{icon}</div>}
+      <p className="text-[0.9375rem]">{title}</p>
       {children && <div className="max-w-sm text-sm text-ink-soft">{children}</div>}
     </div>
   );
@@ -188,15 +189,15 @@ export function Table({ head, children, className }: { head: ReactNode[]; childr
     <div className={clsx('overflow-x-auto', className)}>
       <table className="w-full min-w-[560px] border-collapse text-left text-sm">
         <thead>
-          <tr className="border-b border-hairline text-xs uppercase tracking-wide text-ink-soft">
+          <tr className="border-b border-ink/10 bg-ink/[0.02] font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft">
             {head.map((h, i) => (
-              <th key={i} scope="col" className="whitespace-nowrap px-4 py-2.5 font-semibold first:pl-5 last:pr-5">
+              <th key={i} scope="col" className="whitespace-nowrap px-4 py-2.5 font-normal first:pl-5 last:pr-5">
                 {h}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="[&>tr]:border-b [&>tr]:border-hairline [&>tr:last-child]:border-0 [&_td]:px-4 [&_td]:py-3 [&_td:first-child]:pl-5 [&_td:last-child]:pr-5">{children}</tbody>
+        <tbody className="[&>tr]:transition-colors [&>tr:hover]:bg-ink/[0.02] [&>tr]:border-b [&>tr]:border-ink/10 [&>tr:last-child]:border-0 [&_td]:px-4 [&_td]:py-3 [&_td:first-child]:pl-5 [&_td:last-child]:pr-5">{children}</tbody>
       </table>
     </div>
   );
@@ -206,8 +207,8 @@ export function Pager({ page, total, pageSize, onPage }: { page: number; total: 
   const pages = Math.max(1, Math.ceil(total / pageSize));
   if (pages <= 1) return null;
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-hairline px-5 py-3 text-sm">
-      <span className="text-ink-soft">
+    <div className="flex items-center justify-between gap-3 border-t border-ink/10 px-5 py-3 text-sm">
+      <span className="font-mono text-xs text-ink-soft">
         {num((page - 1) * pageSize + 1)}–{num(Math.min(page * pageSize, total))} of {num(total)}
       </span>
       <div className="flex gap-2">
@@ -231,9 +232,9 @@ export function Toggle({ checked, onChange, label, disabled }: { checked: boolea
       aria-label={label}
       disabled={disabled}
       onClick={() => onChange(!checked)}
-      className="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-mist transition-colors aria-checked:bg-leaf disabled:opacity-50"
+      className="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full bg-ink/15 transition-colors duration-200 aria-checked:bg-ink disabled:opacity-50"
     >
-      <span className={clsx('absolute left-0.5 size-5 rounded-full bg-white transition-transform', checked && 'translate-x-5')} />
+      <span className={clsx('absolute left-0.5 size-4 rounded-full bg-ivory transition-transform duration-200 ease-[var(--ease-out-quint)]', checked && 'translate-x-4')} />
     </button>
   );
 }

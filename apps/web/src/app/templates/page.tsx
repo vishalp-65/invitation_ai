@@ -12,10 +12,15 @@ export default function TemplatesPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-7xl px-5 pb-20 pt-10 sm:px-6 sm:pt-14">
-        <div className="max-w-2xl">
-          <h1 className="text-4xl tracking-tight sm:text-5xl">Invitation designs</h1>
-          <p className="mt-3 text-lg leading-relaxed text-ink-soft">
+      <main className="mx-auto max-w-[1400px] px-6 pb-20 pt-16 lg:px-12 lg:pt-24">
+        <div className="max-w-4xl">
+          <span className="kicker mb-8">Designs</span>
+          <h1 className="display-md">
+            Invitation
+            <br />
+            <span className="text-ink-soft">designs.</span>
+          </h1>
+          <p className="mt-8 max-w-2xl text-lg leading-relaxed text-ink-soft">
             Every design works as an image card, a video invite and a website. Pick one now and switch any time — your words stay the same.
           </p>
         </div>

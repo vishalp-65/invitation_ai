@@ -2,7 +2,7 @@
 
 import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, type EventDto, type EventTypeId } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowLeft, ArrowRight, Check, Eye, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Eye } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale } from 'next-intl';
@@ -21,15 +21,32 @@ import { detailsProblem, StepQuick } from './step-quick';
 import { track } from '@/lib/track';
 import { findTemplate } from '@/lib/hooks';
 
+type StepId = 'occasion' | 'design' | 'details';
+interface StepMeta {
+  id: StepId;
+  en: string;
+  hi: string;
+  titleEn: string;
+  titleHi: string;
+  subEn: string;
+  subHi: string;
+}
+
 /**
- * Occasion → design → details → editor. The design comes before the form so people fill in
+ * Form: occasion → design → details → editor. The design comes before the form so people fill in
  * their names while watching them land on the card they picked.
+ * Card scan: upload → check what was read → design → editor (the details already exist).
  */
-const STEPS = [
-  { id: 'occasion', en: 'Occasion', hi: 'अवसर', titleEn: 'What are you celebrating?', titleHi: 'आप क्या मना रहे हैं?', subEn: 'Pick the occasion and the language your guests read.', subHi: 'अवसर और कार्ड की भाषा चुनिए।' },
+const FORM_STEPS: StepMeta[] = [
+  { id: 'occasion', en: 'Start', hi: 'शुरुआत', titleEn: 'What are you celebrating?', titleHi: 'आप क्या मना रहे हैं?', subEn: 'Upload a photo of your printed card, or pick the occasion and fill in the details.', subHi: 'अपने छपे कार्ड की फ़ोटो डालिए, या अवसर चुनकर जानकारी भरिए।' },
   { id: 'design', en: 'Design', hi: 'डिज़ाइन', titleEn: 'Choose your design', titleHi: 'अपना डिज़ाइन चुनिए', subEn: 'Every word, colour and picture stays editable afterwards.', subHi: 'बाद में हर शब्द, रंग और चित्र बदल सकते हैं।' },
   { id: 'details', en: 'Details', hi: 'जानकारी', titleEn: 'Add your details', titleHi: 'अपनी जानकारी भरिए', subEn: 'Watch your card fill in as you type.', subHi: 'लिखते ही कार्ड पर दिखेगा।' },
-] as const;
+];
+const SCAN_STEPS: StepMeta[] = [
+  { ...FORM_STEPS[0]!, en: 'Your card', hi: 'आपका कार्ड' },
+  { id: 'details', en: 'Review', hi: 'जाँचें', titleEn: 'Check what we read', titleHi: 'पढ़ी गई जानकारी जाँचिए', subEn: 'Everything from your card is filled in. Fix anything marked “Check”.', subHi: 'आपके कार्ड की जानकारी भर दी गई है। “जाँचें” वाली जगहें देख लीजिए।' },
+  { ...FORM_STEPS[1]!, subEn: 'Your details from the card are already on every design.', subHi: 'कार्ड की जानकारी हर डिज़ाइन पर पहले से लगी है।' },
+];
 
 export function CreateWizard() {
   const d = useDraft();
@@ -53,7 +70,7 @@ export function CreateWizard() {
     const picked = template && (BUILTIN_TEMPLATES.some((t) => t.id === template) || /^adm-[a-f0-9]{8}$/.test(template));
     if (picked) s.set({ templateId: template });
     // A chosen design goes straight to the form; an occasion alone goes to the designs.
-    s.set({ step: picked ? 2 : 1 });
+    s.set({ source: 'form', scan: undefined, step: picked ? 2 : 1 });
     // Consume the params so they can't override the user's own choice later.
     router.replace('/create', { scroll: false });
   }, [search, router]);
@@ -66,9 +83,12 @@ export function CreateWizard() {
     s.set({ content: defaultWording(s.type, s.language, s.names, s.hosts, s.community), contentIsDefault: true });
   }, [missingWording]);
 
+  const STEPS = d.source === 'scan' ? SCAN_STEPS : FORM_STEPS;
   const step = Math.min(Math.max(d.step, 0), STEPS.length - 1);
   const meta = STEPS[step]!;
   const last = step === STEPS.length - 1;
+  const detailsStep = STEPS.findIndex((x) => x.id === 'details');
+  const designStep = STEPS.findIndex((x) => x.id === 'design');
   const ev = getEventType(d.type);
   const template = findTemplate(d.templateId);
 
@@ -83,6 +103,7 @@ export function CreateWizard() {
     if (problem) {
       setShowErrors(true);
       toast.error(problem);
+      if (step !== detailsStep) go(detailsStep);
       return;
     }
     if (!(await ensureLogin())) return;
@@ -107,7 +128,7 @@ export function CreateWizard() {
           })),
         },
       });
-      track('event_created', { templateId: d.templateId, props: { type: d.type, language: d.language } });
+      track('event_created', { templateId: d.templateId, props: { type: d.type, language: d.language, source: d.source } });
       // Publish right away so the website link works when shared; the user can unpublish.
       await api(`/events/${event.id}/publish`, { method: 'POST' });
       d.reset();
@@ -119,75 +140,91 @@ export function CreateWizard() {
     }
   }
 
+  const progress = ((step + 1) / STEPS.length) * 100;
+  const pickedName = step > 0 && template ? (template.family?.name ?? template.name) : null;
+  const dockLabel = d.source === 'scan' && step > 0 ? (d.names.filter(Boolean).join(' & ') || (hi ? ev.labelHi : ev.label.split(' / ')[0])) : hi ? ev.labelHi : ev.label.split(' / ')[0];
+
   return (
-    <div className="min-h-dvh bg-ivory pb-36">
+    <div className="min-h-dvh bg-ivory pb-32 sm:pb-36">
       {dialog}
 
-      {/* Progress + the question for this step, on a plain surface. */}
-      <section className="border-b border-hairline bg-surface">
-        <div className="mx-auto max-w-6xl px-5 pb-7 pt-6 sm:px-6 sm:pb-9 sm:pt-7">
-          <Stepper step={step} hi={hi} onJump={go} />
-          <div key={step} className={clsx('mt-7 sm:mt-9', back ? 'animate-step-back' : 'animate-step-in')}>
-            <h1 className="text-[2rem] sm:text-[2.75rem]">{hi ? meta.titleHi : meta.titleEn}</h1>
+      {/* Step header: numbered stepper, then the question for this step in display type. */}
+      <section className="border-b border-ink/10">
+        <div className="mx-auto max-w-[1400px] px-5 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-8 lg:px-12">
+          <Stepper steps={STEPS} step={step} hi={hi} onJump={go} />
+          <div key={step} className={clsx('mt-8 sm:mt-10', back ? 'animate-step-back' : 'animate-step-in')}>
+            <span className="kicker page-title-kicker mb-5">
+              {hi ? 'चरण' : 'Step'} {String(step + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
+            </span>
+            <h1 className="page-title">{hi ? meta.titleHi : meta.titleEn}</h1>
             <p className="mt-2 max-w-xl text-ink-soft">{hi ? meta.subHi : meta.subEn}</p>
           </div>
         </div>
       </section>
 
-      <div key={step} className={clsx('mx-auto max-w-6xl px-5 pt-8 sm:px-6 sm:pt-10', back ? 'animate-step-back' : 'animate-step-in')}>
-        {step === 0 && <StepOccasion onPicked={() => go(1)} />}
-        {step === 1 && <StepDesign onUse={() => go(2)} />}
-        {step === 2 && <StepQuick showErrors={showErrors} onChangeDesign={() => go(1)} />}
+      <div key={step} className={clsx('mx-auto max-w-[1400px] px-5 pt-8 sm:px-6 sm:pt-12 lg:px-12', back ? 'animate-step-back' : 'animate-step-in')}>
+        {meta.id === 'occasion' && (
+          <StepOccasion
+            onPicked={() => {
+              d.set({ source: 'form', scan: undefined });
+              go(1);
+            }}
+            onScanned={() => {
+              setShowErrors(false);
+              go(1);
+            }}
+          />
+        )}
+        {meta.id === 'design' && <StepDesign onUse={() => (last ? void create() : go(step + 1))} />}
+        {meta.id === 'details' && <StepQuick showErrors={showErrors} onChangeDesign={() => go(designStep)} onRescan={() => go(0)} />}
       </div>
 
-      {/* Action dock: what you've chosen so far on the left, navigation on the right. */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-hairline bg-surface pb-[env(safe-area-inset-bottom)]">
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-5 py-3 sm:px-6">
+      {/* Action dock: progress line on top, your choices on the left, navigation on the right. */}
+      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-ink/10 bg-ivory/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl">
+        <span aria-hidden className="absolute inset-x-0 -top-px block h-px bg-ink/10">
+          <span className="block h-full bg-ink transition-[width] duration-700 ease-[var(--ease-out-quint)]" style={{ width: `${progress}%` }} />
+        </span>
+        <div className="mx-auto flex max-w-[1400px] items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 lg:px-12">
           <div className="flex min-w-0 flex-1 items-center gap-3">
-            {step > 0 && template ? (
-              <Image
-                src={`/showcase/${template.id}.jpg`}
-                alt=""
-                width={36}
-                height={64}
-                className="hidden h-12 w-[27px] shrink-0 rounded-md object-cover sm:block"
-              />
-            ) : (
-              <span className="hidden size-11 shrink-0 place-items-center rounded-lg bg-tint text-xl sm:grid" aria-hidden>
-                {ev.emoji}
-              </span>
-            )}
-            <div className="hidden min-w-0 leading-tight sm:block">
-              <p className="truncate text-sm text-ink-soft">{hi ? ev.labelHi : ev.label}</p>
-              <p className="truncate font-semibold">{step > 0 && template ? (template.family?.name ?? template.name) : hi ? 'डिज़ाइन अगले चरण में' : 'Design comes next'}</p>
-            </div>
             {step > 0 && (
-              <Button variant="quiet" className="px-3 sm:hidden" aria-label={hi ? 'पीछे' : 'Back'} onClick={() => go(step - 1)}>
+              <button
+                type="button"
+                className="press grid size-11 shrink-0 place-items-center rounded-full border border-ink/15 transition-colors hover:border-ink/40 sm:hidden"
+                aria-label={hi ? 'पीछे' : 'Back'}
+                onClick={() => go(step - 1)}
+              >
                 <ArrowLeft className="size-4" />
-              </Button>
+              </button>
             )}
+            {pickedName && template ? (
+              <Image src={`/showcase/${template.id}.jpg`} alt="" width={36} height={64} className="hidden h-12 w-[27px] shrink-0 border border-ink/10 object-cover sm:block" />
+            ) : null}
+            <div className="hidden min-w-0 leading-tight sm:block">
+              <p className="truncate font-mono text-[0.6875rem] uppercase tracking-wider text-ink-soft">{dockLabel}</p>
+              <p className="mt-1 truncate">{pickedName ?? (hi ? 'डिज़ाइन अगले चरण में' : 'Design comes next')}</p>
+            </div>
           </div>
 
           {step > 0 && (
-            <Button variant="line" className="hidden sm:inline-flex" onClick={() => go(step - 1)}>
+            <Button variant="line" className="h-12 px-6 max-sm:!hidden" onClick={() => go(step - 1)}>
               <ArrowLeft className="size-4" />
               {hi ? 'पीछे' : 'Back'}
             </Button>
           )}
-          {last && (
-            <Button variant="line" className="lg:hidden" onClick={() => setPreviewOpen(true)}>
+          {meta.id === 'details' && (
+            <Button variant="line" className="h-12 lg:hidden" onClick={() => setPreviewOpen(true)}>
               <Eye className="size-4" />
               <span className="max-[400px]:sr-only">{hi ? 'झलक' : 'Preview'}</span>
             </Button>
           )}
           {last ? (
-            <Button variant="solid" className="h-12 px-6 sm:px-8" onClick={create} loading={creating}>
-              <Sparkles className="size-4" />
+            <Button variant="solid" className="press group h-12 px-6 sm:px-8" onClick={create} loading={creating}>
               {hi ? 'कार्ड बनाइए' : 'Create invitation'}
+              <ArrowRight className="size-4 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:translate-x-1" />
             </Button>
           ) : (
-            <Button variant="solid" className="group h-12 px-6 sm:px-8" onClick={() => go(step + 1)}>
-              {step === 1 ? (hi ? 'यह डिज़ाइन चुनें' : 'Use this design') : hi ? 'आगे' : 'Continue'}
+            <Button variant="solid" className="press group h-12 px-6 sm:px-8" onClick={() => go(step + 1)}>
+              {meta.id === 'design' ? (hi ? 'यह डिज़ाइन चुनें' : 'Use this design') : meta.id === 'details' ? (hi ? 'डिज़ाइन चुनें' : 'Choose design') : hi ? 'आगे' : 'Continue'}
               <ArrowRight className="size-4 transition-transform duration-300 ease-[var(--ease-out-quint)] group-hover:translate-x-1" />
             </Button>
           )}
@@ -203,41 +240,36 @@ export function CreateWizard() {
   );
 }
 
-function Stepper({ step, hi, onJump }: { step: number; hi: boolean; onJump: (i: number) => void }) {
+/** Three numbered steps with a line under each that fills as you go (studio "process" style). */
+function Stepper({ steps, step, hi, onJump }: { steps: StepMeta[]; step: number; hi: boolean; onJump: (i: number) => void }) {
   return (
     <nav aria-label="Progress">
-      <ol className="flex items-center gap-2 sm:gap-3">
-        {STEPS.map((s, i) => {
+      <ol className="grid grid-cols-3 gap-3 sm:gap-6">
+        {steps.map((s, i) => {
           const done = i < step;
           const current = i === step;
           return (
-            <li key={s.id} className="flex flex-1 items-center gap-2 last:flex-none sm:gap-3">
+            <li key={s.id}>
               <button
                 type="button"
                 onClick={() => done && onJump(i)}
                 disabled={!done}
                 aria-current={current ? 'step' : undefined}
-                className="group flex items-center gap-2.5 rounded-lg disabled:cursor-default"
+                className="group flex w-full flex-col items-start gap-2.5 text-left disabled:cursor-default"
               >
-                <span
-                  className={clsx(
-                    'grid size-8 shrink-0 place-items-center rounded-full text-sm font-bold tabular-nums transition-colors duration-300',
-                    current && 'bg-primary text-on-primary',
-                    done && 'tint-primary group-hover:bg-tint-strong',
-                    !done && !current && 'border border-hairline text-ink-soft',
-                  )}
-                >
-                  {done ? <Check className="size-4 animate-pop" strokeWidth={3} aria-hidden /> : i + 1}
+                <span className="flex items-baseline gap-2.5">
+                  <span className={clsx('font-mono text-xs tabular-nums transition-colors', current ? 'text-gold' : done ? 'text-ink' : 'text-ink-soft/60')}>
+                    {done ? <Check className="inline size-3.5 animate-pop" strokeWidth={2.5} aria-hidden /> : String(i + 1).padStart(2, '0')}
+                  </span>
+                  <span className={clsx('text-sm transition-colors', current ? 'text-ink' : done ? 'text-ink-soft group-hover:text-ink' : 'text-ink-soft/60')}>{hi ? s.hi : s.en}</span>
                 </span>
-                <span className={clsx('text-sm font-semibold transition-colors max-sm:hidden', current ? 'text-ink' : done ? 'text-ink-soft group-hover:text-ink' : 'text-ink-soft/70')}>
-                  {hi ? s.hi : s.en}
+                <span className="block h-px w-full overflow-hidden bg-ink/10" aria-hidden>
+                  <span
+                    className={clsx('block h-full origin-left transition-transform duration-700 ease-[var(--ease-out-quint)]', current ? 'bg-gold' : 'bg-ink')}
+                    style={{ transform: `scaleX(${done || current ? 1 : 0})` }}
+                  />
                 </span>
               </button>
-              {i < STEPS.length - 1 && (
-                <span className="h-0.5 flex-1 overflow-hidden rounded-full bg-hairline" aria-hidden>
-                  <span className="block h-full origin-left bg-primary transition-transform duration-500 ease-[var(--ease-out-quint)]" style={{ transform: `scaleX(${done ? 1 : 0})` }} />
-                </span>
-              )}
             </li>
           );
         })}

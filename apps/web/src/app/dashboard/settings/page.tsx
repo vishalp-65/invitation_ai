@@ -2,7 +2,7 @@
 
 import type { MeResponse } from '@cardai/shared';
 import { useQueryClient } from '@tanstack/react-query';
-import { Languages, LogOut } from 'lucide-react';
+import { Check, Languages, LogOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Avatar, useSwitchLocale } from '@/components/layout/site-header';
@@ -35,86 +35,127 @@ export default function SettingsPage() {
     }
   };
 
+  const unchanged = !name.trim() || name.trim() === (me?.name ?? '');
+
   return (
-    <div className="max-w-2xl animate-fade-up">
-      <h1 className="text-[1.75rem] sm:text-[2rem]">Settings</h1>
+    <div className="max-w-4xl animate-fade-up">
+      <span className="kicker mb-5">Account</span>
+      <h1 className="page-title">Settings</h1>
+      <p className="mt-2 max-w-2xl text-ink-soft">Your profile, how Noyta looks, and your session.</p>
 
-      <Section title="Profile">
-        <form onSubmit={save} className="flex flex-col gap-4">
-          <div className="flex items-center gap-4">
-            <Avatar size="size-12" />
-            <div className="min-w-0 text-sm">
-              <p className="truncate font-medium">{me?.email ?? 'Signed in'}</p>
-              <p className="text-ink-soft">Your email is used to sign in.</p>
+      {/* Identity strip */}
+      <div className="mt-8 flex items-center gap-4 border border-ink/10 bg-ink/[0.015] px-5 py-4 sm:px-6">
+        <Avatar size="size-11" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-[0.95rem]">{me?.name || 'Your account'}</p>
+          <p className="truncate font-mono text-xs text-ink-soft">{me?.email ?? 'Signed in'}</p>
+        </div>
+        <span className="hidden font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-soft sm:inline">
+          <span className="mr-1.5 inline-block size-1.5 rounded-full bg-leaf align-middle" aria-hidden />
+          Signed in
+        </span>
+      </div>
+
+      <div className="mt-10 flex flex-col">
+        <Section title="Profile" hint="The name shown on your dashboard and to the people you invite.">
+          <form onSubmit={save} className="flex flex-col gap-4">
+            <Field label="Name">
+              <input
+                value={name}
+                onChange={(e) => {
+                  setName(e.target.value);
+                  setState('idle');
+                }}
+                maxLength={80}
+                autoComplete="name"
+                className={`${controlClass} h-10 w-full px-3 text-[0.9375rem]`}
+              />
+            </Field>
+            <div className="flex flex-col gap-1.5">
+              <span className="font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft">Email</span>
+              <p className="flex h-10 items-center border border-dashed border-ink/15 px-3 font-mono text-[0.8125rem] text-ink-soft">{me?.email ?? '—'}</p>
+              <span className="text-xs text-ink-soft">Used to sign in. It can&apos;t be changed here.</span>
             </div>
-          </div>
-          <label className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium">Name</span>
-            <input
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setState('idle');
-              }}
-              maxLength={80}
-              autoComplete="name"
-              className={`${controlClass} h-10 w-full px-3 text-[0.95rem]`}
-            />
-          </label>
-          <div className="flex items-center gap-3">
-            <Button type="submit" size="sm" loading={state === 'saving'} disabled={!name.trim() || name.trim() === (me?.name ?? '')}>
-              Save name
+            <div className="flex flex-wrap items-center gap-3 pt-1">
+              <Button type="submit" size="sm" className="press" loading={state === 'saving'} disabled={unchanged}>
+                Save changes
+              </Button>
+              <span role="status" className="flex items-center gap-1.5 text-[0.8125rem] text-ink-soft">
+                {state === 'saved' && (
+                  <>
+                    <Check className="size-3.5 text-leaf" aria-hidden /> Saved
+                  </>
+                )}
+                {state === 'error' && <span className="text-sindoor">Could not save. Check your connection and try again.</span>}
+              </span>
+            </div>
+          </form>
+        </Section>
+
+        <Section title="Appearance" hint="How Noyta looks on this device.">
+          <Row label="Theme" hint="System follows your phone or computer.">
+            <ThemeSegmented />
+          </Row>
+          <Row label="Language" hint="Menus and pages. Invitations keep their own language.">
+            <button
+              type="button"
+              onClick={locale.switchTo}
+              className="press inline-flex h-9 items-center gap-1.5 border border-ink/15 px-3 text-[0.8125rem] transition-colors hover:bg-ink/[0.04]"
+            >
+              <Languages className="size-3.5" strokeWidth={1.75} aria-hidden /> Switch to {locale.label}
+            </button>
+          </Row>
+        </Section>
+
+        <Section title="Session" hint="Sign out of Noyta on this device." last>
+          <Row label="Log out" hint="Your invitations stay safe; sign in again any time.">
+            <Button
+              variant="line"
+              size="sm"
+              className="press hover:!border-sindoor/40 hover:!text-sindoor"
+              loading={logout.isPending}
+              onClick={() => logout.mutate(undefined, { onSuccess: () => router.push('/') })}
+            >
+              <LogOut className="size-3.5" aria-hidden />
+              Log out
             </Button>
-            <span role="status" className="text-sm text-ink-soft">
-              {state === 'saved' && 'Name saved'}
-              {state === 'error' && <span className="text-sindoor">Could not save. Check your connection and try again.</span>}
-            </span>
-          </div>
-        </form>
-      </Section>
-
-      <Section title="Appearance">
-        <Row label="Theme" hint="System follows your phone or computer setting.">
-          <ThemeSegmented />
-        </Row>
-        <Row label="Language" hint="Menus and pages. Invitations keep their own language.">
-          <button
-            type="button"
-            onClick={locale.switchTo}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-hairline bg-surface px-3 text-sm font-medium hover:bg-mist"
-          >
-            <Languages className="size-4" aria-hidden /> Switch to {locale.label}
-          </button>
-        </Row>
-      </Section>
-
-      <Section title="Session">
-        <Button variant="danger" className="border border-hairline" loading={logout.isPending} onClick={() => logout.mutate(undefined, { onSuccess: () => router.push('/') })}>
-          <LogOut className="size-4" aria-hidden />
-          Log out
-        </Button>
-      </Section>
+          </Row>
+        </Section>
+      </div>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: ReactNode }) {
+/** One settings group: title and hint on the left, controls on the right (stacked on phones). */
+function Section({ title, hint, last, children }: { title: string; hint: string; last?: boolean; children: ReactNode }) {
   return (
-    <section className="mt-8 rounded-[var(--radius-card)] border border-hairline bg-surface p-5 sm:p-6">
-      <h2 className="mb-5 text-lg">{title}</h2>
-      <div className="flex flex-col gap-5">{children}</div>
+    <section className={`grid gap-5 border-t border-ink/10 py-8 md:grid-cols-[13rem_1fr] md:gap-10 ${last ? 'border-b' : ''}`}>
+      <div>
+        <h2 className="text-base font-medium">{title}</h2>
+        <p className="mt-1 text-[0.8125rem] leading-relaxed text-ink-soft">{hint}</p>
+      </div>
+      <div className="flex min-w-0 flex-col divide-y divide-ink/10 [&>form]:py-0">{children}</div>
     </section>
+  );
+}
+
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <label className="flex flex-col gap-1.5">
+      <span className="font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft">{label}</span>
+      {children}
+    </label>
   );
 }
 
 function Row({ label, hint, children }: { label: string; hint: string; children: ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <p className="text-sm font-medium">{label}</p>
+        <p className="text-[0.9375rem]">{label}</p>
         <p className="text-[0.8125rem] text-ink-soft">{hint}</p>
       </div>
-      {children}
+      <div className="shrink-0">{children}</div>
     </div>
   );
 }

@@ -85,7 +85,7 @@ export default function DesignerPage() {
               <ul className="mt-4 divide-y divide-line border-y border-line">
                 {mine?.map((t) => (
                   <li key={t.id} className="flex flex-wrap items-center gap-3 py-4">
-                    <span className="flex-1 font-semibold">{t.name}</span>
+                    <span className="flex-1 font-medium">{t.name}</span>
                     <span className="text-sm text-ink-soft">{t.salesCount} sales</span>
                     <span className="rounded-lg bg-mist px-3 py-1 text-sm">{t.status}</span>
                     {t.status === 'draft' && (
@@ -196,7 +196,7 @@ function ThemeEditor({ onSaved }: { onSaved: () => void }) {
           </Field>
         </div>
         <fieldset>
-          <legend className="font-semibold">Colours</legend>
+          <legend className="font-medium">Colours</legend>
           <div className="mt-2 flex flex-wrap gap-4">
             {PALETTE_KEYS.map((k) => (
               <label key={k} className="flex flex-col items-center gap-1 text-sm">
@@ -204,7 +204,7 @@ function ThemeEditor({ onSaved }: { onSaved: () => void }) {
                   type="color"
                   value={theme.palette[k]}
                   onChange={(e) => setTheme({ ...theme, palette: { ...theme.palette, [k]: e.target.value.toUpperCase() } })}
-                  className="size-12 cursor-pointer rounded-full border border-hairline"
+                  className="size-12 cursor-pointer rounded-full border border-ink/10"
                 />
                 {k}
               </label>

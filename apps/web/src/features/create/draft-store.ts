@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, getEventType, templateSupportsEvent, type Community, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, getEventType, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { findTemplate } from '@/lib/hooks';
@@ -31,6 +31,10 @@ export interface Draft {
   contentIsDefault: boolean;
   functions: DraftFunction[];
   templateId: string;
+  /** How the user started: the form, or a photo of their printed card (changes the step order). */
+  source: 'form' | 'scan';
+  /** Set after a card scan: which fields to double-check and how it was read. */
+  scan?: { uncertain: ScanField[]; method: 'vision' | 'ocr' | 'local'; eventTypeFound: boolean };
 }
 
 interface DraftStore extends Draft {
@@ -70,6 +74,8 @@ const initial = (type: EventTypeId = 'wedding'): Draft => ({
   contentIsDefault: true,
   functions: getEventType(type).defaultFunctions.slice(0, 3).map((n) => emptyFunction(n)),
   templateId: 'shubh-vivah-maroon',
+  source: 'form',
+  scan: undefined,
 });
 
 /** Wizard draft survives refreshes and the login step (localStorage). */

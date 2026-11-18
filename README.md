@@ -37,13 +37,11 @@ infra/       Dockerfiles, storage bootstrap
 
 ## Run locally
 
-Requirements: Node 24, Docker Desktop.
+Requirements: Node 24, a Neon Postgres database, an Upstash Redis database and an S3-compatible bucket (no Docker).
 
 ```bash
-cp .env.example .env              # add OPENROUTER_API_KEY to enable AI features
+cp .env.example .env              # set DATABASE_URL (Neon), REDIS_URL (Upstash), S3_* and OPENROUTER_API_KEY
 npm install
-npm run infra:up                  # Postgres, Redis, S3-compatible storage
-docker compose run --rm minio-init
 npm run build                     # builds shared packages
 npm run db:migrate && npm run db:seed
 npm run dev                       # api :4000, worker, web :3000

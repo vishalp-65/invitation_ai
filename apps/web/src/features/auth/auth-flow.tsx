@@ -85,7 +85,7 @@ function GoogleRedirectButton({ mode, next }: { mode: Mode; next: string }) {
       href={`/api/auth/google/start?next=${encodeURIComponent(next)}`}
       onClick={() => setBusy(true)}
       aria-busy={busy}
-      className="press flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-hairline bg-surface text-[0.95rem] font-medium text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-mist aria-busy:pointer-events-none aria-busy:opacity-70"
+      className="press flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-ink/10 bg-ink/[0.02] text-[0.95rem] font-medium text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-ink/[0.04] aria-busy:pointer-events-none aria-busy:opacity-70"
     >
       {busy ? <span className="size-5 animate-spin rounded-full border-2 border-ink/20 border-t-ink" aria-hidden /> : <GoogleLogo />}
       {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
@@ -112,7 +112,7 @@ function IconInput({
         aria-describedby={describedBy}
         className={clsx(
           'h-11 w-full rounded-lg border bg-surface pl-10 pr-3.5 text-[0.95rem] text-ink transition-[border-color,box-shadow] duration-150 placeholder:text-ink-soft/60 hover:border-ink/25 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10',
-          invalid ? 'border-sindoor' : 'border-hairline',
+          invalid ? 'border-sindoor' : 'border-ink/10',
         )}
         {...props}
       />
@@ -147,8 +147,8 @@ function Alert({ children }: { children: ReactNode }) {
 function Heading({ icon, title, subtitle }: { icon?: ReactNode; title: string; subtitle?: ReactNode }) {
   return (
     <header className="mb-8">
-      {icon && <div className="mb-6 grid size-11 animate-pop place-items-center rounded-lg border border-hairline text-ink">{icon}</div>}
-      <h1 className="text-[1.625rem] tracking-[-0.03em]">{title}</h1>
+      {icon && <div className="mb-6 grid size-11 animate-pop place-items-center rounded-lg border border-ink/10 text-ink">{icon}</div>}
+      <h1 className="text-4xl">{title}</h1>
       {subtitle && <p className="mt-2 text-[0.95rem] leading-relaxed text-ink-soft">{subtitle}</p>}
     </header>
   );
@@ -206,7 +206,7 @@ function PasswordInput({
         autoFocus={autoFocus}
         className={clsx(
           'h-11 w-full rounded-lg border bg-surface pl-10 pr-12 text-[0.95rem] text-ink transition-[border-color,box-shadow] duration-150 placeholder:text-ink-soft/60 hover:border-ink/25 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10',
-          invalid ? 'border-sindoor' : 'border-hairline',
+          invalid ? 'border-sindoor' : 'border-ink/10',
         )}
       />
       <button
@@ -214,7 +214,7 @@ function PasswordInput({
         onClick={() => setShown((s) => !s)}
         aria-label={shown ? 'Hide password' : 'Show password'}
         aria-pressed={shown}
-        className="absolute inset-y-0 right-1.5 my-auto grid size-9 place-items-center rounded-md text-ink-soft transition-colors hover:bg-mist hover:text-ink"
+        className="absolute inset-y-0 right-1.5 my-auto grid size-9 place-items-center rounded-md text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
       >
         {shown ? <EyeOff className="size-[18px]" aria-hidden /> : <Eye className="size-[18px]" aria-hidden />}
       </button>
@@ -317,14 +317,14 @@ function CodeStep({
           subtitle={
             <>
               Enter the 6-digit code we sent to
-              <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
+              <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{email}</strong>
             </>
           }
         />
       ) : (
         <p className="mb-5 text-ink-soft">
           Enter the 6-digit code we sent to
-          <strong className="mt-0.5 block font-semibold text-ink [overflow-wrap:anywhere]">{email}</strong>
+          <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{email}</strong>
         </p>
       )}
 
@@ -367,7 +367,7 @@ function CodeStep({
             href={inbox.href}
             target="_blank"
             rel="noopener noreferrer"
-            className="press flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-hairline bg-surface text-[0.95rem] font-medium text-ink transition-colors hover:border-ink/25 hover:bg-mist"
+            className="press flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-[0.95rem] font-medium text-ink transition-colors hover:border-ink/25 hover:bg-ink/[0.04]"
           >
             <Mail className="size-4" aria-hidden />
             {inbox.label}
@@ -376,7 +376,7 @@ function CodeStep({
       </form>
 
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 whitespace-nowrap text-sm">
-        <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-semibold text-ink-soft transition-colors hover:text-ink">
+        <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-medium text-ink-soft transition-colors hover:text-ink">
           <ArrowLeft className="size-4" aria-hidden />
           Use a different email
         </button>
@@ -436,7 +436,7 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
         <Button type="submit" variant="solid" size="lg" loading={busy} className="h-11 w-full text-[0.95rem]">
           Get started
         </Button>
-        <button type="button" onClick={() => onDone()} className="text-center text-sm font-semibold text-ink-soft hover:text-ink">
+        <button type="button" onClick={() => onDone()} className="text-center text-sm font-medium text-ink-soft hover:text-ink">
           Skip for now
         </button>
       </form>
@@ -703,7 +703,7 @@ export function AuthFlow({
       </form>
 
       {forgot ? (
-        <button type="button" onClick={() => go('login')} className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-ink-soft transition-colors hover:text-ink">
+        <button type="button" onClick={() => go('login')} className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink">
           <ArrowLeft className="size-4" aria-hidden />
           Back to log in
         </button>

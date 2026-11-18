@@ -48,7 +48,7 @@ export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate, onPublish, onDo
   );
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-9 place-items-center rounded-lg hover:bg-mist" {...tip('More')}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-9 place-items-center rounded-lg hover:bg-ink/[0.04]" {...tip('More')}>
         <MoreHorizontal className="size-5" />
       </button>
       {open && (
@@ -61,7 +61,7 @@ export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate, onPublish, onDo
           {item('Keyboard shortcuts', Keyboard, onShortcuts, '?', 'max-md:hidden')}
           <div className="menu-sep" />
           <div className="px-3 pb-2 pt-1">
-            <p className="mb-1.5 text-xs font-semibold text-ink-soft">Theme</p>
+            <p className="mb-1.5 text-xs font-medium text-ink-soft">Theme</p>
             <ThemeSegmented />
           </div>
         </div>
@@ -144,11 +144,11 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
                   aria-checked={format === f.id}
                   disabled={busy || Boolean(locked)}
                   onClick={() => setFormat(f.id)}
-                  className="flex items-start gap-3 rounded-lg border border-hairline bg-surface p-3 text-left transition-colors hover:border-ink/40 disabled:opacity-60 aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
+                  className="flex items-start gap-3 rounded-lg border border-ink/10 bg-ink/[0.02] p-3 text-left transition-colors hover:border-ink/40 disabled:opacity-60 aria-checked:border-primary aria-checked:ring-1 aria-checked:ring-primary"
                 >
                   <f.icon className="mt-0.5 size-5 shrink-0" />
                   <span className="flex-1">
-                    <span className="flex items-center gap-1.5 font-semibold">
+                    <span className="flex items-center gap-1.5 font-medium">
                       {f.label}
                       {locked && <Lock className="size-3.5 text-ink-soft" />}
                     </span>
@@ -172,13 +172,13 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
 
         {done && render && (
           <div className="flex flex-col gap-3">
-            <p className="flex items-center gap-2 font-semibold text-leaf">
+            <p className="flex items-center gap-2 font-medium text-leaf">
               <Check className="size-5" /> Ready
             </p>
             <ul className="flex flex-col gap-2">
               {render.outputs.map((o, i) => (
                 <li key={o.url}>
-                  <a href={o.url} download target="_blank" rel="noreferrer" className="flex h-12 items-center gap-3 rounded-lg border border-hairline bg-surface px-3 font-semibold hover:border-ink/40">
+                  <a href={o.url} download target="_blank" rel="noreferrer" className="flex h-12 items-center gap-3 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 font-medium hover:border-ink/40">
                     <Download className="size-4" />
                     <span className="flex-1">{render.outputs.length > 1 ? `Page ${i + 1}` : format === 'image' ? 'Your card' : 'Your PDF'}</span>
                     <span className="text-sm font-normal text-ink-soft">{kb(o.bytes)}</span>
@@ -189,19 +189,19 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
             {render.watermark && (
               <p className="rounded-lg bg-mist p-3 text-sm">
                 Free downloads carry a small watermark.{' '}
-                <Link href={`/dashboard/events/${event.id}?upgrade=card`} className="font-semibold underline underline-offset-4">
+                <Link href={`/dashboard/events/${event.id}?upgrade=card`} className="font-medium underline underline-offset-4">
                   Remove it from {formatINR(cardPrice)}
                 </Link>
               </p>
             )}
-            <button type="button" onClick={() => setRender(null)} className="flex items-center gap-1.5 self-start text-sm font-semibold text-ink-soft hover:text-ink">
+            <button type="button" onClick={() => setRender(null)} className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft hover:text-ink">
               <RotateCcw className="size-4" /> Choose another format
             </button>
           </div>
         )}
 
         {!done && (
-          <button type="button" onClick={start} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60">
+          <button type="button" onClick={start} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
             {busy ? 'Preparing…' : 'Download'}
           </button>
@@ -247,11 +247,11 @@ export function SaveTemplateDialog({ open, onClose, event }: { open: boolean; on
     <Dialog open={open} onClose={onClose} title="Save as my template">
       <form onSubmit={save} className="flex flex-col gap-4 pb-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-semibold text-ink-soft">Template name</span>
+          <span className="text-sm font-medium text-ink-soft">Template name</span>
           <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} required className={`${controlClass} h-10 px-3`} />
         </label>
         <p className="text-sm text-ink-soft">Keeps your layout, fonts, colours and backgrounds. Names, dates and venues fill in from whichever invitation you use it in. Photos aren&apos;t copied.</p>
-        <button type="submit" disabled={busy || !name.trim()} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary hover:bg-primary-hover disabled:opacity-60">
+        <button type="submit" disabled={busy || !name.trim()} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <BookmarkPlus className="size-4" />}
           Save template
         </button>

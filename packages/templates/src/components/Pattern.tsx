@@ -1,3 +1,4 @@
+import { memo } from 'react';
 import type { PatternId } from '@cardai/shared';
 import { random } from 'remotion';
 import { useSvgId } from '../art/svg-ids';
@@ -14,7 +15,8 @@ interface PatternProps {
 }
 
 /** Tiled background ornament. Pure SVG so it is crisp at any print resolution. */
-export function Pattern({ pattern, color, accent, opacity, width, height, seed = 'p' }: PatternProps) {
+/** Memoized: all props are primitives, so the pattern SVG is rebuilt only when it actually changes. */
+export const Pattern = memo(function Pattern({ pattern, color, accent, opacity, width, height, seed = 'p' }: PatternProps) {
   // Unique per instance: the gallery shows many cards (different colours) on one page.
   const id = useSvgId(`pat-${pattern}`);
   if (pattern === 'none' || opacity <= 0) return null;
@@ -56,7 +58,7 @@ export function Pattern({ pattern, color, accent, opacity, width, height, seed =
       <rect width={width} height={height} fill={`url(#${id})`} />
     </svg>
   );
-}
+});
 
 function tileFor(pattern: PatternId, c: string, a: string) {
   switch (pattern) {

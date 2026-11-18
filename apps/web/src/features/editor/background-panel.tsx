@@ -81,12 +81,12 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
   const badge = !q ? null : q.credits > 0 && q.used >= q.included ? `${q.remaining} pack credits` : q.upgraded ? `${q.remaining} left` : `${q.remaining} of ${q.included} free`;
 
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-hairline bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface)),var(--color-surface))] p-3.5">
+    <div className="flex flex-col gap-3 rounded-xl border border-ink/10 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface)),var(--color-surface))] p-3.5">
       <div className="flex items-center justify-between">
-        <p className="flex items-center gap-1.5 font-semibold">
+        <p className="flex items-center gap-1.5 font-medium">
           <Sparkles className="size-4 text-marigold" /> AI background
         </p>
-        {badge && <span className={clsx('rounded-md px-2 py-0.5 text-xs font-semibold', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? 'None left' : badge}</span>}
+        {badge && <span className={clsx('rounded-md px-2 py-0.5 text-xs font-medium', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? 'None left' : badge}</span>}
       </div>
       <textarea
         value={prompt}
@@ -104,7 +104,7 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
               type="button"
               onClick={() => setPrompt(s.prompt)}
               aria-pressed={prompt === s.prompt}
-              className="h-8 shrink-0 rounded-lg border border-hairline bg-surface px-3 text-xs font-semibold transition-colors hover:border-ink/40 aria-pressed:border-primary aria-pressed:tint-primary"
+              className="h-8 shrink-0 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-xs font-medium transition-colors hover:border-ink/40 aria-pressed:border-primary aria-pressed:tint-primary"
             >
               {s.label}
             </button>
@@ -112,12 +112,12 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
         </div>
       </div>
       {out ? (
-        <button type="button" onClick={buyPack} disabled={buying} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-sindoor font-semibold text-white transition-colors hover:bg-sindoor-deep disabled:opacity-60">
+        <button type="button" onClick={buyPack} disabled={buying} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-sindoor font-medium text-white transition-colors hover:bg-sindoor-deep disabled:opacity-60">
           {buying ? <Loader2 className="size-4 animate-spin" /> : <Sparkles className="size-4" />}
           Get {pack.credits!.ai_background} more for {formatINR(pack.pricePaise)}
         </button>
       ) : (
-        <button type="button" onClick={generate} disabled={busy || quota?.configured === false} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
+        <button type="button" onClick={generate} disabled={busy || quota?.configured === false} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
           {busy ? 'Painting your background…' : 'Generate background'}
         </button>
@@ -146,7 +146,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
 
   return (
     <div className="flex flex-col">
-      <label className="flex items-center justify-between gap-2 px-4 pt-4 text-sm font-semibold">
+      <label className="flex items-center justify-between gap-2 px-4 pt-4 text-sm font-medium">
         Apply to every page
         <input type="checkbox" role="switch" checked={all} onChange={(e) => setAll(e.target.checked)} className="switch" />
       </label>
@@ -162,7 +162,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
             const url = await pickImage();
             if (url) setImage(url);
           }}
-          className="flex h-11 items-center justify-center gap-2 rounded-lg border border-hairline bg-surface font-semibold hover:border-ink/40"
+          className="flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium hover:border-ink/40"
         >
           <ImagePlus className="size-4" /> Upload your own
         </button>
@@ -191,7 +191,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
             <Slider label="Blur" min={0} max={30} value={bg.imageBlur ?? 0} onChange={(v) => set({ imageBlur: v })} />
             <Slider label="Colour wash" min={0} max={90} value={Math.round((bg.overlayOpacity ?? 0) * 100)} suffix="%" onChange={(v) => set({ overlayOpacity: v / 100, overlay: bg.overlay ?? '#000000' })} />
             {(bg.overlayOpacity ?? 0) > 0 && <ColorPicker value={bg.overlay ?? '#000000'} onChange={(c) => set({ overlay: c })} />}
-            <button type="button" onClick={() => set({ image: null })} className="flex items-center gap-1.5 self-start text-sm font-semibold text-sindoor">
+            <button type="button" onClick={() => set({ image: null })} className="flex items-center gap-1.5 self-start text-sm font-medium text-sindoor">
               <Trash2 className="size-4" /> Remove image
             </button>
           </div>

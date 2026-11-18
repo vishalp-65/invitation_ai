@@ -113,14 +113,14 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
             value={state.q}
             onChange={(e) => setState({ ...state, q: e.target.value })}
             placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search shaadi, ganesha, maroon, floral…'}
-            className="h-12 w-full rounded-[var(--radius-control)] border border-hairline bg-surface pl-12 pr-11 text-base text-ink outline-none transition-colors placeholder:text-ink-soft/80 hover:border-ink/25 focus-visible:border-ink"
+            className="h-14 w-full border border-ink/15 bg-transparent pl-12 pr-11 text-base text-ink outline-none transition-colors placeholder:text-ink-soft/70 hover:border-ink/30 focus-visible:border-ink"
             enterKeyHint="search"
           />
           {state.q && (
             <button
               type="button"
               onClick={() => setState({ ...state, q: '' })}
-              className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-[var(--radius-control)] text-ink-soft hover:bg-mist hover:text-ink"
+              className="absolute right-3 top-1/2 grid size-8 -translate-y-1/2 place-items-center text-ink-soft hover:bg-ink/[0.05] hover:text-ink"
               aria-label={hi ? 'साफ़ करें' : 'Clear search'}
             >
               <X className="size-4" />
@@ -130,11 +130,11 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
         <button
           type="button"
           onClick={() => setSheetOpen(true)}
-          className="inline-flex h-12 shrink-0 items-center gap-2 rounded-[var(--radius-control)] border border-hairline bg-surface px-4 text-[0.95rem] font-medium hover:border-ink/25 lg:hidden"
+          className="press inline-flex h-14 shrink-0 items-center gap-2 border border-ink/15 px-4 text-[0.95rem] transition-colors hover:border-ink/40 lg:hidden"
         >
           <SlidersHorizontal className="size-4.5" aria-hidden />
           {hi ? 'फ़िल्टर' : 'Filters'}
-          {nRefine > 0 && <span className="grid size-5 place-items-center rounded-full bg-primary text-xs font-semibold text-on-primary">{nRefine}</span>}
+          {nRefine > 0 && <span className="grid size-5 place-items-center rounded-full bg-ink font-mono text-[0.625rem] text-ivory">{nRefine}</span>}
         </button>
       </div>
 
@@ -142,12 +142,12 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
       <nav
         className={
           inApp
-            ? 'sticky top-14 z-20 -mx-4 mt-6 border-b border-hairline bg-ivory px-4 sm:-mx-6 sm:px-6 lg:top-16 lg:-mx-8 lg:px-8'
-            : 'sticky top-16 z-20 -mx-5 mt-6 border-b border-hairline bg-ivory px-5 sm:-mx-6 sm:px-6'
+            ? 'sticky top-14 z-20 -mx-4 mt-8 border-b border-ink/10 bg-ivory/90 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:top-16 lg:-mx-10 lg:px-10'
+            : 'sticky top-16 z-20 -mx-6 mt-8 border-b border-ink/10 bg-ivory/90 px-6 backdrop-blur-xl lg:-mx-12 lg:px-12'
         }
         aria-label={hi ? 'अवसर' : 'Occasion'}
       >
-        <div className="-mb-px flex gap-6 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] [scrollbar-width:none]">
+        <div className="-mb-px flex gap-7 overflow-x-auto pr-8 [mask-image:linear-gradient(to_right,#000_calc(100%-3rem),transparent)] [scrollbar-width:none]">
           {OCCASIONS.map((o) => {
             const ev = EVENT_TYPES.find((e) => e.id === o);
             const label = o === 'all' ? (hi ? 'सभी अवसर' : 'All occasions') : hi ? ev?.labelHi : ev?.label;
@@ -158,8 +158,8 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
                 aria-pressed={occasion === o}
                 onClick={() => setOccasion(o)}
                 className={clsx(
-                  'h-12 shrink-0 whitespace-nowrap border-b-2 text-[0.95rem] transition-colors',
-                  occasion === o ? 'border-primary font-semibold text-ink' : 'border-transparent text-ink-soft hover:text-ink',
+                  'h-12 shrink-0 whitespace-nowrap border-b text-sm transition-colors',
+                  occasion === o ? 'border-ink text-ink' : 'border-transparent text-ink-soft hover:text-ink',
                 )}
               >
                 {label}
@@ -169,12 +169,12 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
         </div>
       </nav>
 
-      <div className="mt-8 lg:grid lg:grid-cols-[232px_minmax(0,1fr)] lg:gap-10">
+      <div className="mt-10 lg:grid lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
         {/* Desktop filters */}
         <aside className="hidden lg:block" aria-label={hi ? 'फ़िल्टर' : 'Filters'}>
           <div className="sticky top-[8.5rem] max-h-[calc(100dvh-10rem)] overflow-y-auto pb-6 [scrollbar-width:none]">
             <div className="mb-5 flex h-6 items-center justify-between">
-              <p className="font-semibold">{hi ? 'फ़िल्टर' : 'Filters'}</p>
+              <p className="kicker !text-ink">{hi ? 'फ़िल्टर' : 'Filters'}</p>
               {nRefine > 0 && (
                 <button type="button" onClick={resetAll} className="text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline">
                   {hi ? 'सब हटाएँ' : 'Reset'}
@@ -188,22 +188,22 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
         {/* Results */}
         <section aria-live="polite" aria-busy={isLoading}>
           <div className="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-2">
-            <p className="text-sm text-ink-soft">
+            <p className="font-mono text-xs text-ink-soft">
               {isLoading ? (
                 hi ? 'डिज़ाइन लोड हो रहे हैं…' : 'Loading designs…'
               ) : hi ? (
-                <><span className="font-semibold text-ink">{families.length}</span> डिज़ाइन · {colourways} रंग</>
+                <><span className="text-ink">{families.length}</span> डिज़ाइन · {colourways} रंग</>
               ) : (
-                <><span className="font-semibold text-ink">{families.length}</span> {families.length === 1 ? 'design' : 'designs'} · {colourways} colourways</>
+                <><span className="text-ink">{families.length}</span> {families.length === 1 ? 'design' : 'designs'} · {colourways} colourways</>
               )}
             </p>
             <ActiveChips state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} onReset={resetAll} />
             <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
-              <span className="hidden sm:inline">{hi ? 'क्रम' : 'Sort'}</span>
+              <span className="hidden font-mono text-xs sm:inline">{hi ? 'क्रम' : 'Sort'}</span>
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as Sort)}
-                className={`${controlClass} select h-9 pl-3 pr-9 text-sm text-ink`}
+                className={`${controlClass} select h-10 pl-3 pr-9 text-sm text-ink`}
                 aria-label={hi ? 'क्रम' : 'Sort designs'}
               >
                 {SORTS.map(([id, en, h]) => (
@@ -214,10 +214,10 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
           </div>
 
           {isLoading ? (
-            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
+            <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
               {Array.from({ length: 8 }, (_, i) => (
                 <li key={i}>
-                  <div className="skeleton aspect-[9/16] w-full rounded-xl" />
+                  <div className="skeleton aspect-[9/16] w-full" />
                   <div className="skeleton mt-3 h-4 w-2/3" />
                 </li>
               ))}
@@ -225,7 +225,7 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
           ) : families.length === 0 ? (
             <div className="mt-5"><NoTemplates hi={hi} onReset={resetAll} /></div>
           ) : (
-            <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-9 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
+            <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
               {families.map((f, i) => (
                 <FamilyTile
                   key={f.id}
@@ -248,11 +248,11 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
       {/* Mobile filters */}
       <Dialog focusField={false} open={sheetOpen} onClose={() => setSheetOpen(false)} title={hi ? 'फ़िल्टर' : 'Filters'}>
         {panel}
-        <div className="sticky -bottom-5 -mx-5 mt-6 flex gap-2 border-t border-hairline bg-surface px-5 py-3">
-          <button type="button" onClick={resetAll} className="h-11 flex-1 rounded-[var(--radius-control)] border border-hairline font-medium hover:bg-mist">
+        <div className="sticky -bottom-6 -mx-6 mt-6 flex gap-2 border-t border-ink/10 bg-ivory px-6 py-3">
+          <button type="button" onClick={resetAll} className="press h-12 flex-1 rounded-full border border-ink/15 hover:bg-ink/[0.04]">
             {hi ? 'सब हटाएँ' : 'Reset'}
           </button>
-          <button type="button" onClick={() => setSheetOpen(false)} className="h-11 flex-[2] rounded-[var(--radius-control)] bg-primary font-semibold text-on-primary hover:bg-primary-hover">
+          <button type="button" onClick={() => setSheetOpen(false)} className="press h-12 flex-[2] rounded-full bg-primary font-medium text-on-primary hover:bg-primary-hover">
             {hi ? `${families.length} डिज़ाइन देखें` : `Show ${families.length} designs`}
           </button>
         </div>
@@ -263,8 +263,8 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
 
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <fieldset className="border-t border-hairline py-5 first:border-t-0 first:pt-0">
-      <legend className="float-left mb-3 w-full text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft">{title}</legend>
+    <fieldset className="border-t border-ink/10 py-6 first:border-t-0 first:pt-0">
+      <legend className="float-left mb-4 w-full font-mono text-[0.6875rem] uppercase tracking-[0.08em] text-ink-soft">{title}</legend>
       <div className="clear-both">{children}</div>
     </fieldset>
   );
@@ -291,7 +291,7 @@ function FilterPanel({
   return (
     <div>
       <Section title={hi ? 'कीमत' : 'Price'}>
-        <div className="grid grid-cols-3 rounded-[var(--radius-control)] border border-hairline bg-surface p-0.5" role="radiogroup">
+        <div className="grid grid-cols-3 border border-ink/15" role="radiogroup">
           {prices.map(([id, label]) => (
             <button
               key={id}
@@ -300,8 +300,8 @@ function FilterPanel({
               aria-checked={price === id}
               onClick={() => onPrice(id)}
               className={clsx(
-                'h-8 rounded-[6px] text-sm font-medium transition-colors',
-                price === id ? 'bg-primary text-on-primary' : 'text-ink-soft hover:text-ink',
+                'h-10 text-sm transition-colors',
+                price === id ? 'bg-ink text-ivory' : 'text-ink-soft hover:bg-ink/[0.04] hover:text-ink',
               )}
             >
               {label}
@@ -324,8 +324,8 @@ function FilterPanel({
                 aria-pressed={on}
                 onClick={() => onChange({ ...state, colors: toggle(state.colors, c.id) })}
                 className={clsx(
-                  'relative grid aspect-square w-full place-items-center rounded-full ring-offset-2 ring-offset-surface transition-[box-shadow]',
-                  on ? 'ring-2 ring-ink' : 'ring-1 ring-hairline hover:ring-ink/40',
+                  'relative grid aspect-square w-full place-items-center rounded-full ring-offset-2 ring-offset-ivory transition-[box-shadow]',
+                  on ? 'ring-2 ring-ink' : 'ring-1 ring-ink/15 hover:ring-ink/40',
                 )}
                 style={{ background: c.swatch }}
               >
@@ -347,8 +347,8 @@ function FilterPanel({
                 aria-pressed={on}
                 onClick={() => onChange({ ...state, styles: toggle(state.styles, s.id) })}
                 className={clsx(
-                  'h-8 rounded-[6px] border px-2.5 text-sm transition-colors',
-                  on ? 'border-primary bg-primary text-on-primary' : 'border-hairline bg-surface text-ink hover:border-ink/30',
+                  'h-9 border px-3 text-sm transition-colors',
+                  on ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink hover:border-ink/30',
                 )}
               >
                 {hi ? s.labelHi : s.label}
@@ -362,7 +362,7 @@ function FilterPanel({
         <select
           value={state.community}
           onChange={(e) => onChange({ ...state, community: e.target.value })}
-          className={`${controlClass} select h-10 w-full pl-3 pr-9 text-sm`}
+          className={`${controlClass} select h-11 w-full pl-3 pr-9 text-sm`}
           aria-label={hi ? 'परंपरा' : 'Tradition'}
         >
           <option value="">{hi ? 'कोई भी' : 'Any tradition'}</option>
@@ -424,7 +424,7 @@ function ActiveChips({
           key={c.key}
           type="button"
           onClick={c.remove}
-          className="inline-flex h-7 items-center gap-1.5 rounded-[6px] bg-tint pl-2.5 pr-1.5 text-sm text-ink transition-colors hover:bg-tint-strong"
+          className="inline-flex h-8 items-center gap-1.5 border border-ink/15 pl-2.5 pr-1.5 font-mono text-xs text-ink transition-colors hover:border-ink/40"
           aria-label={`${hi ? 'हटाएँ' : 'Remove'} ${typeof c.label === 'string' ? c.label : ''}`.trim()}
         >
           {c.label}

@@ -92,7 +92,7 @@ export function TemplatePreview({
       <Link
         href={href(t)}
         onClick={() => track('template_select', { templateId: t.id })}
-        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-primary font-semibold text-on-primary transition-colors hover:bg-primary-hover"
+        className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover"
       >
         {hi ? 'यह डिज़ाइन चुनें' : 'Use this design'}
         <ArrowRight className="size-4" aria-hidden />
@@ -124,7 +124,7 @@ export function TemplatePreview({
                   page={pages[current]!}
                   data={sample.data}
                   language={sample.language}
-                  className="overflow-hidden rounded-xl border border-hairline"
+                  className="overflow-hidden rounded-xl border border-ink/10"
                 />
                 {pages.length > 1 && (
                   <>
@@ -173,12 +173,12 @@ export function TemplatePreview({
             <div className="flex flex-col">
               <div className="flex flex-wrap items-center gap-2">
                 {t.premium ? (
-                  <span className="inline-flex h-7 items-center gap-1 rounded-[6px] bg-tint px-2.5 text-sm font-medium">
+                  <span className="inline-flex h-7 items-center gap-1 rounded-[6px] bg-ink/[0.04] px-2.5 text-sm font-medium">
                     <Crown className="size-3.5 text-gold" aria-hidden />{' '}
                     {hi ? 'प्रीमियम' : 'Premium'}
                   </span>
                 ) : (
-                  <span className="inline-flex h-7 items-center rounded-[6px] bg-tint px-2.5 text-sm font-medium">
+                  <span className="inline-flex h-7 items-center rounded-[6px] bg-ink/[0.04] px-2.5 text-sm font-medium">
                     {hi ? 'मुफ़्त' : 'Free'}
                   </span>
                 )}
@@ -191,7 +191,7 @@ export function TemplatePreview({
 
               {family!.variants.length > 1 && (
                 <div className="mt-6">
-                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                  <p className="text-xs font-medium uppercase tracking-[0.08em] text-ink-soft">
                     {hi ? 'रंग' : 'Colourway'}{' '}
                     <span className="ml-1 normal-case tracking-normal text-ink">
                       {t.family?.variant ?? t.name}
@@ -227,7 +227,7 @@ export function TemplatePreview({
               )}
 
               <div className="mt-6">
-                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-ink-soft">
+                <p className="text-xs font-medium uppercase tracking-[0.08em] text-ink-soft">
                   {hi
                     ? `${pages.length} पेज`
                     : `${pages.length} ${pages.length === 1 ? 'page' : 'pages'}`}
@@ -242,7 +242,7 @@ export function TemplatePreview({
                           'h-8 rounded-[6px] border px-2.5 text-sm transition-colors',
                           i === current
                             ? 'border-primary text-ink'
-                            : 'border-hairline text-ink-soft hover:text-ink',
+                            : 'border-ink/10 text-ink-soft hover:text-ink',
                         )}
                       >
                         {pageLabel(p.id, hi)}
@@ -269,7 +269,7 @@ export function TemplatePreview({
             </div>
           </div>
           {/* Phones: keep the button in reach below the tall preview. */}
-          <div className="sticky -bottom-5 -mx-5 mt-6 border-t border-hairline bg-surface px-5 pb-4 pt-3 sm:hidden">
+          <div className="sticky -bottom-5 -mx-5 mt-6 border-t border-ink/10 bg-surface px-5 pb-4 pt-3 sm:hidden">
             {cta}
           </div>
         </>
@@ -295,7 +295,7 @@ function Arrow({
       disabled={disabled}
       aria-label={side === 'left' ? 'Previous page' : 'Next page'}
       className={clsx(
-        'absolute top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-hairline bg-surface/95 text-ink transition-opacity disabled:opacity-0',
+        'absolute top-1/2 grid size-9 -translate-y-1/2 place-items-center rounded-full border border-ink/10 bg-ivory/95 text-ink transition-opacity disabled:opacity-0',
         side === 'left' ? 'left-2' : 'right-2',
       )}
     >
