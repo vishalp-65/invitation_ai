@@ -2,7 +2,7 @@
 
 import { BRAND } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowLeft, BarChart3, LayoutDashboard, LayoutTemplate, ScrollText, ShoppingBag, Store, Tag, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, LayoutDashboard, LayoutTemplate, Mail, ScrollText, ShoppingBag, Store, Tag, Users } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -16,6 +16,7 @@ const NAV = [
   { href: '/admin/templates', label: 'Templates', icon: LayoutTemplate },
   { href: '/admin/users', label: 'Users', icon: Users },
   { href: '/admin/offers', label: 'Offers & pricing', icon: Tag },
+  { href: '/admin/emails', label: 'Emails', icon: Mail },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/marketplace', label: 'Marketplace & print', icon: Store },
   { href: '/admin/activity', label: 'Admin log', icon: ScrollText },

@@ -11,6 +11,7 @@ import { controlClass } from '@/components/ui/field';
 import { api } from '@/lib/api';
 import { qk, useLogout, useMe } from '@/lib/hooks';
 import { ThemeSegmented } from '@/lib/theme';
+import { Toggle } from '@/features/admin/ui';
 
 /** Profile, language, theme and sign-out in one place (the phone tab bar's "Settings"). */
 export default function SettingsPage() {
@@ -107,6 +108,12 @@ export default function SettingsPage() {
           </Row>
         </Section>
 
+        <Section title="Email" hint="Sign-in codes, receipts and security alerts are always sent.">
+          <Row label="Offers and new designs" hint="Occasional sale and new-template emails. Unsubscribe any time.">
+            <MarketingToggle me={me} />
+          </Row>
+        </Section>
+
         <Section title="Session" hint="Sign out of Noyta on this device." last>
           <Row label="Log out" hint="Your invitations stay safe; sign in again any time.">
             <Button
@@ -124,6 +131,21 @@ export default function SettingsPage() {
       </div>
     </div>
   );
+}
+
+function MarketingToggle({ me }: { me?: MeResponse | null }) {
+  const qc = useQueryClient();
+  const [busy, setBusy] = useState(false);
+  const on = me?.marketingEmails ?? false;
+  const flip = async () => {
+    setBusy(true);
+    try {
+      qc.setQueryData(qk.me, await api<MeResponse>('/auth/me', { method: 'PATCH', json: { marketingEmails: !on } }));
+    } finally {
+      setBusy(false);
+    }
+  };
+  return <Toggle checked={on} onChange={() => void flip()} label="Offer emails" disabled={!me || busy} />;
 }
 
 /** One settings group: title and hint on the left, controls on the right (stacked on phones). */

@@ -96,7 +96,13 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
 
         <div className="flex flex-1 flex-col justify-center px-5 py-10 sm:px-8 lg:px-12">
           <div className="mx-auto w-full max-w-[22.5rem] animate-fade-up">
-            <AuthFlow mode={mode} next={target} initialError={search.get('error')} onDone={() => router.replace(target)} />
+            <AuthFlow
+              mode={mode}
+              next={target}
+              initialError={search.get('error')}
+              initialView={mode === 'login' && search.get('view') === 'forgot' ? 'forgot' : undefined}
+              onDone={() => router.replace(target)}
+            />
           </div>
         </div>
 

@@ -57,6 +57,7 @@ export const QUEUES = {
   render: 'render',
   aiClip: 'ai-clip',
   notifications: 'notifications',
+  email: 'email',
 } as const;
 
 export interface RenderJobData {

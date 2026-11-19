@@ -58,8 +58,8 @@ export class AuthController {
   @Post('signup/request')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
-  requestSignup(@ZBody(requestOtpSchema) body: RequestOtpInput) {
-    return this.auth.requestSignupOtp(body.email);
+  requestSignup(@ZBody(requestOtpSchema) body: RequestOtpInput, @Req() req: FastifyRequest) {
+    return this.auth.requestSignupOtp(body.email, uiLocale(req));
   }
 
   /** Sign-up step 2: verify the code and create the account with its password. */
@@ -68,7 +68,7 @@ export class AuthController {
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
   async signup(@ZBody(signupSchema) body: SignupInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.signup(body.email, body.code, body.name, body.password, req.headers['user-agent']);
+    const { tokens, user, isNew } = await this.auth.signup(body, req.headers['user-agent'], uiLocale(req));
     this.setCookies(reply, tokens);
     this.trackSignIn(req, user.id, isNew, 'email');
     return { user, isNew };
@@ -90,8 +90,8 @@ export class AuthController {
   @Post('password/forgot')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
-  forgotPassword(@ZBody(requestOtpSchema) body: RequestOtpInput) {
-    return this.auth.requestPasswordReset(body.email);
+  forgotPassword(@ZBody(requestOtpSchema) body: RequestOtpInput, @Req() req: FastifyRequest) {
+    return this.auth.requestPasswordReset(body.email, uiLocale(req));
   }
 
   /** Forgot password step 2: code + new password, then signed in. */
@@ -243,4 +243,9 @@ export class AuthController {
     reply.setCookie(ACCESS_COOKIE, tokens.accessToken, { ...base, path: '/', maxAge: ACCESS_TTL_SEC });
     reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_TTL_SEC });
   }
+}
+
+/** The web app's language cookie (same origin through the /api proxy); used for emails sent before an account exists. */
+function uiLocale(req: FastifyRequest): 'en' | 'hi' {
+  return (req.cookies as Record<string, string | undefined> | undefined)?.locale === 'hi' ? 'hi' : 'en';
 }

@@ -1,0 +1,536 @@
+import { BRAND, formatINR, type EmailTemplateInfo } from '@cardai/shared';
+import { kit, type Kit, type MailLocale, type RenderedEmail } from './blocks.js';
+
+export type { MailLocale } from './blocks.js';
+
+/**
+ * How a mail is routed:
+ * - `auth`: sign-in codes. Sent immediately (not queued) so the user sees failures, and never
+ *   blocked by the suppression list.
+ * - `transactional`: account, payment and marketplace notices. Queued with retries; skipped for
+ *   suppressed (bounced / complained) addresses.
+ * - `marketing`: offers and automations. Also needs the user's opt-in, respects the frequency
+ *   cap, goes out from the marketing sender and carries one-click unsubscribe headers.
+ */
+export type MailCategory = 'auth' | 'transactional' | 'marketing';
+
+export interface MailContext {
+  appUrl: string;
+  locale: MailLocale;
+  unsubscribeUrl?: string;
+}
+
+/** Everything a template body needs: the builders for its language plus small helpers. */
+interface R extends Kit {
+  /** Pick the string for the recipient's language. */
+  t: <S>(en: S, hi: S) => S;
+  url: (path: string) => string;
+  date: (iso: string) => string;
+  ctx: MailContext;
+}
+
+interface Definition<P> {
+  label: string;
+  group: EmailTemplateInfo['group'];
+  category: MailCategory;
+  /** Realistic data for the admin preview gallery. */
+  sample: P;
+  render(props: P, r: R): RenderedEmail;
+}
+
+const define = <P>(d: Definition<P>) => d;
+
+const DATE_FMT = {
+  en: new Intl.DateTimeFormat('en-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }),
+  hi: new Intl.DateTimeFormat('hi-IN', { dateStyle: 'medium', timeStyle: 'short', timeZone: 'Asia/Kolkata' }),
+};
+
+const PRINT_STATUS: Record<string, { en: [string, string]; hi: [string, string] }> = {
+  requested: {
+    en: ['We received your print request', 'Our print partner will review it and send you a quote shortly.'],
+    hi: ['आपका प्रिंट अनुरोध मिल गया', 'हमारा प्रिंट पार्टनर जल्द ही इसकी कीमत भेजेगा।'],
+  },
+  quoted: { en: ['Your print quote is ready', 'Review the quote and confirm to start printing.'], hi: ['आपकी प्रिंट कीमत तैयार है', 'कीमत देखें और छपाई शुरू करने के लिए पुष्टि करें।'] },
+  confirmed: { en: ['Your print order is confirmed', 'Thank you. Your cards are queued with the press.'], hi: ['आपका प्रिंट ऑर्डर पक्का हो गया', 'धन्यवाद। आपके कार्ड छपाई की कतार में हैं।'] },
+  printing: { en: ['Your cards are being printed', 'The press has started on your invitations.'], hi: ['आपके कार्ड छप रहे हैं', 'प्रेस ने आपके निमंत्रण पत्र छापना शुरू कर दिया है।'] },
+  shipped: { en: ['Your cards are on the way', 'Your printed invitations have been shipped.'], hi: ['आपके कार्ड रास्ते में हैं', 'आपके छपे हुए निमंत्रण पत्र भेज दिए गए हैं।'] },
+  delivered: { en: ['Your cards were delivered', 'We hope your guests love them.'], hi: ['आपके कार्ड पहुँच गए', 'उम्मीद है आपके मेहमानों को ये पसंद आएँगे।'] },
+  cancelled: {
+    en: ['Your print order was cancelled', 'If this is unexpected, reply to this email and we will help.'],
+    hi: ['आपका प्रिंट ऑर्डर रद्द हो गया', 'अगर यह अनचाहा है, तो इस ईमेल का जवाब दें, हम मदद करेंगे।'],
+  },
+};
+
+const OFFER_REASON = {
+  en: `You are receiving this because you have a ${BRAND.name} account and opted in to offers.`,
+  hi: `यह ईमेल इसलिए आया क्योंकि आपका ${BRAND.name} खाता है और आपने ऑफ़र पाने की सहमति दी है।`,
+};
+
+export const TEMPLATES = {
+  'otp.signup': define<{ code: string; ttlMinutes: number }>({
+    label: 'Sign-up verification code',
+    group: 'Sign-in',
+    category: 'auth',
+    sample: { code: '482915', ttlMinutes: 10 },
+    render: (p, { t, layout, kicker, heading, para, codeBox, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`${p.code} is your ${BRAND.name} verification code`, `${p.code} आपका ${BRAND.name} सत्यापन कोड है`),
+        preheader: t(`Enter this code to finish creating your account. It expires in ${p.ttlMinutes} minutes.`, `खाता बनाने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त हो जाएगा।`),
+        reason: t(
+          'You are receiving this because someone used this address to sign up. If it was not you, ignore this email.',
+          'यह ईमेल इसलिए आया क्योंकि इस पते से साइन अप किया गया। अगर यह आप नहीं थे, तो इसे अनदेखा करें।',
+        ),
+        blocks: [
+          kicker(t('01 — Verify your email', '01 — ईमेल सत्यापित करें')),
+          heading(t('Your verification code', 'आपका सत्यापन कोड')),
+          para(t('Enter this code on the sign-up screen to finish creating your account.', 'खाता बनाना पूरा करने के लिए साइन-अप स्क्रीन पर यह कोड डालें।')),
+          codeBox(p.code),
+          para(
+            t(
+              `It expires in ${p.ttlMinutes} minutes. Never share this code with anyone, including ${BRAND.name} staff.`,
+              `यह ${p.ttlMinutes} मिनट में समाप्त हो जाएगा। यह कोड किसी के साथ साझा न करें, ${BRAND.name} टीम के साथ भी नहीं।`,
+            ),
+            { muted: true, small: true },
+          ),
+        ],
+      }),
+  }),
+
+  'otp.reset': define<{ code: string; ttlMinutes: number }>({
+    label: 'Password reset code',
+    group: 'Sign-in',
+    category: 'auth',
+    sample: { code: '730164', ttlMinutes: 10 },
+    render: (p, { t, layout, kicker, heading, para, codeBox, notice, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`${p.code} is your ${BRAND.name} password reset code`, `${p.code} आपका ${BRAND.name} पासवर्ड रीसेट कोड है`),
+        preheader: t(`Use this code to set a new password. It expires in ${p.ttlMinutes} minutes.`, `नया पासवर्ड सेट करने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त होगा।`),
+        blocks: [
+          kicker(t('Password reset', 'पासवर्ड रीसेट')),
+          heading(t('Reset your password', 'अपना पासवर्ड रीसेट करें')),
+          para(t('Enter this code to choose a new password. All other devices will be signed out.', 'नया पासवर्ड चुनने के लिए यह कोड डालें। बाकी सभी डिवाइस से लॉग आउट हो जाएगा।')),
+          codeBox(p.code),
+          notice(
+            t(
+              `If you did not ask to reset your password, you can ignore this email. Your password stays the same. The code expires in ${p.ttlMinutes} minutes.`,
+              `अगर आपने पासवर्ड रीसेट नहीं माँगा, तो इस ईमेल को अनदेखा करें। आपका पासवर्ड नहीं बदलेगा। कोड ${p.ttlMinutes} मिनट में समाप्त होगा।`,
+            ),
+          ),
+        ],
+      }),
+  }),
+
+  'account.welcome': define<{ name: string | null }>({
+    label: 'Welcome',
+    group: 'Account',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma' },
+    render: (p, { t, layout, kicker, heading, greeting, para, list, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`Welcome to ${BRAND.name}`, `${BRAND.name} में आपका स्वागत है`),
+        preheader: t('Make your first card, video or website invitation in about two minutes.', 'लगभग दो मिनट में अपना पहला कार्ड, वीडियो या वेबसाइट निमंत्रण बनाइए।'),
+        blocks: [
+          kicker(t('Welcome', 'स्वागत है')),
+          heading(t('Your invitations start here', 'आपके निमंत्रण यहीं से शुरू होते हैं')),
+          greeting(p.name),
+          para(t(`Thanks for joining ${BRAND.name}. Here is what you can make:`, `${BRAND.name} से जुड़ने के लिए धन्यवाद। आप ये बना सकते हैं:`)),
+          list(
+            t(
+              ['Image cards for WhatsApp and print', 'Cinematic 9:16 video invites with music', 'An invitation website with RSVPs, map and wishes'],
+              ['WhatsApp और प्रिंट के लिए कार्ड', 'संगीत के साथ 9:16 वीडियो निमंत्रण', 'RSVP, नक्शा और शुभकामनाओं वाली निमंत्रण वेबसाइट'],
+            ),
+          ),
+          button(t('Start an invitation', 'निमंत्रण बनाना शुरू करें'), url('/create')),
+          para(t('Questions? Just reply to this email.', 'कोई सवाल? बस इस ईमेल का जवाब दें।'), { muted: true, small: true }),
+        ],
+      }),
+  }),
+
+  'security.password_changed': define<{ name: string | null; at: string }>({
+    label: 'Password changed',
+    group: 'Account',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma', at: '2026-11-18T10:12:00.000Z' },
+    render: (p, { t, layout, kicker, heading, greeting, para, notice, button, url, date, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`Your ${BRAND.name} password was changed`, `आपका ${BRAND.name} पासवर्ड बदल दिया गया`),
+        preheader: t(`Your password was changed on ${date(p.at)}.`, `आपका पासवर्ड ${date(p.at)} को बदला गया।`),
+        blocks: [
+          kicker(t('Security', 'सुरक्षा')),
+          heading(t('Your password was changed', 'आपका पासवर्ड बदल दिया गया')),
+          greeting(p.name),
+          para(
+            t(
+              `The password for your ${BRAND.name} account was changed on ${date(p.at)}. Every other device was signed out.`,
+              `आपके ${BRAND.name} खाते का पासवर्ड ${date(p.at)} को बदला गया। बाकी सभी डिवाइस से लॉग आउट कर दिया गया।`,
+            ),
+          ),
+          notice(
+            t(
+              'If you did not do this, reset your password straight away and reply to this email so we can secure your account.',
+              'अगर यह आपने नहीं किया, तो तुरंत पासवर्ड रीसेट करें और इस ईमेल का जवाब दें ताकि हम आपका खाता सुरक्षित कर सकें।',
+            ),
+            t('Was this not you?', 'यह आप नहीं थे?'),
+          ),
+          button(t('Reset password', 'पासवर्ड रीसेट करें'), url('/login?view=forgot')),
+        ],
+      }),
+  }),
+
+  'security.new_login': define<{ name: string | null; device: string; method: string; at: string }>({
+    label: 'New sign-in alert',
+    group: 'Account',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma', device: 'Chrome on Windows', method: 'Email and password', at: '2026-11-18T10:12:00.000Z' },
+    render: (p, { t, layout, kicker, heading, greeting, para, details, notice, button, url, date, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`New sign-in to your ${BRAND.name} account`, `आपके ${BRAND.name} खाते में नया लॉगिन`),
+        preheader: `${p.device} · ${date(p.at)}`,
+        blocks: [
+          kicker(t('Security', 'सुरक्षा')),
+          heading(t('New sign-in detected', 'नया लॉगिन हुआ')),
+          greeting(p.name),
+          para(t('Your account was just signed in to from a device we have not seen before.', 'आपके खाते में अभी एक ऐसे डिवाइस से लॉगिन हुआ जिसे हमने पहले नहीं देखा।')),
+          details([
+            { label: t('Device', 'डिवाइस'), value: p.device },
+            { label: t('Method', 'तरीका'), value: p.method },
+            { label: t('Time', 'समय'), value: date(p.at) },
+          ]),
+          notice(
+            t(
+              'If this was you, there is nothing to do. If not, reset your password now: it signs out every device.',
+              'अगर यह आप थे, तो कुछ करने की ज़रूरत नहीं। अगर नहीं, तो अभी पासवर्ड रीसेट करें: इससे सभी डिवाइस से लॉग आउट हो जाएगा।',
+            ),
+            t('Not you?', 'यह आप नहीं थे?'),
+          ),
+          button(t('Reset password', 'पासवर्ड रीसेट करें'), url('/login?view=forgot')),
+        ],
+      }),
+  }),
+
+  'payment.receipt': define<{
+    name: string | null;
+    orderId: string;
+    product: string;
+    eventTitle: string;
+    listPricePaise: number;
+    discountPaise: number;
+    couponCode: string | null;
+    amountPaise: number;
+    paymentId: string | null;
+    paidAt: string;
+    eventId: string;
+  }>({
+    label: 'Payment receipt',
+    group: 'Payments',
+    category: 'transactional',
+    sample: {
+      name: 'Priya Sharma',
+      orderId: '9b2f6c1e-4d0a-4f7e-8a51-3c2d1e0f9a87',
+      product: 'Video Invite',
+      eventTitle: 'Priya & Arjun — Wedding',
+      listPricePaise: 49900,
+      discountPaise: 10000,
+      couponCode: 'SHAADI100',
+      amountPaise: 39900,
+      paymentId: 'pay_PQ8x2LmN0aBc',
+      paidAt: '2026-11-18T10:12:00.000Z',
+      eventId: '00000000-0000-4000-8000-000000000000',
+    },
+    render: (p, { t, layout, kicker, heading, greeting, para, details, button, url, date, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`Receipt for ${p.product} · ${formatINR(p.amountPaise)}`, `${p.product} की रसीद · ${formatINR(p.amountPaise)}`),
+        preheader: t(`Payment received for ${p.eventTitle}. Your ${p.product} is unlocked.`, `${p.eventTitle} के लिए भुगतान मिल गया। आपका ${p.product} चालू है।`),
+        blocks: [
+          kicker(t('Payment receipt', 'भुगतान रसीद')),
+          heading(t('Thank you, payment received', 'धन्यवाद, भुगतान मिल गया')),
+          greeting(p.name),
+          para(t(`Your ${p.product} for “${p.eventTitle}” is unlocked and ready to use.`, `“${p.eventTitle}” के लिए आपका ${p.product} चालू है और इस्तेमाल के लिए तैयार है।`)),
+          details([
+            { label: t('Item', 'आइटम'), value: p.product },
+            ...(p.discountPaise > 0
+              ? [
+                  { label: t('Price', 'कीमत'), value: formatINR(p.listPricePaise) },
+                  { label: p.couponCode ? `${t('Discount', 'छूट')} (${p.couponCode})` : t('Discount', 'छूट'), value: `− ${formatINR(p.discountPaise)}` },
+                ]
+              : []),
+            { label: t('Total paid', 'कुल भुगतान'), value: formatINR(p.amountPaise), strong: true },
+            { label: t('Date', 'तारीख'), value: date(p.paidAt) },
+            { label: t('Order', 'ऑर्डर'), value: p.orderId.slice(0, 8).toUpperCase() },
+            ...(p.paymentId ? [{ label: t('Payment ID', 'पेमेंट ID'), value: p.paymentId }] : []),
+          ]),
+          button(t('Open your invitation', 'अपना निमंत्रण खोलें'), url(`/dashboard/events/${p.eventId}`)),
+          para(
+            t('Keep this email for your records. For billing questions, reply with your order number.', 'यह ईमेल अपने रिकॉर्ड के लिए रखें। भुगतान से जुड़े सवालों के लिए ऑर्डर नंबर के साथ जवाब दें।'),
+            { muted: true, small: true },
+          ),
+        ],
+      }),
+  }),
+
+  'print.status': define<{
+    name: string | null;
+    orderId: string;
+    status: string;
+    eventTitle: string;
+    quantity: number;
+    paperType: string;
+    quotePaise: number | null;
+    note: string | null;
+  }>({
+    label: 'Print order update',
+    group: 'Payments',
+    category: 'transactional',
+    sample: {
+      name: 'Priya Sharma',
+      orderId: '5a1e2b3c-4d5e-4f60-8a71-b2c3d4e5f607',
+      status: 'quoted',
+      eventTitle: 'Priya & Arjun — Wedding',
+      quantity: 150,
+      paperType: 'Matte 350gsm',
+      quotePaise: 675000,
+      note: null,
+    },
+    render: (p, { t, layout, kicker, heading, greeting, para, details, notice, button, url, ctx }) => {
+      const s = PRINT_STATUS[p.status];
+      const [title, line] = s ? t(s.en, s.hi) : [t(`Print order: ${p.status}`, `प्रिंट ऑर्डर: ${p.status}`), t('Your print order was updated.', 'आपका प्रिंट ऑर्डर अपडेट हुआ।')];
+      return layout({
+        appUrl: ctx.appUrl,
+        subject: `${title} · ${p.eventTitle}`,
+        preheader: line,
+        blocks: [
+          kicker(`${t('Print order', 'प्रिंट ऑर्डर')} · ${p.status}`),
+          heading(title),
+          greeting(p.name),
+          para(line),
+          details([
+            { label: t('Invitation', 'निमंत्रण'), value: p.eventTitle },
+            { label: t('Quantity', 'संख्या'), value: t(`${p.quantity} cards`, `${p.quantity} कार्ड`) },
+            { label: t('Paper', 'कागज़'), value: p.paperType },
+            ...(p.quotePaise != null ? [{ label: t('Quote', 'कीमत'), value: formatINR(p.quotePaise), strong: true }] : []),
+            { label: t('Order', 'ऑर्डर'), value: p.orderId.slice(0, 8).toUpperCase() },
+          ]),
+          ...(p.note ? [notice(p.note, t('Note from the press', 'प्रेस की ओर से नोट'))] : []),
+          button(t('View print order', 'प्रिंट ऑर्डर देखें'), url('/dashboard/orders')),
+        ],
+      });
+    },
+  }),
+
+  'marketplace.template_reviewed': define<{ name: string | null; templateName: string; approved: boolean; note: string | null }>({
+    label: 'Template review result',
+    group: 'Marketplace',
+    category: 'transactional',
+    sample: { name: 'Kavya Iyer', templateName: 'Marigold Mandap', approved: true, note: null },
+    render: (p, { t, layout, kicker, heading, greeting, para, notice, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: p.approved
+          ? t(`“${p.templateName}” is live on ${BRAND.name}`, `“${p.templateName}” अब ${BRAND.name} पर लाइव है`)
+          : t(`Changes needed for “${p.templateName}”`, `“${p.templateName}” में कुछ बदलाव चाहिए`),
+        preheader: p.approved
+          ? t('Your template passed review and is now in the catalogue.', 'आपका टेम्पलेट समीक्षा में पास हुआ और अब कैटलॉग में है।')
+          : t('Your template needs a few changes before it can go live.', 'लाइव होने से पहले आपके टेम्पलेट में कुछ बदलाव चाहिए।'),
+        blocks: [
+          kicker(t('Marketplace review', 'मार्केटप्लेस समीक्षा')),
+          heading(p.approved ? t('Your template is live', 'आपका टेम्पलेट लाइव है') : t('A few changes needed', 'कुछ बदलाव चाहिए')),
+          greeting(p.name),
+          para(
+            p.approved
+              ? t(
+                  `“${p.templateName}” passed review and is now in the ${BRAND.name} catalogue. You earn a share every time someone pays for an invitation made with it.`,
+                  `“${p.templateName}” समीक्षा में पास हुआ और अब ${BRAND.name} कैटलॉग में है। जब भी कोई इससे बने निमंत्रण के लिए भुगतान करेगा, आपको हिस्सा मिलेगा।`,
+                )
+              : t(`Thanks for submitting “${p.templateName}”. It is not ready to publish yet.`, `“${p.templateName}” भेजने के लिए धन्यवाद। यह अभी प्रकाशित करने के लिए तैयार नहीं है।`),
+          ),
+          ...(p.note ? [notice(p.note, t('Reviewer note', 'समीक्षक का नोट'))] : []),
+          button(p.approved ? t('See your templates', 'अपने टेम्पलेट देखें') : t('Edit and resubmit', 'सुधारें और दोबारा भेजें'), url('/designer')),
+        ],
+      }),
+  }),
+
+  'marketplace.designer_reviewed': define<{ name: string | null; approved: boolean }>({
+    label: 'Designer application result',
+    group: 'Marketplace',
+    category: 'transactional',
+    sample: { name: 'Kavya Iyer', approved: true },
+    render: (p, { t, layout, kicker, heading, greeting, para, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: p.approved ? t(`You are now a ${BRAND.name} designer`, `अब आप ${BRAND.name} डिज़ाइनर हैं`) : t(`About your ${BRAND.name} designer application`, `आपके ${BRAND.name} डिज़ाइनर आवेदन के बारे में`),
+        preheader: p.approved ? t('Start publishing templates to the marketplace.', 'मार्केटप्लेस पर टेम्पलेट प्रकाशित करना शुरू करें।') : t('An update on your designer application.', 'आपके डिज़ाइनर आवेदन पर अपडेट।'),
+        blocks: [
+          kicker(t('Designer programme', 'डिज़ाइनर प्रोग्राम')),
+          heading(p.approved ? t('Welcome to the marketplace', 'मार्केटप्लेस में स्वागत है') : t('Application update', 'आवेदन अपडेट')),
+          greeting(p.name),
+          para(
+            p.approved
+              ? t(
+                  'Your designer application was approved. You can now build templates, submit them for review and earn from every sale.',
+                  'आपका डिज़ाइनर आवेदन स्वीकार हो गया। अब आप टेम्पलेट बना सकते हैं, समीक्षा के लिए भेज सकते हैं और हर बिक्री से कमा सकते हैं।',
+                )
+              : t(
+                  'Thank you for applying. We are not able to approve your designer application right now. You are welcome to apply again with an updated portfolio.',
+                  'आवेदन के लिए धन्यवाद। अभी हम आपका डिज़ाइनर आवेदन स्वीकार नहीं कर पा रहे हैं। नए पोर्टफ़ोलियो के साथ आप फिर से आवेदन कर सकते हैं।',
+                ),
+          ),
+          button(p.approved ? t('Open designer studio', 'डिज़ाइनर स्टूडियो खोलें') : t('View application', 'आवेदन देखें'), url('/designer')),
+        ],
+      }),
+  }),
+
+  'marketplace.sale_earned': define<{ name: string | null; templateName: string; amountPaise: number }>({
+    label: 'Template sale earning',
+    group: 'Marketplace',
+    category: 'transactional',
+    sample: { name: 'Kavya Iyer', templateName: 'Marigold Mandap', amountPaise: 11970 },
+    render: (p, { t, layout, kicker, heading, greeting, para, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`You earned ${formatINR(p.amountPaise)} from “${p.templateName}”`, `“${p.templateName}” से आपने ${formatINR(p.amountPaise)} कमाए`),
+        preheader: t('Someone just paid for an invitation made with your template.', 'किसी ने अभी आपके टेम्पलेट से बने निमंत्रण के लिए भुगतान किया।'),
+        blocks: [
+          kicker(t('Marketplace earning', 'मार्केटप्लेस कमाई')),
+          heading(`+ ${formatINR(p.amountPaise)}`),
+          greeting(p.name),
+          para(
+            t(
+              `Someone just paid for an invitation made with “${p.templateName}”. Your share has been added to your pending payouts.`,
+              `किसी ने अभी “${p.templateName}” से बने निमंत्रण के लिए भुगतान किया। आपका हिस्सा आपके बकाया भुगतान में जोड़ दिया गया है।`,
+            ),
+          ),
+          button(t('View earnings', 'कमाई देखें'), url('/designer')),
+        ],
+      }),
+  }),
+
+  campaign: define<{
+    name: string | null;
+    subject: string;
+    preheader: string | null;
+    heading: string;
+    body: string;
+    ctaLabel: string | null;
+    ctaUrl: string | null;
+    couponCode: string | null;
+  }>({
+    label: 'Offer / campaign',
+    group: 'Offers',
+    category: 'marketing',
+    sample: {
+      name: 'Priya Sharma',
+      subject: 'Wedding season: 25% off video invites',
+      preheader: 'This week only, every cinematic video invite is 25% off.',
+      heading: 'Wedding season is here',
+      body: 'Every cinematic video invite is 25% off until Sunday.\n\n- 10+ painted wedding designs\n- Music library and 9:16 export for WhatsApp\n- Matching invitation website included',
+      ctaLabel: 'Browse video designs',
+      ctaUrl: '/templates?format=video',
+      couponCode: 'SHAADI25',
+    },
+    // Admin-written copy is one language; only the frame (greeting, labels, footer) follows the user.
+    render: (p, { t, layout, kicker, heading, greeting, richText, codeBox, button, divider, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        unsubscribeUrl: ctx.unsubscribeUrl,
+        reason: t(OFFER_REASON.en, OFFER_REASON.hi),
+        subject: p.subject,
+        preheader: p.preheader ?? p.heading,
+        blocks: [
+          kicker(`${BRAND.name} · ${t('Offer', 'ऑफ़र')}`),
+          heading(p.heading),
+          greeting(p.name),
+          ...richText(p.body),
+          ...(p.couponCode ? [codeBox(p.couponCode, t('Use code at checkout', 'भुगतान के समय यह कोड डालें'))] : []),
+          ...(p.ctaLabel && p.ctaUrl ? [button(p.ctaLabel, p.ctaUrl.startsWith('/') ? url(p.ctaUrl) : p.ctaUrl)] : [divider()]),
+        ],
+      }),
+  }),
+
+  'lifecycle.abandoned_checkout': define<{ name: string | null; product: string; eventTitle: string; eventId: string; pricePaise: number; couponCode: string | null }>({
+    label: 'Abandoned checkout reminder',
+    group: 'Automations',
+    category: 'marketing',
+    sample: { name: 'Priya Sharma', product: 'Video Invite', eventTitle: 'Priya & Arjun — Wedding', eventId: '00000000-0000-4000-8000-000000000000', pricePaise: 49900, couponCode: 'COMEBACK10' },
+    render: (p, { t, layout, kicker, heading, greeting, para, codeBox, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        unsubscribeUrl: ctx.unsubscribeUrl,
+        subject: t(`Your ${p.product} for “${p.eventTitle}” is waiting`, `“${p.eventTitle}” का ${p.product} आपका इंतज़ार कर रहा है`),
+        preheader: p.couponCode
+          ? t(`Finish checkout with code ${p.couponCode} for a little extra off.`, `कोड ${p.couponCode} के साथ भुगतान पूरा करें और थोड़ी और छूट पाएँ।`)
+          : t('Pick up where you left off. Your design is saved.', 'जहाँ छोड़ा था वहीं से शुरू करें। आपका डिज़ाइन सुरक्षित है।'),
+        reason: t(OFFER_REASON.en, OFFER_REASON.hi),
+        blocks: [
+          kicker(t('Still deciding?', 'अभी सोच रहे हैं?')),
+          heading(t('Your invitation is one step away', 'आपका निमंत्रण बस एक कदम दूर है')),
+          greeting(p.name),
+          para(
+            t(
+              `You started buying the ${p.product} (${formatINR(p.pricePaise)}) for “${p.eventTitle}” but did not finish. Your design is saved exactly as you left it.`,
+              `आपने “${p.eventTitle}” के लिए ${p.product} (${formatINR(p.pricePaise)}) खरीदना शुरू किया था, पर पूरा नहीं हुआ। आपका डिज़ाइन वैसे ही सुरक्षित है।`,
+            ),
+          ),
+          ...(p.couponCode ? [codeBox(p.couponCode, t('A little extra off', 'थोड़ी और छूट'))] : []),
+          button(t('Finish checkout', 'भुगतान पूरा करें'), url(`/dashboard/events/${p.eventId}`)),
+          para(t('Had trouble paying? Reply to this email and we will help.', 'भुगतान में दिक्कत आई? इस ईमेल का जवाब दें, हम मदद करेंगे।'), { muted: true, small: true }),
+        ],
+      }),
+  }),
+
+  'lifecycle.winback': define<{ name: string | null; newDesigns: number }>({
+    label: 'Win-back (inactive 60 days)',
+    group: 'Automations',
+    category: 'marketing',
+    sample: { name: 'Priya Sharma', newDesigns: 24 },
+    render: (p, { t, layout, kicker, heading, greeting, para, list, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        unsubscribeUrl: ctx.unsubscribeUrl,
+        subject:
+          p.newDesigns > 0
+            ? t(`${p.newDesigns} new invitation designs since your last visit`, `आपकी पिछली विज़िट के बाद ${p.newDesigns} नए निमंत्रण डिज़ाइन`)
+            : t(`What's new on ${BRAND.name}`, `${BRAND.name} पर नया क्या है`),
+        preheader: t('New designs for weddings, festivals and family functions.', 'शादी, त्योहार और पारिवारिक समारोहों के लिए नए डिज़ाइन।'),
+        reason: t(OFFER_REASON.en, OFFER_REASON.hi),
+        blocks: [
+          kicker(t('It has been a while', 'काफ़ी समय हो गया')),
+          heading(p.newDesigns > 0 ? t(`${p.newDesigns} new designs to explore`, `देखने के लिए ${p.newDesigns} नए डिज़ाइन`) : t('Fresh designs are waiting', 'नए डिज़ाइन आपका इंतज़ार कर रहे हैं')),
+          greeting(p.name),
+          para(t('Planning a function soon? Here is what is new since you last visited:', 'जल्द कोई समारोह है? आपकी पिछली विज़िट के बाद यह नया आया है:')),
+          list(
+            t(
+              ['New card and video designs for weddings and festivals', 'Invitation websites with RSVPs and directions', 'Send on WhatsApp in a tap'],
+              ['शादी और त्योहारों के लिए नए कार्ड और वीडियो डिज़ाइन', 'RSVP और रास्ते के साथ निमंत्रण वेबसाइट', 'एक टैप में WhatsApp पर भेजें'],
+            ),
+          ),
+          button(t('See new designs', 'नए डिज़ाइन देखें'), url('/templates')),
+        ],
+      }),
+  }),
+};
+
+export type MailKind = keyof typeof TEMPLATES;
+export type MailProps<K extends MailKind> = (typeof TEMPLATES)[K]['sample'];
+
+export const toLocale = (v: string | null | undefined): MailLocale => (v === 'hi' ? 'hi' : 'en');
+
+export function renderMail<K extends MailKind>(kind: K, props: MailProps<K>, ctx: MailContext): RenderedEmail {
+  const r: R = {
+    ...kit(ctx.locale),
+    ctx,
+    t: (en, hi) => (ctx.locale === 'hi' ? hi : en),
+    url: (path) => `${ctx.appUrl.replace(/\/+$/, '')}${path}`,
+    date: (iso) => `${DATE_FMT[ctx.locale].format(new Date(iso))} IST`,
+  };
+  return (TEMPLATES[kind] as unknown as Definition<MailProps<K>>).render(props, r);
+}
+
+export const mailCategory = (kind: MailKind): MailCategory => TEMPLATES[kind].category;
+
+export const TEMPLATE_INFO: EmailTemplateInfo[] = Object.entries(TEMPLATES).map(([kind, d]) => ({ kind, label: d.label, group: d.group }));

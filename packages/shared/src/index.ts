@@ -17,6 +17,7 @@ export * from './schemas/guests.js';
 export * from './schemas/commerce.js';
 export * from './schemas/site.js';
 export * from './schemas/admin.js';
+export * from './schemas/email.js';
 
 export * from './invite/build-invite-props.js';
 export * from './utils/index.js';

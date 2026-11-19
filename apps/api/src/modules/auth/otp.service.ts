@@ -3,7 +3,7 @@ import { randomInt } from 'node:crypto';
 import { ENV, type Env } from '../../config/env.js';
 import { hmacSha256Hex, safeEqual } from '../../common/crypto.js';
 import { REDIS, type Redis } from '../../infra/infra.module.js';
-import { EMAIL_PROVIDER, type EmailProvider } from './email.provider.js';
+import { MailService } from '../mail/mail.service.js';
 
 export const OTP_TTL_SEC = 10 * 60;
 const MAX_ATTEMPTS = 5;
@@ -23,7 +23,7 @@ export class OtpService {
   constructor(
     @Inject(ENV) private readonly env: Env,
     @Inject(REDIS) private readonly redis: Redis,
-    @Inject(EMAIL_PROVIDER) private readonly email: EmailProvider,
+    private readonly mail: MailService,
   ) {}
 
   private key(email: string) {
@@ -34,7 +34,7 @@ export class OtpService {
     return hmacSha256Hex(this.env.JWT_REFRESH_SECRET, `otp:${key}:${code}`);
   }
 
-  async request(email: string, purpose: 'verification' | 'password reset' = 'verification'): Promise<{ expiresInSec: number; resendInSec: number }> {
+  async request(email: string, purpose: 'verification' | 'password reset' = 'verification', locale: 'en' | 'hi' = 'en'): Promise<{ expiresInSec: number; resendInSec: number }> {
     const k = this.key(email);
 
     if (!(await this.redis.set(`otp:cd:${k}`, '1', 'EX', RESEND_COOLDOWN_SEC, 'NX'))) {
@@ -51,7 +51,7 @@ export class OtpService {
     await this.redis.multi().set(`otp:c:${k}`, this.hash(k, code), 'EX', OTP_TTL_SEC).del(`otp:a:${k}`).exec();
 
     try {
-      await this.email.sendOtp(email, code, OTP_TTL_SEC / 60);
+      await this.mail.sendNow(purpose === 'password reset' ? 'otp.reset' : 'otp.signup', email, { code, ttlMinutes: OTP_TTL_SEC / 60 }, locale);
     } catch (err) {
       this.logger.error(`Failed to deliver email OTP: ${(err as Error).message}`);
       await this.redis.del(`otp:c:${k}`, `otp:cd:${k}`);

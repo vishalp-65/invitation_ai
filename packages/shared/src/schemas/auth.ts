@@ -19,7 +19,14 @@ export const requestOtpSchema = z.object({ email: emailSchema });
 export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
 
 /** Sign up: the emailed code proves the address, then the account is created with a password. */
-export const signupSchema = z.object({ email: emailSchema, code: codeSchema, name: nameSchema, password: passwordSchema });
+export const signupSchema = z.object({
+  email: emailSchema,
+  code: codeSchema,
+  name: nameSchema,
+  password: passwordSchema,
+  /** Unticked by default: offers need explicit consent. */
+  marketingOptIn: z.boolean().optional().default(false),
+});
 export type SignupInput = z.infer<typeof signupSchema>;
 
 /** Sign in. The password is only length-checked here so old/odd passwords never leak rule details. */
@@ -42,6 +49,7 @@ export type UserRole = (typeof USER_ROLES)[number];
 export const updateProfileSchema = z.object({
   name: nameSchema.optional(),
   locale: z.enum(UI_LOCALES).optional(),
+  marketingEmails: z.boolean().optional(),
 });
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 
@@ -53,4 +61,5 @@ export interface MeResponse {
   avatarUrl: string | null;
   role: UserRole;
   locale: string;
+  marketingEmails: boolean;
 }

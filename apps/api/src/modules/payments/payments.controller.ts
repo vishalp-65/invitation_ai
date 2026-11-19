@@ -1,8 +1,9 @@
 import { createOrderSchema, verifyPaymentSchema, type CreateOrderInput, type VerifyPaymentInput } from '@cardai/shared';
-import { Controller, Get, Headers, HttpCode, Post, Req, type RawBodyRequest } from '@nestjs/common';
+import { Controller, Get, Headers, HttpCode, Post, Req, UseGuards, type RawBodyRequest } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { CurrentUser, Public, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
-import { ZBody } from '../../common/zod.js';
+import { UuidParam, ZBody } from '../../common/zod.js';
+import { AdminGuard } from '../admin/admin.controller.js';
 import { PaymentsService } from './payments.service.js';
 
 @Controller('payments')
@@ -32,5 +33,19 @@ export class PaymentsController {
   @HttpCode(200)
   webhook(@Req() req: RawBodyRequest<FastifyRequest>, @Headers('x-razorpay-signature') signature?: string) {
     return this.payments.handleWebhook(req.rawBody ?? Buffer.from(''), signature);
+  }
+}
+
+/** Admin tools on orders that need the payments service. */
+@UseGuards(AdminGuard)
+@Controller('admin/orders')
+export class AdminPaymentsController {
+  constructor(private readonly payments: PaymentsService) {}
+
+  @Post(':id/resend-receipt')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowSec: 600, by: 'user' })
+  resendReceipt(@UuidParam('id') id: string) {
+    return this.payments.resendReceipt(id);
   }
 }

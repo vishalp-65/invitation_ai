@@ -2,6 +2,7 @@ import {
   designerEarnings,
   designerProfiles,
   eq,
+  events,
   marketplaceTemplates,
   orders,
   sql,
@@ -13,6 +14,7 @@ import { BadRequestException, Inject, Injectable, Logger, NotFoundException } fr
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { DB } from '../../infra/infra.module.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
+import { MailService } from '../mail/mail.service.js';
 import { OffersService } from '../offers/offers.service.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
@@ -31,6 +33,7 @@ export class PaymentsService {
     private readonly templates: TemplatesService,
     private readonly offers: OffersService,
     private readonly analytics: AnalyticsService,
+    private readonly mail: MailService,
   ) {}
 
   async products() {
@@ -121,13 +124,15 @@ export class PaymentsService {
    * browser callback and the webhook race each other.
    */
   private async fulfil(providerOrderId: string, providerPaymentId: string) {
-    await this.db.transaction(async (tx) => {
+    type Paid = { order: typeof orders.$inferSelect; earning?: { designerId: string; templateName: string; amountPaise: number } };
+    const paid = await this.db.transaction(async (tx): Promise<Paid | undefined> => {
       const [order] = await tx
         .update(orders)
         .set({ status: 'paid', providerPaymentId, paidAt: new Date() })
         .where(sql`${orders.providerOrderId} = ${providerOrderId} AND ${orders.status} <> 'paid'`)
         .returning();
-      if (!order) return; // already fulfilled
+      if (!order) return undefined; // already fulfilled
+      let earning: Paid['earning'];
 
       await this.entitlements.grantProduct(tx, order.eventId, order.productCode as keyof typeof PRODUCTS, order.id);
 
@@ -137,10 +142,13 @@ export class PaymentsService {
         if (tpl) {
           const [profile] = await tx.select().from(designerProfiles).where(eq(designerProfiles.userId, tpl.designerId));
           const pct = profile?.revenueSharePct ?? 30;
-          await tx
+          const amountPaise = Math.floor((order.amountPaise * pct) / 100);
+          const [inserted] = await tx
             .insert(designerEarnings)
-            .values({ designerId: tpl.designerId, orderId: order.id, templateKey: tpl.templateKey, amountPaise: Math.floor((order.amountPaise * pct) / 100) })
-            .onConflictDoNothing();
+            .values({ designerId: tpl.designerId, orderId: order.id, templateKey: tpl.templateKey, amountPaise })
+            .onConflictDoNothing()
+            .returning({ id: designerEarnings.id });
+          if (inserted && amountPaise > 0) earning = { designerId: tpl.designerId, templateName: tpl.name, amountPaise };
           await tx
             .update(marketplaceTemplates)
             .set({ salesCount: sql`${marketplaceTemplates.salesCount} + 1` })
@@ -150,7 +158,51 @@ export class PaymentsService {
       if (order.couponCode) await this.offers.markUsed(order.couponCode);
       this.logger.log(`Order ${order.id} paid (${order.productCode})`);
       this.analytics.record('purchase', { userId: order.userId }, { templateId: order.templateId, props: { product: order.productCode, amountPaise: order.amountPaise, coupon: order.couponCode } });
+      return { order, earning };
     });
     this.templates.invalidate();
+    if (paid) void this.sendPaymentMails(paid.order, paid.earning);
+  }
+
+  /** After commit: receipt to the buyer and, for marketplace templates, an earning note to the designer. */
+  private async sendPaymentMails(order: typeof orders.$inferSelect, earning?: { designerId: string; templateName: string; amountPaise: number }) {
+    await this.queueReceipt(order, order.id);
+    if (earning) {
+      await this.mail.toUser(earning.designerId, 'marketplace.sale_earned', (u) => ({ name: u.name, templateName: earning.templateName, amountPaise: earning.amountPaise }), { key: order.id });
+    }
+  }
+
+  /** Admin: email the receipt for a paid order again (a fresh dedupe key so it really goes out). */
+  async resendReceipt(orderId: string) {
+    const [order] = await this.db.select().from(orders).where(eq(orders.id, orderId));
+    if (!order) throw new NotFoundException('Order not found');
+    if (order.status !== 'paid') throw new BadRequestException('Only paid orders have a receipt');
+    const to = await this.mail.recipient(order.userId);
+    if (!to) throw new BadRequestException('This customer has no verified email address');
+    await this.queueReceipt(order, `${order.id}-resend-${Date.now()}`);
+    return { to: to.email };
+  }
+
+  private async queueReceipt(order: typeof orders.$inferSelect, key: string) {
+    const [event] = await this.db.select({ title: events.title }).from(events).where(eq(events.id, order.eventId));
+    const product = PRODUCTS[order.productCode as keyof typeof PRODUCTS]?.name ?? order.productCode;
+    await this.mail.toUser(
+      order.userId,
+      'payment.receipt',
+      (u) => ({
+        name: u.name,
+        orderId: order.id,
+        product,
+        eventTitle: event?.title ?? 'Your invitation',
+        listPricePaise: order.listPricePaise ?? order.amountPaise + order.discountPaise,
+        discountPaise: order.discountPaise,
+        couponCode: order.couponCode,
+        amountPaise: order.amountPaise,
+        paymentId: order.providerPaymentId,
+        paidAt: (order.paidAt ?? new Date()).toISOString(),
+        eventId: order.eventId,
+      }),
+      { key },
+    );
   }
 }

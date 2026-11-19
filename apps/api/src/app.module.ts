@@ -13,6 +13,7 @@ import { EntitlementsModule } from './modules/entitlements/entitlements.module.j
 import { EventsModule } from './modules/events/events.module.js';
 import { GuestsModule } from './modules/guests/guests.module.js';
 import { HealthController } from './modules/health/health.controller.js';
+import { MailModule } from './modules/mail/mail.module.js';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module.js';
 import { MediaModule } from './modules/media/media.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
@@ -37,6 +38,7 @@ const isDev = process.env.NODE_ENV !== 'production';
       },
     }),
     InfraModule,
+    MailModule,
     AnalyticsModule,
     OffersModule,
     AuthModule,

@@ -34,7 +34,7 @@ const dbHandle = createDb(env.DATABASE_URL, { max: 15 });
         removeOnFail: { age: 7 * 24 * 3600 },
       },
     }),
-    BullModule.registerQueue({ name: QUEUES.render }, { name: QUEUES.aiClip }, { name: QUEUES.notifications }),
+    BullModule.registerQueue({ name: QUEUES.render }, { name: QUEUES.aiClip }, { name: QUEUES.notifications }, { name: QUEUES.email }),
   ],
   providers: [
     { provide: ENV, useValue: env },

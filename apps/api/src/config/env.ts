@@ -41,6 +41,33 @@ const envSchema = z.object({
   EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),
   RESEND_API_KEY: z.string().optional(),
   EMAIL_FROM: z.string().optional(),
+  /** Sender for offers and automations, e.g. "Noyta Offers <offers@mail.noyta.in>". Unset = EMAIL_FROM. */
+  EMAIL_FROM_MARKETING: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  /** Minimum days between two offer emails to the same person (campaigns + automations). */
+  MARKETING_MIN_GAP_DAYS: z.coerce.number().int().min(0).max(60).default(3),
+  /** Optional coupon code included in abandoned-checkout reminders (must exist and be active). */
+  ABANDONED_CHECKOUT_COUPON: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.trim().toUpperCase() : undefined)),
+  /** Turns the hourly abandoned-checkout and win-back emails on or off. */
+  LIFECYCLE_EMAILS: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
+  /** Where replies go (defaults to the brand support address). */
+  EMAIL_REPLY_TO: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
+  /** Signing secret (whsec_…) of the Resend webhook that reports bounces and spam complaints. */
+  RESEND_WEBHOOK_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
   /** OAuth 2.0 Web client ID from Google Cloud Console. Unset = Google sign-in hidden. */
   GOOGLE_CLIENT_ID: z
     .string()

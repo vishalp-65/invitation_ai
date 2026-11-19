@@ -3,7 +3,8 @@
 import { ANNOUNCEMENT_TONES, PRODUCT_CODES, PRODUCTS, type PricedProduct, type ProductCode } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Megaphone, Pencil, Percent, Plus, Tag, Ticket, Trash2 } from 'lucide-react';
+import { Mail, Megaphone, Pencil, Percent, Plus, Tag, Ticket, Trash2 } from 'lucide-react';
+import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -195,6 +196,7 @@ function Coupons() {
                     onToggle={(active) => void call(api(`/admin/coupons/${c.id}`, { method: 'PUT', json: couponBody({ ...c, active }) }), active ? 'Coupon activated' : 'Coupon paused').then(refresh)}
                     onEdit={() => setEditing(c)}
                     onDelete={() => confirm(`Delete coupon ${c.code}?`) && void call(api(`/admin/coupons/${c.id}`, { method: 'DELETE' }), 'Coupon deleted').then(refresh)}
+                    emailHref={c.active ? `/admin/emails?coupon=${encodeURIComponent(c.code)}` : undefined}
                   />
                 </td>
               </tr>
@@ -355,6 +357,7 @@ function Sales() {
                     onToggle={(active) => void call(api(`/admin/sales/${s.id}`, { method: 'PUT', json: body({ ...s, active }) }), active ? 'Sale activated' : 'Sale paused').then(refresh)}
                     onEdit={() => setEditing(s)}
                     onDelete={() => confirm(`Delete “${s.name}”?`) && void call(api(`/admin/sales/${s.id}`, { method: 'DELETE' }), 'Sale deleted').then(refresh)}
+                    emailHref={s.active ? `/admin/emails?sale=${s.id}` : undefined}
                   />
                 </td>
               </tr>
@@ -678,10 +681,28 @@ function PriceDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void
   );
 }
 
-function RowActions({ active, onToggle, onEdit, onDelete }: { active: boolean; onToggle: (v: boolean) => void; onEdit: () => void; onDelete: () => void }) {
+function RowActions({
+  active,
+  onToggle,
+  onEdit,
+  onDelete,
+  emailHref,
+}: {
+  active: boolean;
+  onToggle: (v: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  /** Opens a pre-filled offer email for this coupon or sale. */
+  emailHref?: string;
+}) {
   return (
     <div className="flex items-center justify-end gap-1">
       <Toggle checked={active} onChange={onToggle} label={active ? 'Pause' : 'Activate'} />
+      {emailHref && (
+        <Link href={emailHref} aria-label="Email this offer" data-tip="Email this offer" className="grid size-8 place-items-center text-ink-soft transition-colors hover:bg-ink/[0.05] hover:text-ink">
+          <Mail className="size-4" />
+        </Link>
+      )}
       <button type="button" onClick={onEdit} aria-label="Edit" data-tip="Edit" className="grid size-8 place-items-center text-ink-soft transition-colors hover:bg-ink/[0.05] hover:text-ink">
         <Pencil className="size-4" />
       </button>

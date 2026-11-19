@@ -84,6 +84,12 @@ export const users = pgTable(
   avatarUrl: text(),
   role: userRole().notNull().default('user'),
   locale: text().notNull().default('en'),
+  /** Offer / product-news emails. Transactional mail (codes, receipts, security) ignores this. */
+  marketingEmails: boolean().notNull().default(false),
+  /** Last offer email of any kind (campaign or automation), for the frequency cap. */
+  lastMarketingAt: timestamp({ withTimezone: true }),
+  /** Last "we miss you" email, so a dormant account gets at most one every 6 months. */
+  winbackSentAt: timestamp({ withTimezone: true }),
   /** Reseller agent who onboarded this user (P2 agent network). */
   referredByAgentId: uuid(),
   /** Set by an admin to block sign-in (existing sessions are revoked). */
@@ -290,6 +296,8 @@ export const orders = pgTable(
     saleId: uuid(),
     createdAt: createdAt(),
     paidAt: timestamp({ withTimezone: true }),
+    /** Abandoned-checkout reminder sent for this unpaid order. */
+    reminderSentAt: timestamp({ withTimezone: true }),
   },
   (t) => [uniqueIndex().on(t.providerOrderId), index().on(t.userId), index().on(t.eventId)],
 );
@@ -664,4 +672,47 @@ export const adminAuditLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('admin_audit_time_idx').on(t.createdAt)],
+);
+
+// ---------------- Email ----------------
+
+/** Addresses that hard-bounced, complained or were blocked by Resend: never mailed again (except sign-in codes). */
+export const emailSuppressions = pgTable('email_suppressions', {
+  email: text().primaryKey(),
+  /** bounced | complained | manual */
+  reason: text().notNull(),
+  createdAt: createdAt(),
+});
+
+/** Admin-composed offer / announcement emails sent to an audience segment. */
+export const emailCampaigns = pgTable(
+  'email_campaigns',
+  {
+    id: id(),
+    subject: text().notNull(),
+    preheader: text(),
+    heading: text().notNull(),
+    body: text().notNull(),
+    ctaLabel: text(),
+    ctaUrl: text(),
+    couponCode: text(),
+    /** all | paid | never_paid | inactive_30d | designers */
+    audience: text().notNull(),
+    /** draft | scheduled | sending | sent | failed */
+    status: text().notNull().default('draft'),
+    scheduledAt: timestamp({ withTimezone: true }),
+    recipientCount: integer().notNull().default(0),
+    sentCount: integer().notNull().default(0),
+    failedCount: integer().notNull().default(0),
+    /** Unique recipients, from Resend webhooks (opens/clicks need tracking enabled on the domain). */
+    deliveredCount: integer().notNull().default(0),
+    openedCount: integer().notNull().default(0),
+    clickedCount: integer().notNull().default(0),
+    bouncedCount: integer().notNull().default(0),
+    createdBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+    sentAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index().on(t.createdAt)],
 );

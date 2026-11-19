@@ -13,7 +13,7 @@ import { OtpInput } from './otp-input';
 import { track } from '@/lib/track';
 
 type Mode = 'login' | 'signup';
-type View = Mode | 'forgot';
+export type View = Mode | 'forgot';
 
 interface Providers {
   google: { clientId: string; redirect: boolean } | null;
@@ -454,9 +454,12 @@ export function AuthFlow({
   heading = true,
   next,
   initialError,
+  initialView,
   onDone,
 }: {
   mode?: Mode;
+  /** Open straight on "Forgot password" (links in security emails use `?view=forgot`). */
+  initialView?: View;
   heading?: boolean;
   /** Where the Google redirect flow returns to. Defaults to the current page. */
   next?: string;
@@ -471,13 +474,15 @@ export function AuthFlow({
     staleTime: 60 * 60_000,
   });
 
-  const [view, setView] = useState<View>(mode);
+  const [view, setView] = useState<View>(initialView ?? mode);
   const signup = view === 'signup';
   const forgot = view === 'forgot';
   useEffect(() => track('signup_start', { props: { mode } }), [mode]);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  /** Offers need explicit consent, so this starts unticked. */
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
   const [error, setError] = useState<string | undefined>(initialError ? GOOGLE_ERRORS[initialError] : undefined);
   const [busy, setBusy] = useState(false);
@@ -570,7 +575,7 @@ export function AuthFlow({
             onSubmit={async (code) => {
               const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/signup', {
                 method: 'POST',
-                json: { email: pending.email, code, name: name.trim(), password },
+                json: { email: pending.email, code, name: name.trim(), password, marketingOptIn },
               });
               signedIn(r.user, r.isNew);
             }}
@@ -693,6 +698,18 @@ export function AuthFlow({
             )}
             {signup && <PasswordRules value={password} />}
           </div>
+        )}
+
+        {signup && (
+          <label className="flex cursor-pointer items-start gap-2.5 text-[0.8125rem] leading-relaxed text-ink-soft">
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-[3px] size-4 shrink-0 cursor-pointer accent-[var(--color-ink)]"
+            />
+            <span>Email me occasional offers and new designs. You can unsubscribe any time.</span>
+          </label>
         )}
 
         {error && <Alert>{error}</Alert>}

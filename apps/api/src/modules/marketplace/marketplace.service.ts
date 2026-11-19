@@ -4,6 +4,7 @@ import { BadRequestException, ForbiddenException, Inject, Injectable, NotFoundEx
 import { customAlphabet } from 'nanoid';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { DB } from '../../infra/infra.module.js';
+import { MailService } from '../mail/mail.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
 
 const key = customAlphabet('abcdefghijkmnpqrstuvwxyz23456789', 8);
@@ -14,6 +15,7 @@ export class MarketplaceService {
   constructor(
     @Inject(DB) private readonly db: Database,
     private readonly templates: TemplatesService,
+    private readonly mail: MailService,
   ) {}
 
   async apply(user: AuthUser, input: { displayName: string; bio?: string; portfolioUrl?: string; payoutUpi: string }) {
@@ -95,6 +97,7 @@ export class MarketplaceService {
       .returning();
     if (!row) throw new NotFoundException('Template not in review');
     this.templates.invalidate();
+    void this.mail.toUser(row.designerId, 'marketplace.template_reviewed', (u) => ({ name: u.name, templateName: row.name, approved: decision === 'approved', note: note ?? null }), { key: `${row.id}-${row.updatedAt.getTime()}` });
     return row;
   }
 
@@ -109,6 +112,7 @@ export class MarketplaceService {
       .where(eq(designerProfiles.userId, userId))
       .returning();
     if (!row) throw new NotFoundException('Designer not found');
+    void this.mail.toUser(userId, 'marketplace.designer_reviewed', (u) => ({ name: row.displayName || u.name, approved: decision === 'approved' }), { key: `${userId}-${decision}` });
     if (decision === 'approved') await this.db.update(users).set({ role: 'designer' }).where(and(eq(users.id, userId), eq(users.role, 'user')));
     return row;
   }

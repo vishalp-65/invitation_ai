@@ -2,10 +2,12 @@
 
 import { PRODUCTS, type ProductCode } from '@cardai/shared';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { ShoppingBag } from 'lucide-react';
+import { Mail, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
 import { Badge, dateTime, Empty, inr, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 interface OrderRow {
   id: string;
@@ -27,6 +29,26 @@ interface OrderRow {
 type Status = 'all' | OrderRow['status'];
 const TONE = { paid: 'good', created: 'neutral', failed: 'bad', refunded: 'warn' } as const;
 const LABEL = { paid: 'Paid', created: 'Not paid', failed: 'Failed', refunded: 'Refunded' } as const;
+
+function ResendReceipt({ id }: { id: string }) {
+  const [busy, setBusy] = useState(false);
+  const resend = async () => {
+    setBusy(true);
+    try {
+      const r = await api<{ to: string }>(`/admin/orders/${id}/resend-receipt`, { method: 'POST' });
+      toast.success(`Receipt sent to ${r.to}`);
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not send the receipt');
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Button size="xs" variant="line" loading={busy} onClick={() => void resend()} title="Email the receipt to the customer again">
+      <Mail className="size-3.5" /> Receipt
+    </Button>
+  );
+}
 
 export default function AdminOrdersPage() {
   const [status, setStatus] = useState<Status>('paid');
@@ -71,7 +93,7 @@ export default function AdminOrdersPage() {
           </div>
         ) : (
           <>
-            <Table head={['Customer', 'Product', 'Invitation', 'Charged', 'Discount', 'When', 'Status']}>
+            <Table head={['Customer', 'Product', 'Invitation', 'Charged', 'Discount', 'When', 'Status', '']}>
               {data.items.map((o) => (
                 <tr key={o.id}>
                   <td>
@@ -95,6 +117,7 @@ export default function AdminOrdersPage() {
                   <td>
                     <Badge tone={TONE[o.status]}>{LABEL[o.status]}</Badge>
                   </td>
+                  <td className="text-right">{o.status === 'paid' && <ResendReceipt id={o.id} />}</td>
                 </tr>
               ))}
             </Table>
