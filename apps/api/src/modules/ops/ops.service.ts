@@ -5,7 +5,7 @@ import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs
 import type { SQL } from 'drizzle-orm';
 import type { Queue } from 'bullmq';
 import { ENV, type Env } from '../../config/env.js';
-import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
+import { DB, REDIS, STORAGE, type Redis, type S3Storage } from '../../infra/infra.module.js';
 import { MailService } from '../mail/mail.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { WhatsAppClient } from '../whatsapp/whatsapp.client.js';
@@ -17,7 +17,8 @@ const TODAY = sql`(now() at time zone ${TZ})::date`;
 /** The same problem is emailed at most this often. */
 const ALERT_REPEAT_SEC = 2 * 3600;
 /** Counter the payments webhook bumps on bad signatures / failures (read by the checks). */
-export const WEBHOOK_FAIL_KEY = 'ops:webhook-fail';
+import { WEBHOOK_FAIL_KEY } from './ops.keys.js';
+export { WEBHOOK_FAIL_KEY };
 
 interface Alert {
   kind: string;
@@ -45,6 +46,7 @@ export class OpsService implements OnApplicationBootstrap {
     @Inject(ENV) private readonly env: Env,
     @Inject(DB) private readonly db: Database,
     @Inject(REDIS) private readonly redis: Redis,
+    @Inject(STORAGE) private readonly storage: S3Storage,
     private readonly mail: MailService,
     private readonly whatsapp: WhatsAppClient,
     private readonly payments: PaymentsService,
@@ -253,8 +255,31 @@ export class OpsService implements OnApplicationBootstrap {
       select ensure_analytics_partitions(2) as made, drop_old_analytics_partitions(${this.env.ANALYTICS_RETENTION_MONTHS}::int) as dropped`);
     // Alerts older than a week are history.
     await this.db.execute(sql`update admin_alerts set resolved_at = now() where resolved_at is null and created_at < now() - interval '7 days'`);
-    this.logger.log(`Nightly: metrics for ${y!.y} (+${missing.length} backfilled), partitions +${p?.made ?? 0} / −${p?.dropped ?? 0}`);
-    return { day: y!.y, backfilled: missing.length, partitions: p };
+    const purged = await this.purgeDeadRows();
+    this.logger.log(
+      `Nightly: metrics for ${y!.y} (+${missing.length} backfilled), partitions +${p?.made ?? 0} / −${p?.dropped ?? 0}, ` +
+        `purged ${purged.sessions} sessions, ${purged.uploads} unconfirmed uploads`,
+    );
+    return { day: y!.y, backfilled: missing.length, partitions: p, purged };
+  }
+
+  /**
+   * Rows nothing reads any more: sessions expired or revoked over 30 days ago, and presigned
+   * uploads never confirmed within 2 days (their object, if any part arrived, is deleted too).
+   * Batched so one night never holds long locks.
+   */
+  private async purgeDeadRows(): Promise<{ sessions: number; uploads: number }> {
+    const sessions = await this.db.execute(sql`
+      delete from sessions where id in (
+        select id from sessions
+        where expires_at < now() - interval '30 days' or revoked_at < now() - interval '30 days'
+        limit 5000)`);
+    const uploads = await this.rows<{ storage_key: string }>(sql`
+      delete from media_assets where id in (
+        select id from media_assets where ready = false and created_at < now() - interval '2 days' limit 500)
+      returning storage_key`);
+    await Promise.allSettled(uploads.map((u) => this.storage.delete(u.storage_key)));
+    return { sessions: sessions.rowCount ?? 0, uploads: uploads.length };
   }
 
   // ---------------- Daily digest ----------------

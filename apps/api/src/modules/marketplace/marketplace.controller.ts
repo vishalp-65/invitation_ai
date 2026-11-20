@@ -1,8 +1,9 @@
 import { designerApplySchema, marketplaceTemplateSchema, reviewTemplateSchema, type MarketplaceTemplateInput } from '@cardai/shared';
-import { Controller, Get, HttpCode, Patch, Post } from '@nestjs/common';
+import { Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
 import { CurrentUser, Roles, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
+import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
 import { MarketplaceService } from './marketplace.service.js';
 import { RequireFlag } from '../flags/flags.module.js';
 
@@ -50,12 +51,16 @@ export class MarketplaceController {
   }
 
   @Roles('admin')
+  @UseGuards(AdminGuard)
+  @AdminScopes('content')
   @Get('admin/templates/review')
   queue() {
     return this.market.reviewQueue();
   }
 
   @Roles('admin')
+  @UseGuards(AdminGuard)
+  @AdminScopes('content')
   @Post('admin/templates/:id/review')
   @HttpCode(200)
   review(@UuidParam('id') id: string, @ZBody(reviewTemplateSchema) body: z.infer<typeof reviewTemplateSchema>) {
@@ -63,12 +68,16 @@ export class MarketplaceController {
   }
 
   @Roles('admin')
+  @UseGuards(AdminGuard)
+  @AdminScopes('content')
   @Get('admin/designers/pending')
   designers() {
     return this.market.designerQueue();
   }
 
   @Roles('admin')
+  @UseGuards(AdminGuard)
+  @AdminScopes('content')
   @Post('admin/designers/:userId/review')
   @HttpCode(200)
   reviewDesigner(@UuidParam('userId') userId: string, @ZBody(z.object({ decision: z.enum(['approved', 'rejected']) })) body: { decision: 'approved' | 'rejected' }) {

@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, COMMUNITIES, EVENT_CATEGORIES, EVENT_TYPES, faithOf, LANGUAGES, templateFaithClash, type Community, type EventCategory } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, COMMUNITIES, type Community, EVENT_CATEGORIES, EVENT_TYPES, type EventCategory, faithOf, LANGUAGES, showcaseRank, templateFaithClash } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowUpRight, Check } from 'lucide-react';
 import Image from 'next/image';
@@ -47,9 +47,11 @@ const OCCASION_ART = (() => {
     const faith = faithOf(e.id);
     const fits = BUILTIN_TEMPLATES.filter((t) => t.eventTypes !== 'all' && (t.eventTypes as string[]).includes(e.id) && !templateFaithClash(t.communities, faith));
     const primary = (t: (typeof fits)[number]) => ((t.eventTypes as string[])[0] === e.id ? 0 : 1);
-    const ranked = [...fits].sort((x, y) => primary(x) - primary(y) || Number(used.has(x.id)) - Number(used.has(y.id)));
-    // Prefer an unused design; if every fitting one is taken, reuse the best.
-    const pick = ranked.find((t) => !used.has(t.id)) ?? ranked[0];
+    // Modern collections first, then designs made for this occasion, then unused ones.
+    const ranked = [...fits].sort((x, y) => showcaseRank(x.design) - showcaseRank(y.design) || primary(x) - primary(y) || Number(used.has(x.id)) - Number(used.has(y.id)));
+    // A modern design is always preferred, even if another tile already shows it.
+    const best = ranked[0] ? showcaseRank(ranked[0].design) : 1;
+    const pick = ranked.find((t) => !used.has(t.id) && showcaseRank(t.design) === best) ?? ranked[0];
     if (pick) used.add(pick.id);
     const count = BUILTIN_TEMPLATES.filter((t) => t.eventTypes === 'all' || (t.eventTypes as string[]).includes(e.id)).length;
     map.set(e.id, { id: pick?.id ?? '', count });

@@ -153,7 +153,7 @@ export function Bunting({ w, h, c, opts }: ArtProps) {
       const fh = banner ? h * 0.52 : h * 0.42;
       // Flags hang plumb, slightly tilted with the string.
       const slope = (4 * sag * (1 - 2 * t)) / (x1 - x0);
-      const rot = (Math.atan(slope) * 180) / Math.PI * 0.6;
+      const rot = Math.round(((Math.atan(slope) * 180) / Math.PI) * 0.6 * 1000) / 1000;
       const fill = (i + s) % 2 ? f2 : f1;
       els.push(
         <g key={`f${s}-${i}`} transform={`translate(${p.x} ${p.y}) rotate(${rot})`}>

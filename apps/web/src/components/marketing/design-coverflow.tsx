@@ -1,6 +1,6 @@
 'use client';
 
-import { ATELIER_FAMILIES, BUILTIN_TEMPLATES, EVENT_TYPES, groupByFamily, HERITAGE_FAMILIES, SITE_DESIGNS, visibleDesigns, type TemplateDefinition } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPES, groupByFamily, showcaseRank, SITE_DESIGNS, visibleDesigns, type TemplateDefinition } from '@cardai/shared';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useMemo, type CSSProperties } from 'react';
 import { DesignPoster } from '@/components/invite/design-poster';
@@ -53,15 +53,13 @@ function Hint({ hi }: { hi: boolean }) {
 
 /**
  * Card designs as a coverflow: one card per design family (its first colourway), mixed across
- * occasions so neighbours differ. The premium heritage families have their own corridor on the
- * landing page, so they are left out by default.
+ * occasions so neighbours differ. Only the modern collections are shown as showpieces.
  */
-export function TemplateCoverflow({ hi, limit = 14, includeHeritage = false, className }: { hi: boolean; limit?: number; includeHeritage?: boolean; className?: string }) {
+export function TemplateCoverflow({ hi, limit = 14, className }: { hi: boolean; limit?: number; className?: string }) {
   const { hiddenTemplates } = useDesignVisibility();
   const items = useMemo<GlassyCarouselItem[]>(() => {
-    const heritage = new Set([...ATELIER_FAMILIES, ...HERITAGE_FAMILIES].map((f) => f.id));
     const off = new Set(hiddenTemplates);
-    const families = groupByFamily(BUILTIN_TEMPLATES.filter((t) => !off.has(t.id) && (includeHeritage || !t.design || !heritage.has(t.design))));
+    const families = groupByFamily(BUILTIN_TEMPLATES.filter((t) => !off.has(t.id) && showcaseRank(t.design) === 0));
     // Round-robin over categories so a wedding card is never next to three more wedding cards.
     const buckets = new Map<string, typeof families>();
     for (const f of families) {
@@ -97,7 +95,7 @@ export function TemplateCoverflow({ hi, limit = 14, includeHeritage = false, cla
         badge: hi ? 'देखें' : 'Preview',
       };
     });
-  }, [hi, limit, includeHeritage, hiddenTemplates]);
+  }, [hi, limit, hiddenTemplates]);
 
   return (
     <GlassyCarousel

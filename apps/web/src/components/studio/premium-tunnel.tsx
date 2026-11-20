@@ -1,11 +1,11 @@
-import { ATELIER_FAMILIES, BUILTIN_TEMPLATES, HERITAGE_FAMILIES } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, MODERN_FAMILY_IDS } from '@cardai/shared';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { PerspectiveTunnel, type TunnelItem } from '@/components/ui/perspective-tunnel';
 import { designHref } from '@/lib/links';
 import { Kicker } from './primitives';
 
-/** Colourways per family shown in the corridor (the Atelier + Heritage families, premium only). */
+/** Colourways per family shown in the corridor (modern collections only). */
 const PER_FAMILY = 2;
 
 /**
@@ -14,8 +14,8 @@ const PER_FAMILY = 2;
  */
 function premiumItems(hidden: readonly string[]): TunnelItem[] {
   const off = new Set(hidden);
-  const families = [...ATELIER_FAMILIES, ...HERITAGE_FAMILIES].filter((f) => f.premium).map((f) => f.id);
-  const byFamily = families.map((id) => BUILTIN_TEMPLATES.filter((t) => t.premium && t.design === id && !off.has(t.id)).slice(0, PER_FAMILY));
+  const families = MODERN_FAMILY_IDS;
+  const byFamily = families.map((id) => BUILTIN_TEMPLATES.filter((t) => t.design === id && !off.has(t.id)).slice(0, PER_FAMILY));
   const items: TunnelItem[] = [];
   for (let k = 0; k < PER_FAMILY; k++) {
     for (const list of byFamily) {

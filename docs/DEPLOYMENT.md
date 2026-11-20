@@ -167,7 +167,15 @@ NEXT_PUBLIC_APP_URL=https://noyta.in
 STORAGE_PUBLIC_URL=https://noyta-media.blr1.cdn.digitaloceanspaces.com
 NEXT_PUBLIC_RAZORPAY_KEY_ID=<rzp_live_... same as backend RAZORPAY_KEY_ID>
 NEXT_PUBLIC_SHORT_HOST=            # only once you have a short domain
+CLIENT_IP_SECRET=<same value as the API's CLIENT_IP_SECRET>
 ```
+
+`CLIENT_IP_SECRET` lets the API trust each visitor's real IP for rate limits. The web proxy signs it,
+and the API ignores any `X-Forwarded-For` a client sends. **Roll it out in this order:**
+1. Add it in Vercel and redeploy the web app.
+2. Add the same value to `/opt/noyta/.env` and redeploy the API.
+
+If the API gets it first, every visitor shares Vercel's IP addresses, and so shares one rate limit.
 
 4. Deploy, then **Settings → Domains**: add `noyta.in` as primary, and `www.noyta.in` redirecting to it. The DNS records Vercel shows should match step 1.
 5. Every push to `main` deploys production and every PR gets a preview URL. Preview URLs call the production API through the rewrite; point the Preview env `API_INTERNAL_URL` elsewhere if you don't want that.

@@ -1,16 +1,20 @@
-import { createHash, createHmac, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
+import { createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from 'node:crypto';
 
-/** scrypt$<salt>$<hash>, all base64url (site access passwords). */
-export function hashPassword(password: string): string {
+/** Async scrypt: runs on the libuv thread pool, so a login burst never blocks the event loop. */
+const scrypt = (password: BinaryLike, salt: BinaryLike, keylen: number) =>
+  new Promise<Buffer>((resolve, reject) => scryptCb(password, salt, keylen, (err, key) => (err ? reject(err) : resolve(key))));
+
+/** scrypt$<salt>$<hash>, all base64url (account and site access passwords). */
+export async function hashPassword(password: string): Promise<string> {
   const salt = randomBytes(16);
-  const hash = scryptSync(password.normalize('NFKC'), salt, 32);
+  const hash = await scrypt(password.normalize('NFKC'), salt, 32);
   return `scrypt$${salt.toString('base64url')}$${hash.toString('base64url')}`;
 }
 
-export function verifyPassword(password: string, stored: string): boolean {
+export async function verifyPassword(password: string, stored: string): Promise<boolean> {
   const [scheme, salt, hash] = stored.split('$');
   if (scheme !== 'scrypt' || !salt || !hash) return false;
-  const actual = scryptSync(password.normalize('NFKC'), Buffer.from(salt, 'base64url'), 32).toString('base64url');
+  const actual = (await scrypt(password.normalize('NFKC'), Buffer.from(salt, 'base64url'), 32)).toString('base64url');
   return safeEqual(actual, hash);
 }
 

@@ -1,4 +1,4 @@
-import { ALL_WEDDINGS, BUILTIN_TEMPLATES, BUSINESS, faithOf, KIDS, SACRED, sampleInviteProps, templateSupportsEvent, type TemplateDefinition } from '@cardai/shared';
+import { ALL_WEDDINGS, BUILTIN_TEMPLATES, BUSINESS, faithOf, KIDS, SACRED, sampleInviteProps, showcaseRank, type TemplateDefinition, templateSupportsEvent } from '@cardai/shared';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
 
@@ -42,7 +42,8 @@ export async function designsFor(type: string, limit = 12): Promise<TemplateDefi
     if (!cur || rank < cur.rank) best.set(family, { t, rank });
   }
   // Stable sort keeps catalogue order (layered designs first) within each rank.
-  const out = [...best.values()].sort((a, b) => a.rank - b.rank).slice(0, limit).map((x) => x.t);
+  // Modern collections lead; within that, covers drawn for this occasion first.
+  const out = [...best.values()].sort((a, b) => showcaseRank(a.t.design) - showcaseRank(b.t.design) || a.rank - b.rank).slice(0, limit).map((x) => x.t);
   cache.set(key, out);
   return out;
 }

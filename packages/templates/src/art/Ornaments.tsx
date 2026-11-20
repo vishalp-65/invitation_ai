@@ -404,7 +404,7 @@ export function Sprig({ w, h, c }: ArtProps) {
   for (let i = 1; i < 11; i++) {
     const t = i / 11;
     const x = 10 + t * 170;
-    const y = 10 + t * 150 + Math.sin(t * 3) * 14;
+    const y = Math.round((10 + t * 150 + Math.sin(t * 3) * 14) * 1000) / 1000;
     const s = 1 - t * 0.5;
     leaves.push(<path key={`l${i}`} d="M0 0 C8 -14 26 -16 36 -4 C24 4 10 6 0 0 Z" fill={leaf} opacity={0.85} transform={`translate(${x} ${y}) rotate(${-40 + i * 3}) scale(${s})`} />);
     leaves.push(<path key={`r${i}`} d="M0 0 C8 14 26 16 36 4 C24 -4 10 -6 0 0 Z" fill={leaf} opacity={0.7} transform={`translate(${x} ${y}) rotate(${50 + i * 2}) scale(${s})`} />);

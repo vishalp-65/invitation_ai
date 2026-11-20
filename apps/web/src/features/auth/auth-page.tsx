@@ -1,6 +1,6 @@
 'use client';
 
-import { BRAND } from '@cardai/shared';
+import { BRAND, SHOWCASE } from '@cardai/shared';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -28,9 +28,9 @@ function Showcase() {
     v.play().catch(() => {});
   }, []);
   const cards = [
-    { id: 'golden-vows-onyx', cls: '-translate-x-[62%] translate-y-[8%] -rotate-6', delay: '200ms' },
-    { id: 'kanjeevaram-wine', cls: 'translate-x-[62%] translate-y-[8%] rotate-6', delay: '200ms' },
-    { id: 'varmala-maroon', cls: 'z-10', delay: '80ms' },
+    { id: SHOWCASE.hero[0], cls: '-translate-x-[62%] translate-y-[8%] -rotate-6', delay: '200ms' },
+    { id: SHOWCASE.hero[1], cls: 'translate-x-[62%] translate-y-[8%] rotate-6', delay: '200ms' },
+    { id: SHOWCASE.hero[2], cls: 'z-10', delay: '80ms' },
   ];
   return (
     <aside className="sticky top-0 hidden h-dvh p-3 lg:block">

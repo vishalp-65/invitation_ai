@@ -9,7 +9,8 @@ export interface AuthUser {
   imp?: string;
 }
 
-export type AuthedRequest = FastifyRequest & { user?: AuthUser };
+/** `clientIp`: the caller's real IP (signed by the web proxy, else the connection address), set in main.ts. */
+export type AuthedRequest = FastifyRequest & { user?: AuthUser; clientIp?: string };
 
 export const IS_PUBLIC = 'auth:public';
 export const ROLES = 'auth:roles';

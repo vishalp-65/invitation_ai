@@ -9,7 +9,7 @@ import { ExpiredSite, LockedSite } from './gates';
 type Params = Promise<{ slug: string }>;
 type Search = Promise<{ g?: string }>;
 
-type Loaded = { kind: 'ok'; site: PublicSiteResponse } | { kind: 'gone' } | null;
+type Loaded = { kind: 'ok'; site: PublicSiteResponse; key?: string } | { kind: 'gone' } | null;
 
 async function load(slug: string, g?: string): Promise<Loaded> {
   const key = (await cookies()).get(`inv_k_${slug}`)?.value;
@@ -19,7 +19,7 @@ async function load(slug: string, g?: string): Promise<Loaded> {
   try {
     // Personal / unlocked pages are never cached; the open page for 15 s (edits show up fast).
     const site = await serverApi<PublicSiteResponse>(`/public/events/${encodeURIComponent(slug)}${qs.size ? `?${qs}` : ''}`, qs.size ? 0 : 15);
-    return { kind: 'ok', site };
+    return { kind: 'ok', site, key };
   } catch (err) {
     if (err instanceof ApiError && err.status === 404) return null;
     if (err instanceof ApiError && err.status === 410) return { kind: 'gone' };
@@ -57,5 +57,5 @@ export default async function InvitePage({ params, searchParams }: { params: Par
   if (!loaded) notFound();
   if (loaded.kind === 'gone') return <ExpiredSite />;
   if (isLockedSite(loaded.site)) return <LockedSite slug={slug} site={loaded.site} />;
-  return <SiteRenderer data={loaded.site} guestToken={g} />;
+  return <SiteRenderer data={loaded.site} guestToken={g} accessKey={loaded.key} />;
 }

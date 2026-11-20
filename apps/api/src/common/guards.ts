@@ -78,7 +78,7 @@ export class RateLimitGuard implements CanActivate {
     const opts = this.reflector.get<RateLimitOptions | undefined>(RATE_LIMIT, ctx.getHandler());
     if (!opts) return true;
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
-    const who = opts.by !== 'ip' && req.user ? `u:${req.user.id}` : `ip:${req.ip}`;
+    const who = opts.by !== 'ip' && req.user ? `u:${req.user.id}` : `ip:${req.clientIp ?? req.ip}`;
     const window = Math.floor(Date.now() / 1000 / opts.windowSec);
     const key = `rl:${ctx.getClass().name}.${ctx.getHandler().name}:${who}:${window}`;
     const hits = await bumpCounter(this.redis, key, opts.windowSec);

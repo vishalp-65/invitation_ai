@@ -46,6 +46,31 @@ Scope: `apps/api` (NestJS + Fastify, about 12.8k lines), `apps/worker` (BullMQ +
 
 Verification: API and worker typecheck and eslint are clean, and the API tests pass (32/32, 3 of them new).
 
+### Second pass: public site, DB schema, worker
+
+| # | Problem | Fix |
+|---|---|---|
+| 8 | **Privacy bug:** private sites (Royale password or guests-only) were checked only on the main page. Anyone with the slug could read `/updates`, the UPI QR and `calendar.ics`, and post wishes, album photos and RSVPs. `calendar.ics` exposed every function's name, time and venue, including functions a guest wasn't invited to. | `SitesService.openSite()` and `canOpen()` are now the single access gate for every public side endpoint. The calendar lists only the functions the guest was invited to. RSVPs are refused once a site has expired (they used to be accepted). Covered by `sites.unit.test.ts`. |
+| 9 | The unlock key cookie is scoped to `/i/<slug>`, so the browser's `/api` calls never carried it. | The page passes `accessKey` into the `SiteProvider`. A new `publicUrl()` helper adds `?g=…&k=…` to GET calls, POST bodies send `key`, and the shared schemas accept an optional `key`. Responses fetched with a token or key are sent `private, no-store`. |
+| 10 | Every public page view loaded the event's functions and plan twice: once in `liveSite` and again in `build`. | `build()` reuses what `liveSite` already loaded, saving 2 queries per view. |
+| 11 | The 10-minute health check, admin reports and abandoned-checkout emails filter `orders`, `renders` and `ai_generations` by `created_at`, and none of them had an index on it, so every check scanned the whole table. | Migration `0012_perf_indexes`: a btree index on `orders.created_at`, and BRIN indexes on `renders.created_at` and `ai_generations.created_at`. |
+| 12 | Expired sessions and unconfirmed presigned uploads were never deleted, so those rows and their S3 objects grew forever. | A nightly `purgeDeadRows()` deletes sessions dead for more than 30 days and uploads still unconfirmed after 2 days (along with the object), in batches. Indexes `sessions_expires_idx`, `media_assets_unready_idx` and `media_assets_user_idx` support it and speed up account deletion. |
+| 13 | **Cost bug:** when an AI clip job stalled (worker restart or lost lock) and BullMQ re-ran it, it submitted a new paid video, and a failed re-run could refund the credit twice. | A re-run now resumes the job's existing `externalId`. Only the run that actually moves the row to `failed` refunds, and jobs already `failed` are skipped. |
+
+### Third pass: auth, admin, webhooks, deploy
+
+| # | Problem | Fix |
+|---|---|---|
+| 14 | Password hashing used `scryptSync`, which blocked the event loop for tens of milliseconds on every login, signup, password reset and site unlock. A login burst stalled every other request. | `hashPassword` / `verifyPassword` are now async and run on the libuv thread pool. Covered by `crypto.unit.test.ts`. |
+| 15 | The admin routes for print orders and marketplace reviews used only `@Roles('admin')`. That trusts the JWT role claim and skips `AdminGuard`, so there was no database re-check, no MFA device proof and no scope check. | They now use `AdminGuard` with `support` and `content` scopes. Resend-receipt now needs `support`. |
+| 16 | The WhatsApp webhook handled every message it received. Meta delivers at least once, so a redelivered message could repeat a bot step, and quick replies in one delivery ran concurrently and raced the bot's state. | Each message id is handled once (24 h Redis dedupe), and messages in one delivery run in order. The verify token is now compared in constant time. |
+| 17 | Site password guessing was limited only per IP, and per-IP limits can be bypassed (see below). | Each invitation now allows at most 50 wrong passwords per hour, across all IPs. |
+| 18 | **Client IP could be spoofed.** `trustProxy: true` trusted the leftmost `X-Forwarded-For` value, and nginx appends to whatever the client sends. Anyone could claim any IP and dodge every `by: 'ip'` limit (OTP email bombing, RSVP and wish spam, fake view counts). | **Signed client-IP header.** `apps/web/src/proxy.ts` now proxies `/api/*` itself. It drops any client-sent `x-noyta-client-ip` / `x-noyta-client-sig` headers, reads Vercel's own `x-real-ip`, and signs `ip|timestamp` with `CLIENT_IP_SECRET` (HMAC-SHA256). The API (`common/client-ip.ts`) believes the header only when the signature is valid and under 2 minutes old; otherwise it uses the connection address. With the secret set, only loopback and private hops (nginx, Docker) are trusted for `X-Forwarded-For`. Rate limits and view dedupe use `req.clientIp`. Covered by `client-ip.unit.test.ts`, including a check that the web and API sides compute the same signature. **Rollout order:** set the secret in Vercel first, then on the API (see DEPLOYMENT.md). Without it, the API keeps the old behaviour and logs a warning in production. |
+
+> **Supply chain.** In `backend.yml`, `appleboy/scp-action` and `appleboy/ssh-action` receive the droplet's SSH key. Pin them to commit SHAs instead of tags.
+
+> **Migrations warning.** The drizzle snapshot (`drizzle/meta/*_snapshot.json`) stops at 0005, because migrations 0006–0011 were written by hand. Running `drizzle-kit generate` now produces a migration that re-creates tables and columns that already exist. Keep writing migrations by hand: an idempotent `IF NOT EXISTS` SQL file plus a `_journal.json` entry. Or rebuild the snapshot once from a fresh database with `drizzle-kit pull`. Separately, `users_referred_event_idx` exists in the database (from migration 0011) but not in `schema.ts`, so the schema file and the database have drifted.
+
 ## 3. Recommendations, by priority
 
 ### P1: correctness and money
@@ -55,6 +80,10 @@ Verification: API and worker typecheck and eslint are clean, and the API tests p
    - **Reconcile:** if saving still fails, `PaymentsService.reconcileRefunds()` settles the claim from Razorpay's refund list (`GET /payments/:id/refunds`). It runs on the 10-minute ops check, only for claims older than 15 minutes. It never revokes access, and it raises a `refund-reconciled` or `refund-reconcile-failed` alert.
 2. ~~**Orphan orders.**~~ **Done.** If the gateway call (or saving its order id) fails, the order is marked `failed` and the user gets a clean 503. Saving `providerOrderId` is retried, because without it a payment could never be matched back to its order.
 3. **Integration tests for the money paths.** The reconciler's decisions are unit tested with fakes (`payments.unit.test.ts`), but these still need a real database: The API has only 3 test files. The highest-value additions are tests against a throwaway Postgres (Neon branch or a docker `postgres:17`) for: concurrent `fulfil` calls granting exactly once, coupon `markUsed` rolling back with its transaction, full refund revoking access, and `consumeCredit` never going below 0.
+
+4a. **A refund with "revoke access" can take away access another order paid for.** `entitlements` has one row per (event, feature) and keeps only the `order_id` of the first grant. Refunding that first order deletes the feature even if a later order bought it again, and it also wipes any credits bought afterwards. Fix: add a grant ledger table (`entitlement_grants`: order_id, feature, credits) and revoke from that ledger.
+
+4b. **The admin role in the JWT bypasses MFA on customer routes.** `events.getOwned`, `renders.get` and similar checks let `role === 'admin'` read *and change* any customer's invitation. The role comes from the 15-minute access token, with no MFA proof and no scope check. Admin edits to customer data should go through `AdminGuard` routes, or the bypass should be limited to safe methods (impersonation is already read-only).
 
 ### P2: performance
 4. **N+1 writes in `events.update`.** Each function is an `UPDATE` or `INSERT` inside a loop. Replace them with a single `INSERT … ON CONFLICT (id) DO UPDATE` over all rows.

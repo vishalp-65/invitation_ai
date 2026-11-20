@@ -72,7 +72,7 @@ function archPath(shape: string, w: number, h: number, i: number): string {
   for (let k = 1; k < pts.length; k++) {
     const [ax, ay] = pts[k - 1]!;
     const [bx, by] = pts[k]!;
-    const r = Math.hypot(bx - ax, by - ay) * 0.56;
+    const r = Math.round(Math.hypot(bx - ax, by - ay) * 0.56 * 1000) / 1000;
     d += ` A${r.toFixed(1)} ${r.toFixed(1)} 0 0 1 ${bx.toFixed(1)} ${by.toFixed(1)}`;
   }
   return `${d} V${y1} Z`;

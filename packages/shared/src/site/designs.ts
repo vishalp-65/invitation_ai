@@ -34,6 +34,18 @@ export const SITE_DESIGN_IDS = [
   'blue-pottery',
   'bombay-deco',
   'pichwai-lotus',
+  'raat-mahal',
+  'gulab-ring',
+  'neel-gulab',
+  'titli-bagh',
+  'raat-ki-rani',
+  'mr-mrs',
+  'gulistan',
+  'pampas-boho',
+  'haldi-rasam',
+  'gubbare',
+  'sunehri-shaam',
+  'chanda-mama',
 ] as const;
 export type SiteDesignId = (typeof SITE_DESIGN_IDS)[number];
 
@@ -58,6 +70,18 @@ export const SCENE_KINDS = [
   'blue-tiles',
   'art-deco',
   'lotus-pond',
+  'mahal-arch',
+  'rose-ring',
+  'blue-roses',
+  'butterfly-garden',
+  'noir-roses',
+  'mauve-arch',
+  'vintage-bloom',
+  'pampas-arch',
+  'haldi-marigold',
+  'balloon-party',
+  'gold-party',
+  'moon-cradle',
 ] as const;
 export type SceneKind = (typeof SCENE_KINDS)[number];
 
@@ -114,7 +138,15 @@ export interface SiteDesign {
   /** Shows a "New" badge in the picker. */
   isNew?: boolean;
   palette: { primary: string; accent: string; background: string; surface: string; text: string };
-  scene: { kind: SceneKind; night: boolean; colors: ScenePalette };
+  scene: {
+    kind: SceneKind;
+    night: boolean;
+    /** `modern`: crisp vector art over a plain gradient sky (no painted wobble, clouds or moon). */
+    style?: 'painted' | 'modern';
+    /** Cover text colour when the scene needs one of its own (e.g. cream on a maroon arch). */
+    ink?: string;
+    colors: ScenePalette;
+  };
   /** Section backgrounds cycle through these (video 2 style colour blocks / video 1 paper tones). */
   bands: DesignBand[];
   /** Latin-script fonts. Other scripts keep their language fonts. */
@@ -131,6 +163,289 @@ export interface SiteDesign {
 const paper = (bg: string, ink: string, primary: string): DesignBand => ({ bg, ink, primary });
 
 export const SITE_DESIGNS: readonly SiteDesign[] = [
+  // ---------------- Modern collection (Nov 2026): crisp, card-matched designs ----------------
+  // Each pack shares its id, art and type with the card family of the same name, so the card,
+  // the website and the video invite look like one suite.
+  {
+    id: 'raat-mahal',
+    name: 'Raat Mahal',
+    blurb: 'Maroon scalloped arch, hanging lanterns and white peonies',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#7A1F2B', accent: '#D9B26F', background: '#F7EEDC', surface: '#FFFAF0', text: '#2E1A16' },
+    scene: {
+      kind: 'mahal-arch',
+      night: false,
+      style: 'modern',
+      ink: '#FBEFD9',
+      colors: { skyTop: '#F7EEDC', skyBottom: '#EFE0C4', glow: '#FFE7B0', far: '#E8D6B4', mid: '#5B0F1B', midShade: '#3D0811', trim: '#D9B26F', near: '#5E7D4A', bloom: ['#FFF9F0', '#E5D5BC', '#5E7D4A', '#E9B949'], water: '#E9B949' },
+    },
+    bands: [paper('#5B0F1B', '#FBEFD9', '#E9C98F'), paper('#F7EEDC', '#2E1A16', '#7A1F2B')],
+    fonts: { script: 'Monsieur La Doulaise', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' },
+    opening: 'doors',
+    ambient: 'petals',
+    divider: 'scallop',
+    marker: 'lantern',
+    music: 'shehnai',
+    paint: {},
+  },
+  {
+    id: 'gulab-ring',
+    name: 'Gulab Ring',
+    blurb: 'Pink watercolour roses climbing a fine gold ring',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#9C3D57', accent: '#C9A24E', background: '#FBF1F2', surface: '#FFFFFF', text: '#3A2329' },
+    scene: {
+      kind: 'rose-ring',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#FDF6F6', skyBottom: '#F7E1E6', glow: '#FFFFFF', far: '#F3C5D0', mid: '#C9A24E', midShade: '#E9799A', trim: '#C9A24E', near: '#8C9A7A', bloom: ['#EE8FA8', '#A8243A', '#8C9A7A', '#E9C46A'], water: '#F3C5D0' },
+    },
+    bands: [paper('#FBF1F2', '#3A2329', '#9C3D57'), paper('#F6E3E7', '#3A2329', '#9C3D57')],
+    fonts: { script: 'Italianno', serif: 'Cormorant', body: 'Cormorant Garamond' },
+    opening: 'envelope',
+    ambient: 'petals',
+    divider: 'wave',
+    marker: 'rose',
+    music: 'piano',
+    paint: {},
+  },
+  {
+    id: 'neel-gulab',
+    name: 'Neel Gulab',
+    blurb: 'Dusty-blue roses on a soft watercolour wash',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#3F5F84', accent: '#B49A62', background: '#F7FAFD', surface: '#FFFFFF', text: '#22324A' },
+    scene: {
+      kind: 'blue-roses',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#FBFDFF', skyBottom: '#EAF1F8', glow: '#FFFFFF', far: '#C9DBEB', mid: '#DCE8F3', midShade: '#8FAAC6', trim: '#B49A62', near: '#8A8458', bloom: ['#8FAAC6', '#3F5F84', '#8A8458', '#E9C46A'], water: '#C9DBEB' },
+    },
+    bands: [paper('#F7FAFD', '#22324A', '#3F5F84'), paper('#E9F0F7', '#22324A', '#3F5F84')],
+    fonts: { script: 'Ms Madi', serif: 'Montserrat', body: 'Montserrat' },
+    opening: 'curtain',
+    ambient: 'petals',
+    divider: 'line',
+    marker: 'leaf',
+    music: 'acoustic',
+    paint: {},
+  },
+  {
+    id: 'titli-bagh',
+    name: 'Titli Bagh',
+    blurb: 'Lavender hydrangeas, butterflies and gold flecks',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#5B3F8C', accent: '#C9A24E', background: '#F6F2FB', surface: '#FFFFFF', text: '#2D2142' },
+    scene: {
+      kind: 'butterfly-garden',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#F8F5FC', skyBottom: '#E6DCF4', glow: '#FFFFFF', far: '#DCCDF0', mid: '#B9A3DC', midShade: '#7E63AD', trim: '#C9A24E', near: '#8C9A7A', bloom: ['#B58FD1', '#6A4C93', '#8C9A7A', '#E9C46A'], water: '#DCCDF0' },
+    },
+    bands: [paper('#F6F2FB', '#2D2142', '#5B3F8C'), paper('#ECE4F7', '#2D2142', '#5B3F8C')],
+    fonts: { script: 'Alex Brush', serif: 'Questrial', body: 'Questrial' },
+    opening: 'petals',
+    ambient: 'butterflies',
+    divider: 'wave',
+    marker: 'leaf',
+    music: 'strings',
+    paint: {},
+  },
+  {
+    id: 'raat-ki-rani',
+    name: 'Raat ki Rani',
+    blurb: 'Blush roses and gold flecks on black',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#D4AF37', accent: '#F3C6CF', background: '#121012', surface: '#1C1719', text: '#F4EDE4' },
+    scene: {
+      kind: 'noir-roses',
+      night: true,
+      style: 'modern',
+      ink: '#F2D9A0',
+      colors: { skyTop: '#0E0C0E', skyBottom: '#231A1E', glow: '#D4AF37', far: '#D4AF37', mid: '#D4AF37', midShade: '#8E6E2A', trim: '#D4AF37', near: '#5E7D4A', bloom: ['#F3C6CF', '#B4485B', '#5E7D4A', '#D4AF37'], water: '#2A2024' },
+    },
+    bands: [paper('#121012', '#F4EDE4', '#D4AF37'), paper('#1F1A1C', '#F4EDE4', '#F3C6CF')],
+    fonts: { script: 'Monsieur La Doulaise', serif: 'Cormorant', body: 'Cormorant Garamond' },
+    opening: 'seal',
+    ambient: 'stars',
+    divider: 'line',
+    marker: 'star',
+    music: 'piano',
+    paint: {},
+  },
+  {
+    id: 'mr-mrs',
+    name: 'Mr & Mrs',
+    blurb: 'Cream arch on mauve, coral blooms and gold rings',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#6E4A44', accent: '#E58E6E', background: '#F5EBDD', surface: '#FFFAF2', text: '#2E2523' },
+    scene: {
+      kind: 'mauve-arch',
+      night: false,
+      style: 'modern',
+      ink: '#3A2C29',
+      colors: { skyTop: '#8A6A66', skyBottom: '#6E5350', glow: '#F5EBDD', far: '#7C5E5A', mid: '#F5EBDD', midShade: '#E9DCC8', trim: '#C9A24E', near: '#8FA06A', bloom: ['#F2A488', '#C8553D', '#8FA06A', '#B8352A'], water: '#F5EBDD' },
+    },
+    bands: [paper('#F5EBDD', '#2E2523', '#6E4A44'), paper('#8A6A66', '#FFF6EC', '#F6D3B8')],
+    fonts: { script: 'Mea Culpa', serif: 'Noto Serif', body: 'Noto Serif' },
+    opening: 'envelope',
+    ambient: 'petals',
+    divider: 'arches',
+    marker: 'rose',
+    music: 'piano',
+    paint: {},
+  },
+  {
+    id: 'gulistan',
+    name: 'Gulistan',
+    blurb: 'Vintage daisies and roses around a floral name frame',
+    region: 'Modern',
+    faith: 'muslim',
+    isNew: true,
+    palette: { primary: '#6B5B4E', accent: '#B98F8A', background: '#F5EFE4', surface: '#FCF9F3', text: '#4A4440' },
+    scene: {
+      kind: 'vintage-bloom',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#F7F2E8', skyBottom: '#EDE3D2', glow: '#FFFFFF', far: '#DCD3BF', mid: '#FCF9F3', midShade: '#B07A72', trim: '#A9B48D', near: '#9AA77F', bloom: ['#EBCBC4', '#B07A72', '#9AA77F', '#E8D8A8'], water: '#E8D8A8' },
+    },
+    bands: [paper('#F5EFE4', '#4A4440', '#6B5B4E'), paper('#EDE4D4', '#4A4440', '#6B5B4E')],
+    fonts: { script: 'Allura', serif: 'Poppins', body: 'Poppins' },
+    opening: 'scroll',
+    ambient: 'petals',
+    divider: 'scallop',
+    marker: 'rose',
+    music: 'qawwali',
+    paint: {},
+  },
+  {
+    id: 'pampas-boho',
+    name: 'Pampas Boho',
+    blurb: 'Soft dome, dried pampas and fine line flowers',
+    region: 'Modern',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#6F5E50', accent: '#B49A7A', background: '#F5F0E8', surface: '#FFFFFF', text: '#2E2A25' },
+    scene: {
+      kind: 'pampas-arch',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#F7F3EC', skyBottom: '#EAE2D4', glow: '#FFFFFF', far: '#E9DFD0', mid: '#E3D6C3', midShade: '#B49A7A', trim: '#8C7A66', near: '#B49A7A', bloom: ['#E3C9B0', '#B49A7A', '#8C7A66', '#E8D8A8'], water: '#E9DFD0' },
+    },
+    bands: [paper('#F5F0E8', '#2E2A25', '#6F5E50'), paper('#EAE2D4', '#2E2A25', '#6F5E50')],
+    fonts: { script: 'Mrs Saint Delafield', serif: 'Didact Gothic', body: 'Didact Gothic' },
+    opening: 'scroll',
+    ambient: 'none',
+    divider: 'line',
+    marker: 'leaf',
+    music: 'acoustic',
+    paint: {},
+  },
+  {
+    id: 'haldi-rasam',
+    name: 'Haldi Rasam',
+    blurb: 'Turmeric wash, marigold strings and bright blooms',
+    region: 'Modern',
+    faith: 'hindu',
+    isNew: true,
+    palette: { primary: '#9A4A0C', accent: '#2F7D32', background: '#FFF6D6', surface: '#FFFCEF', text: '#3A2208' },
+    scene: {
+      kind: 'haldi-marigold',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#FFF8DE', skyBottom: '#FFE89A', glow: '#FFFFFF', far: '#FFD54A', mid: '#F28C0F', midShade: '#FFC93C', trim: '#2F7D32', near: '#2F7D32', bloom: ['#F28C0F', '#FFC93C', '#2F7D32', '#E2553D'], water: '#FFE98A' },
+    },
+    bands: [paper('#FFF6D6', '#3A2208', '#9A4A0C'), paper('#F9C846', '#3A2208', '#7A2E0A')],
+    fonts: { script: 'Ms Madi', serif: 'Montserrat', body: 'Montserrat' },
+    opening: 'curtain',
+    ambient: 'marigolds',
+    divider: 'scallop',
+    marker: 'marigold',
+    music: 'dhol',
+    paint: {},
+  },
+  {
+    id: 'gubbare',
+    name: 'Gubbare',
+    blurb: 'Bunting, glossy balloons and gift boxes',
+    region: 'Birthday',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#1F6F95', accent: '#5FB3D9', background: '#EEF8FD', surface: '#FFFFFF', text: '#163444' },
+    scene: {
+      kind: 'balloon-party',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#F4FAFE', skyBottom: '#CDE8F7', glow: '#FFFFFF', far: '#A9D3EC', mid: '#5FA8D3', midShade: '#2F7FA8', trim: '#2F7FA8', near: '#F6F0E8', bloom: ['#5FA8D3', '#9CCBE6', '#2F7FA8', '#F6F0E8'], water: '#CDE8F7' },
+    },
+    bands: [paper('#EEF8FD', '#163444', '#1F6F95'), paper('#D8EEF9', '#163444', '#1F6F95')],
+    fonts: { script: 'Ephesis', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' },
+    opening: 'curtain',
+    ambient: 'fairylights',
+    divider: 'scallop',
+    marker: 'star',
+    music: 'acoustic',
+    paint: {},
+  },
+  {
+    id: 'sunehri-shaam',
+    name: 'Sunehri Shaam',
+    blurb: 'Black and gold party with foil balloons and streamers',
+    region: 'Party',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#D4A63A', accent: '#F6E2A8', background: '#140C0A', surface: '#211512', text: '#F6EBDD' },
+    scene: {
+      kind: 'gold-party',
+      night: true,
+      style: 'modern',
+      ink: '#F2D38A',
+      colors: { skyTop: '#3A120A', skyBottom: '#0B0706', glow: '#D4A63A', far: '#D4A63A', mid: '#D4A63A', midShade: '#A47A26', trim: '#D4A63A', near: '#D4A63A', bloom: ['#D4A63A', '#E8C66A', '#A47A26', '#F6E2A8'], water: '#211512' },
+    },
+    bands: [paper('#140C0A', '#F6EBDD', '#D4A63A'), paper('#2A1410', '#F6EBDD', '#F6E2A8')],
+    fonts: { script: 'Monsieur La Doulaise', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' },
+    opening: 'curtain',
+    ambient: 'fireworks',
+    divider: 'line',
+    marker: 'star',
+    music: 'ambient',
+    paint: {},
+  },
+  {
+    id: 'chanda-mama',
+    name: 'Chanda Mama',
+    blurb: 'Crescent moon, stars and soft clouds for little ones',
+    region: 'Baby',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#2F5F8F', accent: '#E9B949', background: '#EEF5FC', surface: '#FFFFFF', text: '#1D3550' },
+    scene: {
+      kind: 'moon-cradle',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#D9E9F8', skyBottom: '#F3F8FE', glow: '#FFF6D8', far: '#E9B949', mid: '#FFFFFF', midShade: '#DCE9F6', trim: '#E9B949', near: '#FFFFFF', bloom: ['#F8D57E', '#C08B2C', '#FFFFFF', '#DCE9F6'], water: '#DCE9F6' },
+    },
+    bands: [paper('#EEF5FC', '#1D3550', '#2F5F8F'), paper('#DCE9F6', '#1D3550', '#2F5F8F')],
+    fonts: { script: 'Alex Brush', serif: 'Questrial', body: 'Questrial' },
+    opening: 'petals',
+    ambient: 'stars',
+    divider: 'wave',
+    marker: 'star',
+    music: 'santoor',
+    paint: {},
+  },
   {
     id: 'royal-lanterns',
     name: 'Royal Lanterns',
@@ -568,11 +883,19 @@ export function getSiteDesign(id: string | null | undefined): SiteDesign | null 
   return SITE_DESIGNS.find((d) => d.id === id) ?? null;
 }
 
-/** Packs for this event: the event's own faith first, then neutral ones, then the rest. Never hides any. */
-export function designsFor(eventType: string, community?: string | null): SiteDesign[] {
+/**
+ * Packs for this event: the one matching the card's design family first (same name and art),
+ * then the event's own faith, then neutral ones, then the rest. Never hides any.
+ */
+export function designsFor(eventType: string, community?: string | null, cardDesign?: string | null): SiteDesign[] {
   const faith = faithOf(eventType, community);
-  const rank = (d: SiteDesign) => (d.faith === faith ? 0 : d.faith === null ? 1 : 2);
+  const rank = (d: SiteDesign) => (cardDesign && d.id === cardDesign ? -1 : d.faith === faith ? 0 : d.faith === null ? 1 : 2);
   return [...SITE_DESIGNS].sort((a, b) => rank(a) - rank(b));
+}
+
+/** Cover text colour over the design's scene. */
+export function heroInk(design: SiteDesign): string {
+  return design.scene.ink ?? (design.scene.night ? '#FFF8EC' : design.palette.primary);
 }
 
 // ---------------- music ----------------

@@ -94,6 +94,18 @@ export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
   'blue-pottery': 'premium',
   'bombay-deco': 'premium',
   'pichwai-lotus': 'premium',
+  'raat-mahal': 'premium',
+  'gulab-ring': 'premium',
+  'neel-gulab': 'premium',
+  'titli-bagh': 'premium',
+  'raat-ki-rani': 'premium',
+  'mr-mrs': 'premium',
+  'gulistan': 'premium',
+  'pampas-boho': 'premium',
+  'haldi-rasam': 'premium',
+  'gubbare': 'premium',
+  'sunehri-shaam': 'premium',
+  'chanda-mama': 'premium',
 };
 
 /** Royale-only page features (beyond sections). */

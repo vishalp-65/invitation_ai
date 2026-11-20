@@ -15,7 +15,7 @@ const field =
 // ---------------- Shagun & gifts ----------------
 
 export function GiftsSection({ section }: { section: SiteSectionOf<'gifts'> }) {
-  const { data, t, preview } = useSite();
+  const { data, t, preview, publicUrl } = useSite();
   const [copied, setCopied] = useState(false);
   const registry = safeHref(section.registryUrl);
   if (!section.upiId && !registry && !section.note) return null;
@@ -31,7 +31,7 @@ export function GiftsSection({ section }: { section: SiteSectionOf<'gifts'> }) {
             {!preview && (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={`/api/public/events/${data.event.slug}/upi-qr.svg`}
+                src={publicUrl('upi-qr.svg')}
                 alt={t('UPI QR code', 'यूपीआई क्यूआर कोड')}
                 width={200}
                 height={200}
@@ -102,7 +102,7 @@ function ago(iso: string, locale: string, now: number) {
 }
 
 export function UpdatesSection({ section }: { section: SiteSectionOf<'updates'> }) {
-  const { data, t, preview, language } = useSite();
+  const { data, t, preview, language, publicUrl } = useSite();
   const [items, setItems] = useState<SiteUpdateDto[]>(data.updates);
   // "2 minutes ago" only after mount: server and phone clocks differ (hydration mismatch).
   const [now, setNow] = useState<number | null>(null);
@@ -117,7 +117,7 @@ export function UpdatesSection({ section }: { section: SiteSectionOf<'updates'> 
     let stop = false;
     const tick = async () => {
       if (document.hidden) return;
-      const r = await fetch(`/api/public/events/${data.event.slug}/updates`).catch(() => null);
+      const r = await fetch(publicUrl('updates')).catch(() => null);
       if (r?.ok && !stop) setItems(((await r.json()) as { items: SiteUpdateDto[] }).items);
     };
     const id = setInterval(tick, 30_000);
@@ -127,7 +127,7 @@ export function UpdatesSection({ section }: { section: SiteSectionOf<'updates'> 
       clearInterval(id);
       document.removeEventListener('visibilitychange', tick);
     };
-  }, [data.event.slug, preview]);
+  }, [publicUrl, preview]);
 
   return (
     <Shell section={section}>
@@ -155,7 +155,7 @@ export function UpdatesSection({ section }: { section: SiteSectionOf<'updates'> 
 // ---------------- Wishes (guestbook) ----------------
 
 export function WishesSection({ section }: { section: SiteSectionOf<'wishes'> }) {
-  const { data, t, preview, guestToken } = useSite();
+  const { data, t, preview, guestToken, accessKey } = useSite();
   const [items, setItems] = useState<SiteWishDto[]>(data.wishes);
   const [name, setName] = useState(data.guest?.name ?? '');
   const [message, setMessage] = useState('');
@@ -169,7 +169,7 @@ export function WishesSection({ section }: { section: SiteSectionOf<'wishes'> })
     setState('sending');
     setError('');
     try {
-      const w = await post<SiteWishDto>(`/api/public/events/${data.event.slug}/wishes`, { guestToken, name, message });
+      const w = await post<SiteWishDto>(`/api/public/events/${data.event.slug}/wishes`, { guestToken, key: accessKey, name, message });
       setItems((list) => [w, ...list]);
       setMessage('');
       setState('sent');
@@ -234,7 +234,7 @@ async function shrink(file: File): Promise<Blob> {
 }
 
 export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
-  const { data, t, preview, guestToken } = useSite();
+  const { data, t, preview, guestToken, accessKey } = useSite();
   const [photos, setPhotos] = useState<string[]>(data.album);
   const [name, setName] = useState(data.guest?.name ?? '');
   const [busy, setBusy] = useState<string | null>(null);
@@ -253,6 +253,7 @@ export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
         const contentType = blob.type === 'image/png' || blob.type === 'image/webp' ? blob.type : 'image/jpeg';
         const slot = await post<{ assetId: string; uploadUrl: string; headers: Record<string, string> }>(`/api/public/events/${data.event.slug}/album/uploads`, {
           guestToken,
+          key: accessKey,
           name: name || data.guest?.name || 'Guest',
           contentType,
           bytes: blob.size,

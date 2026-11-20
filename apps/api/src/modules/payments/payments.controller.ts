@@ -47,6 +47,7 @@ export class AdminPaymentsController {
 
   @Post(':id/resend-receipt')
   @HttpCode(200)
+  @AdminScopes('support')
   @RateLimit({ limit: 30, windowSec: 600, by: 'user' })
   resendReceipt(@UuidParam('id') id: string) {
     return this.payments.resendReceipt(id);

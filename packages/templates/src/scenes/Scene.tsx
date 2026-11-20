@@ -1,6 +1,7 @@
 import type { PaintLayer, SceneKind, ScenePalette, SiteDesign } from '@cardai/shared';
 import { useId, type ComponentType, type CSSProperties, type ImgHTMLAttributes, type ReactNode } from 'react';
 import { loop, q, rnd } from './anim';
+import { MODERN_SCENES } from './modern';
 import { MORE_SCENES } from './more';
 import type { SceneDef } from './types';
 import {
@@ -463,9 +464,27 @@ const BASE: Record<string, SceneDef> = {
   },
 };
 
-const S = { ...BASE, ...MORE_SCENES } as Record<SceneKind, SceneDef>;
+const S = { ...BASE, ...MORE_SCENES, ...MODERN_SCENES } as Record<SceneKind, SceneDef>;
 
-function Sky({ c, night, gid, time }: { c: ScenePalette; night: boolean; gid: string; time?: number }) {
+function Sky({ c, night, gid, time, modern }: { c: ScenePalette; night: boolean; gid: string; time?: number; modern?: boolean }) {
+  // Modern scenes: a clean gradient with a soft glow — no clouds, moon or painted stars.
+  if (modern)
+    return (
+      <g>
+        <defs>
+          <linearGradient id={`${gid}-sky`} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor={c.skyTop} />
+            <stop offset="1" stopColor={c.skyBottom} />
+          </linearGradient>
+          <radialGradient id={`${gid}-glow`}>
+            <stop offset="0" stopColor={c.glow} stopOpacity={night ? 0.22 : 0.6} />
+            <stop offset="1" stopColor={c.glow} stopOpacity={0} />
+          </radialGradient>
+        </defs>
+        <rect x={-20} y={-20} width={440} height={840} fill={`url(#${gid}-sky)`} />
+        <ellipse cx={200} cy={night ? 300 : 340} rx={260} ry={300} fill={`url(#${gid}-glow)`} />
+      </g>
+    );
   return (
     <g>
       <defs>
@@ -547,12 +566,13 @@ export function SceneLayer({
   if (painted) return <Img src={painted} alt="" aria-hidden className={className} style={{ ...fill, objectFit: 'cover', objectPosition: '50% 100%' }} />;
   const c = design.scene.colors;
   const def = S[design.scene.kind];
+  const modern = design.scene.style === 'modern';
   return (
     <svg viewBox="0 0 400 800" preserveAspectRatio="xMidYMax slice" aria-hidden className={className} style={fill}>
       {layer === 'sky' ? (
-        <Sky c={c} night={design.scene.night} gid={gid} time={time} />
+        <Sky c={c} night={design.scene.night} gid={gid} time={time} modern={modern} />
       ) : (
-        <Paint gid={gid} lite={lite || layer === 'far'}>
+        <Paint gid={gid} lite={lite || modern || layer === 'far'}>
           {def[layer](c, time)}
         </Paint>
       )}
@@ -573,8 +593,8 @@ export function SceneStill({ design, slot, time, lite = false, Img = 'img' as un
   const view = slot === 'venue' ? '0 380 400 430' : '0 0 400 800';
   return (
     <svg viewBox={view} aria-hidden className={className} style={{ width: '100%', height: 'auto', display: 'block' }}>
-      <Sky c={c} night={design.scene.night} gid={gid} time={time} />
-      <Paint gid={gid} lite={lite}>
+      <Sky c={c} night={design.scene.night} gid={gid} time={time} modern={design.scene.style === 'modern'} />
+      <Paint gid={gid} lite={lite || design.scene.style === 'modern'}>
         {def.far(c, time)}
         {def.mid(c, time)}
         {slot === 'closing' && def.near(c, time)}

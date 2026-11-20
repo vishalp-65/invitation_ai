@@ -45,6 +45,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { api, ApiError } from '@/lib/api';
 import { qk, useEvent } from '@/lib/hooks';
+import { useTemplate } from '@/lib/template-hooks';
 import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
@@ -93,6 +94,8 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
   const router = useRouter();
   const qc = useQueryClient();
   const { data: event } = useEvent(eventId);
+  // The card's design family: its matching website/video pack leads the design picker.
+  const { data: cardTemplate } = useTemplate(event?.templateId);
   const settings = useQuery({ queryKey: ['site', eventId], queryFn: () => api<SiteSettingsDto>(`/events/${eventId}/site`) });
   const preview = useQuery({ queryKey: ['site', eventId, 'preview'], queryFn: () => api<PublicSiteDto>(`/events/${eventId}/site/preview`) });
   const guests = useQuery({ queryKey: qk.guests(eventId), queryFn: () => api<{ items: GuestDto[] }>(`/events/${eventId}/guests`), select: (d) => d.items });
@@ -308,7 +311,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
         ) : (
           sectionsList
         ))}
-      {tab === 'look' && <LookPanel doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} ctx={ctx} />}
+      {tab === 'look' && <LookPanel doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />}
       {tab === 'share' && <SharePanel event={event} settings={settings.data} doc={doc} setDoc={setDoc} onUpgrade={onUpgrade} />}
       {tab === 'live' && (
         <LivePanel

@@ -30,6 +30,7 @@ const EXISTS_MSG = 'An account with this email already exists. Log in instead, o
 /** Devices seen per user, for the new sign-in alert. */
 const DEVICE_TTL_SEC = 180 * 24 * 3600;
 const DUMMY_HASH = hashPassword('timing-equaliser-not-a-real-password');
+// Settled once at boot; awaited only by a login for an unknown account.
 
 type UserRow = typeof users.$inferSelect;
 export interface SignInResult {
@@ -69,7 +70,7 @@ export class AuthService {
     await this.otp.verify(email, code);
     const [created] = await this.db
       .insert(users)
-      .values({ email, emailVerifiedAt: new Date(), name, passwordHash: hashPassword(password), locale, marketingEmails: marketingOptIn === true })
+      .values({ email, emailVerifiedAt: new Date(), name, passwordHash: await hashPassword(password), locale, marketingEmails: marketingOptIn === true })
       .onConflictDoNothing()
       .returning();
     if (!created) throw new ConflictException(EXISTS_MSG);
@@ -87,7 +88,7 @@ export class AuthService {
     }
     const row = await this.findVerifiedByEmail(email);
     // Always spend one scrypt run so response time doesn't reveal whether the account exists.
-    const matches = verifyPassword(password, row?.passwordHash ?? DUMMY_HASH);
+    const matches = await verifyPassword(password, row?.passwordHash ?? (await DUMMY_HASH));
     if (!row || !row.passwordHash || !matches) {
       await bumpCounter(this.redis, failKey, LOGIN_FAIL_WINDOW_SEC);
       throw new UnauthorizedException('Incorrect email or password.');
@@ -113,7 +114,7 @@ export class AuthService {
     await this.otp.verify(email, code);
     const row = await this.findVerifiedByEmail(email);
     if (!row) throw new BadRequestException('This code has expired. Please request a new one.');
-    await this.db.update(users).set({ passwordHash: hashPassword(password) }).where(eq(users.id, row.id));
+    await this.db.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, row.id));
     await this.tokens.revokeAll(row.id);
     await this.redis.del(`login:fail:${email}`);
     const at = new Date().toISOString();

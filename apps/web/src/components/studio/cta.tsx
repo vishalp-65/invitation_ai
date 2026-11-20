@@ -1,5 +1,6 @@
 'use client';
 
+import { SHOWCASE } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -49,9 +50,9 @@ export function StudioCta({ hi, cta, whatsappHref }: { hi: boolean; cta: string;
             </div>
             <div className="parallax relative hidden h-[520px] w-[440px] shrink-0 lg:block">
               {[
-                ['midnight-bloom-navy', '-rotate-[8deg] left-0 top-10'],
-                ['kanjeevaram-wine', 'rotate-[6deg] right-0 top-0'],
-                ['genda-jharokha-emerald', 'z-10 left-1/2 -translate-x-1/2 bottom-0'],
+                [SHOWCASE.floral, '-rotate-[8deg] left-0 top-10'],
+                [SHOWCASE.romantic, 'rotate-[6deg] right-0 top-0'],
+                [SHOWCASE.wedding, 'z-10 left-1/2 -translate-x-1/2 bottom-0'],
               ].map(([id, pos], k) => (
                 <CardShot
                   key={id}

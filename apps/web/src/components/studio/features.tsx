@@ -58,9 +58,9 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
           {/* Phones / tablets: the same designs as a short fanned row under the text */}
           <div aria-hidden className="relative flex h-64 items-end justify-center overflow-clip px-6 sm:h-80 lg:hidden">
             {[
-              ['genda-jharokha-emerald', '-rotate-[8deg] translate-x-[38%] translate-y-6'],
-              ['rajwada-gold-maroon', 'z-10'],
-              ['golden-vows-onyx', 'rotate-[8deg] -translate-x-[38%] translate-y-6'],
+              ['gulab-ring-blush', '-rotate-[8deg] translate-x-[38%] translate-y-6'],
+              ['raat-mahal-maroon', 'z-10'],
+              ['raat-ki-rani-onyx', 'rotate-[8deg] -translate-x-[38%] translate-y-6'],
             ].map(([id, pos]) => (
               <CardShot key={id} id={id!} alt={DESIGN_ALT[id!]} sizes="40vw" className={clsx('-mb-16 w-[36%] max-w-[190px] border border-white/10', pos)} />
             ))}
@@ -70,9 +70,9 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
           <div className="parallax relative hidden w-[46%] shrink-0 lg:block">
             <div className="absolute inset-0 flex items-center justify-center">
               {[
-                ['genda-jharokha-emerald', '-rotate-[10deg] -translate-x-36 translate-y-6'],
-                ['rajwada-gold-maroon', 'z-10 -translate-y-2'],
-                ['golden-vows-onyx', 'rotate-[10deg] translate-x-36 translate-y-6'],
+                ['gulab-ring-blush', '-rotate-[10deg] -translate-x-36 translate-y-6'],
+                ['raat-mahal-maroon', 'z-10 -translate-y-2'],
+                ['raat-ki-rani-onyx', 'rotate-[10deg] translate-x-36 translate-y-6'],
               ].map(([id, pos]) => (
                 <CardShot
                   key={id}
@@ -113,7 +113,7 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
 
 /** Alt text for the real design renders shown in the feature fan. */
 const DESIGN_ALT: Record<string, string> = {
-  'genda-jharokha-emerald': 'Wedding invitation card with marigold jharokha arch on emerald',
-  'rajwada-gold-maroon': 'Royal Rajwada wedding invitation card in gold and maroon',
-  'golden-vows-onyx': 'Golden Vows wedding invitation card on black',
+  'gulab-ring-blush': 'Wedding invitation with pink watercolour roses around a gold ring',
+  'raat-mahal-maroon': 'Wedding invitation with a maroon scalloped arch, lanterns and white peonies',
+  'raat-ki-rani-onyx': 'Wedding invitation with blush roses and gold flecks on black',
 };

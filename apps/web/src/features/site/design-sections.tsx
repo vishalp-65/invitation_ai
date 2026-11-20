@@ -1,6 +1,6 @@
 'use client';
 
-import type { SiteDoc, SiteSectionOf, ThingIcon } from '@cardai/shared';
+import { heroInk, type SiteDoc, type SiteSectionOf, type ThingIcon } from '@cardai/shared';
 import { DressFigures, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal } from '@cardai/templates/scenes';
 import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, Route, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
@@ -156,7 +156,7 @@ export function SceneHero({ section, doc, started }: { section: SiteSectionOf<'h
   const first = data.functions[0];
   const night = design.scene.night;
   const greeting = data.guest ? data.guest.salutation || data.guest.name : null;
-  const ink = night ? '#FFF8EC' : design.palette.primary;
+  const ink = heroInk(design);
   // The painted-edge filter is re-computed every frame under looping animations; the website
   // skips it (the video keeps it, rendering offline).
   const lite = true;
@@ -244,7 +244,7 @@ function MiniCountdown({ target }: { target: string }) {
 
 /** Vertical timeline whose marker (rose / diya / lantern…) travels down as the guest scrolls. */
 export function RibbonSchedule({ section }: { section: SiteSectionOf<'schedule'> }) {
-  const { data, fmt, t, heading, design, preview } = useSite();
+  const { data, fmt, t, heading, design, preview, publicUrl } = useSite();
   const level = useMotionLevel();
   const ref = useScrollProgress<HTMLOListElement>(level !== 'off');
   if (!data.functions.length || !design) return null;
@@ -276,7 +276,7 @@ export function RibbonSchedule({ section }: { section: SiteSectionOf<'schedule'>
                 <a href={safeHref(f.mapUrl) ?? mapsUrl([f.venueName, f.venueAddress].filter(Boolean).join(', '))} target="_blank" rel="noopener" className="inline-flex items-center gap-1 underline underline-offset-4">
                   <MapPin className="size-3.5" aria-hidden /> {t('Route', 'रास्ता')}
                 </a>
-                <a href={preview ? undefined : `/api/public/events/${data.event.slug}/calendar.ics?fn=${f.id}`} className="inline-flex items-center gap-1 underline underline-offset-4">
+                <a href={preview ? undefined : publicUrl('calendar.ics', { fn: f.id })} className="inline-flex items-center gap-1 underline underline-offset-4">
                   <CalendarPlus className="size-3.5" aria-hidden /> {t('Save', 'सहेजें')}
                 </a>
               </div>

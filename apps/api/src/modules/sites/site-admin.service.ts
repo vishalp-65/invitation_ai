@@ -145,7 +145,7 @@ export class SiteAdminService {
     if (password) await this.entitlements.require(eventId, 'website_royale', 'Password-protected websites are part of Site Royale');
     await this.db
       .update(events)
-      .set({ sitePasswordHash: password ? hashPassword(password) : null })
+      .set({ sitePasswordHash: password ? await hashPassword(password) : null })
       .where(eq(events.id, eventId));
     return { hasPassword: Boolean(password) };
   }

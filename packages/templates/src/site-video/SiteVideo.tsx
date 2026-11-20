@@ -1,4 +1,4 @@
-import { getLanguage, getSiteDesign, type EventContent, type SiteDesign } from '@cardai/shared';
+import { getLanguage, getSiteDesign, heroInk, type EventContent, type SiteDesign } from '@cardai/shared';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
@@ -185,7 +185,7 @@ function Opening({ d, t, monogram, names, connector, scriptFont, serifFont }: { 
 
 function Cover({ d, t, c, date, scriptFont, serifFont }: { d: SiteDesign; t: number; c: EventContent; date: string | null; scriptFont: string; serifFont: string }) {
   const names = c.primaryNames.filter(Boolean);
-  const ink = d.scene.night ? '#FFF8EC' : d.palette.primary;
+  const ink = heroInk(d);
   // Slow camera push: back layers move less than front ones (depth).
   const z = (k: number) => `scale(${1 + interpolate(t, [0, SITE_VIDEO.cover], [0.12, 0], clamp) * k}) translateY(${interpolate(t, [0, SITE_VIDEO.cover], [40 * k, 0], clamp)}px)`;
   return (
@@ -410,7 +410,7 @@ export function SiteVideo(props: SiteVideoProps) {
       }
       case 'closing': {
         const push = interpolate(t, [0, SITE_VIDEO.closing], [1.08, 1], clamp);
-        const ink = d.scene.night ? '#FFF8EC' : d.palette.primary;
+        const ink = heroInk(d);
         return (
           <AbsoluteFill style={{ background: d.scene.colors.skyTop }}>
             <AbsoluteFill style={{ transform: `scale(${push})`, transformOrigin: '50% 100%' }}>

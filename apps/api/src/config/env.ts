@@ -46,6 +46,16 @@ const envSchema = z.object({
   STORAGE_PUBLIC_URL: z.url(),
 
   JWT_ACCESS_SECRET: z.string().min(32),
+  /**
+   * Shared with the web app: its edge proxy signs the real client IP with this (see common/client-ip.ts).
+   * Set = only loopback / private proxies (nginx, Docker) are trusted for X-Forwarded-For, and IP rate
+   * limits use the signed IP. Unset = legacy trust-everything mode (X-Forwarded-For can be spoofed).
+   */
+  CLIENT_IP_SECRET: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined)
+    .pipe(z.string().min(32).optional()),
   JWT_REFRESH_SECRET: z.string().min(32),
   COOKIE_DOMAIN: z.string().optional().transform((v) => v || undefined),
   EMAIL_PROVIDER: z.enum(['console', 'resend']).default('console'),

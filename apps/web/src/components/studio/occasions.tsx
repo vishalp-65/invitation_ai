@@ -1,5 +1,6 @@
 'use client';
 
+import { SHOWCASE } from '@cardai/shared';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -18,16 +19,16 @@ export function StudioOccasions({ hi }: { hi: boolean }) {
   const [i, setI] = useState(0);
   const items = hi
     ? [
-        { occ: 'शादी', type: 'wedding', line: 'श्रीमती सुनीता एवं श्री रमेश शर्मा सादर आमंत्रित करते हैं, हमारे पुत्र राहुल और प्रिया के शुभ विवाह में।', who: 'नमूना शब्द · हिन्दी', card: 'rajwada-gold-maroon' },
-        { occ: 'गृह प्रवेश', type: 'griha-pravesh', line: 'प्रभु कृपा से हमारे नए घर में गृह प्रवेश पूजा है। आप सपरिवार पधारें।', who: 'नमूना शब्द · हिन्दी', card: 'griha-pravesh-kalash' },
-        { occ: 'निकाह', type: 'nikah', line: 'बिस्मिल्लाह-इर-रहमान-इर-रहीम। अयान और ज़ोया के निकाह में आपकी मौजूदगी हमारी ख़ुशी होगी।', who: 'नमूना शब्द · उर्दू शैली', card: 'noor-e-nikah-emerald' },
-        { occ: 'जन्मदिन', type: 'birthday', line: 'आरव का पहला जन्मदिन है! केक, गुब्बारे और ढेर सारी मस्ती के लिए आइए।', who: 'नमूना शब्द · हिन्दी', card: 'birthday-confetti' },
+        { occ: 'शादी', type: 'wedding', line: 'श्रीमती सुनीता एवं श्री रमेश शर्मा सादर आमंत्रित करते हैं, हमारे पुत्र राहुल और प्रिया के शुभ विवाह में।', who: 'नमूना शब्द · हिन्दी', card: SHOWCASE.weddingHindi },
+        { occ: 'गृह प्रवेश', type: 'griha-pravesh', line: 'प्रभु कृपा से हमारे नए घर में गृह प्रवेश पूजा है। आप सपरिवार पधारें।', who: 'नमूना शब्द · हिन्दी', card: SHOWCASE.griha },
+        { occ: 'निकाह', type: 'nikah', line: 'बिस्मिल्लाह-इर-रहमान-इर-रहीम। अयान और ज़ोया के निकाह में आपकी मौजूदगी हमारी ख़ुशी होगी।', who: 'नमूना शब्द · उर्दू शैली', card: SHOWCASE.nikah },
+        { occ: 'जन्मदिन', type: 'birthday', line: 'आरव का पहला जन्मदिन है! केक, गुब्बारे और ढेर सारी मस्ती के लिए आइए।', who: 'नमूना शब्द · हिन्दी', card: SHOWCASE.birthday },
       ]
     : [
-        { occ: 'Wedding', type: 'wedding', line: 'Mrs. Sunita & Mr. Ramesh Sharma request the pleasure of your company at the wedding of Rahul and Priya.', who: 'Sample wording · English', card: 'golden-vows-onyx' },
-        { occ: 'Griha Pravesh', type: 'griha-pravesh', line: 'By the grace of God, we invite you and your family to the griha pravesh puja of our new home.', who: 'Sample wording · English', card: 'griha-pravesh-kalash' },
-        { occ: 'Nikah', type: 'nikah', line: 'Bismillah-ir-Rahman-ir-Rahim. Your presence at the nikah of Ayaan and Zoya would complete our joy.', who: 'Sample wording · English', card: 'noor-e-nikah-emerald' },
-        { occ: 'Birthday', type: 'birthday', line: 'Aarav is turning one! Join us for cake, balloons and a lot of noise.', who: 'Sample wording · English', card: 'birthday-confetti' },
+        { occ: 'Wedding', type: 'wedding', line: 'Mrs. Sunita & Mr. Ramesh Sharma request the pleasure of your company at the wedding of Rahul and Priya.', who: 'Sample wording · English', card: SHOWCASE.wedding },
+        { occ: 'Griha Pravesh', type: 'griha-pravesh', line: 'By the grace of God, we invite you and your family to the griha pravesh puja of our new home.', who: 'Sample wording · English', card: SHOWCASE.griha },
+        { occ: 'Nikah', type: 'nikah', line: 'Bismillah-ir-Rahman-ir-Rahim. Your presence at the nikah of Ayaan and Zoya would complete our joy.', who: 'Sample wording · English', card: SHOWCASE.nikah },
+        { occ: 'Birthday', type: 'birthday', line: 'Aarav is turning one! Join us for cake, balloons and a lot of noise.', who: 'Sample wording · English', card: SHOWCASE.birthday },
       ];
   const live = useOnScreen(ref);
   // Restarts after each change (auto or manual), only while on screen.

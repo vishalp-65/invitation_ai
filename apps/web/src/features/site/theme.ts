@@ -82,7 +82,7 @@ export function siteVars(theme: Theme, look: SiteDoc['look'], fonts: { display: 
 export function googleFontsHref(families: string[]): string {
   const uniq = [...new Set(families)];
   // Some display families ship a single weight; asking for 600/700 would 400 the request.
-  const single = new Set(['Great Vibes', 'Pinyon Script', 'Italianno', 'Parisienne', 'Allura', 'Tenor Sans', 'Marcellus']);
+  const single = new Set(['Great Vibes', 'Pinyon Script', 'Italianno', 'Parisienne', 'Allura', 'Tenor Sans', 'Marcellus', 'Monsieur La Doulaise', 'Alex Brush', 'Ms Madi', 'Mea Culpa', 'Ephesis', 'Mrs Saint Delafield', 'Questrial', 'Didact Gothic', 'Forum', 'Imperial Script', 'Italiana']);
   return `https://fonts.googleapis.com/css2?${uniq.map((f) => `family=${f.replace(/ /g, '+')}${single.has(f) ? '' : ':wght@400;600;700'}`).join('&')}&display=swap`;
 }
 

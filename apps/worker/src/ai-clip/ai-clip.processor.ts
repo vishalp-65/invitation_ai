@@ -1,5 +1,5 @@
 import { clipPrompt } from '@cardai/ai';
-import { aiGenerations, and, entitlements, eq, events, mediaAssets, sql } from '@cardai/db';
+import { aiGenerations, and, entitlements, eq, events, mediaAssets, ne, sql } from '@cardai/db';
 import { AI_CLIP_SECONDS, BUILTIN_TEMPLATES, faithOf, findBuiltinTemplate, getEventType, type AiClipJobData } from '@cardai/shared';
 import type { Job } from 'bullmq';
 import { randomUUID } from 'node:crypto';
@@ -16,30 +16,37 @@ const MAX_WAIT_MS = 15 * 60_000;
 export function createAiClipProcessor(ctx: WorkerContext) {
   return async function process(job: Job<AiClipJobData>): Promise<void> {
     const [gen] = await ctx.db.select().from(aiGenerations).where(eq(aiGenerations.id, job.data.generationId));
-    if (!gen || gen.status === 'completed' || !gen.eventId || !gen.userId) return;
+    if (!gen || gen.status === 'completed' || gen.status === 'failed' || !gen.eventId || !gen.userId) return;
     const log = ctx.log.child({ generationId: gen.id });
     const input = gen.input as { prompt: string | null; firstFrameUrl: string | null; templateId: string; eventType: string; community?: string | null };
 
     try {
       await ctx.db.update(aiGenerations).set({ status: 'processing' }).where(eq(aiGenerations.id, gen.id));
-      const theme = (findBuiltinTemplate(input.templateId) ?? BUILTIN_TEMPLATES[0]!).theme;
-      const submitted = await ctx.ai.submitVideo({
-        model: gen.model ?? ctx.env.AI_VIDEO_MODEL,
-        prompt: clipPrompt({ eventLabel: getEventType(input.eventType).label, theme, extra: input.prompt ?? undefined, faith: faithOf(input.eventType, input.community) }),
-        durationSec: AI_CLIP_SECONDS,
-        resolution: '720p',
-        aspectRatio: '9:16',
-        firstFrameUrl: input.firstFrameUrl ?? undefined,
-        generateAudio: false,
-      });
-      await ctx.db.update(aiGenerations).set({ externalId: submitted.id }).where(eq(aiGenerations.id, gen.id));
+      // A stalled job that BullMQ re-runs resumes the video it already paid for instead of ordering another.
+      let externalId = gen.externalId;
+      if (externalId) {
+        log.warn({ externalId }, 'resuming AI clip already submitted');
+      } else {
+        const theme = (findBuiltinTemplate(input.templateId) ?? BUILTIN_TEMPLATES[0]!).theme;
+        const submitted = await ctx.ai.submitVideo({
+          model: gen.model ?? ctx.env.AI_VIDEO_MODEL,
+          prompt: clipPrompt({ eventLabel: getEventType(input.eventType).label, theme, extra: input.prompt ?? undefined, faith: faithOf(input.eventType, input.community) }),
+          durationSec: AI_CLIP_SECONDS,
+          resolution: '720p',
+          aspectRatio: '9:16',
+          firstFrameUrl: input.firstFrameUrl ?? undefined,
+          generateAudio: false,
+        });
+        externalId = submitted.id;
+        await ctx.db.update(aiGenerations).set({ externalId }).where(eq(aiGenerations.id, gen.id));
+      }
 
       const deadline = Date.now() + MAX_WAIT_MS;
-      let status = await ctx.ai.getVideo(submitted.id);
+      let status = await ctx.ai.getVideo(externalId);
       while (!['completed', 'failed', 'cancelled', 'expired'].includes(status.status)) {
         if (Date.now() > deadline) throw new Error('AI clip timed out');
         await sleep(POLL_MS);
-        status = await ctx.ai.getVideo(submitted.id);
+        status = await ctx.ai.getVideo(externalId);
       }
       if (status.status !== 'completed' || !status.urls[0]) throw new Error(status.error ?? `AI clip ${status.status}`);
 
@@ -70,12 +77,19 @@ export function createAiClipProcessor(ctx: WorkerContext) {
       await ctx.notifications.add('ai_clip.completed', { kind: 'ai_clip.completed', generationId: gen.id });
       log.info('AI clip ready');
     } catch (err) {
-      log.error({ err }, 'AI clip failed — refunding credit');
-      await ctx.db.update(aiGenerations).set({ status: 'failed', error: (err as Error).message.slice(0, 500) }).where(eq(aiGenerations.id, gen.id));
-      await ctx.db
-        .update(entitlements)
-        .set({ credits: sql`${entitlements.credits} + 1` })
-        .where(and(eq(entitlements.eventId, gen.eventId), eq(entitlements.feature, 'ai_clip')));
+      log.error({ err }, 'AI clip failed, refunding credit');
+      // Only the run that actually moves the row to `failed` refunds, so a credit is never returned twice.
+      const [failed] = await ctx.db
+        .update(aiGenerations)
+        .set({ status: 'failed', error: (err as Error).message.slice(0, 500) })
+        .where(and(eq(aiGenerations.id, gen.id), ne(aiGenerations.status, 'failed'), ne(aiGenerations.status, 'completed')))
+        .returning({ id: aiGenerations.id });
+      if (failed) {
+        await ctx.db
+          .update(entitlements)
+          .set({ credits: sql`${entitlements.credits} + 1` })
+          .where(and(eq(entitlements.eventId, gen.eventId), eq(entitlements.feature, 'ai_clip')));
+      }
     }
   };
 }

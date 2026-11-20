@@ -8,6 +8,10 @@ export interface SiteCtx {
   content: EventContent;
   language: string;
   guestToken?: string;
+  /** Unlock key of a password-protected site; sent with every public call so private sites stay private. */
+  accessKey?: string;
+  /** `/api/public/events/<slug>/<path>` with the guest token / unlock key the server needs to open a private site. */
+  publicUrl: (path: string, params?: Record<string, string>) => string;
   /** Builder preview: no tracking, no real submissions. */
   preview: boolean;
   fmt: { date: Intl.DateTimeFormat; time: Intl.DateTimeFormat; short: Intl.DateTimeFormat };
@@ -31,6 +35,7 @@ export function SiteProvider({
   content,
   language,
   guestToken,
+  accessKey,
   preview,
   children,
 }: {
@@ -38,6 +43,7 @@ export function SiteProvider({
   content: EventContent;
   language: string;
   guestToken?: string;
+  accessKey?: string;
   preview: boolean;
   children: React.ReactNode;
 }) {
@@ -50,6 +56,13 @@ export function SiteProvider({
       content,
       language,
       guestToken,
+      accessKey,
+      publicUrl: (path, params) => {
+        const qs = new URLSearchParams(params);
+        if (guestToken) qs.set('g', guestToken);
+        if (accessKey) qs.set('k', accessKey);
+        return `/api/public/events/${encodeURIComponent(data.event.slug)}/${path}${qs.size ? `?${qs}` : ''}`;
+      },
       preview,
       fmt: {
         date: new Intl.DateTimeFormat(locale, { timeZone: tz, weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }),
@@ -61,7 +74,7 @@ export function SiteProvider({
       asset: (id) => (id ? data.media.assets[id] : undefined),
       design: getSiteDesign(data.site.design),
     };
-  }, [data, content, language, guestToken, preview]);
+  }, [data, content, language, guestToken, accessKey, preview]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 

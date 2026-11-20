@@ -1,6 +1,37 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PROTECTED = ['/dashboard', '/designer', '/admin', '/builder'];
+const API_URL = (process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000').replace(/\/+$/, '');
+/** Shared with the API (CLIENT_IP_SECRET there too); see apps/api/src/common/client-ip.ts. */
+const CLIENT_IP_SECRET = process.env.CLIENT_IP_SECRET || null;
+const CLIENT_IP_HEADER = 'x-noyta-client-ip';
+const CLIENT_IP_SIG_HEADER = 'x-noyta-client-sig';
+
+let hmacKey: Promise<CryptoKey> | null = null;
+async function hmacHex(secret: string, message: string): Promise<string> {
+  hmacKey ??= crypto.subtle.importKey('raw', new TextEncoder().encode(secret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+  const mac = await crypto.subtle.sign('HMAC', await hmacKey, new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(mac), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * `/api/*` goes to the API with the caller's real IP, signed. The API sits behind Vercel, so it
+ * can't tell clients apart by address; it believes this header only when the signature checks
+ * out. Client-sent copies are always dropped. Vercel's `x-real-ip` is set by Vercel itself, so it
+ * is only read there; elsewhere (local dev) nothing is signed and the API uses the socket address.
+ */
+async function toApi(req: NextRequest): Promise<NextResponse> {
+  const headers = new Headers(req.headers);
+  headers.delete(CLIENT_IP_HEADER);
+  headers.delete(CLIENT_IP_SIG_HEADER);
+  const ip = process.env.VERCEL ? req.headers.get('x-real-ip')?.trim() : undefined;
+  if (CLIENT_IP_SECRET && ip) {
+    const ts = Math.floor(Date.now() / 1000);
+    headers.set(CLIENT_IP_HEADER, ip);
+    headers.set(CLIENT_IP_SIG_HEADER, `${ts}.${await hmacHex(CLIENT_IP_SECRET, `${ip}|${ts}`)}`);
+  }
+  return NextResponse.rewrite(new URL(`${API_URL}${req.nextUrl.pathname}${req.nextUrl.search}`), { request: { headers } });
+}
 /** Separate short domain (e.g. inv.to). Unset = short links live under /s on the main domain. */
 const SHORT_HOST = process.env.NEXT_PUBLIC_SHORT_HOST?.toLowerCase() || null;
 
@@ -32,6 +63,7 @@ function withGeo(req: NextRequest, res: NextResponse): NextResponse {
 export function proxy(req: NextRequest) {
   const host = req.headers.get('host')?.split(':')[0]?.toLowerCase();
   const path = req.nextUrl.pathname;
+  if (path.startsWith('/api/')) return toApi(req);
 
   if (SHORT_HOST && host === SHORT_HOST) {
     const code = path.slice(1);
@@ -57,6 +89,6 @@ export function proxy(req: NextRequest) {
 }
 
 export const config = {
-  // Everything except API, Next internals and static files.
-  matcher: ['/((?!api/|_next/|favicon|showcase/|.*\\.[a-zA-Z0-9]+$).*)'],
+  // The API proxy (all of /api, files like calendar.ics too), then pages: not Next internals or static files.
+  matcher: ['/api/:path*', '/((?!api/|_next/|favicon|showcase/|.*\\.[a-zA-Z0-9]+$).*)'],
 };

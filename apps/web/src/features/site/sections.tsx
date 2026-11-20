@@ -342,7 +342,7 @@ function Story({ section }: { section: SiteSectionOf<'story'> }) {
 // ---------------- schedule & venue ----------------
 
 function Schedule({ section, dress }: { section: SiteSectionOf<'schedule'>; dress?: SiteSectionOf<'dresscode'> }) {
-  const { data, fmt, t, preview } = useSite();
+  const { data, fmt, t, preview, publicUrl } = useSite();
   if (!data.functions.length) return null;
   const dressFor = (id: string) => dress?.items.find((d) => d.functionId === id);
   const actions = (f: (typeof data.functions)[number]) => (
@@ -356,7 +356,7 @@ function Schedule({ section, dress }: { section: SiteSectionOf<'schedule'>; dres
         <MapPin className="size-4" aria-hidden /> {t('Directions', 'रास्ता')}
       </a>
       <a
-        href={preview ? undefined : `/api/public/events/${data.event.slug}/calendar.ics?fn=${f.id}`}
+        href={preview ? undefined : publicUrl('calendar.ics', { fn: f.id })}
         className="inline-flex h-10 items-center gap-2 rounded-full border-2 border-current px-4 text-sm font-semibold"
       >
         <CalendarPlus className="size-4" aria-hidden /> {t('Add to calendar', 'कैलेंडर में जोड़ें')}

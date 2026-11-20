@@ -127,7 +127,8 @@ export const sessions = pgTable(
     revokedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
   },
-  (t) => [index().on(t.userId), uniqueIndex().on(t.refreshTokenHash)],
+  // expires_at: the nightly purge of dead sessions.
+  (t) => [index().on(t.userId), uniqueIndex().on(t.refreshTokenHash), index('sessions_expires_idx').on(t.expiresAt)],
 );
 
 // ---------------- Events ----------------
@@ -224,7 +225,13 @@ export const mediaAssets = pgTable(
     meta: jsonb().$type<Record<string, unknown>>().notNull().default({}),
     createdAt: createdAt(),
   },
-  (t) => [index().on(t.eventId, t.kind)],
+  (t) => [
+    index().on(t.eventId, t.kind),
+    // Account export / deletion.
+    index('media_assets_user_idx').on(t.userId),
+    // Nightly purge of uploads that were never confirmed.
+    index('media_assets_unready_idx').on(t.createdAt).where(sql`${t.ready} = false`),
+  ],
 );
 
 export interface RenderOutput {
@@ -256,7 +263,8 @@ export const renders = pgTable(
     createdAt: createdAt(),
     completedAt: timestamp({ withTimezone: true }),
   },
-  (t) => [index().on(t.eventId, t.format, t.createdAt), index().on(t.inputHash)],
+  // BRIN on created_at: the 10-minute health check and admin reports filter by time (append-only, tiny index).
+  (t) => [index().on(t.eventId, t.format, t.createdAt), index().on(t.inputHash), index('renders_created_brin').using('brin', t.createdAt)],
 );
 
 export const aiGenerations = pgTable(
@@ -277,7 +285,7 @@ export const aiGenerations = pgTable(
     createdAt: createdAt(),
     completedAt: timestamp({ withTimezone: true }),
   },
-  (t) => [index().on(t.userId, t.kind, t.createdAt), index().on(t.eventId)],
+  (t) => [index().on(t.userId, t.kind, t.createdAt), index().on(t.eventId), index('ai_generations_created_brin').using('brin', t.createdAt)],
 );
 
 // ---------------- Commerce ----------------
@@ -324,6 +332,8 @@ export const orders = pgTable(
     index().on(t.userId),
     index().on(t.eventId),
     index('orders_paid_idx').on(t.paidAt).where(sql`${t.status} = 'paid'`),
+    // Health check (checkouts in the last 2 h) and abandoned-checkout emails filter by created_at.
+    index('orders_created_idx').on(t.createdAt),
     index('orders_coupon_idx').on(t.couponCode).where(sql`${t.couponCode} is not null`),
   ],
 );

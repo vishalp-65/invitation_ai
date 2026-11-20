@@ -1,5 +1,6 @@
 'use client';
 
+import { SHOWCASE } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { EyeOff, KeyRound, Lock, Trash2 } from 'lucide-react';
 import { useState } from 'react';
@@ -13,10 +14,10 @@ export function StudioPrivacy({ hi }: { hi: boolean }) {
   useTicker(() => setActive((n) => (n + 1) % 4), 3000, live);
 
   const points = [
-    { Icon: Lock, t: hi ? 'निजी लिंक' : 'Private links', d: hi ? 'आपका निमंत्रण सिर्फ़ उन्हीं को दिखता है जिन्हें आप लिंक भेजते हैं।' : 'Your invitation is seen only by the people you send the link to.', card: 'noor-e-nikah-emerald' },
-    { Icon: EyeOff, t: hi ? 'मेहमानों को कोई विज्ञापन नहीं' : 'No ads to your guests', d: hi ? 'मेहमान सिर्फ़ आपका निमंत्रण देखते हैं, और कुछ नहीं।' : 'Guests see your invitation and nothing else.', card: 'mor-bagh-teal' },
-    { Icon: KeyRound, t: hi ? 'OTP से लॉग इन' : 'OTP sign-in', d: hi ? 'कोई पासवर्ड नहीं। ईमेल कोड या Google से लॉग इन।' : 'No passwords. Sign in with an email code or Google.', card: 'kanjeevaram-wine' },
-    { Icon: Trash2, t: hi ? 'कभी भी हटाएँ' : 'Delete any time', d: hi ? 'निमंत्रण और मेहमान सूची जब चाहें मिटा दें।' : 'Remove an invitation and its guest list whenever you like.', card: 'deepotsav-navy' },
+    { Icon: Lock, t: hi ? 'निजी लिंक' : 'Private links', d: hi ? 'आपका निमंत्रण सिर्फ़ उन्हीं को दिखता है जिन्हें आप लिंक भेजते हैं।' : 'Your invitation is seen only by the people you send the link to.', card: SHOWCASE.nikah },
+    { Icon: EyeOff, t: hi ? 'मेहमानों को कोई विज्ञापन नहीं' : 'No ads to your guests', d: hi ? 'मेहमान सिर्फ़ आपका निमंत्रण देखते हैं, और कुछ नहीं।' : 'Guests see your invitation and nothing else.', card: SHOWCASE.garden },
+    { Icon: KeyRound, t: hi ? 'OTP से लॉग इन' : 'OTP sign-in', d: hi ? 'कोई पासवर्ड नहीं। ईमेल कोड या Google से लॉग इन।' : 'No passwords. Sign in with an email code or Google.', card: SHOWCASE.romantic },
+    { Icon: Trash2, t: hi ? 'कभी भी हटाएँ' : 'Delete any time', d: hi ? 'निमंत्रण और मेहमान सूची जब चाहें मिटा दें।' : 'Remove an invitation and its guest list whenever you like.', card: SHOWCASE.party },
   ];
 
   return (

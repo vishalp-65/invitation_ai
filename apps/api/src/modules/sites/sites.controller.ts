@@ -9,9 +9,9 @@ import {
   type WishInput,
 } from '@cardai/shared';
 import { Controller, Get, Header, HttpCode, Param, Post, Query, Req, Res } from '@nestjs/common';
-import type { FastifyReply, FastifyRequest } from 'fastify';
+import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
-import { Public, RateLimit } from '../../common/auth.decorators.js';
+import { Public, RateLimit, type AuthedRequest } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { SitesService } from './sites.service.js';
 
@@ -46,9 +46,9 @@ export class SitesController {
 
   /** Live updates, polled by open pages. */
   @Get(':slug/updates')
-  @Header('Cache-Control', 'public, max-age=15')
-  updates(@Param('slug') slug: string) {
-    return this.sites.getUpdates(slug);
+  updates(@Param('slug') slug: string, @Res({ passthrough: true }) reply: FastifyReply, @Query('g') guestToken?: string, @Query('k') key?: string) {
+    cacheFor(reply, 15, guestToken, key);
+    return this.sites.getUpdates(slug, { guestToken, key });
   }
 
   // Guests at the venue often share one Wi-Fi IP, so limits are per IP but generous.
@@ -74,8 +74,8 @@ export class SitesController {
   @Post(':slug/view')
   @HttpCode(200)
   @RateLimit({ limit: 60, windowSec: 60, by: 'ip' })
-  async view(@Param('slug') slug: string, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply, @ZBody(trackViewSchema) body: z.infer<typeof trackViewSchema>) {
-    const r = await this.sites.trackView(slug, req.ip, body.g, req.headers['user-agent']);
+  async view(@Param('slug') slug: string, @Req() req: AuthedRequest, @Res({ passthrough: true }) reply: FastifyReply, @ZBody(trackViewSchema) body: z.infer<typeof trackViewSchema>) {
+    const r = await this.sites.trackView(slug, req.clientIp ?? req.ip, body.g, req.headers['user-agent']);
     // Remembers (30 days, first-party) that this browser was a guest of this invitation, so a
     // guest who later makes their own invitation is counted as word of mouth.
     if (!(req.cookies as Record<string, string | undefined>)?.cai_ref) {
@@ -93,15 +93,21 @@ export class SitesController {
 
   @Get(':slug/upi-qr.svg')
   @Header('Content-Type', 'image/svg+xml')
-  @Header('Cache-Control', 'public, max-age=300')
-  upiQr(@Param('slug') slug: string) {
-    return this.sites.upiQr(slug);
+  upiQr(@Param('slug') slug: string, @Res({ passthrough: true }) reply: FastifyReply, @Query('g') guestToken?: string, @Query('k') key?: string) {
+    cacheFor(reply, 300, guestToken, key);
+    return this.sites.upiQr(slug, { guestToken, key });
   }
 
   @Get(':slug/calendar.ics')
   @Header('Content-Type', 'text/calendar; charset=utf-8')
   @Header('Content-Disposition', 'attachment; filename="invite.ics"')
-  calendar(@Param('slug') slug: string, @Query('fn') functionId?: string) {
-    return this.sites.calendar(slug, functionId);
+  @Header('Cache-Control', 'private, no-store')
+  calendar(@Param('slug') slug: string, @Query('fn') functionId?: string, @Query('g') guestToken?: string, @Query('k') key?: string) {
+    return this.sites.calendar(slug, functionId, { guestToken, key });
   }
+}
+
+/** Open-site responses may sit in shared caches briefly; anything opened with a token or key never does. */
+function cacheFor(reply: FastifyReply, seconds: number, guestToken?: string, key?: string) {
+  reply.header('Cache-Control', guestToken || key ? 'private, no-store' : `public, max-age=${seconds}`);
 }

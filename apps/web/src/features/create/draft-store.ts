@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, getEventType, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, getEventType, SHOWCASE, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { findTemplate } from '@/lib/template-hooks';
@@ -73,7 +73,7 @@ const initial = (type: EventTypeId = 'wedding'): Draft => ({
   content: { headline: '', primaryNames: [], primaryDetails: [], familyLines: [] },
   contentIsDefault: true,
   functions: getEventType(type).defaultFunctions.slice(0, 3).map((n) => emptyFunction(n)),
-  templateId: 'shubh-vivah-maroon',
+  templateId: SHOWCASE.defaultTemplate,
   source: 'form',
   scan: undefined,
 });

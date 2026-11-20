@@ -1,5 +1,5 @@
 import { eq, inArray, mediaAssets, musicTracks } from '@cardai/db';
-import { BRAND, designTrackId, getSiteDesign, siteDocSchema, type EventContent } from '@cardai/shared';
+import { BRAND, designTrackId, findBuiltinTemplate, getSiteDesign, siteDocSchema, type EventContent } from '@cardai/shared';
 import type { WorkerContext } from '../context.js';
 import { loadEventRows } from './load-props.js';
 
@@ -19,14 +19,16 @@ export interface SiteVideoRenderProps {
 }
 
 /**
- * Props for the cinematic video: the website's design pack (or a default that suits the
- * occasion when no design is chosen yet) and the same music the website plays.
+ * Props for the cinematic video: the website's design pack (or the pack matching the card when
+ * no design is chosen yet) and the same music the website plays.
  */
 export async function loadSiteVideoProps(ctx: WorkerContext, eventId: string, opts: { watermark: boolean }): Promise<SiteVideoRenderProps> {
   const { event, fns } = await loadEventRows(ctx, eventId);
   const parsed = event.site ? siteDocSchema.safeParse(event.site) : null;
   const doc = parsed?.success ? parsed.data : null;
-  const designId = doc?.design ?? 'rose-seal';
+  // No pack chosen yet: the one matching the card's design family (same name and art), else Burgundy Rose.
+  const cardPack = getSiteDesign(findBuiltinTemplate(event.templateId)?.design)?.id;
+  const designId = doc?.design ?? cardPack ?? 'rose-seal';
   const design = getSiteDesign(designId);
 
   // Same order as the website: uploaded song → picked track → (auto) card track → design mood.

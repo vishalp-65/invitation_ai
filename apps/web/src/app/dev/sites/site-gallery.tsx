@@ -73,14 +73,15 @@ function sampleData(): PublicSiteDto {
 }
 
 /** Dev QA: every cinematic design rendered with the same sample wedding. */
-export function SiteGallery({ initial }: { initial: string }) {
+export function SiteGallery({ initial, skipOpening = false }: { initial: string; skipOpening?: boolean }) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
-  const [replay, setReplay] = useState(1);
+  // `?open=0` skips the opening (used to capture landing-page screenshots).
+  const [replay, setReplay] = useState(skipOpening ? 0 : 1);
   const data = useMemo(sampleData, []);
   const doc = useMemo(() => applyDesign(data.site, id), [data, id]);
   return (
     <>
-      <div className="fixed left-2 top-2 z-[80] flex gap-1 rounded-lg bg-black/70 p-1 text-xs text-white">
+      <div hidden={skipOpening} className="fixed left-2 top-2 z-[80] flex gap-1 rounded-lg bg-black/70 p-1 text-xs text-white">
         <select
           aria-label="Design"
           value={id}

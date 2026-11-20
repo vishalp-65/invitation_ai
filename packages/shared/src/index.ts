@@ -13,6 +13,7 @@ export * from './constants/guests.js';
 export * from './templates/types.js';
 export * from './templates/catalog.js';
 export * from './templates/search.js';
+export * from './templates/showcase.js';
 
 export * from './schemas/common.js';
 export * from './schemas/auth.js';

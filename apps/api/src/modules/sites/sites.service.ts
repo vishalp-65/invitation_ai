@@ -31,10 +31,11 @@ import {
   type SubmitRsvpInput,
   type WishInput,
 } from '@cardai/shared';
-import { BadRequestException, ForbiddenException, GoneException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import QRCode from 'qrcode';
 import { hmacSha256Hex, safeEqual, verifyPassword } from '../../common/crypto.js';
+import { bumpCounter } from '../../common/redis.js';
 import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, STORAGE, type Redis, type S3Storage } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
@@ -61,6 +62,15 @@ export function sectionAssetIds(doc: SiteDoc): string[] {
   }
   if (doc.music?.assetId) ids.push(doc.music.assetId);
   return ids;
+}
+
+/** Wrong site passwords allowed per invitation per hour, across all IPs. */
+const MAX_UNLOCK_FAILS_PER_HOUR = 50;
+
+/** What a guest presents to open a private site: their personal link token, or the unlock key. */
+export interface SiteAccess {
+  guestToken?: string;
+  key?: string;
 }
 
 /** Public, unauthenticated surface: the invitation website, RSVP, wishes, album and view tracking. */
@@ -121,12 +131,15 @@ export class SitesService {
    * Builds the page payload. `owner` mode (builder preview) skips the plan filter and access
    * checks so the host can see every section before buying.
    */
-  async build(event: EventRow, opts: { guest: GuestRow | null; owner?: boolean; doc?: SiteDoc }): Promise<PublicSiteDto> {
+  async build(
+    event: EventRow,
+    opts: { guest: GuestRow | null; owner?: boolean; doc?: SiteDoc; fns?: FunctionRow[]; plan?: Awaited<ReturnType<SitesService['planOf']>> },
+  ): Promise<PublicSiteDto> {
     const { guest, owner = false } = opts;
     const [fns, template, plan] = await Promise.all([
-      this.eventsService.functionsOf(event.id),
+      opts.fns ?? this.eventsService.functionsOf(event.id),
       this.templates.resolve(event.templateId),
-      this.planOf(event.id),
+      opts.plan ?? this.planOf(event.id),
     ]);
     const premium = plan.features.has('website_premium');
     const royale = plan.tier === 'royale';
@@ -236,7 +249,25 @@ export class SitesService {
     const expires = this.expiry(fns, plan.tier, plan.extraYears);
     if (expires && expires < new Date()) throw new GoneException('This invitation website is no longer online');
     const doc = applySiteTier(this.docOf(event), plan.tier);
-    return { event, plan, doc };
+    return { event, plan, doc, fns };
+  }
+
+  /** Private sites (password / guests only) open for a personal guest link or a valid unlock key. */
+  private canOpen(event: EventRow, doc: SiteDoc, guest: GuestRow | null, key?: string): boolean {
+    if (guest || doc.access.mode === 'link') return true;
+    const expected = this.unlockKey(event);
+    return doc.access.mode === 'password' && Boolean(expected && key && safeEqual(key, expected));
+  }
+
+  /**
+   * A live site the caller is allowed to see. Every public side endpoint (updates, wishes, album,
+   * RSVP, UPI QR, calendar) goes through this, so a private site never leaks venues or content.
+   */
+  private async openSite(slug: string, access: SiteAccess = {}) {
+    const live = await this.liveSite(slug);
+    const guest = await this.guestByToken(live.event.id, access.guestToken);
+    if (!this.canOpen(live.event, live.doc, guest, access.key)) throw new ForbiddenException('This invitation is private');
+    return { ...live, guest };
   }
 
   private async guestByToken(eventId: string, token?: string) {
@@ -246,29 +277,34 @@ export class SitesService {
   }
 
   async getSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
-    const { event, doc } = await this.liveSite(slug);
+    const { event, doc, fns, plan } = await this.liveSite(slug);
     const guest = await this.guestByToken(event.id, guestToken);
 
     // Personal links always open; otherwise private modes need a guest link or the password.
-    if (!guest && doc.access.mode !== 'link') {
-      const expected = this.unlockKey(event);
-      const unlocked = doc.access.mode === 'password' && expected && key && safeEqual(key, expected);
-      if (!unlocked) {
-        const locked: LockedSiteDto = {
-          locked: doc.access.mode === 'password' && expected ? 'password' : 'guests',
-          title: event.title,
-          coverUrl: await this.renders.coverUrl(event.id),
-          language: event.language,
-        };
-        return locked;
-      }
+    if (!this.canOpen(event, doc, guest, key)) {
+      const locked: LockedSiteDto = {
+        locked: doc.access.mode === 'password' && this.unlockKey(event) ? 'password' : 'guests',
+        title: event.title,
+        coverUrl: await this.renders.coverUrl(event.id),
+        language: event.language,
+      };
+      return locked;
     }
-    return this.build(event, { guest });
+    return this.build(event, { guest, fns, plan });
   }
 
+  /**
+   * Password unlock. Besides the per-IP route limit, wrong guesses are capped per site, so a
+   * brute force can't get around the limit by rotating (or spoofing) IP addresses.
+   */
   async unlock(slug: string, password: string): Promise<{ key: string }> {
     const event = await this.publishedBySlug(slug);
-    if (!event.sitePasswordHash || !verifyPassword(password, event.sitePasswordHash)) {
+    const failKey = `site:unlock-fail:${event.id}`;
+    if (Number((await this.redis.get(failKey)) ?? 0) >= MAX_UNLOCK_FAILS_PER_HOUR) {
+      throw new HttpException('Too many wrong passwords for this invitation. Please try again in an hour.', HttpStatus.TOO_MANY_REQUESTS);
+    }
+    if (!event.sitePasswordHash || !(await verifyPassword(password, event.sitePasswordHash))) {
+      await bumpCounter(this.redis, failKey, 3600);
       throw new UnauthorizedException('That password is not right');
     }
     return { key: this.unlockKey(event)! };
@@ -325,16 +361,15 @@ export class SitesService {
   }
 
   /** Live updates poll (cheap, no full page rebuild). */
-  async getUpdates(slug: string) {
-    const { event, doc } = await this.liveSite(slug);
+  async getUpdates(slug: string, access?: SiteAccess) {
+    const { event, doc } = await this.openSite(slug, access);
     if (!doc.sections.some((s) => s.type === 'updates' && !s.hidden)) return { items: [] };
     return { items: await this.listUpdates(event.id) };
   }
 
   async addWish(slug: string, input: WishInput) {
-    const { event, doc } = await this.liveSite(slug);
+    const { event, doc, guest } = await this.openSite(slug, input);
     if (!doc.sections.some((s) => s.type === 'wishes' && !s.hidden)) throw new ForbiddenException('Wishes are not open on this invitation');
-    const guest = await this.guestByToken(event.id, input.guestToken);
     const [row] = await this.db
       .insert(siteWishes)
       .values({ eventId: event.id, guestId: guest?.id ?? null, name: input.name, message: input.message })
@@ -344,11 +379,10 @@ export class SitesService {
 
   /** Guest album step 1: presigned upload, stored under the host's account. */
   async albumUpload(slug: string, input: AlbumUploadInput) {
-    const { event, doc } = await this.liveSite(slug);
+    const { event, doc, guest } = await this.openSite(slug, input);
     if (!doc.sections.some((s) => s.type === 'album' && !s.hidden)) throw new ForbiddenException('The guest album is not open');
     const [n] = await this.db.select({ n: sql<number>`count(*)::int` }).from(mediaAssets).where(this.albumWhere(event.id));
     if ((n?.n ?? 0) >= ALBUM_LIMIT) throw new ForbiddenException('The album is full');
-    const guest = await this.guestByToken(event.id, input.guestToken);
     const id = randomUUID();
     const ext = input.contentType === 'image/png' ? 'png' : input.contentType === 'image/webp' ? 'webp' : 'jpg';
     const key = `u/${event.userId}/album/${event.id}/${id}.${ext}`;
@@ -379,8 +413,8 @@ export class SitesService {
   }
 
   /** Shagun QR: a standard UPI pay link for the host's own UPI id (we never touch the money). */
-  async upiQr(slug: string): Promise<string> {
-    const { event, doc } = await this.liveSite(slug);
+  async upiQr(slug: string, access?: SiteAccess): Promise<string> {
+    const { event, doc } = await this.openSite(slug, access);
     const gifts = doc.sections.find((s) => s.type === 'gifts' && !s.hidden);
     if (!gifts || gifts.type !== 'gifts' || !gifts.upiId) throw new NotFoundException('No UPI id on this invitation');
     const payee = gifts.payeeName || event.title;
@@ -427,18 +461,16 @@ export class SitesService {
   }
 
   async submitRsvp(slug: string, input: SubmitRsvpInput) {
-    const event = await this.publishedBySlug(slug);
-    if (!event.settings.rsvpEnabled || !(await this.entitlements.has(event.id, 'rsvp'))) {
+    const { event, plan, fns: valid, guest } = await this.openSite(slug, input);
+    if (!event.settings.rsvpEnabled || !plan.features.has('rsvp')) {
       throw new ForbiddenException('RSVP is not enabled for this invitation');
     }
     if (event.settings.rsvpDeadline && new Date(event.settings.rsvpDeadline) < new Date()) {
       throw new BadRequestException('The RSVP deadline has passed');
     }
-    const guest = await this.guestByToken(event.id, input.guestToken);
     if (!guest && !input.phone) throw new BadRequestException('Please enter your mobile number');
 
     const fnIds = input.responses.map((r) => r.functionId);
-    const valid = await this.eventsService.functionsOf(event.id);
     const allowed = new Set(valid.filter((f) => !guest?.functionIds || guest.functionIds.includes(f.id)).map((f) => f.id));
     if (fnIds.some((id) => !allowed.has(id))) throw new BadRequestException('Invalid function');
     const maxPax = guest?.maxPax ?? 10;
@@ -469,9 +501,9 @@ export class SitesService {
     return { ok: true };
   }
 
-  async calendar(slug: string, functionId?: string): Promise<string> {
-    const event = await this.publishedBySlug(slug);
-    const fns = (await this.eventsService.functionsOf(event.id)).filter((f) => !functionId || f.id === functionId);
+  async calendar(slug: string, functionId?: string, access?: SiteAccess): Promise<string> {
+    const { event, fns: all, guest } = await this.openSite(slug, access);
+    const fns = all.filter((f) => (!functionId || f.id === functionId) && (!guest?.functionIds || guest.functionIds.includes(f.id)));
     const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
     const esc = (s: string) => s.replace(/[\\;,]/g, (m) => `\\${m}`).replace(/\n/g, '\\n');
     const lines = ['BEGIN:VCALENDAR', 'VERSION:2.0', `PRODID:-//${BRAND.name}//Invite//EN`, 'CALSCALE:GREGORIAN'];

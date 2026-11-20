@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, EVENT_TYPES, type EventCategory } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPES, type EventCategory, showcaseRank } from '@cardai/shared';
 import { ChevronRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -22,9 +22,9 @@ const { PREVIEW_FOR, DESIGN_COUNT } = (() => {
   const preview = new Map<string, string>();
   const count = new Map<string, number>();
   for (const e of EVENT_TYPES) {
-    const tpl = BUILTIN_TEMPLATES.find(
-      (t) => t.eventTypes !== 'all' && (t.eventTypes as string[]).includes(e.id),
-    );
+    // Preview a modern-collection design where one fits this occasion.
+    const fits = BUILTIN_TEMPLATES.filter((t) => t.eventTypes !== 'all' && (t.eventTypes as string[]).includes(e.id));
+    const tpl = fits.find((t) => showcaseRank(t.design) === 0) ?? fits[0];
     if (tpl) preview.set(e.id, tpl.id);
     count.set(
       e.id,

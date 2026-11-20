@@ -31,6 +31,8 @@ export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
 
 export const submitRsvpSchema = z.object({
   guestToken: z.string().max(40).optional(),
+  /** Unlock key of a password-protected site (from the unlock step). */
+  key: z.string().max(64).optional(),
   name: z.string().trim().min(1).max(100),
   phone: phoneSchema.optional(),
   responses: z

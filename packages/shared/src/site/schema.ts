@@ -254,6 +254,8 @@ export type SiteUpdateInput = z.infer<typeof siteUpdateInputSchema>;
 
 export const wishInputSchema = z.object({
   guestToken: z.string().max(40).optional(),
+  /** Unlock key of a password-protected site (from the unlock step). */
+  key: z.string().max(64).optional(),
   name: text(80).min(1),
   message: text(500).min(1),
 });
@@ -271,6 +273,8 @@ export const vanityLinkSchema = z.object({
 
 export const albumUploadSchema = z.object({
   guestToken: z.string().max(40).optional(),
+  /** Unlock key of a password-protected site (from the unlock step). */
+  key: z.string().max(64).optional(),
   name: text(80).min(1),
   contentType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
   bytes: z.number().int().positive().max(12 * 1024 * 1024),

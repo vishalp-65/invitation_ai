@@ -33,12 +33,14 @@ export function SiteRenderer({
   data,
   doc: docOverride,
   guestToken,
+  accessKey,
   preview = false,
   replayKey = 0,
 }: {
   data: PublicSiteDto;
   doc?: SiteDoc;
   guestToken?: string;
+  accessKey?: string;
   preview?: boolean;
   replayKey?: number;
 }) {
@@ -116,7 +118,7 @@ export function SiteRenderer({
 
   return (
     <MotionContext.Provider value={level}>
-      <SiteProvider data={ctxData} content={content} language={language} guestToken={guestToken} preview={preview}>
+      <SiteProvider data={ctxData} content={content} language={language} guestToken={guestToken} accessKey={accessKey} preview={preview}>
         <link rel="stylesheet" href={fontsHref} />
         <div
           key={replayKey}

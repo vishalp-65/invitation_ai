@@ -1,6 +1,6 @@
 'use client';
 
-import { EVENT_TYPES, getEventType, LANGUAGES } from '@cardai/shared';
+import { EVENT_TYPES, getEventType, LANGUAGES, SHOWCASE } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { CalendarDays, Check, ExternalLink, Eye, Link2, Plus, Search, Users } from 'lucide-react';
@@ -480,9 +480,9 @@ function EmptyState() {
       </div>
       <div className="relative hidden min-h-80 overflow-clip bg-black lg:block" aria-hidden>
         {[
-          ['golden-vows-onyx', '-rotate-6 left-[12%] top-[18%]'],
-          ['genda-jharokha-emerald', 'rotate-6 right-[12%] top-[18%]'],
-          ['rajwada-gold-maroon', 'left-1/2 top-[10%] -ml-[4.5rem] z-10'],
+          [SHOWCASE.hero[0], '-rotate-6 left-[12%] top-[18%]'],
+          [SHOWCASE.hero[1], 'rotate-6 right-[12%] top-[18%]'],
+          [SHOWCASE.hero[2], 'left-1/2 top-[10%] -ml-[4.5rem] z-10'],
         ].map(([id, cls]) => (
           <Image key={id} src={`/showcase/${id}.jpg`} alt="" width={432} height={768} sizes="144px" className={`absolute w-36 border border-white/10 object-cover ${cls}`} />
         ))}

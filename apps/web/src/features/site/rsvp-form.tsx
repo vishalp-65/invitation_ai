@@ -10,7 +10,7 @@ const MEAL: Record<(typeof MEAL_PREFERENCES)[number], string> = { veg: 'Veg', no
 
 /** One reply per function, with headcount. Personal links pre-fill the guest's name. */
 export function RsvpForm() {
-  const { data: site, guestToken, preview, t } = useSite();
+  const { data: site, guestToken, accessKey, preview, t } = useSite();
   const maxPax = site.guest?.maxPax ?? 10;
   const [name, setName] = useState(site.guest?.name ?? '');
   const [phone, setPhone] = useState('');
@@ -32,6 +32,7 @@ export function RsvpForm() {
         `/api/public/events/${site.event.slug}/rsvp`,
         {
           guestToken,
+          key: accessKey,
           name,
           phone: phone || undefined,
           responses: Object.entries(answers).map(([functionId, a]) => ({ functionId, ...a })),

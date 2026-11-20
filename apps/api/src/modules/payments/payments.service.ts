@@ -24,7 +24,7 @@ import {
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { bumpCounter } from '../../common/redis.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
-import { WEBHOOK_FAIL_KEY } from '../ops/ops.service.js';
+import { WEBHOOK_FAIL_KEY } from '../ops/ops.keys.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { OffersService } from '../offers/offers.service.js';

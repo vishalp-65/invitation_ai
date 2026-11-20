@@ -203,6 +203,7 @@ export function LookPanel({
   palette,
   eventType = 'wedding',
   community,
+  cardDesign,
   ctx,
 }: {
   doc: SiteDoc;
@@ -211,11 +212,13 @@ export function LookPanel({
   palette: { primary: string; accent: string; background: string };
   eventType?: string;
   community?: string | null;
+  /** The card's design family: its matching website/video pack is listed first. */
+  cardDesign?: string | null;
   ctx?: EditorCtx;
 }) {
   const visibility = useDesignVisibility();
-  const designs = visibleDesigns(designsFor(eventType, community), visibility, 'picker').concat(
-    designsFor(eventType, community).filter((d) => d.id === doc.design && visibility.hiddenDesigns.includes(d.id)),
+  const designs = visibleDesigns(designsFor(eventType, community, cardDesign), visibility, 'picker').concat(
+    designsFor(eventType, community, cardDesign).filter((d) => d.id === doc.design && visibility.hiddenDesigns.includes(d.id)),
   );
   const [uploading, setUploading] = useState(false);
   const songUrl = doc.music?.assetId ? ctx?.assets[doc.music.assetId] : undefined;

@@ -128,7 +128,7 @@ export function Cradle({ w, h, c }: ArtProps) {
     <path d="M30 250 L60 30 H260 L290 250" fill="none" stroke={frame} strokeWidth={8} strokeLinecap="round" strokeLinejoin="round" />
     <path d="M60 30 Q160 60 260 30" fill="none" stroke="#2F7D32" strokeWidth={3} />
     {[80, 110, 140, 170, 200, 230].map((x, i) => (
-      <circle key={x} cx={x} cy={36 + Math.sin(((i + 0.5) / 6) * Math.PI) * 12} r={6} fill={i % 2 ? '#F28C0F' : '#FFB627'} />
+      <circle key={x} cx={x} cy={Math.round((36 + Math.sin(((i + 0.5) / 6) * Math.PI) * 12) * 1000) / 1000} r={6} fill={i % 2 ? '#F28C0F' : '#FFB627'} />
     ))}
     <line x1={110} y1={34} x2={100} y2={130} stroke={frame} strokeWidth={3} />
     <line x1={210} y1={34} x2={220} y2={130} stroke={frame} strokeWidth={3} />

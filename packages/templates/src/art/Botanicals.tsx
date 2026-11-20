@@ -14,6 +14,9 @@ const svg = (w: number, h: number, vb: string, children: ReactNode, par = 'xMidY
   </svg>
 );
 
+/** Rounds trig results (engines differ in the last bits; the website hydrates this SVG). */
+const q = (n: number) => Math.round(n * 1000) / 1000;
+
 /** Mixes two #rrggbb colours (t = 0 → a, 1 → b). */
 function mix(a: string, b: string, t: number): string {
   const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
@@ -62,7 +65,7 @@ function Hydrangea({ x, y, s, rot = 0, petal, deep }: BloomProps) {
   const florets = Array.from({ length: 30 }, (_, i) => {
     const a = r() * Math.PI * 2;
     const d = Math.sqrt(r()) * 0.82;
-    return { fx: Math.cos(a) * d, fy: Math.sin(a) * d, k: i, t: r() };
+    return { fx: q(Math.cos(a) * d), fy: q(Math.sin(a) * d), k: i, t: r() };
   });
   return (
     <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
@@ -324,12 +327,12 @@ export function BloomRing({ w, h, c, opts }: ArtProps) {
   const Big = kind === 'hydrangea' ? Hydrangea : kind === 'peony' ? Peony : Rose;
   const Small = kind === 'mixed' ? Hydrangea : kind === 'hydrangea' ? Peony : Peony;
   const R = 200;
-  const at = (deg: number, r = R) => [250 + Math.cos((deg * Math.PI) / 180) * r, 250 + Math.sin((deg * Math.PI) / 180) * r] as const;
+  const at = (deg: number, r = R) => [q(250 + Math.cos((deg * Math.PI) / 180) * r), q(250 + Math.sin((deg * Math.PI) / 180) * r)] as const;
   /** A bouquet hugging the ring at `deg` (0 = right, 90 = bottom). */
   const bouquet = (deg: number, scale: number, seed: number) => {
     const [x, y] = at(deg);
     const tangent = deg + 90;
-    const p = (d: number, r: number) => [x + Math.cos(((tangent + d) * Math.PI) / 180) * r, y + Math.sin(((tangent + d) * Math.PI) / 180) * r] as const;
+    const p = (d: number, r: number) => [q(x + Math.cos(((tangent + d) * Math.PI) / 180) * r), q(y + Math.sin(((tangent + d) * Math.PI) / 180) * r)] as const;
     const [ax, ay] = p(0, 70 * scale);
     const [bx, by] = p(180, 70 * scale);
     const [cx2, cy2] = p(0, 130 * scale);
@@ -396,9 +399,9 @@ export function BloomFrame({ w, h, c, opts }: ArtProps) {
   let k = 0;
   pts.forEach(([x0, y0], i) => {
     const [x1, y1] = pts[(i + 1) % pts.length]!;
-    const len = Math.hypot(x1 - x0, y1 - y0);
+    const len = q(Math.hypot(x1 - x0, y1 - y0));
     const n = Math.max(1, Math.round(len / 58));
-    const ang = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
+    const ang = q((Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI);
     for (let j = 0; j < n; j++) {
       const t = j / n;
       const x = x0 + (x1 - x0) * t;

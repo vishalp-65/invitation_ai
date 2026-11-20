@@ -15,6 +15,7 @@ import { StudioPricing } from '@/components/studio/pricing';
 import { StudioPrivacy } from '@/components/studio/privacy';
 import { StudioProcess } from '@/components/studio/process';
 import { StudioShare } from '@/components/studio/share';
+import { StudioSiteDeck } from '@/components/studio/site-deck';
 import { StudioVoice } from '@/components/studio/voice';
 import { ArtProvider, Frame, Kicker } from '@/components/studio/primitives';
 import { readdir } from 'node:fs/promises';
@@ -61,6 +62,8 @@ export default async function HomePage() {
           <div className="cv-auto">
             <StudioVideoCarousel hi={hi} />
           </div>
+          {/* No cv-auto here: content-visibility would break the deck's sticky scroll stage. */}
+          <StudioSiteDeck hi={hi} />
           <div className="cv-auto">
             <StudioLanguages hi={hi} />
           </div>
