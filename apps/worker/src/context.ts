@@ -41,6 +41,7 @@ export function createContext(): WorkerContext {
       secretAccessKey: env.S3_SECRET_ACCESS_KEY,
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
       publicUrl: env.STORAGE_PUBLIC_URL,
+      publicRead: env.S3_PUBLIC_READ_ACL,
     }),
     ai: new OpenRouterClient({ apiKey: env.OPENROUTER_API_KEY ?? '', appUrl: env.APP_URL, appName: BRAND.name }),
     close: async () => {

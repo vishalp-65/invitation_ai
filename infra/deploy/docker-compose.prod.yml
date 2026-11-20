@@ -1,0 +1,33 @@
+# Runs on the droplet in /opt/noyta, next to /opt/interviewpilot and fully isolated from it:
+#  - own compose project name (noyta), own network, no shared volumes
+#  - only the API is published, on 127.0.0.1:4100 (loopback); the host's nginx routes api.noyta.in to it
+#  - Postgres (Neon) and Redis (Upstash) are managed services: DATABASE_URL / REDIS_URL come from .env
+# Images are set by the deploy job through .deploy.env (REGISTRY_IMAGE_API / REGISTRY_IMAGE_WORKER).
+name: noyta
+
+x-app: &app
+  env_file: .env
+  restart: unless-stopped
+  logging: { driver: json-file, options: { max-size: 10m, max-file: '3' } }
+
+services:
+  api:
+    <<: *app
+    image: ${REGISTRY_IMAGE_API:?set REGISTRY_IMAGE_API}
+    ports: ['127.0.0.1:${API_HOST_PORT:-4100}:4000']
+    environment:
+      API_PORT: '4000'
+    deploy:
+      resources:
+        limits:
+          memory: ${API_MEMORY:-768m}
+
+  worker:
+    <<: *app
+    image: ${REGISTRY_IMAGE_WORKER:?set REGISTRY_IMAGE_WORKER}
+    # Chrome (Remotion) needs a large /dev/shm
+    shm_size: 1gb
+    deploy:
+      resources:
+        limits:
+          memory: ${WORKER_MEMORY:-2g}

@@ -322,7 +322,7 @@ export const HERITAGE_FAMILIES: DesignFamily[] = [
         corner('greenery', 'tr', 300, [goldOn(ctx), mix(goldOn(ctx), '#FFFFFF', 0.4)], { kind: 'olive' }, -30, 0.6),
         corner('greenery', 'bl', 300, [goldOn(ctx), mix(goldOn(ctx), '#FFFFFF', 0.4)], { kind: 'olive' }, -30, 0.6),
       ]),
-    bands: (ctx) => [
+    bands: () => [
       { t: 'text', role: 'eyebrow', bind: 'headline', gap: 0 },
       { t: 'photo', w: 520, h: 520, mask: 'circle', gap: 26 },
       ...coupleNames(0.8),

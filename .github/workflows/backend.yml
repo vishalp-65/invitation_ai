@@ -1,0 +1,146 @@
+name: backend
+
+# CI/CD for the API + worker:
+#   verify (typecheck, lint, test) -> build Docker images -> push to GHCR -> SSH to droplet -> migrate -> restart -> health gate
+on:
+  pull_request:
+    paths:
+      - 'apps/api/**'
+      - 'apps/worker/**'
+      - 'packages/**'
+      - 'infra/docker/**'
+      - 'infra/deploy/**'
+      - 'package-lock.json'
+      - '.github/workflows/backend.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/api/**'
+      - 'apps/worker/**'
+      - 'packages/**'
+      - 'infra/docker/**'
+      - 'infra/deploy/**'
+      - 'package-lock.json'
+      - '.github/workflows/backend.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: backend-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  # GHCR image names must be lowercase
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/noyta
+  APP_DIR: /opt/noyta
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx turbo run typecheck lint test --filter=@cardai/api... --filter=@cardai/worker...
+
+  build:
+    needs: verify
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      matrix:
+        service: [api, worker]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/${{ matrix.service }}.Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
+            ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+
+  deploy:
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Lowercase image prefix
+        run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
+      - name: Copy compose file
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          source: infra/deploy/docker-compose.prod.yml
+          target: ${{ env.APP_DIR }}
+          strip_components: 2
+      - name: Deploy
+        uses: appleboy/ssh-action@v1.2.0
+        env:
+          GHCR_USER: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GHCR_PULL_TOKEN }}
+          TAG: ${{ github.sha }}
+          PREFIX: ${{ env.IMAGE_PREFIX }}
+          APP_DIR: ${{ env.APP_DIR }}
+        with:
+          host: ${{ secrets.DO_HOST }}
+          username: ${{ secrets.DO_USER }}
+          key: ${{ secrets.DO_SSH_KEY }}
+          envs: GHCR_USER,GHCR_TOKEN,TAG,PREFIX,APP_DIR
+          script_stop: true
+          script: |
+            set -eu
+            cd "$APP_DIR"
+            test -f .env || { echo "Missing $APP_DIR/.env"; exit 1; }
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
+            # Remember the running images so a failed health check can roll back
+            [ -f .deploy.env ] && cp .deploy.env .deploy.prev.env || true
+            printf 'REGISTRY_IMAGE_API=%s\nREGISTRY_IMAGE_WORKER=%s\n' "$PREFIX-api:$TAG" "$PREFIX-worker:$TAG" > .deploy.env
+            dc="docker compose -f docker-compose.prod.yml --env-file .env --env-file .deploy.env"
+            $dc pull api worker
+            # Migrations run with the new image before containers are swapped (uses DATABASE_URL_DIRECT if set)
+            $dc run --rm --no-deps api node packages/db/dist/migrate.js
+            $dc up -d --remove-orphans api worker
+            ok=0
+            for i in $(seq 1 40); do
+              if curl -fs http://127.0.0.1:4100/api/health/ready >/dev/null; then ok=1; break; fi
+              sleep 3
+            done
+            if [ "$ok" != 1 ]; then
+              $dc logs --tail=100 api
+              if [ -f .deploy.prev.env ]; then
+                echo "Health check failed, rolling back"
+                cp .deploy.prev.env .deploy.env
+                $dc up -d api worker
+              fi
+              exit 1
+            fi
+            # Only dangling layers: never touches interviewpilot's images
+            docker image prune -f >/dev/null || true
+            echo "Deployed $TAG"

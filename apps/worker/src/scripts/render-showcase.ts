@@ -43,7 +43,7 @@ for (const t of list) {
   const invocation = resolveInvocation(content.invocation, { eventType: sample.eventType, faith, language, community: t.communities[0] });
   const data: DesignData = { content: { ...content, invocation }, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
   const design = buildDesign({ template: t, data, language, eventType: sample.eventType, community: t.communities[0] });
-  const dir = outArg ? `${outArg.replace(/[\/]$/, '')}/` : outDir;
+  const dir = outArg ? `${outArg.replace(/[/\\]$/, '')}/` : outDir;
   const pages = allPages ? design.pages.map((p, n) => ({ n, file: `${dir}${t.id}-${n + 1}-${p.id}.jpg` })) : [{ n: coverPageIndex(design), file: `${dir}${t.id}.jpg` }];
   for (const pg of pages) {
     // Thumbnails show the main invitation page, not the blessing page in front of it.

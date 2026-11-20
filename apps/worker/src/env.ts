@@ -12,6 +12,7 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().min(1),
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_FORCE_PATH_STYLE: z.string().optional().transform((v) => v === 'true' || v === '1'),
+  S3_PUBLIC_READ_ACL: z.string().optional().transform((v) => v === 'true' || v === '1'),
   STORAGE_PUBLIC_URL: z.url(),
   OPENROUTER_API_KEY: z.string().optional(),
   AI_VIDEO_MODEL: z.string().default('google/veo-3.1-lite'),

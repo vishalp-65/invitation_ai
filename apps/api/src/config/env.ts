@@ -33,6 +33,8 @@ const envSchema = z.object({
   S3_ACCESS_KEY_ID: z.string().min(1),
   S3_SECRET_ACCESS_KEY: z.string().min(1),
   S3_FORCE_PATH_STYLE: bool,
+  /** true on DigitalOcean Spaces: objects are written with the public-read ACL. */
+  S3_PUBLIC_READ_ACL: bool,
   STORAGE_PUBLIC_URL: z.url(),
 
   JWT_ACCESS_SECRET: z.string().min(32),

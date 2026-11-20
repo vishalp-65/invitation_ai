@@ -52,6 +52,7 @@ const dbHandle = createDb(env.DATABASE_URL, { max: 15 });
           secretAccessKey: env.S3_SECRET_ACCESS_KEY,
           forcePathStyle: env.S3_FORCE_PATH_STYLE,
           publicUrl: env.STORAGE_PUBLIC_URL,
+          publicRead: env.S3_PUBLIC_READ_ACL,
         }),
     },
     {

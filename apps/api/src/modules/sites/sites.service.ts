@@ -362,7 +362,7 @@ export class SitesService {
       meta: { source: ALBUM_SOURCE, uploader: input.name, guestId: guest?.id ?? null },
     });
     const uploadUrl = await this.storage.presignPut(key, input.contentType, input.bytes);
-    return { assetId: id, uploadUrl, headers: { 'Content-Type': input.contentType } };
+    return { assetId: id, uploadUrl, headers: this.storage.uploadHeaders(input.contentType) };
   }
 
   /** Guest album step 2: confirm the object exists, then show it. */

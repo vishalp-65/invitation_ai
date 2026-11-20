@@ -16,9 +16,14 @@ export interface StorageConfig {
   forcePathStyle: boolean;
   /** Public (CDN) base URL objects are served from. */
   publicUrl: string;
+  /**
+   * Stamp every object with the `public-read` ACL. Needed on DigitalOcean Spaces (no bucket-wide
+   * public policy); leave off for R2 / S3 buckets that are made public by policy instead.
+   */
+  publicRead?: boolean;
 }
 
-/** S3-compatible object storage (MinIO, Cloudflare R2, AWS S3). */
+/** S3-compatible object storage (DigitalOcean Spaces, Cloudflare R2, AWS S3, MinIO). */
 export class S3Storage {
   private readonly client: S3Client;
 
@@ -31,13 +36,17 @@ export class S3Storage {
     });
   }
 
+  private get acl() {
+    return this.config.publicRead ? ('public-read' as const) : undefined;
+  }
+
   publicUrl(key: string): string {
     return `${this.config.publicUrl.replace(/\/$/, '')}/${key}`;
   }
 
   async put(key: string, body: Buffer | Uint8Array, contentType: string, cacheControl = 'public, max-age=31536000, immutable') {
     await this.client.send(
-      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, Body: body, ContentType: contentType, CacheControl: cacheControl }),
+      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, Body: body, ContentType: contentType, CacheControl: cacheControl, ACL: this.acl }),
     );
     return { key, url: this.publicUrl(key), bytes: body.byteLength };
   }
@@ -66,8 +75,14 @@ export class S3Storage {
   presignPut(key: string, contentType: string, bytes: number, expiresIn = 600): Promise<string> {
     return getSignedUrl(
       this.client,
-      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, ContentType: contentType, ContentLength: bytes }),
-      { expiresIn },
+      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, ContentType: contentType, ContentLength: bytes, ACL: this.acl }),
+      // The ACL is signed as a header, so the browser must send it back (see uploadHeaders).
+      { expiresIn, unhoistableHeaders: this.acl ? new Set(['x-amz-acl']) : undefined },
     );
+  }
+
+  /** Headers the browser must send with the presigned PUT. */
+  uploadHeaders(contentType: string): Record<string, string> {
+    return this.acl ? { 'Content-Type': contentType, 'x-amz-acl': this.acl } : { 'Content-Type': contentType };
   }
 }

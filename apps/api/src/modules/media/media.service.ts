@@ -39,7 +39,7 @@ export class MediaService {
       bytes: input.bytes,
     });
     const uploadUrl = await this.storage.presignPut(key, input.contentType, input.bytes);
-    return { assetId: id, uploadUrl, headers: { 'Content-Type': input.contentType }, url: this.storage.publicUrl(key) };
+    return { assetId: id, uploadUrl, headers: this.storage.uploadHeaders(input.contentType), url: this.storage.publicUrl(key) };
   }
 
   /** Step 2: browser confirms; we verify the object really exists and matches. */

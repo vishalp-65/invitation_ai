@@ -8,6 +8,7 @@ import { StudioHero } from '@/components/studio/hero';
 import { StudioLanguages } from '@/components/studio/languages';
 import { StudioLiveRsvp } from '@/components/studio/live-rsvp';
 import { StudioOccasions } from '@/components/studio/occasions';
+import { StudioPremiumTunnel } from '@/components/studio/premium-tunnel';
 import { StudioPricing } from '@/components/studio/pricing';
 import { StudioPrivacy } from '@/components/studio/privacy';
 import { StudioProcess } from '@/components/studio/process';
@@ -39,6 +40,7 @@ export default async function HomePage() {
 
         <main id="main">
           <StudioFeatures hi={hi} />
+          <StudioPremiumTunnel hi={hi} />
           <div className="cv-auto">
             <StudioProcess hi={hi} />
           </div>
