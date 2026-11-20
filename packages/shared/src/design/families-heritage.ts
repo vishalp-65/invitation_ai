@@ -2,6 +2,7 @@ import { artEl, fullPage, shapeEl, solidBg, type Band, type DateStyle, type Reci
 import { isDarkColor, mix } from './color.js';
 import { ALL_WEDDINGS, couple, DESIGN_FAMILIES, ganesha, goldOn, motif, radial, SACRED, trueGold, WEDDINGS, type Chrome, type DesignFamily } from './families.js';
 import { DESIGN_H, DESIGN_W, type DesignElement } from './schema.js';
+import { ATELIER_FAMILIES } from './families-atelier.js';
 
 /**
  * "Heritage & Florals" collection (Nov 2026): multi-page, Canva-style invitations —
@@ -473,5 +474,5 @@ export const HERITAGE_FAMILIES: DesignFamily[] = [
   },
 ];
 
-/** Every layered family: the new collection first, then the earlier one. */
-export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];
+/** Every layered family: newest collection first (Atelier, then Heritage, then the first set). */
+export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...ATELIER_FAMILIES, ...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];

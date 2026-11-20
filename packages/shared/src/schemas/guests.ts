@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { MEAL_PREFERENCES, RSVP_STATUSES, type RsvpStatus } from '../constants/guests.js';
 import { phoneSchema } from './common.js';
 import { guestStaySchema, type GuestStay } from '../site/schema.js';
 
@@ -27,11 +28,6 @@ export const updateGuestSchema = guestInputSchema
   .extend({ maxPax: z.number().int().min(1).max(50), stay: guestStaySchema.nullable() })
   .partial();
 export type UpdateGuestInput = z.infer<typeof updateGuestSchema>;
-
-export const RSVP_STATUSES = ['yes', 'no', 'maybe'] as const;
-export type RsvpStatus = (typeof RSVP_STATUSES)[number];
-
-export const MEAL_PREFERENCES = ['veg', 'non_veg', 'jain', 'vegan'] as const;
 
 export const submitRsvpSchema = z.object({
   guestToken: z.string().max(40).optional(),

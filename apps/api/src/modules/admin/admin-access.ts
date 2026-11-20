@@ -1,5 +1,5 @@
 import { eq, users, type Database } from '@cardai/db';
-import { ADMIN_SCOPES, type AdminScope } from '@cardai/shared';
+import type { AdminScope } from '@cardai/shared';
 import {
   ForbiddenException,
   Global,
@@ -17,6 +17,9 @@ import { hmacSha256Hex, safeEqual, sha256 } from '../../common/crypto.js';
 import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { MailService } from '../mail/mail.service.js';
+import { effectiveScopes, hasScope } from './scopes.js';
+
+export { effectiveScopes, hasScope };
 
 export const ADMIN_SCOPE_KEY = 'admin:scopes';
 export const ADMIN_MFA_EXEMPT = 'admin:mfa-exempt';
@@ -29,15 +32,6 @@ const MAX_ATTEMPTS = 5;
 export const AdminScopes = (...scopes: AdminScope[]) => SetMetadata(ADMIN_SCOPE_KEY, scopes);
 /** Routes an admin needs before the email-code check (the check itself). */
 export const AdminMfaExempt = () => SetMetadata(ADMIN_MFA_EXEMPT, true);
-
-export function effectiveScopes(raw: unknown): AdminScope[] {
-  const list = Array.isArray(raw) ? raw.filter((s): s is AdminScope => (ADMIN_SCOPES as readonly string[]).includes(s)) : [];
-  return list.length ? list : ['owner'];
-}
-
-export function hasScope(scopes: AdminScope[], needed: AdminScope[]): boolean {
-  return scopes.includes('owner') || needed.some((s) => scopes.includes(s));
-}
 
 /**
  * Admin second step: a 6-digit code emailed to the admin, once per device every 12 hours. The

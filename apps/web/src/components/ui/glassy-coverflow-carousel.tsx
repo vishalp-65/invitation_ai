@@ -2,6 +2,10 @@
 
 import { useEffect, useId, useRef, useState, type CSSProperties, type PointerEvent, type ReactNode } from "react";
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, ArrowUpRight, Maximize2, Pause, Play, X } from "lucide-react";
+import Image from "next/image";
+
+/** Local images go through the Next image optimizer (AVIF/WebP at the rendered size); others load as they are. */
+const isLocal = (src: string) => src.startsWith("/") && !src.startsWith("//");
 
 /*
  * Glassy coverflow carousel (adapted from the 21st.dev component).
@@ -191,6 +195,7 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
   if (!active) return null;
   const video = trailerEmbed(preview?.trailerUrl);
   const previewLink = preview?.trailerUrl || preview?.href;
+  // eslint-disable-next-line @next/next/no-img-element -- brand logos are small SVGs at their natural size
   const brandImages = brand && <><img className={brand.lightImage ? "gc-logo-dark" : undefined} src={brand.image} alt={brand.alt} />{brand.lightImage && <img className="gc-logo-light" src={brand.lightImage} alt={brand.alt} />}</>;
   return <section data-layout={layout} data-brand={brand ? "" : undefined} className={`gc-shell ${className}`} aria-label={label} aria-roledescription="carousel"
     style={{ "--gc-card-width": `${cardWidth}px`, "--gc-poster-aspect": `1 / ${posterRatio}`, "--gc-accent": active.accent, "--gc-duration": `${duration}ms`, ...style } as CSSProperties}
@@ -238,7 +243,7 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
           <span className="gc-poster">
             {item.media
               ? <span className="gc-media" aria-hidden="true">{item.media}</span>
-              : item.image && <img src={item.image} alt={`${item.title} ${layout === "poster" ? "poster" : "website preview"}`} draggable={false} loading={Math.abs(d) < 2 ? "eager" : "lazy"} />}
+              : item.image && <Image src={item.image} alt={`${item.title} ${layout === "poster" ? "poster" : "website preview"}`} fill sizes={`${Math.ceil(cardWidth)}px`} unoptimized={!isLocal(item.image)} draggable={false} loading={Math.abs(d) < 2 ? "eager" : "lazy"} />}
             <span className="gc-poster-shade" aria-hidden="true" />
             {badge && <span className="gc-watch" aria-hidden="true"><Play size={13} fill="currentColor" strokeWidth={0} /> {badge}</span>}
           </span>
@@ -264,7 +269,7 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
         <div className="gc-dialog-bar"><span><i /> {video ? "Official trailer" : projectDomain(preview.href)}</span><button type="button" onClick={() => setPreview(null)}><X size={15} /> Close</button></div>
         <div className="gc-project-preview">{preview.preview ?? (video
           ? <iframe src={video} title={`${preview.title} official trailer`} allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" />
-          : preview.image && <img src={preview.image} alt={`${preview.title} preview`} />)}</div>
+          : preview.image && <Image src={preview.image} alt={`${preview.title} preview`} fill sizes="(max-width: 600px) 100vw, 860px" unoptimized={!isLocal(preview.image)} />)}</div>
         <div className="gc-dialog-caption"><div><h2 id={`${id}-preview-title`}>{preview.title}</h2><p>{preview.description || preview.subtitle}</p></div><span>{preview.subtitle}</span></div>
         {previewLink && (isInternal(previewLink) && !preview.trailerUrl
           ? <a className="gc-external" href={previewLink}>{preview.linkLabel || "Open"} <ArrowRight size={15} /></a>

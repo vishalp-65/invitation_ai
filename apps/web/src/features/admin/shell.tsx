@@ -2,18 +2,24 @@
 
 import { BRAND } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowLeft, BarChart3, Clapperboard, Gauge, LayoutDashboard, LayoutTemplate, Mail, MailOpen, ScrollText, ShoppingBag, Store, Tag, TrendingUp, Users, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clapperboard, Gauge, IndianRupee, LayoutDashboard, LayoutTemplate, Mail, MailOpen, MapPin, ScrollText, Settings, Share2, ShieldAlert, ShoppingBag, Store, Tag, TrendingUp, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api';
+import { MfaGate } from './mfa-gate';
 import { ThemeToggle } from '@/lib/theme';
 import { useMe } from '@/lib/hooks';
 import { Skeleton } from './ui';
 
+type Scope = 'owner' | 'support' | 'marketing' | 'content';
 interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  /** Admin roles that see this page (owner sees everything). Unset = every admin. */
+  scopes?: Scope[];
 }
 const GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
@@ -21,6 +27,8 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { href: '/admin', label: 'Overview', icon: LayoutDashboard },
       { href: '/admin/growth', label: 'Growth & retention', icon: TrendingUp },
+      { href: '/admin/acquisition', label: 'Acquisition & India', icon: MapPin },
+      { href: '/admin/guests', label: 'Guests & sharing', icon: Share2 },
       { href: '/admin/analytics', label: 'Behaviour', icon: BarChart3 },
     ],
   },
@@ -34,16 +42,18 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: 'People',
     items: [
-      { href: '/admin/users', label: 'Users', icon: Users },
-      { href: '/admin/invitations', label: 'Invitations', icon: MailOpen },
+      { href: '/admin/users', label: 'Users', icon: Users, scopes: ['support', 'marketing'] },
+      { href: '/admin/invitations', label: 'Invitations', icon: MailOpen, scopes: ['support'] },
+      { href: '/admin/trust', label: 'Trust & safety', icon: ShieldAlert, scopes: ['support'] },
     ],
   },
   {
     label: 'Revenue',
     items: [
-      { href: '/admin/offers', label: 'Plans & offers', icon: Tag },
-      { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-      { href: '/admin/emails', label: 'Emails', icon: Mail },
+      { href: '/admin/revenue', label: 'Revenue', icon: IndianRupee, scopes: ['marketing', 'support'] },
+      { href: '/admin/offers', label: 'Plans & offers', icon: Tag, scopes: ['marketing'] },
+      { href: '/admin/orders', label: 'Orders', icon: ShoppingBag, scopes: ['support', 'marketing'] },
+      { href: '/admin/emails', label: 'Emails', icon: Mail, scopes: ['marketing'] },
       { href: '/admin/marketplace', label: 'Marketplace & print', icon: Store },
     ],
   },
@@ -51,11 +61,13 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: 'System',
     items: [
       { href: '/admin/operations', label: 'Operations', icon: Gauge },
-      { href: '/admin/activity', label: 'Admin log', icon: ScrollText },
+      { href: '/admin/settings', label: 'Settings', icon: Settings },
+      { href: '/admin/activity', label: 'Admin log', icon: ScrollText, scopes: ['owner'] },
     ],
   },
 ];
-const NAV = GROUPS.flatMap((g) => g.items);
+const ALL = GROUPS.flatMap((g) => g.items);
+const allowed = (item: NavItem, scopes: string[]) => !item.scopes || scopes.includes('owner') || item.scopes.some((x) => scopes.includes(x));
 
 /** Wordmark + a quiet mono "Admin" tag. */
 function AdminMark() {
@@ -107,6 +119,9 @@ export function AdminShell({ children }: { children: ReactNode }) {
   }
 
   const active = (href: string) => (href === '/admin' ? pathname === '/admin' : pathname.startsWith(href));
+  const scopes = me.adminScopes?.length ? me.adminScopes : ['owner'];
+  const groups = GROUPS.map((g) => ({ ...g, items: g.items.filter((i) => allowed(i, scopes)) })).filter((g) => g.items.length);
+  const NAV = ALL.filter((i) => allowed(i, scopes));
 
   return (
     <div className="min-h-dvh bg-ivory lg:flex">
@@ -116,7 +131,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <AdminMark />
         </div>
         <nav className="thin-scroll flex flex-1 flex-col overflow-y-auto px-3 pb-4" aria-label="Admin">
-          {GROUPS.map((g) => (
+          {groups.map((g) => (
             <div key={g.label} className="flex flex-col gap-0.5">
               <p className="px-3 pb-1.5 pt-5 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-ink-soft/80">{g.label}</p>
               {g.items.map(({ href, label, icon: Icon }) => {
@@ -191,8 +206,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
       </header>
 
       <main className="admin-main mx-auto w-full max-w-[1280px] min-w-0 flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-10 lg:pt-12">
-        <Suspense fallback={<Skeleton className="h-72" />}>{children}</Suspense>
+        <MfaCheck>
+          <Suspense fallback={<Skeleton className="h-72" />}>{children}</Suspense>
+        </MfaCheck>
       </main>
     </div>
   );
+}
+
+/** Asks for the emailed code once per device (12 h) before any admin data loads. */
+function MfaCheck({ children }: { children: ReactNode }) {
+  const { data, isLoading, refetch } = useQuery({ queryKey: ['admin', 'mfa'], queryFn: () => api<{ required: boolean; verified: boolean }>('/admin/mfa'), staleTime: 5 * 60_000 });
+  if (isLoading) return <Skeleton className="h-72" />;
+  if (data?.required && !data.verified) return <MfaGate onDone={() => void refetch()} />;
+  return <>{children}</>;
 }

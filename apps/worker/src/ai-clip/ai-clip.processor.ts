@@ -1,6 +1,6 @@
 import { clipPrompt } from '@cardai/ai';
 import { aiGenerations, and, entitlements, eq, events, mediaAssets, sql } from '@cardai/db';
-import { AI_CLIP_SECONDS, BUILTIN_TEMPLATES, faithOf, getEventType, type AiClipJobData } from '@cardai/shared';
+import { AI_CLIP_SECONDS, BUILTIN_TEMPLATES, faithOf, findBuiltinTemplate, getEventType, type AiClipJobData } from '@cardai/shared';
 import type { Job } from 'bullmq';
 import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
@@ -22,7 +22,7 @@ export function createAiClipProcessor(ctx: WorkerContext) {
 
     try {
       await ctx.db.update(aiGenerations).set({ status: 'processing' }).where(eq(aiGenerations.id, gen.id));
-      const theme = (BUILTIN_TEMPLATES.find((t) => t.id === input.templateId) ?? BUILTIN_TEMPLATES[0]!).theme;
+      const theme = (findBuiltinTemplate(input.templateId) ?? BUILTIN_TEMPLATES[0]!).theme;
       const submitted = await ctx.ai.submitVideo({
         model: gen.model ?? ctx.env.AI_VIDEO_MODEL,
         prompt: clipPrompt({ eventLabel: getEventType(input.eventType).label, theme, extra: input.prompt ?? undefined, faith: faithOf(input.eventType, input.community) }),

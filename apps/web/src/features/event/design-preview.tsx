@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
 import { useDesignData } from '@/features/editor/use-event-data';
-import { useTemplate } from '@/lib/hooks';
+import { useTemplate } from '@/lib/template-hooks';
 import { useEventMedia } from './use-event-props';
 
 const DesignPlayer = dynamic(() => import('@/components/design/design-player').then((m) => m.DesignPlayer), {

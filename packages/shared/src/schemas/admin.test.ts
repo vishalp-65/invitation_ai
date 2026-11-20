@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { couponDiscount, priceProducts, visibleDesigns } from './admin.js';
+import { couponDiscount, priceProducts, visibleDesigns } from '../commerce/pricing.js';
 import { PRODUCTS } from '../constants/products.js';
 
 describe('offer pricing', () => {

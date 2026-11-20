@@ -2,6 +2,9 @@ import { activityDaily, analyticsEvents, and, eq, isNull, lt, or, sql, users, vi
 import { cityTier, classifyChannel, inAppBrowser, normaliseNetwork, type TrackBatchInput, type TrackEventName } from '@cardai/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DB } from '../../infra/infra.module.js';
+import { parseGeo, type Geo } from './geo.js';
+
+export { parseGeo };
 
 /** Analytics day boundaries follow Indian time. */
 const TZ = 'Asia/Kolkata';
@@ -15,24 +18,13 @@ export interface TrackContext {
   sessionId?: string | null;
   userAgent?: string | null;
   /** Coarse location from the edge (`cai_geo` cookie): country, state code, city. */
-  geo?: { country: string | null; region: string | null; city: string | null } | null;
+  geo?: Geo | null;
   /** Invitation this browser opened as a guest (`cai_ref` cookie), for the viral loop. */
   refEventId?: string | null;
 }
 
 const str = (v: unknown, max = 80) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, max).toLowerCase() : null);
 
-/** `cai_geo` = "IN|MH|Mumbai" (URI-encoded), set by the web edge from its own geo headers. */
-export function parseGeo(raw: string | undefined | null): TrackContext['geo'] {
-  if (!raw) return null;
-  try {
-    const [country, region, city] = decodeURIComponent(raw).split('|');
-    const clean = (v: string | undefined, max: number) => (v && /^[\p{L}\p{N} .'-]{1,60}$/u.test(v) ? v.slice(0, max) : null);
-    return { country: clean(country, 2)?.toUpperCase() ?? null, region: clean(region, 3)?.toUpperCase() ?? null, city: clean(city, 60) };
-  } catch {
-    return null;
-  }
-}
 
 export function deviceOf(ua: string | null | undefined): string {
   if (!ua) return 'unknown';

@@ -19,7 +19,7 @@ import { StepDesign } from './step-design';
 import { StepOccasion } from './step-occasion';
 import { detailsProblem, StepQuick } from './step-quick';
 import { track } from '@/lib/track';
-import { findTemplate } from '@/lib/hooks';
+import { findTemplate } from '@/lib/template-hooks';
 
 type StepId = 'occasion' | 'design' | 'details';
 interface StepMeta {

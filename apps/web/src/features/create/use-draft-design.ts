@@ -2,7 +2,7 @@
 
 import { BUILTIN_TEMPLATES, buildDesign, designDataFrom, type DesignData, type DesignDoc } from '@cardai/shared';
 import { useMemo } from 'react';
-import { findTemplate } from '@/lib/hooks';
+import { findTemplate } from '@/lib/template-hooks';
 import { toIso, type Draft } from './draft-store';
 
 /** The wizard draft as a layered card (what the editor will open with). */

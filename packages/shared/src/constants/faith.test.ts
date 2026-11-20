@@ -3,7 +3,8 @@ import { BUILTIN_TEMPLATES } from '../templates/catalog.js';
 import { buildDesign } from '../design/build.js';
 import { designDataFrom, resolveBinding } from '../design/bindings.js';
 import type { DesignDoc } from '../design/schema.js';
-import { autoCharacter, defaultSiteDoc, siteCharacterFor } from '../site/defaults.js';
+import { defaultSiteDoc } from '../site/defaults.js';
+import { autoCharacter, siteCharacterFor } from '../site/display.js';
 import { attireFor, BISMILLAH, blessingFor, faithOf, invocationFor, resolveInvocation, templateFaithClash } from './faith.js';
 
 const functions = [{ name: 'Wedding', startsAt: '2026-12-14T19:00:00+05:30', venueName: 'Rambagh Palace' }];

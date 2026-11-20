@@ -77,10 +77,6 @@ export interface LockedSiteDto {
 
 export type PublicSiteResponse = PublicSiteDto | LockedSiteDto;
 
-export function isLockedSite(r: PublicSiteResponse): r is LockedSiteDto {
-  return 'locked' in r;
-}
-
 export const trackViewSchema = z.object({
   g: z.string().max(40).optional(),
 });

@@ -5,7 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useRef } from 'react';
-import { Logo } from '@/components/layout/site-header';
+import { Logo } from '@/components/layout/logo';
 import { AuthFlow } from './auth-flow';
 
 /** Safe relative path from `?next=` (prevents open redirects). */

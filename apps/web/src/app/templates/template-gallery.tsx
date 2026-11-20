@@ -9,10 +9,10 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
 import { TemplatePreview } from '@/components/invite/template-preview';
 import { COMMUNITY_LABEL, NoTemplates, useTemplateSearch, type TemplateSearchState } from '@/components/invite/template-search';
-import { designHref } from '@/components/marketing/family-showcase';
+import { designHref } from '@/lib/links';
 import { Dialog } from '@/components/ui/dialog';
 import { controlClass } from '@/components/ui/field';
-import { useTemplates } from '@/lib/hooks';
+import { useTemplates } from '@/lib/template-hooks';
 
 const OCCASIONS: Array<EventTypeId | 'all'> = [
   'all', 'wedding', 'engagement', 'reception', 'birthday', 'griha-pravesh', 'puja', 'baby-shower',
@@ -50,8 +50,14 @@ function sortFamilies(families: Family[], sort: Sort): Family[] {
 
 const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-/** `inApp`: rendered inside the signed-in shell (shorter top bar, wider page gutters). */
-export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
+/** Designs the server already fetched for one occasion (undefined = all occasions). */
+export type InitialTemplates = { eventType: string | undefined; items: TemplateDefinition[] };
+
+/**
+ * `inApp`: rendered inside the signed-in shell (shorter top bar, wider page gutters).
+ * `initial`: server-fetched designs, so the first view is server-rendered (SEO) with no loading state.
+ */
+export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; initial?: InitialTemplates | null } = {}) {
   const hi = useLocale() === 'hi';
   // Filters live in the address bar, so a search can be shared, bookmarked and restored on Back.
   const params = useSearchParams();
@@ -60,7 +66,8 @@ export function TemplateGallery({ inApp = false }: { inApp?: boolean } = {}) {
   const [sort, setSort] = useState<Sort>(() => pick(params.get('sort'), SORTS.map((s) => s[0]), 'recommended'));
   const [previewId, setPreviewId] = useState<string | null>(() => params.get('design'));
   const [sheetOpen, setSheetOpen] = useState(false);
-  const { data, isLoading } = useTemplates(occasion === 'all' ? undefined : occasion);
+  const eventType = occasion === 'all' ? undefined : occasion;
+  const { data, isLoading } = useTemplates(eventType, initial && initial.eventType === eventType ? initial.items : undefined);
   const search = useTemplateSearch(data, {
     q: params.get('q') ?? '',
     colors: list(params.get('colour'), COLOR_IDS),

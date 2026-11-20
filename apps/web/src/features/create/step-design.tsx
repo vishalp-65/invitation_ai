@@ -9,7 +9,7 @@ import { FamilyTile } from '@/components/invite/family-tile';
 import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/invite/template-search';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { findTemplate, useTemplates } from '@/lib/hooks';
+import { findTemplate, useTemplates } from '@/lib/template-hooks';
 import { DraftPreview } from './draft-preview';
 import { useDraft } from './draft-store';
 

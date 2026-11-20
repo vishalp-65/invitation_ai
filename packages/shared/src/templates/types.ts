@@ -116,4 +116,11 @@ export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
   category?: 'wedding' | 'kids' | 'religious' | 'business';
   /** Declared visual styles for search (more are derived, see templates/search.ts). */
   styles?: string[];
+  /** Language of the gallery thumbnail (the sample shown in the picker). */
+  sampleLanguage?: 'en' | 'hi';
+  /**
+   * Retired from the gallery (older, simpler designs). Still resolves by id so invitations
+   * already made with it keep rendering; admins can bring one back with a template override.
+   */
+  retired?: boolean;
 };

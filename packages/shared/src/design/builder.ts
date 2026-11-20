@@ -412,8 +412,14 @@ export function roleFont(style: RoleStyle, ctx: Pick<RecipeCtx, 'latin' | 'scrip
 }
 
 /** A band's explicit font only when it can draw its text (a Latin script face can't write Hindi). */
-const fontFor = (explicit: string | undefined, style: RoleStyle, ctx: RecipeCtx, text: string) =>
-  explicit && fontSupports(explicit, detectScript(text)) ? explicit : roleFont(style, ctx);
+function fontFor(explicit: string | undefined, style: RoleStyle, ctx: RecipeCtx, text: string): string {
+  const script = detectScript(text);
+  if (explicit && fontSupports(explicit, script)) return explicit;
+  // English words on a Hindi card (names typed in English) keep the template's Latin face;
+  // the renderer still falls back per script if the text is later changed to Hindi.
+  if (!ctx.latin && script === 'Latn' && /[A-Za-z]/.test(text)) return style.font;
+  return roleFont(style, ctx);
+}
 
 export const nextId = (prefix = 'e') => `${prefix}${(seq++).toString(36)}`;
 

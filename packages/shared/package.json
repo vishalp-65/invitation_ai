@@ -4,6 +4,7 @@
   "private": true,
   "description": "Domain constants, Zod schemas and pure helpers shared by API, worker and web.",
   "type": "module",
+  "sideEffects": false,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

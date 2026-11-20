@@ -7,12 +7,12 @@ import { BedDouble, Bus, CalendarPlus, ChevronDown, Clock, Hotel, MapPin, Phone,
 import { useEffect, useState, type ReactNode } from 'react';
 import { Character } from './characters';
 import { safeHref, useSite } from './context';
+import { mapsUrl, useCountdown } from './utils';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { AlbumSection, GiftsSection, LivestreamSection, UpdatesSection, WishesSection } from './interactive';
 import { RsvpForm } from './rsvp-form';
 import { CountdownSection, DesignDressCode, DesignVenue, RibbonSchedule, SceneHero, ScriptHeading, SealRsvp, ThingsSection } from './design-sections';
 
-const mapsUrl = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 
 // ---------------- shell ----------------
 
@@ -57,24 +57,6 @@ export function Shell({ section, children, tone = 'plain', wide = false }: { sec
 const card = 'rounded-[22px] bg-[var(--inv-surface)] text-[var(--inv-on-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_18px_40px_-28px_rgb(0_0_0/0.45)]';
 
 // ---------------- hero ----------------
-
-function useCountdown(target: string | undefined) {
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const t = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(t);
-  }, []);
-  if (!target || now === null) return null;
-  const diff = new Date(target).getTime() - now;
-  if (diff <= 0) return null;
-  return {
-    days: Math.floor(diff / 86400000),
-    hours: Math.floor((diff / 3600000) % 24),
-    minutes: Math.floor((diff / 60000) % 60),
-    seconds: Math.floor((diff / 1000) % 60),
-  };
-}
 
 function Countdown({ target }: { target: string }) {
   const { t } = useSite();

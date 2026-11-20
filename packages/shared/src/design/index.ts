@@ -7,3 +7,4 @@ export * from './families.js';
 export * from './build.js';
 export * from './pages.js';
 export * from './families-heritage.js';
+export * from './families-atelier.js';

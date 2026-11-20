@@ -258,15 +258,37 @@ function expandDesign(f: DesignFamily): TemplateDefinition[] {
       design: f.id,
       category: f.category,
       ...(f.styles ? { styles: f.styles } : {}),
+      ...(f.sampleLanguage ? { sampleLanguage: f.sampleLanguage } : {}),
+      ...(RETIRED_DESIGNS.has(f.id) ? { retired: true } : {}),
     };
   });
 }
 
-/** New layered designs first (they're the premium, editor-first collection), then the classics. */
-export const BUILTIN_TEMPLATES: TemplateDefinition[] = [
+/**
+ * Layered families from the first collection that read as too plain next to the Atelier and
+ * Heritage suites (sparse layouts, little art). Retired from the gallery, not deleted.
+ */
+const RETIRED_DESIGNS = new Set(['line-of-love', 'ring-ceremony', 'golden-years', 'photo-story', 'cloud-nine', 'clean-slate', 'black-tie', 'farewell-cheers', 'milestone-gold']);
+
+/**
+ * Every built-in template, including retired ones. Use it to resolve a template by id
+ * (saved invitations, admin console); use BUILTIN_TEMPLATES for anything a customer browses.
+ * The classic auto-layout catalogue (TEMPLATE_FAMILIES) is retired as a whole (Nov 2026).
+ */
+export const ALL_BUILTIN_TEMPLATES: TemplateDefinition[] = [
   ...ALL_DESIGN_FAMILIES.flatMap(expandDesign),
-  ...TEMPLATE_FAMILIES.flatMap(expand).map((t) => ({ ...t, category: LEGACY_CATEGORY(t.eventTypes) })),
+  ...TEMPLATE_FAMILIES.flatMap(expand).map((t) => ({ ...t, category: LEGACY_CATEGORY(t.eventTypes), retired: true })),
 ];
+
+/** The gallery: newest premium collections first, retired designs left out. */
+export const BUILTIN_TEMPLATES: TemplateDefinition[] = ALL_BUILTIN_TEMPLATES.filter((t) => !t.retired);
+
+const BY_ID = new Map(ALL_BUILTIN_TEMPLATES.map((t) => [t.id, t]));
+
+/** A built-in template by id, retired ones included (old invitations keep working). */
+export function findBuiltinTemplate(id: string | null | undefined): TemplateDefinition | undefined {
+  return id ? BY_ID.get(id) : undefined;
+}
 
 export function templateSupportsEvent(template: TemplateDefinition, eventType: string): boolean {
   return template.eventTypes === 'all' || (template.eventTypes as string[]).includes(eventType);

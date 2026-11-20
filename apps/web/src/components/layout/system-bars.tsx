@@ -35,6 +35,8 @@ export function SystemBars() {
     // The refresh cookie is the admin's own: refreshing restores their session and clears the bar.
     await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' }).catch(() => undefined);
     document.cookie = 'cai_imp=; path=/; max-age=0';
+    // A full load on purpose: it drops every query cached while viewing as the customer.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     location.href = '/admin/users';
   }
 

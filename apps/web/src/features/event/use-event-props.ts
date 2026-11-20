@@ -4,7 +4,7 @@ import { buildInviteProps, type EventDto, type InviteProps, type MediaAssetDto }
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { api } from '@/lib/api';
-import { useTemplates } from '@/lib/hooks';
+import { useTemplates } from '@/lib/template-hooks';
 
 export function useEventMedia(eventId: string) {
   return useQuery({

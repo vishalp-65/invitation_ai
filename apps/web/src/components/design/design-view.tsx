@@ -3,6 +3,7 @@
 import type { DesignData, DesignPage as Page } from '@cardai/shared';
 import { DesignPage, fontsForPages, loadFamily } from '@cardai/templates';
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import { useNearViewport } from '@/lib/observe';
 
 /** Loads the fonts a set of pages uses (browser only; never blocks rendering). */
 export function useBrowserDesignFonts(pages: Page[], data: DesignData | null): boolean {
@@ -47,13 +48,7 @@ interface Props {
 /** Static, responsive render of one card page (gallery, previews, website). */
 export function DesignView({ page, data, language, className, style, lazy = false }: Props) {
   const { ref, width } = useWidth<HTMLDivElement>();
-  const [near, setNear] = useState(!lazy);
-  useEffect(() => {
-    if (!lazy || !ref.current) return;
-    const io = new IntersectionObserver(([e]) => e!.isIntersecting && setNear(true), { rootMargin: '400px' });
-    io.observe(ref.current);
-    return () => io.disconnect();
-  }, [lazy, ref]);
+  const near = useNearViewport(ref, { enabled: lazy, rootMargin: '400px' });
   const pages = useMemo(() => [page], [page]);
   const fontsReady = useBrowserDesignFonts(near ? pages : [], data);
 

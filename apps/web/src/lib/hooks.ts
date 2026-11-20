@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, type EventDto, type MeResponse, type RenderDto, type TemplateDefinition } from '@cardai/shared';
+import type { EventDto, MeResponse, RenderDto } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSyncExternalStore } from 'react';
 import { api, ApiError } from './api';
@@ -42,45 +42,8 @@ export function useMe() {
   return hydrated ? q : { ...q, data: undefined, isLoading: true as const };
 }
 
-/**
- * Every template this browser has seen from the API (incl. admin-published ones that aren't in
- * the built-in list), so synchronous lookups like the create wizard's preview can find them.
- */
-const seen = new Map<string, TemplateDefinition>();
-const BUILTIN_BY_ID = new Map(BUILTIN_TEMPLATES.map((t) => [t.id, t]));
-
-export function findTemplate(id: string | null | undefined): TemplateDefinition | undefined {
-  return id ? (BUILTIN_BY_ID.get(id) ?? seen.get(id)) : undefined;
-}
-
-function remember(items: TemplateDefinition[]) {
-  for (const t of items) if (!BUILTIN_BY_ID.has(t.id)) seen.set(t.id, t);
-  return items;
-}
-
-/** One template by id, including hidden ones (invitations made with them keep working). */
-export function useTemplate(id: string | undefined) {
-  return useQuery({
-    queryKey: ['template', id],
-    queryFn: async () => remember([await api<TemplateDefinition>(`/templates/${id}`)])[0]!,
-    enabled: Boolean(id),
-    initialData: () => findTemplate(id),
-    staleTime: 10 * 60_000,
-  });
-}
-
-export function useTemplates(eventType?: string) {
-  return useQuery({
-    queryKey: qk.templates(eventType),
-    queryFn: async () => {
-      const r = await api<{ items: TemplateDefinition[] }>(`/templates${eventType ? `?eventType=${eventType}` : ''}`);
-      remember(r.items);
-      return r;
-    },
-    staleTime: 10 * 60_000,
-    select: (d) => d.items,
-  });
-}
+// Template lookups (findTemplate, useTemplate, useTemplates) are in ./template-hooks: they carry
+// the whole design catalogue, which pages that only need the session should not download.
 
 export function useEvent(id: string) {
   return useQuery({ queryKey: qk.event(id), queryFn: () => api<EventDto>(`/events/${id}`) });

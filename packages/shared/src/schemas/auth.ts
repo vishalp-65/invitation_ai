@@ -1,12 +1,11 @@
 import { z } from 'zod';
+import { PASSWORD_MIN } from '../constants/auth.js';
 import { UI_LOCALES } from '../constants/languages.js';
 import { emailSchema } from './common.js';
 
 const codeSchema = z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code');
 
 const nameSchema = z.string().trim().min(1, 'Enter your name').max(80);
-
-export const PASSWORD_MIN = 8;
 
 export const passwordSchema = z
   .string()

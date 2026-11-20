@@ -4,6 +4,7 @@
   "private": true,
   "description": "Remotion layouts: one source of truth for live preview, image cards, PDFs and video invites.",
   "type": "module",
+  "sideEffects": ["./src/remotion/index.ts"],
   "exports": {
     ".": "./src/index.ts",
     "./remotion-entry": "./src/remotion/index.ts",

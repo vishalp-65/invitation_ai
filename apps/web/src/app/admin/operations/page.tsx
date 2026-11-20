@@ -1,10 +1,14 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import { Button } from '@/components/ui/button';
+import { useMe } from '@/lib/hooks';
 import { AlertTriangle, Bot, Clock, Database, HardDrive, Hourglass, MailOpen, Video } from 'lucide-react';
 import { BarList } from '@/features/admin/charts';
 import { ago, Badge, Card, Empty, num, PageHeader, pct, RangePicker, Skeleton, StatCard, Table, useRange } from '@/features/admin/ui';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 interface Ops {
   renders: Array<{ format: string; status: string; count: number; avgSeconds: number | null }>;
@@ -74,6 +78,8 @@ export default function AdminOperationsPage() {
             <StatCard label="Database" icon={<Database />} value={bytes(data.tables.reduce((s, t) => s + t.bytes, 0))} hint="10 biggest tables" />
             <StatCard label="Avg. video render" icon={<Clock />} value={byFormat.find((f) => f.format === 'video')?.avg ? `${byFormat.find((f) => f.format === 'video')!.avg} s` : '—'} hint="Queue to finished file" />
           </div>
+
+          <Alerts />
 
           <Card title="Rendering by format" pad={false}>
             {byFormat.length ? (
@@ -156,5 +162,89 @@ export default function AdminOperationsPage() {
         </div>
       )}
     </>
+  );
+}
+
+interface AlertRow {
+  id: string;
+  kind: string;
+  severity: 'warn' | 'critical';
+  title: string;
+  detail: string | null;
+  resolvedAt: string | null;
+  createdAt: string;
+}
+
+/** Alerts from the 10-minute checks, plus buttons to run the scheduled jobs now. */
+function Alerts() {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const owner = !me?.adminScopes?.length || me.adminScopes.includes('owner');
+  const { data } = useQuery({ queryKey: ['admin', 'alerts'], queryFn: () => api<AlertRow[]>('/admin/alerts'), refetchInterval: 60_000 });
+  const [busy, setBusy] = useState<string | null>(null);
+  const open = (data ?? []).filter((a) => !a.resolvedAt);
+
+  async function run(job: 'check' | 'digest' | 'nightly') {
+    setBusy(job);
+    try {
+      const r = await api<{ raised?: unknown[]; sentTo?: number; backfilled?: number }>(`/admin/ops/${job}`, { method: 'POST' });
+      toast.success(job === 'check' ? `Checks ran: ${r.raised?.length ?? 0} new alert(s)` : job === 'digest' ? `Summary sent to ${r.sentTo ?? 0} admin(s)` : `Daily numbers updated (${r.backfilled ?? 0} days filled)`);
+      void qc.invalidateQueries({ queryKey: ['admin', 'alerts'] });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed');
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function resolve(id: string) {
+    await api(`/admin/alerts/${id}/resolve`, { method: 'POST' }).catch(() => undefined);
+    void qc.invalidateQueries({ queryKey: ['admin', 'alerts'] });
+  }
+
+  return (
+    <Card
+      title="Alerts"
+      description="Checked every 10 minutes: failing or stuck renders, payment webhooks, checkouts with no payments, sign-up drops, AI spend. Emailed to owners and support, at most every 2 hours per problem."
+      pad={false}
+      action={
+        owner && (
+          <div className="flex flex-wrap gap-2">
+            <Button size="sm" variant="line" loading={busy === 'check'} onClick={() => void run('check')}>
+              Run checks now
+            </Button>
+            <Button size="sm" variant="line" loading={busy === 'digest'} onClick={() => void run('digest')}>
+              Send today’s summary
+            </Button>
+            <Button size="sm" variant="quiet" loading={busy === 'nightly'} onClick={() => void run('nightly')}>
+              Rebuild daily numbers
+            </Button>
+          </div>
+        )
+      }
+    >
+      {!data?.length ? (
+        <p className="px-5 py-6 text-center text-sm text-ink-soft">No alerts. Everything looks healthy.</p>
+      ) : (
+        <ul className="divide-y divide-ink/10">
+          {data.slice(0, 15).map((a) => (
+            <li key={a.id} className="flex items-start gap-3 px-5 py-3">
+              <Badge tone={a.resolvedAt ? 'neutral' : a.severity === 'critical' ? 'bad' : 'warn'}>{a.resolvedAt ? 'Resolved' : a.severity === 'critical' ? 'Critical' : 'Warning'}</Badge>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{a.title}</p>
+                {a.detail && <p className="text-xs text-ink-soft">{a.detail}</p>}
+                <p className="mt-0.5 font-mono text-[0.6875rem] text-ink-soft">{ago(a.createdAt)}</p>
+              </div>
+              {!a.resolvedAt && (
+                <Button size="sm" variant="quiet" className="h-8 px-3" onClick={() => void resolve(a.id)}>
+                  Resolve
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {open.length > 0 && <p className="border-t border-ink/10 px-5 py-2 text-xs text-ink-soft">{open.length} open</p>}
+    </Card>
   );
 }

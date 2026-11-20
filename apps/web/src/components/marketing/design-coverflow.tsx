@@ -1,13 +1,13 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, EVENT_TYPES, groupByFamily, HERITAGE_FAMILIES, SITE_DESIGNS, visibleDesigns, type TemplateDefinition } from '@cardai/shared';
+import { ATELIER_FAMILIES, BUILTIN_TEMPLATES, EVENT_TYPES, groupByFamily, HERITAGE_FAMILIES, SITE_DESIGNS, visibleDesigns, type TemplateDefinition } from '@cardai/shared';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 import { useMemo, type CSSProperties } from 'react';
 import { DesignPoster } from '@/components/invite/design-poster';
 import GlassyCarousel, { type GlassyCarouselItem } from '@/components/ui/glassy-coverflow-carousel';
 import { googleFontsHref } from '@/features/site/theme';
 import { useDesignVisibility } from '@/lib/offers';
-import { designHref } from './family-showcase';
+import { designHref } from '@/lib/links';
 
 /** Maps the carousel's theme roles onto Noyta's tokens, so it follows light / dark with the site. */
 const THEME = {
@@ -59,7 +59,7 @@ function Hint({ hi }: { hi: boolean }) {
 export function TemplateCoverflow({ hi, limit = 14, includeHeritage = false, className }: { hi: boolean; limit?: number; includeHeritage?: boolean; className?: string }) {
   const { hiddenTemplates } = useDesignVisibility();
   const items = useMemo<GlassyCarouselItem[]>(() => {
-    const heritage = new Set(HERITAGE_FAMILIES.map((f) => f.id));
+    const heritage = new Set([...ATELIER_FAMILIES, ...HERITAGE_FAMILIES].map((f) => f.id));
     const off = new Set(hiddenTemplates);
     const families = groupByFamily(BUILTIN_TEMPLATES.filter((t) => !off.has(t.id) && (includeHeritage || !t.design || !heritage.has(t.design))));
     // Round-robin over categories so a wedding card is never next to three more wedding cards.

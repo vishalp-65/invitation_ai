@@ -3,7 +3,7 @@
 import { BUILTIN_TEMPLATES, getEventType, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { findTemplate } from '@/lib/hooks';
+import { findTemplate } from '@/lib/template-hooks';
 
 export interface DraftFunction {
   key: string;

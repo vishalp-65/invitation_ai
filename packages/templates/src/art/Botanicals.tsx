@@ -310,12 +310,14 @@ export function BloomCorner({ w, h, c, opts }: ArtProps) {
 /**
  * Overlapping fine gold hoops dressed with watercolour bouquets (names sit inside).
  * c = [gold, petal, deep petal, leaf]; opts.kind = rose | peony | hydrangea | mixed;
- * opts.layout = diagonal (top-left + bottom-right) | left (an arc down the left side).
+ * opts.layout = diagonal (top-left + bottom-right) | left (an arc down the left side);
+ * opts.scale shrinks the bouquets (default 1).
  */
 export function BloomRing({ w, h, c, opts }: ArtProps) {
   const [gold = '#C9973F', petal = '#E58FAB', deep = mix(petal, '#3B1F2A', 0.4), leaf = '#7A9A6B'] = c;
   const kind = String(opts?.kind ?? 'rose');
   const layout = String(opts?.layout ?? 'diagonal');
+  const k = Number(opts?.scale ?? 1);
   const fid = useSvgId('bring');
   const gid = useSvgId('bringg');
   const leaf2 = mix(leaf, '#1F2E1A', 0.3);
@@ -367,7 +369,7 @@ export function BloomRing({ w, h, c, opts }: ArtProps) {
         const [x, y] = at(d!, R + 7);
         return <circle key={d} cx={x} cy={y} r={r} fill={gold} />;
       })}
-      <g filter={`url(#${fid})`}>{spots.map(([d, sc, seed]) => bouquet(d!, sc!, seed!))}</g>
+      <g filter={`url(#${fid})`}>{spots.map(([d, sc, seed]) => bouquet(d!, sc! * k, seed!))}</g>
     </>,
   );
 }

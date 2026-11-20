@@ -4,7 +4,8 @@ import { CANVAS, planVideoScenes, VIDEO, type InviteProps } from '@cardai/shared
 import { InviteCard, InviteVideo } from '@cardai/templates';
 import { Player, Thumbnail } from '@remotion/player';
 import { clsx } from 'clsx';
-import { useEffect, useRef, useState, type ComponentType } from 'react';
+import { useRef, type ComponentType } from 'react';
+import { useNearViewport } from '@/lib/observe';
 
 const Card = InviteCard as unknown as ComponentType<Record<string, unknown>>;
 const Video = InviteVideo as unknown as ComponentType<Record<string, unknown>>;
@@ -48,15 +49,7 @@ export function InvitePlayer({ props, mode, className, autoPlay = false, control
 /** Lightweight still for galleries; only mounts when scrolled into view. */
 export function InviteThumb({ props, className }: { props: InviteProps; className?: string }) {
   const ref = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setVisible(true), { rootMargin: '200px' });
-    io.observe(el);
-    return () => io.disconnect();
-  }, []);
+  const visible = useNearViewport(ref, { rootMargin: '200px' });
 
   return (
     <div ref={ref} className={clsx('aspect-[9/16] w-full overflow-hidden rounded-lg bg-mist', className)}>

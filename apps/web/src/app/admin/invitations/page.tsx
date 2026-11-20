@@ -4,6 +4,7 @@ import { EVENT_TYPES, getSiteDesign } from '@cardai/shared';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Ban, ExternalLink, MailOpen, RotateCcw, Search } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -45,7 +46,7 @@ const typeLabel = (id: string) => EVENT_TYPES.find((e) => e.id === id)?.label.sp
 export default function AdminInvitationsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState<Status>('all');
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(useSearchParams().get('q') ?? '');
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
   const [suspending, setSuspending] = useState<Invitation | null>(null);

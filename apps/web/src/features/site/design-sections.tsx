@@ -5,6 +5,7 @@ import { DressFigures, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal } fro
 import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, Route, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { safeHref, useSite } from './context';
+import { mapsUrl, useCountdown } from './utils';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { RsvpForm } from './rsvp-form';
 
@@ -14,7 +15,6 @@ import { RsvpForm } from './rsvp-form';
  * a layered painted cover, a ribbon timeline, a painted venue and a wax-seal RSVP.
  */
 
-const mapsUrl = (q: string) => `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;
 const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties;
 
 /** Section heading in the design's script font with a thin flourish. */
@@ -33,20 +33,6 @@ export function ScriptHeading({ id, children }: { id: string; children: ReactNod
 }
 
 // ---------------- countdown ----------------
-
-function useCountdown(target: string | undefined) {
-  // Starts on the client only (no server/client clock mismatch).
-  const [now, setNow] = useState<number | null>(null);
-  useEffect(() => {
-    setNow(Date.now());
-    const id = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, []);
-  if (!target || now === null) return null;
-  const diff = new Date(target).getTime() - now;
-  if (diff <= 0) return null;
-  return { days: Math.floor(diff / 86400000), hours: Math.floor((diff / 3600000) % 24), minutes: Math.floor((diff / 60000) % 60), seconds: Math.floor((diff / 1000) % 60) };
-}
 
 export function CountdownSection({ section }: { section: SiteSectionOf<'countdown'> }) {
   const { data, t, heading, design, fmt } = useSite();

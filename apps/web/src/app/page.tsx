@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { SiteFooter, SiteHeader } from '@/components/layout/site-header';
+import { SiteFooter } from '@/components/layout/site-footer';
+import { SiteHeader } from '@/components/layout/site-header';
 import { MobileDock } from '@/components/marketing/mobile-dock';
 import { StudioCta } from '@/components/studio/cta';
 import { StudioVideoCarousel } from '@/components/studio/design-showcase';

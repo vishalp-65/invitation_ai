@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
-import { Logo } from '@/components/layout/site-header';
+import { Logo } from '@/components/layout/logo';
 import { useNextTarget } from '@/features/auth/auth-page';
 import { useMe } from '@/lib/hooks';
 

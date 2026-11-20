@@ -2,6 +2,7 @@
 
 import type { SectionMotion } from '@cardai/shared';
 import { createContext, useContext, useEffect, useRef, useState, type CSSProperties, type ElementType, type ReactNode } from 'react';
+import { observeOnce } from '@/lib/observe';
 
 export type MotionLevel = 'full' | 'subtle' | 'off';
 
@@ -28,21 +29,6 @@ export function useEffectiveMotion(chosen: MotionLevel): MotionLevel {
   return rank[auto] < rank[chosen] ? auto : chosen;
 }
 
-let observer: IntersectionObserver | null = null;
-function getObserver() {
-  observer ??= new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) {
-          e.target.setAttribute('data-in', '');
-          observer!.unobserve(e.target);
-        }
-      }
-    },
-    { rootMargin: '0px 0px -10% 0px', threshold: 0.08 },
-  );
-  return observer;
-}
 
 /** Scroll reveal with one shared observer; `delay` staggers siblings (×90ms). */
 export function Reveal({
@@ -64,9 +50,7 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = getObserver();
-    obs.observe(el);
-    return () => obs.unobserve(el);
+    return observeOnce(el, () => el.setAttribute('data-in', ''), 0.08, '0px 0px -10% 0px');
   }, []);
   if (motion === 'none') {
     return (

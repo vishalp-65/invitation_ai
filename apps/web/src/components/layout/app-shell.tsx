@@ -8,7 +8,8 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useMe } from '@/lib/hooks';
 import { ThemeToggle } from '@/lib/theme';
-import { AccountMenu, Avatar, LocaleSwitch, Logo } from './site-header';
+import { Logo } from './logo';
+import { AccountMenu, Avatar, LocaleSwitch } from './site-header';
 
 type NavKey = 'invitations' | 'guests' | 'orders' | 'templates' | 'sell' | 'admin' | 'settings';
 interface NavItem {

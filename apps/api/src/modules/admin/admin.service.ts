@@ -42,24 +42,15 @@ import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { OffersService } from '../offers/offers.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
 import { AdminAnalyticsService } from './admin-analytics.service.js';
+import { toCsv } from './csv.js';
+
+export { toCsv };
 
 const PAGE = 25;
 /** CSV exports stop here; beyond that, query the database directly. */
 const EXPORT_LIMIT = 50_000;
 const TZ = sql.raw(`'Asia/Kolkata'`);
 const TODAY = sql`(now() at time zone ${TZ})::date`;
-
-/** RFC 4180 field; also defuses spreadsheet formulas (=, +, -, @) in user-typed text. */
-function csvCell(v: unknown): string {
-  if (v == null) return '';
-  let s = v instanceof Date ? v.toISOString() : String(v);
-  if (/^[=+\-@\t\r]/.test(s)) s = `'${s}`;
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-export function toCsv(rows: Array<Record<string, unknown>>, columns: string[]): string {
-  return [columns.join(','), ...rows.map((r) => columns.map((c) => csvCell(r[c])).join(','))].join('\r\n') + '\r\n';
-}
 
 type CouponData = z.output<typeof couponInputSchema>;
 type BulkCouponData = z.output<typeof couponBulkSchema>;
@@ -631,6 +622,7 @@ export class AdminService {
         select o.id, o.product_code as "productCode", o.amount_paise as "amountPaise", o.list_price_paise as "listPricePaise",
                o.discount_paise as "discountPaise", o.coupon_code as "couponCode", o.status, o.provider, o.provider_payment_id as "paymentId",
                o.created_at as "createdAt", o.paid_at as "paidAt", o.template_id as "templateId",
+               o.refunded_paise as "refundedPaise", o.refund_reason as "refundReason", o.payment_method as "paymentMethod",
                u.id as "userId", u.name as "userName", u.email as "userEmail", e.title as "eventTitle"
         from orders o join users u on u.id = o.user_id left join events e on e.id = o.event_id
         where ${cond} order by o.created_at desc limit ${PAGE} offset ${(q.page - 1) * PAGE}`),

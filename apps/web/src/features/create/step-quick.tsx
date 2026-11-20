@@ -13,7 +13,7 @@ import { api, ApiError } from '@/lib/api';
 import { defaultWording } from './default-wording';
 import { DraftPreview } from './draft-preview';
 import { emptyFunction, useDraft, type Draft } from './draft-store';
-import { findTemplate } from '@/lib/hooks';
+import { findTemplate } from '@/lib/template-hooks';
 import { CheckBadge, FLAGGED, FunctionList, resolveScanField, ScanReview } from './scan/scan-review';
 
 /** The function shown on the card: the ceremony itself for weddings, else the first one. */

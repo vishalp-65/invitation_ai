@@ -1,6 +1,6 @@
 'use client';
 
-import { motion, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from 'framer-motion';
+import { LazyMotion, m, useMotionValue, useReducedMotion, useScroll, useSpring, useTransform, type MotionValue } from 'framer-motion';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
@@ -29,6 +29,9 @@ interface Placement {
 }
 
 const SPRING = { stiffness: 60, damping: 25, mass: 0.5 };
+
+/** The renderer arrives in its own chunk after first paint; until then cards render at their start values. */
+const loadMotionFeatures = () => import("./motion-features").then((mod) => mod.default);
 
 /** Golden-angle spiral so neighbouring cards never stack on the same side of the corridor. */
 const place = (i: number): Placement => {
@@ -109,7 +112,7 @@ function TunnelCard({
   });
 
   return (
-    <motion.div style={{ width, transform, opacity, pointerEvents }} className="absolute left-1/2 top-1/2 aspect-[9/16] select-none will-change-transform">
+    <m.div style={{ width, transform, opacity, pointerEvents }} className="absolute left-1/2 top-1/2 aspect-[9/16] select-none will-change-transform">
       <Link
         href={item.href}
         draggable={false}
@@ -129,7 +132,7 @@ function TunnelCard({
           {item.caption && <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/60">{item.caption}</span>}
         </span>
       </Link>
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -196,47 +199,49 @@ export function PerspectiveTunnel({
   }
 
   return (
-    <section ref={ref} className="relative" style={{ height: `${screens * 100}svh` }}>
-      <div
-        className="sticky top-0 flex h-[100svh] w-full items-center justify-center overflow-hidden"
-        style={{ perspective: stage.isMobile ? '900px' : '1200px', transformStyle: 'preserve-3d' }}
-      >
-        {/* Dot grid + depth rings */}
+    <LazyMotion features={loadMotionFeatures} strict>
+      <section ref={ref} className="relative" style={{ height: `${screens * 100}svh` }}>
         <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(color-mix(in_srgb,var(--color-ink)_14%,transparent)_1px,transparent_1.2px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_70%_at_50%_50%,#000_55%,transparent_100%)]"
-        />
-        <div aria-hidden className="pointer-events-none absolute size-[48vmin] rounded-full border border-ink/10" />
-        <div aria-hidden className="pointer-events-none absolute size-[76vmin] rounded-full border border-dashed border-ink/10" />
+          className="sticky top-0 flex h-[100svh] w-full items-center justify-center overflow-hidden"
+          style={{ perspective: stage.isMobile ? '900px' : '1200px', transformStyle: 'preserve-3d' }}
+        >
+          {/* Dot grid + depth rings */}
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 opacity-70 [background-image:radial-gradient(color-mix(in_srgb,var(--color-ink)_14%,transparent)_1px,transparent_1.2px)] [background-size:28px_28px] [mask-image:radial-gradient(ellipse_70%_70%_at_50%_50%,#000_55%,transparent_100%)]"
+          />
+          <div aria-hidden className="pointer-events-none absolute size-[48vmin] rounded-full border border-ink/10" />
+          <div aria-hidden className="pointer-events-none absolute size-[76vmin] rounded-full border border-dashed border-ink/10" />
 
-        <motion.div style={{ scale: titleScale, opacity: titleOpacity }} className="pointer-events-none z-0 flex max-w-xl flex-col items-center px-6 text-center">
-          {kicker}
-          <h2 className="display-md mt-6">{title}</h2>
-          {subtitle && <p className="mt-4 max-w-[38ch] text-sm text-ink-soft sm:text-base">{subtitle}</p>}
-        </motion.div>
+          <m.div style={{ scale: titleScale, opacity: titleOpacity }} className="pointer-events-none z-0 flex max-w-xl flex-col items-center px-6 text-center">
+            {kicker}
+            <h2 className="display-md mt-6">{title}</h2>
+            {subtitle && <p className="mt-4 max-w-[38ch] text-sm text-ink-soft sm:text-base">{subtitle}</p>}
+          </m.div>
 
-        {prompt && (
-          <motion.div
-            style={{ opacity: promptOpacity }}
-            className="pointer-events-none absolute bottom-8 z-20 flex flex-col items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-ink-soft"
-          >
-            <span>{prompt}</span>
-            <span className="h-6 w-px bg-gradient-to-b from-ink/60 to-transparent" />
-          </motion.div>
-        )}
+          {prompt && (
+            <m.div
+              style={{ opacity: promptOpacity }}
+              className="pointer-events-none absolute bottom-8 z-20 flex flex-col items-center gap-2 font-mono text-xs uppercase tracking-[0.3em] text-ink-soft"
+            >
+              <span>{prompt}</span>
+              <span className="h-6 w-px bg-gradient-to-b from-ink/60 to-transparent" />
+            </m.div>
+          )}
 
-        <div className="pointer-events-none absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
-          {items.map((it, i) => (
-            <TunnelCard key={it.href} item={it} index={i} total={items.length} progress={progress} pointer={pointer} stage={stage} />
-          ))}
+          <div className="pointer-events-none absolute inset-0" style={{ transformStyle: 'preserve-3d' }}>
+            {items.map((it, i) => (
+              <TunnelCard key={it.href} item={it} index={i} total={items.length} progress={progress} pointer={pointer} stage={stage} />
+            ))}
+          </div>
+
+          {footer && (
+            <m.div style={{ opacity: footerOpacity, y: footerY, pointerEvents: footerEvents }} className="absolute bottom-10 z-30 flex justify-center sm:bottom-14">
+              {footer}
+            </m.div>
+          )}
         </div>
-
-        {footer && (
-          <motion.div style={{ opacity: footerOpacity, y: footerY, pointerEvents: footerEvents }} className="absolute bottom-10 z-30 flex justify-center sm:bottom-14">
-            {footer}
-          </motion.div>
-        )}
-      </div>
-    </section>
+      </section>
+    </LazyMotion>
   );
 }

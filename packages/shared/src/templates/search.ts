@@ -184,8 +184,9 @@ function index(t: TemplateDefinition): Indexed {
   const colors = paletteColors(t.theme.palette);
   const events = t.eventTypes === 'all' ? EVENT_TYPES.map((e) => e.id) : t.eventTypes;
   const terms: Array<[string, number]> = [
-    [norm(t.name), 5],
-    [norm(t.family?.name ?? ''), 5],
+    // A word in the design's name outranks an exact tag ("lantern" → Lantern Mahal before other lantern designs).
+    [norm(t.name), 7],
+    [norm(t.family?.name ?? ''), 7],
     [norm(t.family?.variant ?? ''), 4],
     ...t.tags.map((x) => [norm(x), 3] as [string, number]),
     ...styles.map((x) => [x, 3] as [string, number]),

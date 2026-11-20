@@ -3,30 +3,10 @@
 import { clsx } from 'clsx';
 import Image from 'next/image';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { observe } from '@/lib/observe';
 
 // ---------------------------------------------------------------- visibility
-
-/**
- * One IntersectionObserver per (threshold, rootMargin) pair for the whole page, instead of one per
- * section. Callbacks are keyed by element.
- */
-const observers = new Map<string, { io: IntersectionObserver; cbs: Map<Element, (e: IntersectionObserverEntry) => void> }>();
-function observe(el: Element, cb: (e: IntersectionObserverEntry) => void, threshold: number, rootMargin = '0px') {
-  const key = `${threshold}|${rootMargin}`;
-  let o = observers.get(key);
-  if (!o) {
-    const cbs = new Map<Element, (e: IntersectionObserverEntry) => void>();
-    const io = new IntersectionObserver((entries) => entries.forEach((e) => cbs.get(e.target)?.(e)), { threshold, rootMargin });
-    o = { io, cbs };
-    observers.set(key, o);
-  }
-  o.cbs.set(el, cb);
-  o.io.observe(el);
-  return () => {
-    o!.cbs.delete(el);
-    o!.io.unobserve(el);
-  };
-}
+// Shared, pooled IntersectionObservers: see lib/observe.
 
 /** True once the element has scrolled into view (reveals once). */
 export function useInView<T extends Element = HTMLElement>(threshold = 0.1) {

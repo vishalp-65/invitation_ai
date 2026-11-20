@@ -1,11 +1,10 @@
 'use client';
 
-import { BRAND, BUILTIN_TEMPLATES, EVENT_TYPES, type EventCategory } from '@cardai/shared';
+import { EVENT_TYPES } from '@cardai/shared';
 import { clsx } from 'clsx';
 import {
   ArrowUpRight,
   ChevronDown,
-  ChevronRight,
   Languages,
   LayoutGrid,
   LogOut,
@@ -17,86 +16,25 @@ import {
   Tag,
   X,
 } from 'lucide-react';
-import Image from 'next/image';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLogout, useMe } from '@/lib/hooks';
 import { isLightOnly, ThemeSegmented, ThemeToggle } from '@/lib/theme';
-import { ArtImage } from '@/components/studio/primitives';
 import { AnnouncementBar } from './announcement-bar';
+import { Logo } from './logo';
+import { occasionLabel } from './occasion-label';
 
-export function Logo({
-  className = '',
-  tone = 'dark',
-  compact,
-}: {
-  className?: string;
-  tone?: 'dark' | 'light';
-  compact?: boolean;
-}) {
-  return (
-    <Link
-      href="/"
-      className={clsx('flex shrink-0 items-center gap-1.5', className)}
-      aria-label={`${BRAND.name} home`}
-    >
-      {compact ? (
-        <LogoMark tone={tone} className="size-7" />
-      ) : (
-        <>
-          <span
-            className={clsx(
-              'font-display text-2xl uppercase leading-none !tracking-normal',
-              tone === 'light' ? 'text-white' : 'text-ink',
-            )}
-          >
-            {BRAND.name}
-          </span>
-          <span
-            className={clsx(
-              'mt-1 font-mono text-[10px] leading-none',
-              tone === 'light' ? 'text-white/60' : 'text-ink-soft',
-            )}
-          >
-            IN
-          </span>
-        </>
-      )}
-    </Link>
-  );
-}
-
-/**
- * Noyta mark: the "n" drawn as a doorway arch with a diya flame above it (an invitation at your door).
- * Plum tile in light mode, gold tile on dark grounds. Static copies live in /public/brand.
+/*
+ * Logo / LogoMark live in ./logo and SiteFooter in ./site-footer: both are server components, so
+ * they render without shipping JavaScript. Only interactive navigation stays in this client module.
  */
-export function LogoMark({
-  className = '',
-  tone = 'dark',
-}: {
-  className?: string;
-  tone?: 'dark' | 'light';
-}) {
-  const light = tone === 'light';
-  return (
-    <svg viewBox="0 0 32 32" className={clsx('shrink-0', className)} aria-hidden>
-      <rect width="32" height="32" rx="7" className={light ? 'fill-white' : 'fill-primary'} />
-      <path
-        d="M10.5 25v-7.5a5.5 5.5 0 0 1 11 0V25"
-        fill="none"
-        strokeWidth="3.4"
-        strokeLinecap="round"
-        className={light ? 'stroke-night' : 'stroke-ivory dark:stroke-night'}
-      />
-      <path
-        d="M16 3.8c1.7 2 2.3 3.3 2.3 4.3a2.3 2.3 0 0 1-4.6 0c0-1 .6-2.3 2.3-4.3Z"
-        className="fill-rose"
-      />
-    </svg>
-  );
-}
+
+/** The open mega menu needs the design catalogue, so it downloads on first hover/focus, not with every page. */
+const loadOccasionsPanel = () => import('./occasions-panel').then((m) => m.OccasionsPanel);
+const OccasionsPanel = dynamic(loadOccasionsPanel);
 
 export function useSwitchLocale() {
   const locale = useLocale();
@@ -136,22 +74,6 @@ const LINKS = [
   { href: '/templates', key: 'templates' },
   { href: '/pricing', key: 'pricing' },
 ] as const;
-
-/** Occasion menu columns (categories merged so it stays three tidy columns). */
-const OCCASION_GROUPS: Array<{
-  key: 'weddings' | 'family' | 'celebrations';
-  cats: EventCategory[];
-}> = [
-  { key: 'weddings', cats: ['wedding'] },
-  { key: 'family', cats: ['family', 'religious'] },
-  { key: 'celebrations', cats: ['celebration', 'business'] },
-];
-
-function occasionLabel(e: (typeof EVENT_TYPES)[number], locale: string) {
-  if (locale === 'hi') return e.labelHi;
-  // "Griha Pravesh / Housewarming" → "Griha Pravesh": the short name reads better in a menu.
-  return e.label.split(' / ')[0]!;
-}
 
 const initials = (name: string | null, email: string | null) =>
   (name?.trim() || email || '?')
@@ -455,24 +377,8 @@ function CreateButton({ label, onMedia }: { label: string; onMedia?: boolean }) 
 
 // ---------------------------------------------------------------- Occasions mega menu
 
-/** First design made for an occasion: shown as the live preview in the mega menu. */
-const PREVIEW_FOR = (() => {
-  const map = new Map<string, string>();
-  for (const e of EVENT_TYPES) {
-    const tpl = BUILTIN_TEMPLATES.find(
-      (t) => t.eventTypes !== 'all' && (t.eventTypes as string[]).includes(e.id),
-    );
-    if (tpl) map.set(e.id, tpl.id);
-  }
-  return map;
-})();
-const designCount = (id: string) =>
-  BUILTIN_TEMPLATES.filter((t) => t.eventTypes === 'all' || (t.eventTypes as string[]).includes(id))
-    .length;
-
 function OccasionsMenu({ linkCls }: { linkCls: string }) {
   const t = useTranslations('nav');
-  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [focus, setFocus] = useState('wedding');
   const ref = useRef<HTMLDivElement>(null);
@@ -491,13 +397,14 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
   const leave = () => {
     hoverTimer.current = setTimeout(() => setOpen(false), 160);
   };
-  const ev = EVENT_TYPES.find((e) => e.id === focus) ?? EVENT_TYPES[0]!;
-  const previewId = PREVIEW_FOR.get(focus);
 
   return (
     <div
       ref={ref}
       className="relative"
+      // Fetch the panel's code as soon as the pointer or focus heads for it, so it is ready on open.
+      onPointerOver={() => void loadOccasionsPanel()}
+      onFocus={() => void loadOccasionsPanel()}
       onPointerEnter={(e) => e.pointerType === 'mouse' && enter()}
       onPointerLeave={(e) => e.pointerType === 'mouse' && leave()}
     >
@@ -519,89 +426,7 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
           )}
         />
       </button>
-      {open && (
-        <div className="absolute -left-3 top-full z-50 pt-3">
-          <div className="menu grid w-[min(860px,calc(100vw-2rem))] origin-top-left animate-[sheet-in_0.22s_var(--ease-out-quint)] grid-cols-[1fr_220px] overflow-hidden p-0">
-            <div className="flex flex-col">
-              <div className="grid grid-cols-3 gap-1 p-3">
-                {OCCASION_GROUPS.map((g) => (
-                  <div key={g.key}>
-                    <p className="px-2.5 pb-1.5 pt-1 text-[0.8125rem] font-medium text-ink-soft">
-                      {t(g.key)}
-                    </p>
-                    <ul>
-                      {EVENT_TYPES.filter(
-                        (e) =>
-                          (g.cats as readonly string[]).includes(e.category) && e.id !== 'other',
-                      ).map((e) => (
-                        <li key={e.id}>
-                          <Link
-                            href={`/create?type=${e.id}`}
-                            onClick={close}
-                            onPointerEnter={() => setFocus(e.id)}
-                            onFocus={() => setFocus(e.id)}
-                            data-on={focus === e.id || undefined}
-                            className="menu-item data-[on]:bg-mist"
-                          >
-                            <span
-                              className="grid size-6 place-items-center rounded-md bg-sand text-[0.85rem]"
-                              aria-hidden
-                            >
-                              {e.emoji}
-                            </span>
-                            <span className="truncate">{occasionLabel(e, locale)}</span>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-              <div className="mt-auto flex items-center justify-between border-t border-hairline bg-surface-2 px-5 py-3 text-sm">
-                <span className="text-ink-soft">{t('occasionsHint')}</span>
-                <Link
-                  href="/templates"
-                  onClick={close}
-                  className="group/all inline-flex items-center gap-1 font-medium text-ink"
-                >
-                  {t('allDesigns')}{' '}
-                  <ChevronRight className="size-4 transition-transform duration-200 group-hover/all:translate-x-0.5" />
-                </Link>
-              </div>
-            </div>
-
-            {/* Live preview of the occasion under the pointer. */}
-            <Link
-              href={`/create?type=${ev.id}`}
-              onClick={close}
-              tabIndex={-1}
-              className="group/pv relative flex flex-col border-l border-hairline bg-sand p-4"
-            >
-              <div className="relative aspect-[9/14] overflow-hidden rounded-lg ring-1 ring-black/5">
-                {previewId && (
-                  // Keyed so each occasion fades in rather than swapping abruptly.
-                  <Image
-                    key={previewId}
-                    src={`/showcase/${previewId}.jpg`}
-                    alt=""
-                    fill
-                    sizes="200px"
-                    className="animate-[fade-in_0.35s_ease-out] object-cover object-top transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover/pv:scale-[1.04]"
-                  />
-                )}
-              </div>
-              <p className="mt-3 truncate text-sm font-medium">{occasionLabel(ev, locale)}</p>
-              <p className="text-[0.8125rem] text-ink-soft">
-                {locale === 'hi' ? `${designCount(ev.id)} डिज़ाइन` : `${designCount(ev.id)} designs`}{' '}
-                ·{' '}
-                <span className="text-ink underline decoration-hairline underline-offset-4 group-hover/pv:decoration-ink">
-                  {locale === 'hi' ? 'शुरू करें' : 'Start'}
-                </span>
-              </p>
-            </Link>
-          </div>
-        </div>
-      )}
+      {open && <OccasionsPanel focus={focus} onFocus={setFocus} close={close} />}
     </div>
   );
 }
@@ -979,117 +804,6 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
           )}
         </div>
       </aside>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- footer
-
-export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
-  return (
-    <footer className="relative bg-black text-white [color-scheme:dark]">
-      {/* Panoramic art banner (home page). Drop /landing/footer-panorama.jpg in to replace the glow. */}
-      {banner && (
-        <div className="art-wrap-all relative h-[240px] w-full overflow-clip sm:h-[300px] md:h-[420px]">
-          <ArtImage name="footer-panorama" collapse className="parallax-slow absolute inset-0" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black" />
-          <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-transparent to-black/40" />
-        </div>
-      )}
-      <div
-        className={clsx(
-          'relative z-10 mx-auto max-w-[1400px] px-5 sm:px-6 lg:px-12',
-          banner && 'pb-24 lg:pb-0',
-        )}
-      >
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-14 sm:grid-cols-4 lg:grid-cols-6 lg:gap-8 lg:py-20">
-          <div className="col-span-2 sm:col-span-4 lg:col-span-2">
-            <Logo tone="light" />
-            <p className="mb-8 mt-6 max-w-xs text-sm leading-relaxed text-white/50">
-              Invitation cards, video invites and invitation websites for every Indian family
-              occasion, in your language.
-            </p>
-            <a
-              href="https://wa.me/910000000000?text=Hi"
-              target="_blank"
-              rel="noopener"
-              className="group flex w-fit items-center gap-1 text-sm text-white/40 transition-colors hover:text-white"
-            >
-              WhatsApp
-              <ArrowUpRight className="size-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-            </a>
-          </div>
-          <FooterCol
-            title="Make"
-            links={[
-              ['/create', 'Make an invitation'],
-              ['/templates', 'Designs'],
-              ['/pricing', 'Pricing'],
-            ]}
-          />
-          <FooterCol
-            title="Occasions"
-            links={[
-              ['/wedding-invitation', 'Wedding invitations'],
-              ['/engagement-invitation', 'Engagement invitations'],
-              ['/griha-pravesh-invitation', 'Griha pravesh invitations'],
-              ['/birthday-invitation', 'Birthday invitations'],
-              ['/nikah-invitation', 'Nikah invitations'],
-              ['/puja-invitation', 'Puja invitations'],
-            ]}
-          />
-          <FooterCol
-            title="Company"
-            links={[
-              ['/designer', 'Sell your designs', 'Open'],
-              ['/login', 'Log in'],
-              ['/signup', 'Sign up'],
-            ]}
-          />
-          <FooterCol
-            title="Help"
-            links={[
-              ['/#pricing', 'Plans'],
-              ['/#privacy', 'Privacy'],
-              ['/#faq', 'FAQ'],
-            ]}
-          />
-        </div>
-        <div className="flex flex-col items-center justify-between gap-4 border-t border-white/10 py-8 md:flex-row">
-          <p className="text-sm text-white/30">
-            © {new Date().getFullYear()} {BRAND.name}. Made in India, for every family.
-          </p>
-          <span className="flex items-center gap-2 text-sm text-white/30">
-            <span className="size-2 rounded-full bg-rose" />
-            Invites delivering
-          </span>
-        </div>
-      </div>
-    </footer>
-  );
-}
-
-function FooterCol({ title, links }: { title: string; links: Array<[string, string, string?]> }) {
-  return (
-    <div>
-      <h3 className="mb-6 text-sm font-medium text-white">{title}</h3>
-      <ul className="flex flex-col gap-4">
-        {links.map(([href, label, badge]) => (
-          <li key={href}>
-            <Link
-              href={href}
-              className="inline-flex items-center gap-2 text-sm text-white/40 transition-colors hover:text-white"
-            >
-              {label}
-              {badge && (
-                <span className="rounded-full bg-white px-2 py-0.5 text-xs text-black">
-                  {badge}
-                </span>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
     </div>
   );
 }

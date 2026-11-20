@@ -3,13 +3,13 @@
 import { PRODUCT_CODES, PRODUCTS, type ProductCode, type UserRole } from '@cardai/shared';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Ban, Download, Gift, Mail, Search, ShieldCheck, StickyNote, Users, X } from 'lucide-react';
+import { Ban, Download, Eye, FileDown, Gift, Mail, Search, ShieldCheck, StickyNote, Trash2, Users, X } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Field, Select, Textarea } from '@/components/ui/field';
+import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { TrendChart } from '@/features/admin/charts';
 import { ago, Badge, dateTime, downloadCsv, duration, Empty, EVENT_LABELS, inr, num, PageHeader, Pager, Segmented, shortDate, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
@@ -254,6 +254,17 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
 
   const self = me?.id === id;
   const u = data?.user;
+  const owner = !me?.adminScopes?.length || me.adminScopes.includes('owner');
+
+  async function viewAs() {
+    if (!confirm('View the app as this customer? It is read-only and ends after 15 minutes or when you exit.')) return;
+    try {
+      const r = await api<{ redirect: string }>(`/admin/users/${id}/impersonate`, { method: 'POST' });
+      location.href = r.redirect;
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not start');
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label="User details">
@@ -301,6 +312,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             </dl>
 
             <TimePanel time={data.time} daily={data.daily} />
+            {owner && u.role !== 'admin' && <PrivacyBox userId={id} label={u.name ?? u.email ?? 'this person'} erased={Boolean(u.email?.endsWith('@erased.invalid'))} onErased={() => void qc.invalidateQueries({ queryKey: ['admin'] })} />}
             <NoteBox key={u.note ?? ''} note={u.note} busy={busy} onSave={(note) => void update({ note }, note ? 'Note saved' : 'Note removed')} />
 
             <div className="m-5 flex flex-wrap items-center gap-2 border border-ink/10 p-3">
@@ -319,6 +331,11 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </select>
               </label>
               <span className="flex-1" />
+              {u.role !== 'admin' && !u.disabledAt && (
+                <Button size="sm" variant="line" onClick={() => void viewAs()} title="Read-only, 15 minutes">
+                  <Eye className="size-4" /> View as
+                </Button>
+              )}
               <Button size="sm" variant="line" disabled={!data.events.length} onClick={() => setGranting(true)}>
                 <Gift className="size-4" /> Give a plan
               </Button>
@@ -554,5 +571,73 @@ function GrantDialog({ userId, events, onClose, onDone }: { userId: string; even
         </div>
       </form>
     </Dialog>
+  );
+}
+
+/** DPDP Act requests: log them, give a copy of the data, or erase the account (owners only). */
+function PrivacyBox({ userId, label, erased, onErased }: { userId: string; label: string; erased: boolean; onErased: () => void }) {
+  const [erasing, setErasing] = useState(false);
+  const [typed, setTyped] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  async function exportData() {
+    setBusy(true);
+    try {
+      await api(`/admin/users/${userId}/data-requests`, { method: 'POST', json: { kind: 'export', note: 'Exported from the console' } });
+      await downloadCsv(`/admin/users/${userId}/data-export`, `noyta-data-${userId.slice(0, 8)}.json`);
+      toast.success('Data file downloaded. Send it to the person from your support email.');
+    } catch {
+      toast.error('Export failed');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function erase() {
+    setBusy(true);
+    try {
+      await api(`/admin/users/${userId}/data-requests`, { method: 'POST', json: { kind: 'erasure', note: 'Erased from the console' } });
+      const r = await api<{ invitationsDeleted: number; invitationsBlanked: number; files: number }>(`/admin/users/${userId}/erase`, { method: 'POST', json: { confirm: 'DELETE' } });
+      toast.success(`Erased: ${r.invitationsDeleted} invitations deleted, ${r.invitationsBlanked} blanked (paid), ${r.files} files.`);
+      setErasing(false);
+      onErased();
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not erase');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mx-5 mt-4 flex flex-wrap items-center gap-2 border border-ink/10 p-3">
+      <p className="mr-auto text-sm">
+        Privacy <span className="block text-xs text-ink-soft">Data-protection requests (DPDP Act)</span>
+      </p>
+      <Button size="sm" variant="line" loading={busy && !erasing} onClick={() => void exportData()}>
+        <FileDown className="size-4" /> Copy of data
+      </Button>
+      {!erased && (
+        <Button size="sm" variant="line" className="hover:border-sindoor hover:text-sindoor" onClick={() => setErasing(true)}>
+          <Trash2 className="size-4" /> Erase
+        </Button>
+      )}
+      {erasing && (
+        <Dialog open onClose={() => setErasing(false)} title={`Erase ${label}?`}>
+          <div className="flex flex-col gap-4 text-sm">
+            <p>This permanently deletes their invitations, guest lists, RSVPs, photos, files and activity, and scrubs their name, email and phone. They are signed out and cannot sign in again.</p>
+            <p className="border border-dashed border-ink/15 px-3 py-2 text-ink-soft">Paid orders stay (amount and date only) because GST rules require keeping invoices; those invitations are blanked instead of deleted. This cannot be undone.</p>
+            <Field label="Type DELETE to confirm">{(id) => <Input id={id} value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />}</Field>
+            <div className="flex justify-end gap-2">
+              <Button variant="line" size="sm" onClick={() => setErasing(false)}>
+                Cancel
+              </Button>
+              <Button variant="danger" size="sm" disabled={typed !== 'DELETE'} loading={busy} onClick={() => void erase()}>
+                Erase permanently
+              </Button>
+            </div>
+          </div>
+        </Dialog>
+      )}
+    </div>
   );
 }

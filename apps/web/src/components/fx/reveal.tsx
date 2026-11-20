@@ -1,22 +1,7 @@
 'use client';
 
 import { useEffect, useRef, type ElementType, type ReactNode } from 'react';
-
-let observer: IntersectionObserver | null = null;
-function getObserver() {
-  observer ??= new IntersectionObserver(
-    (entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) {
-          e.target.setAttribute('data-in', '');
-          observer!.unobserve(e.target); // reveal once, like apple.com
-        }
-      }
-    },
-    { rootMargin: '0px 0px -12% 0px', threshold: 0.12 },
-  );
-  return observer;
-}
+import { observeOnce } from '@/lib/observe';
 
 /**
  * Scroll reveal: content rises, sharpens from blur and settles with Apple's easing.
@@ -37,9 +22,8 @@ export function Reveal({
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const obs = getObserver();
-    obs.observe(el);
-    return () => obs.unobserve(el);
+    // Reveal once, like apple.com.
+    return observeOnce(el, () => el.setAttribute('data-in', ''), 0.12, '0px 0px -12% 0px');
   }, []);
   return (
     <Tag ref={ref} data-reveal="" className={className} style={{ '--d': delay } as React.CSSProperties}>

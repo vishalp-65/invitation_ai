@@ -12,7 +12,7 @@ import {
   type TemplateDefinition,
   type Theme,
 } from '@cardai/shared';
-import { sampleInviteProps } from '@cardai/templates';
+import { sampleInviteProps } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';

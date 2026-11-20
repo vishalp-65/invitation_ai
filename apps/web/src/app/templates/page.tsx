@@ -1,9 +1,12 @@
+import { EVENT_TYPE_IDS, type TemplateDefinition } from '@cardai/shared';
 import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
-import { SiteFooter, SiteHeader } from '@/components/layout/site-header';
+import { SiteFooter } from '@/components/layout/site-footer';
+import { SiteHeader } from '@/components/layout/site-header';
 import { VideoDesignCoverflow } from '@/components/marketing/design-coverflow';
-import { TemplateGallery } from './template-gallery';
+import { serverApi } from '@/lib/api';
+import { TemplateGallery, type InitialTemplates } from './template-gallery';
 
 export const metadata: Metadata = {
   title: 'Wedding & festival invitation card designs',
@@ -12,8 +15,29 @@ export const metadata: Metadata = {
   alternates: { canonical: '/templates' },
 };
 
-export default async function TemplatesPage() {
-  const hi = (await getLocale()) === 'hi';
+/**
+ * The first page of designs for the requested occasion, fetched on the server so the gallery is in
+ * the HTML (crawlers, link previews, slow phones) rather than a "Loading designs…" placeholder.
+ * Null when the API is unreachable: the gallery then loads in the browser as before.
+ */
+async function initialTemplates(type: string | undefined): Promise<InitialTemplates | null> {
+  const eventType = type && (EVENT_TYPE_IDS as readonly string[]).includes(type) ? type : undefined;
+  try {
+    const { items } = await serverApi<{ items: TemplateDefinition[] }>(`/templates${eventType ? `?eventType=${eventType}` : ''}`, 300);
+    return { eventType, items };
+  } catch {
+    return null;
+  }
+}
+
+type Props = { searchParams: Promise<{ type?: string | string[] }> };
+
+export default async function TemplatesPage({ searchParams }: Props) {
+  const { type } = await searchParams;
+  const [hi, initial] = await Promise.all([
+    getLocale().then((l) => l === 'hi'),
+    initialTemplates(typeof type === 'string' ? type : undefined),
+  ]);
   return (
     <>
       <SiteHeader />
@@ -30,7 +54,7 @@ export default async function TemplatesPage() {
           </p>
         </div>
         <Suspense>
-          <TemplateGallery />
+          <TemplateGallery initial={initial} />
         </Suspense>
 
         {/* The cinematic video / website designs have no card thumbnails, so they get their own row. */}

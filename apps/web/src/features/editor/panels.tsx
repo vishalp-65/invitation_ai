@@ -29,7 +29,7 @@ import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/
 import { useEventMedia } from '@/features/event/use-event-props';
 import { tip } from '@/components/ui/tooltip';
 import { api } from '@/lib/api';
-import { useTemplates } from '@/lib/hooks';
+import { useTemplates } from '@/lib/template-hooks';
 import { MY_TEMPLATES_KEY } from './header-actions';
 import { BackgroundPanel } from './background-panel';
 import { Section, Seg, useOnVisible } from './controls';

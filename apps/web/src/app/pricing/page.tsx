@@ -2,7 +2,8 @@ import { BRAND, formatINR, type ActiveOffersDto, type ProductCode } from '@carda
 import { clsx } from 'clsx';
 import { Check, Minus } from 'lucide-react';
 import type { Metadata } from 'next';
-import { SiteFooter, SiteHeader } from '@/components/layout/site-header';
+import { SiteFooter } from '@/components/layout/site-footer';
+import { SiteHeader } from '@/components/layout/site-header';
 import { JsonLd } from '@/components/seo/json-ld';
 import { ButtonLink } from '@/components/ui/button';
 import { loadOffers } from '@/lib/offers-server';
