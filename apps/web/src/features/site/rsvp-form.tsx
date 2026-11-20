@@ -3,6 +3,7 @@
 import { MEAL_PREFERENCES, type RsvpStatus } from '@cardai/shared';
 import { useState } from 'react';
 import { useSite } from './context';
+import { postJson } from './utils';
 
 const LABELS: Record<RsvpStatus, string> = { yes: 'Coming', maybe: 'Maybe', no: "Can't come" };
 const MEAL: Record<(typeof MEAL_PREFERENCES)[number], string> = { veg: 'Veg', non_veg: 'Non-veg', jain: 'Jain', vegan: 'Vegan' };
@@ -26,22 +27,24 @@ export function RsvpForm() {
     e.preventDefault();
     if (preview) return;
     setState('sending');
-    const res = await fetch(`/api/public/events/${site.event.slug}/rsvp`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        guestToken,
-        name,
-        phone: phone || undefined,
-        responses: Object.entries(answers).map(([functionId, a]) => ({ functionId, ...a })),
-        mealPreference: meal || undefined,
-        needsAccommodation: site.event.settings.askAccommodation ? stay : undefined,
-        note: note || undefined,
-      }),
-    });
-    if (res.ok) setState('done');
-    else {
-      setError(((await res.json()) as { message?: string }).message ?? 'Could not send your reply.');
+    try {
+      await postJson(
+        `/api/public/events/${site.event.slug}/rsvp`,
+        {
+          guestToken,
+          name,
+          phone: phone || undefined,
+          responses: Object.entries(answers).map(([functionId, a]) => ({ functionId, ...a })),
+          mealPreference: meal || undefined,
+          needsAccommodation: site.event.settings.askAccommodation ? stay : undefined,
+          note: note || undefined,
+        },
+        'Could not send your reply.',
+      );
+      setState('done');
+    } catch (err) {
+      // Network drops used to leave the button stuck on "sending"; now the guest can retry.
+      setError((err as Error).message);
       setState('error');
     }
   }

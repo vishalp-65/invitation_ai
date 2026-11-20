@@ -27,6 +27,8 @@ const envSchema = z.object({
   OFFTHREAD_VIDEO_CACHE_MB: z.coerce.number().int().min(32).default(256),
   /** Relaunch Chrome after this many render jobs to reclaim leaked memory (0 = never). */
   BROWSER_RECYCLE_AFTER: z.coerce.number().int().min(0).default(40),
+  /** Close Chrome after this many idle seconds so it does not hold RAM between renders (0 = keep open). */
+  BROWSER_IDLE_CLOSE_SEC: z.coerce.number().int().min(0).default(300),
 });
 
 export type WorkerEnv = Omit<z.infer<typeof envSchema>, 'REMOTION_CONCURRENCY'> & { REMOTION_CONCURRENCY: number };

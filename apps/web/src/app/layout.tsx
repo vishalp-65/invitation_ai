@@ -13,7 +13,9 @@ import '@/styles/globals.css';
  */
 // No width axis any more (nothing uses font-stretch), so the font file is smaller.
 const instrument = Instrument_Sans({ subsets: ['latin'], variable: '--font-instrument', display: 'swap' });
-const deva = Noto_Sans_Devanagari({ subsets: ['devanagari'], variable: '--font-deva', display: 'swap' });
+// Not preloaded: at ~117 KB it was the biggest download on English pages. Its unicode-range means
+// the browser still fetches it as soon as Hindi / Marathi text (or ₹) is on screen.
+const deva = Noto_Sans_Devanagari({ subsets: ['devanagari'], variable: '--font-deva', display: 'swap', preload: false });
 /** Mono for section labels, numbers and small meta text. */
 const mono = JetBrains_Mono({ subsets: ['latin'], weight: ['400'], variable: '--font-jetbrains', display: 'swap' });
 

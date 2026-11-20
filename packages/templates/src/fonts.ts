@@ -1,6 +1,3 @@
-import { useEffect, useState } from 'react';
-import { continueRender, delayRender } from 'remotion';
-
 interface FontModule {
   getInfo: () => { fonts: Record<string, Record<string, unknown>>; subsets: string[] };
   loadFont: (style?: string, opts?: { weights?: string[]; subsets?: string[] }) => {
@@ -87,6 +84,9 @@ const FONT_LOADERS: Record<string, () => Promise<FontModule>> = {
   Corinthia: () => import('@remotion/google-fonts/Corinthia') as Promise<FontModule>,
   Cormorant: () => import('@remotion/google-fonts/Cormorant') as Promise<FontModule>,
   Forum: () => import('@remotion/google-fonts/Forum') as Promise<FontModule>,
+  'Noto Serif': () => import('@remotion/google-fonts/NotoSerif') as Promise<FontModule>,
+  'Mea Culpa': () => import('@remotion/google-fonts/MeaCulpa') as Promise<FontModule>,
+  Ephesis: () => import('@remotion/google-fonts/Ephesis') as Promise<FontModule>,
   Questrial: () => import('@remotion/google-fonts/Questrial') as Promise<FontModule>,
   'Didact Gothic': () => import('@remotion/google-fonts/DidactGothic') as Promise<FontModule>,
   Kurale: () => import('@remotion/google-fonts/Kurale') as Promise<FontModule>,
@@ -177,28 +177,4 @@ export function loadFamily(family: string, script?: string): Promise<void> {
     loaded.delete(key);
   });
   return promise;
-}
-
-/** Blocks rendering (stills, video frames, Player) until fonts are ready. */
-export function useInviteFonts(families: string[], script?: string): boolean {
-  const [ready, setReady] = useState(false);
-  const signature = families.join('|') + (script ?? '');
-
-  useEffect(() => {
-    let done = false;
-    const handle = delayRender(`fonts:${signature}`, { timeoutInMilliseconds: 60_000 });
-    const finish = () => {
-      if (done) return;
-      done = true;
-      continueRender(handle);
-    };
-    Promise.allSettled(families.map((f) => loadFamily(f, script))).finally(() => {
-      setReady(true);
-      finish();
-    });
-    return finish;
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- `signature` already encodes families + script
-  }, [signature]);
-
-  return ready;
 }

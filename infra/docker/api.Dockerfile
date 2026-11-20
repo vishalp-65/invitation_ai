@@ -17,7 +17,7 @@ COPY packages ./packages
 COPY apps/api ./apps/api
 RUN npx turbo run build --filter=@cardai/api... \
  && npm prune --omit=dev --workspace @cardai/api --include-workspace-root \
- && rm -rf packages/*/src apps/api/src
+ && rm -rf packages/templates packages/*/src apps/api/src
 
 FROM node:24-bookworm-slim AS runtime
 ENV NODE_ENV=production
@@ -29,5 +29,6 @@ COPY --from=build --chown=node:node /repo/apps/api ./apps/api
 COPY --from=build --chown=node:node /repo/package.json ./package.json
 USER node
 EXPOSE 4000
-HEALTHCHECK --interval=15s --timeout=3s --start-period=20s CMD node -e "fetch('http://localhost:'+(process.env.API_PORT||4000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+# Each probe starts a short node process, so probe rarely; the deploy job gates on /api/health/ready itself.
+HEALTHCHECK --interval=60s --timeout=5s --start-period=30s CMD node -e "fetch('http://localhost:'+(process.env.API_PORT||4000)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "apps/api/dist/main.js"]

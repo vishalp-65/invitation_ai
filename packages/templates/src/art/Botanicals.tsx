@@ -374,6 +374,68 @@ export function BloomRing({ w, h, c, opts }: ArtProps) {
   );
 }
 
+// ------------------------------------------------------------------ floral name frame
+
+/**
+ * A pale panel (hexagon or rectangle) edged with vintage blooms — daisies, roses and leaves —
+ * that names sit on. c = [panel, petal, deep petal, leaf]; opts.shape = hex | rect.
+ */
+export function BloomFrame({ w, h, c, opts }: ArtProps) {
+  const [panel = '#FFFFFF', petal = '#E8B4B8', deep = mix(petal, '#5A3A3A', 0.4), leaf = '#9AA77F'] = c;
+  const hex = opts?.shape !== 'rect';
+  const fid = useSvgId('bfr');
+  const W2 = 500;
+  const H2 = 400;
+  const pts: Array<[number, number]> = hex
+    ? [[40, 200], [120, 50], [380, 50], [460, 200], [380, 350], [120, 350]]
+    : [[60, 50], [440, 50], [440, 350], [60, 350]];
+  const leaf2 = mix(leaf, '#1F2E1A', 0.25);
+  const white = mix(panel, '#FFFFFF', 0.6);
+  // Blooms every ~55 units along the outline, bigger at the corners.
+  const blooms: ReactNode[] = [];
+  let k = 0;
+  pts.forEach(([x0, y0], i) => {
+    const [x1, y1] = pts[(i + 1) % pts.length]!;
+    const len = Math.hypot(x1 - x0, y1 - y0);
+    const n = Math.max(1, Math.round(len / 58));
+    const ang = (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI;
+    for (let j = 0; j < n; j++) {
+      const t = j / n;
+      const x = x0 + (x1 - x0) * t;
+      const y = y0 + (y1 - y0) * t;
+      const corner = j === 0;
+      k++;
+      blooms.push(
+        <g key={`l${k}`} transform={`translate(${x} ${y}) rotate(${ang + (k % 2 ? 160 : -20)})`}>
+          <Olive len={corner ? 70 : 46} leaf={leaf} leaf2={leaf2} seed={k} />
+        </g>,
+      );
+      if (corner) {
+        blooms.push(<Rose key={`r${k}`} x={x} y={y} s={30} rot={k * 23} petal={petal} deep={deep} />);
+        blooms.push(<Daisy key={`d${k}`} x={x + 26} y={y + 18} s={16} rot={k * 11} petal={white} deep={deep} />);
+      } else if (k % 3 === 0) {
+        blooms.push(<Peony key={`p${k}`} x={x} y={y} s={18} rot={k * 17} petal={mix(petal, '#FFFFFF', 0.3)} deep={deep} />);
+      } else {
+        blooms.push(<Daisy key={`d${k}`} x={x} y={y} s={k % 2 ? 17 : 13} rot={k * 19} petal={white} deep={leaf2} />);
+      }
+    }
+  });
+  return svg(
+    w,
+    h,
+    `0 0 ${W2} ${H2}`,
+    <>
+      <defs>
+        <PaintFilter id={fid} strength={3} />
+      </defs>
+      <polygon points={pts.map((p) => p.join(',')).join(' ')} fill={panel} opacity={0.94} />
+      <polygon points={pts.map((p) => p.join(',')).join(' ')} fill="none" stroke={mix(leaf, panel, 0.4)} strokeWidth={2} transform={`translate(${W2 * 0.03} ${H2 * 0.03}) scale(0.94)`} opacity={0.6} />
+      <g filter={`url(#${fid})`}>{blooms}</g>
+    </>,
+    'none',
+  );
+}
+
 // ------------------------------------------------------------------ line art
 
 export const LINE_FLOWERS = ['poppy', 'lily', 'rose', 'wild'] as const;

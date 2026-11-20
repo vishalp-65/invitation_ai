@@ -3,7 +3,8 @@
 import { PRODUCT_CODES, PRODUCTS, type ProductCode, type UserRole } from '@cardai/shared';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Ban, Download, Eye, FileDown, Gift, Mail, Search, ShieldCheck, StickyNote, Trash2, Users, X } from 'lucide-react';
+import { Ban, Download, Eye, FileDown, Gift, LogOut, Mail, Pencil, Search, ShieldCheck, StickyNote, Trash2, Users, X } from 'lucide-react';
+import { InvitationDrawer } from '@/features/admin/invitation-drawer';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
@@ -11,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { TrendChart } from '@/features/admin/charts';
-import { ago, Badge, dateTime, downloadCsv, duration, Empty, EVENT_LABELS, inr, num, PageHeader, Pager, Segmented, shortDate, Skeleton, Table } from '@/features/admin/ui';
+import { ago, Badge, BulkBar, dateTime, downloadCsv, duration, Empty, EVENT_LABELS, inr, num, PageHeader, Pager, Segmented, shortDate, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/hooks';
 import { controlClass } from '@/components/ui/field';
@@ -34,7 +35,7 @@ interface UserRow {
   hasNote: boolean;
 }
 interface UserDetail {
-  user: Omit<UserRow, 'events' | 'orders' | 'spentPaise' | 'activeSeconds30' | 'hasNote'> & { note: string | null; marketingEmails: boolean };
+  user: Omit<UserRow, 'events' | 'orders' | 'spentPaise' | 'activeSeconds30' | 'hasNote'> & { note: string | null; marketingEmails: boolean; locale: string };
   events: Array<{ id: string; title: string; type: string; templateId: string; status: string; slug: string; viewCount: number; suspendedAt: string | null; createdAt: string }>;
   orders: Array<{ id: string; productCode: string; amountPaise: number; status: string; couponCode: string | null; createdAt: string; paidAt: string | null }>;
   activity: Array<{ name: string; path: string | null; templateId: string | null; device: string | null; props: Record<string, unknown> | null; createdAt: string }>;
@@ -60,6 +61,21 @@ export default function AdminUsersPage() {
   const deepLink = useSearchParams().get('user');
   const [open, setOpen] = useState<string | null>(deepLink);
   const [exporting, setExporting] = useState(false);
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const qcList = useQueryClient();
+  async function bulk(action: 'disable' | 'enable' | 'sign-out') {
+    const ids = [...picked];
+    const words = { disable: 'Disable', enable: 'Enable', 'sign-out': 'Sign out' }[action];
+    if (action !== 'enable' && !confirm(`${words} ${ids.length} account(s)? Admins and your own account are skipped.`)) return;
+    try {
+      const r = await api<{ updated: number; skipped: number }>('/admin/users/bulk', { method: 'POST', json: { ids, action } });
+      toast.success(`${r.updated} updated${r.skipped ? `, ${r.skipped} skipped` : ''}`);
+      setPicked(new Set());
+      void qcList.invalidateQueries({ queryKey: ['admin', 'users'] });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not update');
+    }
+  }
   useEffect(() => setOpen(deepLink), [deepLink]);
 
   useEffect(() => {
@@ -175,9 +191,45 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <>
-            <Table head={['Person', 'Role', 'Joined', 'Last active', 'Time (30 d)', 'Invites', 'Paid', 'Spent', '']}>
+            <Table
+              head={[
+                <input
+                  key="all"
+                  type="checkbox"
+                  aria-label="Select all on this page"
+                  className="size-4 accent-[var(--color-ink)]"
+                  checked={data.items.every((u) => picked.has(u.id))}
+                  onChange={(e) => setPicked(e.target.checked ? new Set(data.items.map((u) => u.id)) : new Set())}
+                />,
+                'Person',
+                'Role',
+                'Joined',
+                'Last active',
+                'Time (30 d)',
+                'Invites',
+                'Paid',
+                'Spent',
+                '',
+              ]}
+            >
               {data.items.map((u) => (
                 <tr key={u.id} onClick={() => setOpen(u.id)} className="cursor-pointer">
+                  <td className="w-8" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${u.name ?? u.email}`}
+                      className="size-4 accent-[var(--color-ink)]"
+                      checked={picked.has(u.id)}
+                      onChange={() =>
+                        setPicked((cur) => {
+                          const n = new Set(cur);
+                          if (n.has(u.id)) n.delete(u.id);
+                          else n.add(u.id);
+                          return n;
+                        })
+                      }
+                    />
+                  </td>
                   <td>
                     <div className="flex items-center gap-3">
                       <Avatar u={u} />
@@ -211,6 +263,19 @@ export default function AdminUsersPage() {
       </section>
 
       {open && <UserDrawer id={open} onClose={() => setOpen(null)} />}
+      {picked.size > 0 && (
+        <BulkBar count={picked.size} onClear={() => setPicked(new Set())}>
+          <Button size="sm" variant="line" onClick={() => void bulk('sign-out')}>
+            <LogOut className="size-3.5" /> Sign out
+          </Button>
+          <Button size="sm" variant="line" onClick={() => void bulk('enable')}>
+            Enable
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => void bulk('disable')}>
+            <Ban className="size-3.5" /> Disable
+          </Button>
+        </BulkBar>
+      )}
     </>
   );
 }
@@ -231,6 +296,18 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'activity' | 'events' | 'orders'>('activity');
   const [granting, setGranting] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [openInvite, setOpenInvite] = useState<string | null>(null);
+
+  async function signOutEverywhere() {
+    if (!confirm('Sign this person out on every device? Open tabs stop working within 15 minutes.')) return;
+    try {
+      await api(`/admin/users/${id}/sign-out`, { method: 'POST' });
+      toast.success('Signed out everywhere');
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not sign out');
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -286,7 +363,12 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="flex items-start gap-4 p-5">
               <Avatar u={u} />
               <div className="min-w-0 flex-1">
-                <p className="text-xl">{u.name ?? 'No name'}</p>
+                <p className="flex items-center gap-2 text-xl">
+                  {u.name ?? 'No name'}
+                  <button type="button" aria-label="Edit profile" data-tip="Edit profile" onClick={() => setEditing(true)} className="grid size-7 place-items-center text-ink-soft hover:bg-ink/[0.05] hover:text-ink">
+                    <Pencil className="size-3.5" />
+                  </button>
+                </p>
                 <p className="flex items-center gap-1.5 truncate text-sm text-ink-soft">
                   <Mail className="size-3.5" /> {u.email ?? '—'} {u.google && <Badge>Google</Badge>}
                 </p>
@@ -336,6 +418,9 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   <Eye className="size-4" /> View as
                 </Button>
               )}
+              <Button size="sm" variant="line" disabled={self} onClick={() => void signOutEverywhere()}>
+                <LogOut className="size-4" /> Sign out everywhere
+              </Button>
               <Button size="sm" variant="line" disabled={!data.events.length} onClick={() => setGranting(true)}>
                 <Gift className="size-4" /> Give a plan
               </Button>
@@ -395,7 +480,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 (data.events.length ? (
                   <ul className="divide-y divide-ink/10">
                     {data.events.map((e) => (
-                      <li key={e.id} className="flex items-center justify-between gap-3 py-2.5 text-sm">
+                      <li key={e.id} onClick={() => setOpenInvite(e.id)} className="flex cursor-pointer items-center justify-between gap-3 py-2.5 text-sm hover:bg-ink/[0.02]">
                         <div className="min-w-0">
                           <p className="truncate font-medium">{e.title}</p>
                           <p className="truncate text-xs text-ink-soft">
@@ -438,6 +523,19 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         )}
       </div>
+      {editing && u && (
+        <ProfileDialog
+          id={id}
+          initial={{ name: u.name, locale: u.locale === 'hi' ? 'hi' : 'en', marketingEmails: u.marketingEmails }}
+          onClose={() => setEditing(false)}
+          onSaved={() => {
+            setEditing(false);
+            void qc.invalidateQueries({ queryKey: ['admin', 'user', id] });
+            void qc.invalidateQueries({ queryKey: ['admin', 'users'] });
+          }}
+        />
+      )}
+      {openInvite && <InvitationDrawer id={openInvite} onClose={() => setOpenInvite(null)} />}
       {granting && data && (
         <GrantDialog
           userId={id}
@@ -639,5 +737,57 @@ function PrivacyBox({ userId, label, erased, onErased }: { userId: string; label
         </Dialog>
       )}
     </div>
+  );
+}
+
+/** Name, email language and offer emails. Email address and sign-in methods stay with the person. */
+function ProfileDialog({ id, initial, onClose, onSaved }: { id: string; initial: { name: string | null; locale: 'en' | 'hi'; marketingEmails: boolean }; onClose: () => void; onSaved: () => void }) {
+  const [name, setName] = useState(initial.name ?? '');
+  const [locale, setLocale] = useState<'en' | 'hi'>(initial.locale);
+  const [marketing, setMarketing] = useState(initial.marketingEmails);
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api(`/admin/users/${id}/profile`, { method: 'PATCH', json: { name: name.trim() || null, locale, marketingEmails: marketing } });
+      toast.success('Profile saved');
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not save');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onClose={onClose} title="Edit profile">
+      <form onSubmit={(e) => void submit(e)} className="flex flex-col gap-4">
+        <Field label="Name">{(fid) => <Input id={fid} value={name} onChange={(e) => setName(e.target.value)} maxLength={80} />}</Field>
+        <Field label="Email language">
+          {(fid) => (
+            <Select id={fid} value={locale} onChange={(e) => setLocale(e.target.value as 'en' | 'hi')}>
+              <option value="en">English</option>
+              <option value="hi">हिन्दी (Hindi)</option>
+            </Select>
+          )}
+        </Field>
+        <label className="flex items-center justify-between gap-3 border border-ink/10 p-3 text-sm">
+          <span>
+            Offer emails
+            <span className="block text-xs text-ink-soft">Only turn on if the person asked for it (consent)</span>
+          </span>
+          <input type="checkbox" className="size-4 accent-[var(--color-ink)]" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} />
+        </label>
+        <p className="text-xs text-ink-soft">The email address and Google sign-in can only be changed by the person, so nobody can take over an account from here.</p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="line" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="solid" size="sm" loading={busy}>
+            Save
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }

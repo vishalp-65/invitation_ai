@@ -32,6 +32,17 @@ function bytes(n: number) {
 /** System health in one place: is rendering keeping up, what failed, what AI costs, how big things are. */
 export default function AdminOperationsPage() {
   const [range] = useRange();
+  const qcOps = useQueryClient();
+  async function renderAction(id: string, action: 'retry' | 'delete') {
+    if (action === 'delete' && !confirm('Delete this failed render? The customer can start it again.')) return;
+    try {
+      await api(`/admin/renders/${id}${action === 'retry' ? '/retry' : ''}`, { method: action === 'retry' ? 'POST' : 'DELETE' });
+      toast.success(action === 'retry' ? 'Back in the queue' : 'Deleted');
+      void qcOps.invalidateQueries({ queryKey: ['admin', 'ops'] });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed');
+    }
+  }
   const { data, isLoading } = useQuery({
     queryKey: ['admin', 'ops', range],
     queryFn: () => api<Ops>(`/admin/operations?range=${range}`),
@@ -103,7 +114,7 @@ export default function AdminOperationsPage() {
 
           <Card title="Recent failures" description="Newest first, with the worker's error" pad={false}>
             {data.failures.length ? (
-              <Table head={['When', 'Format', 'Invitation', 'Error']}>
+              <Table head={['When', 'Format', 'Invitation', 'Error', '']}>
                 {data.failures.map((f) => (
                   <tr key={f.id}>
                     <td className="whitespace-nowrap text-ink-soft">{ago(f.createdAt)}</td>
@@ -114,6 +125,16 @@ export default function AdminOperationsPage() {
                     </td>
                     <td className="max-w-md">
                       <code className="line-clamp-2 break-all text-xs text-sindoor">{f.error ?? 'No message'}</code>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <Button size="sm" variant="line" className="h-8 px-3" onClick={() => void renderAction(f.id, 'retry')}>
+                          Retry
+                        </Button>
+                        <Button size="sm" variant="quiet" className="h-8 px-3" onClick={() => void renderAction(f.id, 'delete')}>
+                          Delete
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -197,6 +218,16 @@ function Alerts() {
     }
   }
 
+  async function bulkAlerts(kind: 'resolve' | 'clear') {
+    await (kind === 'resolve' ? api('/admin/alerts/resolve-all', { method: 'POST' }) : api('/admin/alerts/resolved', { method: 'DELETE' })).catch(() => toast.error('Failed'));
+    void qc.invalidateQueries({ queryKey: ['admin', 'alerts'] });
+  }
+
+  async function removeAlert(id: string) {
+    await api(`/admin/alerts/${id}`, { method: 'DELETE' }).catch(() => toast.error('Failed'));
+    void qc.invalidateQueries({ queryKey: ['admin', 'alerts'] });
+  }
+
   async function resolve(id: string) {
     await api(`/admin/alerts/${id}/resolve`, { method: 'POST' }).catch(() => undefined);
     void qc.invalidateQueries({ queryKey: ['admin', 'alerts'] });
@@ -219,6 +250,16 @@ function Alerts() {
             <Button size="sm" variant="quiet" loading={busy === 'nightly'} onClick={() => void run('nightly')}>
               Rebuild daily numbers
             </Button>
+            {open.length > 1 && (
+              <Button size="sm" variant="quiet" onClick={() => void bulkAlerts('resolve')}>
+                Resolve all
+              </Button>
+            )}
+            {(data ?? []).some((a) => a.resolvedAt) && (
+              <Button size="sm" variant="quiet" onClick={() => void bulkAlerts('clear')}>
+                Clear resolved
+              </Button>
+            )}
           </div>
         )
       }
@@ -240,6 +281,9 @@ function Alerts() {
                   Resolve
                 </Button>
               )}
+              <Button size="sm" variant="quiet" className="h-8 px-2" aria-label="Delete alert" onClick={() => void removeAlert(a.id)}>
+                Delete
+              </Button>
             </li>
           ))}
         </ul>

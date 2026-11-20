@@ -9,9 +9,11 @@ const ctx = createContext();
 const remotion = new RemotionRuntime(ctx.log, {
   recycleAfterJobs: ctx.env.BROWSER_RECYCLE_AFTER,
   usePrebuilt: ctx.env.NODE_ENV === 'production',
+  idleCloseSec: ctx.env.BROWSER_IDLE_CLOSE_SEC,
 });
 
-// Warm up before taking jobs so the first customer does not wait for bundling.
+// Warm up before taking jobs so the first customer does not wait for bundling. With an idle close
+// set, Chrome starts on the first job instead (the headless shell launches in about a second).
 await remotion.warmUp();
 
 const renderWorker = new Worker<RenderJobData>(QUEUES.render, createRenderProcessor(ctx, remotion), {

@@ -122,7 +122,8 @@ export const art = (asset: string, w: number, h: number, colors: string[], opts?
 
 /** Surface panel the text sits on. */
 export const panel = (ctx: RecipeCtx, x: number, y: number, w: number, h: number, radius = 36, opacity = 0.94) =>
-  shapeEl('rect', x, y, w, h, { fill: ctx.p.surface, fillOpacity: opacity, radius, stroke: goldOn(ctx), strokeW: 3 });
+  // Modern card: soft translucent surface with a hairline rim (no heavy outline).
+  shapeEl('rect', x, y, w, h, { fill: ctx.p.surface, fillOpacity: Math.min(opacity, 0.9), radius: Math.min(radius, 28), stroke: goldOn(ctx), strokeW: 1.5 });
 
 export const WEDDINGS: EventTypeId[] = ['wedding', 'engagement', 'reception', 'anniversary'];
 export const ALL_WEDDINGS: EventTypeId[] = [...WEDDINGS, 'nikah', 'christian-wedding', 'anand-karaj'];
@@ -137,7 +138,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'rajwada-gold', name: 'Rajwada Gold', category: 'wedding', eventTypes: WEDDINGS, communities: ['hindu-north', 'marwari', 'gujarati'],
     tags: ['ganesha', 'royal', 'toran', 'gold foil'], premium: true, palettes: ['maroon', 'royalBlue', 'emerald', 'kumkum'],
-    legacy: { layout: 'royal-arch', motif: 'shree', pattern: 'paisley' }, type: 'royal', date: 'strip', divider: 'ornate',
+    legacy: { layout: 'royal-arch', motif: 'shree', pattern: 'paisley' }, type: 'regal', date: 'rules', divider: 'ornate',
     zone: { top: 330, bottom: 170, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'paisley', 0.07),
@@ -153,7 +154,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'mughal-arch', name: 'Mughal Arch', category: 'wedding', eventTypes: [...WEDDINGS, 'nikah'], communities: ['hindu-north', 'muslim', 'punjabi'],
     tags: ['arch', 'roses', 'palace'], premium: true, palettes: ['wine', 'navy', 'plum', 'teal'],
-    legacy: { layout: 'jharokha', motif: 'none', pattern: 'jaali' }, type: 'royal', date: 'strip', divider: 'lotus',
+    legacy: { layout: 'jharokha', motif: 'none', pattern: 'jaali' }, type: 'mahal', date: 'bars', divider: 'lotus',
     zone: { top: 400, bottom: 360, left: 200, right: 200 },
     textBg: (ctx) => ctx.p.surface,
     chrome: (ctx) => ({
@@ -168,7 +169,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'genda-phool', name: 'Genda Phool', category: 'wedding', eventTypes: [...WEDDINGS, ...SACRED], communities: ['hindu-north', 'gujarati', 'marathi'],
     tags: ['marigold', 'haldi', 'bright', 'bandhanwar'], palettes: ['marigold', 'mustard', 'saffron', 'butter'],
-    legacy: { layout: 'floral-frame', motif: 'shree', pattern: 'paisley' }, type: 'desi', date: 'boxed', divider: 'dots',
+    legacy: { layout: 'floral-frame', motif: 'shree', pattern: 'paisley' }, type: 'regal', date: 'rules', divider: 'simple',
     zone: { top: 380, bottom: 260, left: 150, right: 150 },
     textBg: (ctx) => ctx.p.surface,
     chrome: (ctx) => ({
@@ -184,7 +185,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'shubh-varmala', name: 'Shubh Varmala', category: 'wedding', eventTypes: WEDDINGS, communities: ['hindu-north', 'marwari', 'punjabi'],
     tags: ['couple', 'watercolour', 'lehenga', 'roses'], premium: true, palettes: ['ivory', 'blush', 'cream', 'sage'],
-    legacy: { layout: 'botanical', motif: 'none', pattern: 'none' }, type: 'script', date: 'strip', divider: 'leaf',
+    legacy: { layout: 'botanical', motif: 'none', pattern: 'none' }, type: 'mahal', date: 'bars', divider: 'leaf',
     zone: { top: 120, bottom: 150, left: 130, right: 130 },
     chrome: (ctx) => ({
       bg: radial(ctx),
@@ -195,7 +196,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'dulha-dulhan-cute', name: 'Dulha Dulhan', category: 'wedding', eventTypes: WEDDINGS, tags: ['couple', 'cute', 'caricature', 'fun'],
     palettes: ['babyPink', 'peach', 'mint', 'marigold'], legacy: { layout: 'festive-pop', motif: 'heart', pattern: 'dots' },
-    type: 'playful', date: 'boxed', divider: 'hearts', zone: { top: 260, bottom: 150, left: 120, right: 120 },
+    type: 'party', date: 'rules', divider: 'simple', zone: { top: 260, bottom: 150, left: 120, right: 120 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'dots', 0.1),
       under: [artEl('bandhanwar', 0, 0, W, 260, ['#2F7D32', '#F28C0F'], { locked: true }), ...bottomPair('floral-cluster', 330, [], { kind: 'marigold' }, 40)],
@@ -215,7 +216,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'kalyana-mandapam', name: 'Kalyana Mandapam', category: 'wedding', eventTypes: WEDDINGS, communities: ['hindu-south'],
     tags: ['south', 'temple bells', 'kolam', 'jasmine'], premium: true, palettes: ['temple', 'kumkum', 'emerald', 'cream'],
-    legacy: { layout: 'temple-heritage', motif: 'diya', pattern: 'jaali' }, type: 'classic', date: 'strip', divider: 'lotus',
+    legacy: { layout: 'temple-heritage', motif: 'diya', pattern: 'jaali' }, type: 'regal', date: 'rules', divider: 'lotus',
     zone: { top: 300, bottom: 300, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'jaali', 0.08),
@@ -231,7 +232,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'alpona', name: 'Alpona', category: 'wedding', eventTypes: WEDDINGS, communities: ['bengali'], tags: ['bengali', 'alpona', 'red and white', 'topor'],
-    palettes: ['ivory', 'kumkum', 'cream'], legacy: { layout: 'temple-heritage', motif: 'lotus', pattern: 'dots' }, type: 'classic', date: 'strip', divider: 'lotus',
+    palettes: ['ivory', 'kumkum', 'cream'], legacy: { layout: 'temple-heritage', motif: 'lotus', pattern: 'dots' }, type: 'petal', date: 'bars', divider: 'simple',
     zone: { top: 160, bottom: 330, left: 130, right: 130 },
     chrome: (ctx) => ({
       bg: radial(ctx),
@@ -246,7 +247,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'paithani', name: 'Paithani', category: 'wedding', eventTypes: WEDDINGS, communities: ['marathi'], tags: ['marathi', 'peacock', 'nauvari'],
     premium: true, palettes: ['emerald', 'plum', 'mustard', 'teal'], legacy: { layout: 'floral-frame', motif: 'peacock', pattern: 'paisley' },
-    type: 'desi', date: 'strip', divider: 'ornate', zone: { top: 300, bottom: 220, left: 130, right: 130 },
+    type: 'regal', date: 'rules', divider: 'ornate', zone: { top: 300, bottom: 220, left: 130, right: 130 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'paisley', 0.08),
       under: [
@@ -260,7 +261,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'phulkari', name: 'Phulkari', category: 'wedding', eventTypes: ['anand-karaj', 'wedding', 'engagement', 'reception'], communities: ['sikh', 'punjabi'],
     tags: ['sikh', 'phulkari', 'bright'], palettes: ['saffron', 'mustard', 'royalBlue', 'kumkum'], legacy: { layout: 'royal-arch', motif: 'khanda', pattern: 'paisley' },
-    type: 'classic', date: 'boxed', divider: 'dots', zone: { top: 200, bottom: 230, left: 140, right: 140 },
+    type: 'regal', date: 'rules', divider: 'simple', zone: { top: 200, bottom: 230, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'confetti', 0.06),
       under: [fullPage('border', [goldOn(ctx), ctx.p.accent, '#2E8B57'], { style: 'phulkari' })],
@@ -270,7 +271,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'noor-e-nikah', name: 'Noor-e-Nikah', category: 'wedding', eventTypes: ['nikah', 'engagement', 'reception'], communities: ['muslim'],
     tags: ['nikah', 'lanterns', 'crescent', 'mosque'], premium: true, palettes: ['emerald', 'navy', 'teal', 'onyx'],
-    legacy: { layout: 'royal-arch', motif: 'crescent', pattern: 'jaali' }, type: 'deco', date: 'strip', divider: 'ornate',
+    legacy: { layout: 'royal-arch', motif: 'crescent', pattern: 'jaali' }, type: 'mahal', date: 'rules', divider: 'ornate',
     zone: { top: 390, bottom: 430, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: linear(ctx, 'jaali', 0.08),
@@ -288,7 +289,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'wedding-bells', name: 'Wedding Bells', category: 'wedding', eventTypes: ['christian-wedding', 'engagement', 'anniversary'], communities: ['christian'],
     tags: ['church', 'doves', 'wreath', 'white'], palettes: ['ivory', 'sky', 'sage', 'blush'], legacy: { layout: 'botanical', motif: 'cross', pattern: 'none' },
-    type: 'script', date: 'line', divider: 'leaf', zone: { top: 180, bottom: 170, left: 150, right: 150 },
+    type: 'garden', date: 'rules', divider: 'leaf', zone: { top: 180, bottom: 170, left: 150, right: 150 },
     chrome: (ctx) => ({
       bg: radial(ctx),
       under: [
@@ -301,7 +302,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'haathi-baraat', name: 'Haathi Baraat', category: 'wedding', eventTypes: [...WEDDINGS, 'griha-pravesh', 'shop-opening'], communities: ['hindu-north', 'marwari', 'gujarati'],
     tags: ['elephant', 'royal', 'rajasthani'], premium: true, palettes: ['royalBlue', 'kumkum', 'teal', 'maroon'],
-    legacy: { layout: 'royal-arch', motif: 'kalash', pattern: 'paisley' }, type: 'royal', date: 'strip', divider: 'ornate',
+    legacy: { layout: 'royal-arch', motif: 'kalash', pattern: 'paisley' }, type: 'regal', date: 'rules', divider: 'ornate',
     zone: { top: 300, bottom: 440, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'paisley', 0.08),
@@ -316,7 +317,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'mor-bagh', name: 'Mor Bagh', category: 'wedding', eventTypes: [...WEDDINGS, 'baby-shower'], tags: ['peacock', 'lotus', 'garden', 'mehendi'],
-    palettes: ['teal', 'forest', 'navy', 'jade'], legacy: { layout: 'floral-frame', motif: 'peacock', pattern: 'leaves' }, type: 'royal', date: 'strip', divider: 'lotus',
+    palettes: ['teal', 'forest', 'navy', 'jade'], legacy: { layout: 'floral-frame', motif: 'peacock', pattern: 'leaves' }, type: 'mahal', date: 'bars', divider: 'lotus',
     zone: { top: 220, bottom: 380, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'leaves', 0.08),
@@ -330,7 +331,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'haldi-mehndi', name: 'Haldi & Mehndi', category: 'wedding', eventTypes: WEDDINGS, tags: ['haldi', 'mehndi', 'leaves', 'marigold'],
-    palettes: ['butter', 'mustard', 'sage', 'jade'], legacy: { layout: 'botanical', motif: 'lotus', pattern: 'leaves' }, type: 'desi', date: 'boxed', divider: 'leaf',
+    palettes: ['butter', 'mustard', 'sage', 'jade'], legacy: { layout: 'botanical', motif: 'lotus', pattern: 'leaves' }, type: 'brush', date: 'bars', divider: 'leaf',
     zone: { top: 330, bottom: 300, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'leaves', 0.1),
@@ -344,7 +345,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'sangeet-night', name: 'Sangeet Night', category: 'wedding', eventTypes: [...WEDDINGS, 'birthday', 'corporate'], tags: ['sangeet', 'party', 'night', 'sparkle'],
-    premium: true, palettes: ['onyx', 'plum', 'midnight', 'wine'], legacy: { layout: 'art-deco', motif: 'none', pattern: 'confetti' }, type: 'deco', date: 'stack', divider: 'deco',
+    premium: true, palettes: ['onyx', 'plum', 'midnight', 'wine'], legacy: { layout: 'art-deco', motif: 'none', pattern: 'confetti' }, type: 'gala', date: 'rules', divider: 'deco',
     zone: { top: 260, bottom: 220, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx),
@@ -389,20 +390,20 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   // ======================= Birthday & baby =======================
   {
     id: 'balloon-bash', name: 'Balloon Bash', category: 'kids', eventTypes: ['birthday', 'other'], tags: ['balloons', 'party', 'kids', 'confetti'],
-    palettes: ['sky', 'candy', 'mint', 'butter'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'confetti' }, type: 'playful', date: 'boxed', divider: 'stars',
+    palettes: ['sky', 'candy', 'mint', 'butter'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'confetti' }, type: 'party', date: 'rules', divider: 'simple',
     zone: { top: 420, bottom: 170, left: 120, right: 120 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'dots', 0.12),
       under: [
-        artEl('balloons', -40, -20, 460, 640, [ctx.p.primary, ctx.p.accent, '#FFB627'], { locked: true }),
-        artEl('balloons', W - 400, 40, 420, 580, ['#FFB627', ctx.p.primary, ctx.p.accent], { locked: true, flipX: true }),
+        artEl('glossy-balloons', -50, -10, 420, 588, [ctx.p.primary, ctx.p.accent, mix(ctx.p.primary, '#666666', 0.5)], { locked: true, opts: { bunch: 'cluster' } }),
+        artEl('glossy-balloons', W - 380, 50, 400, 560, [ctx.p.accent, ctx.p.primary, mix(ctx.p.primary, '#666666', 0.5)], { locked: true, flipX: true, opts: { bunch: 'trio' } }),
       ],
       over: [artEl('confetti', 0, H - 520, W, 520, [ctx.p.primary, ctx.p.accent, '#FFB627'], { locked: true })],
     }),
   },
   {
     id: 'twinkle-star', name: 'Twinkle Twinkle', category: 'kids', eventTypes: KIDS, tags: ['baby', 'moon', 'stars', 'pastel'],
-    palettes: ['babyBlue', 'babyPink', 'lavender', 'navy'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'dots' }, type: 'playful', date: 'stack', divider: 'stars',
+    palettes: ['babyBlue', 'babyPink', 'lavender', 'navy'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'dots' }, type: 'garden', date: 'rules', divider: 'stars',
     zone: { top: 160, bottom: 260, left: 130, right: 130 },
     chrome: (ctx) => ({
       bg: linear(ctx),
@@ -415,11 +416,14 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'cake-party', name: 'Cake Party', category: 'kids', eventTypes: ['birthday', 'anniversary', 'retirement'], tags: ['cake', 'birthday', 'party'],
-    palettes: ['candy', 'peach', 'mint', 'coral'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'confetti' }, type: 'playful', date: 'boxed', divider: 'hearts',
+    palettes: ['candy', 'peach', 'mint', 'coral'], legacy: { layout: 'festive-pop', motif: 'balloons', pattern: 'confetti' }, type: 'party', date: 'rules', divider: 'simple',
     zone: { top: 130, bottom: 160, left: 120, right: 120 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'confetti', 0.1),
-      under: [...topPair('balloons', 320, [ctx.p.primary, ctx.p.accent, '#FFB627'])],
+      under: [
+        artEl('glossy-balloons', -30, -10, 300, 420, [ctx.p.primary, ctx.p.accent, mix(ctx.p.primary, '#666666', 0.5)], { locked: true, opts: { bunch: 'trio' } }),
+        artEl('glossy-balloons', W - 270, -10, 300, 420, [ctx.p.accent, ctx.p.primary, mix(ctx.p.primary, '#666666', 0.5)], { locked: true, flipX: true, opts: { bunch: 'trio' } }),
+      ],
       over: [artEl('confetti', 0, 0, W, 420, [ctx.p.primary, ctx.p.accent, '#FFB627'], { locked: true, opacity: 0.9 })],
     }),
     hero: (ctx) => [art('cake', 340, 360, ['#FFF4E6', ctx.p.primary, ctx.p.accent])],
@@ -427,7 +431,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'godh-bharai', name: 'Godh Bharai', category: 'kids', eventTypes: ['baby-shower'], communities: ['hindu-north', 'gujarati', 'marathi'],
     tags: ['baby shower', 'marigold', 'lotus', 'traditional'], premium: true, palettes: ['babyPink', 'peach', 'marigold', 'lavender'],
-    legacy: { layout: 'floral-frame', motif: 'lotus', pattern: 'paisley' }, type: 'desi', date: 'boxed', divider: 'lotus',
+    legacy: { layout: 'floral-frame', motif: 'lotus', pattern: 'paisley' }, type: 'mahal', date: 'bars', divider: 'lotus',
     zone: { top: 330, bottom: 290, left: 150, right: 150 },
     textBg: (ctx) => ctx.p.surface,
     chrome: (ctx) => ({
@@ -443,7 +447,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'naamkaran-palna', name: 'Naamkaran Palna', category: 'kids', eventTypes: ['naming-ceremony', 'annaprashan', 'mundan'],
     tags: ['naming ceremony', 'cradle', 'kalash'], palettes: ['butter', 'babyBlue', 'mint', 'cream'], legacy: { layout: 'temple-heritage', motif: 'kalash', pattern: 'mandala' },
-    type: 'desi', date: 'strip', divider: 'dots', zone: { top: 300, bottom: 220, left: 140, right: 140 },
+    type: 'garden', date: 'rules', divider: 'simple', zone: { top: 300, bottom: 220, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.08),
       under: [artEl('bandhanwar', 0, 0, W, 260, ['#2F7D32', '#F28C0F'], { locked: true }), ...bottomPair('floral-cluster', 300, [], { kind: 'mixed' }, 30)],
@@ -476,7 +480,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   // ======================= Home & religious =======================
   {
     id: 'naya-ghar', name: 'Naya Ghar', category: 'religious', eventTypes: ['griha-pravesh', 'puja'], tags: ['housewarming', 'home', 'kalash', 'bandhanwar'],
-    premium: true, palettes: ['marigold', 'kumkum', 'butter', 'emerald'], legacy: { layout: 'temple-heritage', motif: 'kalash', pattern: 'mandala' }, type: 'desi', date: 'boxed', divider: 'dots',
+    premium: true, palettes: ['marigold', 'kumkum', 'butter', 'emerald'], legacy: { layout: 'temple-heritage', motif: 'kalash', pattern: 'mandala' }, type: 'regal', date: 'rules', divider: 'simple',
     zone: { top: 300, bottom: 200, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.08),
@@ -486,7 +490,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'mangal-kalash', name: 'Mangal Kalash', category: 'religious', eventTypes: SACRED, tags: ['puja', 'katha', 'kalash', 'bells', 'rangoli'],
-    palettes: ['saffron', 'temple', 'kumkum', 'mustard'], legacy: { layout: 'royal-arch', motif: 'kalash', pattern: 'mandala' }, type: 'desi', date: 'strip', divider: 'ornate',
+    palettes: ['saffron', 'temple', 'kumkum', 'mustard'], legacy: { layout: 'royal-arch', motif: 'kalash', pattern: 'mandala' }, type: 'regal', date: 'rules', divider: 'lotus',
     zone: { top: 260, bottom: 320, left: 150, right: 150 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.1),
@@ -500,7 +504,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'mata-ki-chowki', name: 'Mata ki Chowki', category: 'religious', eventTypes: ['jagran', 'bhandara', 'puja'], tags: ['jagran', 'diya', 'devotional', 'red'],
-    palettes: ['kumkum', 'temple', 'saffron'], legacy: { layout: 'festive-pop', motif: 'diya', pattern: 'mandala' }, type: 'desi', date: 'boxed', divider: 'dots',
+    palettes: ['kumkum', 'temple', 'saffron'], legacy: { layout: 'festive-pop', motif: 'diya', pattern: 'mandala' }, type: 'regal', date: 'rules', divider: 'simple',
     zone: { top: 300, bottom: 360, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.1),
@@ -514,8 +518,8 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'deep-jyoti', name: 'Deep Jyoti', category: 'religious', eventTypes: [...SACRED, 'other', 'shop-opening'], tags: ['diwali', 'diya', 'lights', 'festival'],
-    premium: true, palettes: ['onyx', 'plum', 'navy', 'maroon'], legacy: { layout: 'royal-arch', motif: 'diya', pattern: 'mandala' }, type: 'royal', date: 'strip', divider: 'ornate',
-    zone: { top: 230, bottom: 360, left: 150, right: 150 },
+    premium: true, palettes: ['onyx', 'plum', 'navy', 'maroon'], legacy: { layout: 'royal-arch', motif: 'diya', pattern: 'mandala' }, type: 'gala', date: 'rules', divider: 'ornate',
+    zone: { top: 230, bottom: 450, left: 150, right: 150 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.06),
       under: [
@@ -528,7 +532,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'om-kamal', name: 'Om Kamal', category: 'religious', eventTypes: SACRED, tags: ['om', 'lotus', 'minimal', 'puja'],
-    palettes: ['ivory', 'cream', 'sage', 'saffron'], legacy: { layout: 'temple-heritage', motif: 'om', pattern: 'none' }, type: 'classic', date: 'line', divider: 'lotus',
+    palettes: ['ivory', 'cream', 'sage', 'saffron'], legacy: { layout: 'temple-heritage', motif: 'om', pattern: 'none' }, type: 'petal', date: 'rules', divider: 'lotus',
     zone: { top: 170, bottom: 330, left: 160, right: 160 },
     chrome: (ctx) => ({
       bg: radial(ctx),
@@ -541,7 +545,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'eid-milan', name: 'Eid Milan', category: 'religious', eventTypes: ['other', 'nikah', 'bhandara'], communities: ['muslim'], tags: ['eid', 'lanterns', 'crescent', 'dawat'],
-    palettes: ['emerald', 'navy', 'teal'], legacy: { layout: 'royal-arch', motif: 'crescent', pattern: 'jaali' }, type: 'deco', date: 'line', divider: 'ornate',
+    palettes: ['emerald', 'navy', 'teal'], legacy: { layout: 'royal-arch', motif: 'crescent', pattern: 'jaali' }, type: 'mahal', date: 'rules', divider: 'ornate',
     zone: { top: 380, bottom: 360, left: 150, right: 150 },
     chrome: (ctx) => ({
       bg: linear(ctx, 'jaali', 0.1),
@@ -556,7 +560,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   },
   {
     id: 'yagnopavit', name: 'Yagnopavit', category: 'religious', eventTypes: ['upanayana', 'mundan', 'naming-ceremony', 'puja'], communities: ['hindu-north', 'hindu-south', 'marathi'],
-    tags: ['upanayan', 'sacred', 'sun'], palettes: ['saffron', 'mustard', 'temple', 'cream'], legacy: { layout: 'royal-arch', motif: 'om', pattern: 'mandala' }, type: 'classic', date: 'strip', divider: 'ornate',
+    tags: ['upanayan', 'sacred', 'sun'], palettes: ['saffron', 'mustard', 'temple', 'cream'], legacy: { layout: 'royal-arch', motif: 'om', pattern: 'mandala' }, type: 'regal', date: 'rules', divider: 'ornate',
     zone: { top: 260, bottom: 200, left: 150, right: 150 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'mandala', 0.08),
@@ -568,7 +572,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   // ======================= Business & others =======================
   {
     id: 'grand-opening', name: 'Grand Opening', category: 'business', eventTypes: ['shop-opening', 'corporate'], tags: ['inauguration', 'ribbon', 'launch'],
-    premium: true, palettes: ['royalBlue', 'kumkum', 'emerald', 'onyx'], legacy: { layout: 'royal-arch', motif: 'shree', pattern: 'none' }, type: 'corporate', date: 'boxed', divider: 'simple',
+    premium: true, palettes: ['royalBlue', 'kumkum', 'emerald', 'onyx'], legacy: { layout: 'royal-arch', motif: 'shree', pattern: 'none' }, type: 'corporate', date: 'rules', divider: 'simple',
     zone: { top: 470, bottom: 200, left: 130, right: 130 },
     chrome: (ctx) => ({
       bg: radial(ctx),
@@ -579,7 +583,7 @@ export const DESIGN_FAMILIES: DesignFamily[] = [
   {
     id: 'shubh-labh', name: 'Shubh Labh', category: 'business', eventTypes: ['shop-opening', 'griha-pravesh', 'puja'], communities: ['marwari', 'gujarati', 'hindu-north'],
     tags: ['shubh labh', 'ganesha', 'bandhanwar', 'muhurat'], palettes: ['marigold', 'kumkum', 'butter'], legacy: { layout: 'temple-heritage', motif: 'shree', pattern: 'paisley' },
-    type: 'desi', date: 'boxed', divider: 'dots', zone: { top: 300, bottom: 220, left: 140, right: 140 },
+    type: 'regal', date: 'rules', divider: 'simple', zone: { top: 300, bottom: 220, left: 140, right: 140 },
     chrome: (ctx) => ({
       bg: radial(ctx, 'paisley', 0.1),
       under: [

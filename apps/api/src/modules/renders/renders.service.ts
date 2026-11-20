@@ -1,7 +1,7 @@
 import { and, desc, eq, inArray, renders, type Database } from '@cardai/db';
 import { QUEUES, type CreateRenderInput, type RenderDto, type RenderJobData } from '@cardai/shared';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Queue } from 'bullmq';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { hashJson } from '../../common/crypto.js';
@@ -31,8 +31,9 @@ export class RendersService {
     const event = await this.events.getOwned(user, input.eventId);
     const { features } = await this.entitlements.forEvent(event.id);
 
-    if (input.format === 'print_pdf') {
-      await this.entitlements.require(event.id, 'print_pdf', 'Print-ready PDF is a paid feature');
+    // `features` is already loaded: check it in memory instead of another round trip.
+    if (input.format === 'print_pdf' && !features.has('print_pdf')) {
+      throw new ForbiddenException({ message: 'Print-ready PDF is a paid feature', details: { feature: 'print_pdf' } });
     }
     const isVideo = input.format === 'video' || input.format === 'site_video';
     if (isVideo && user.role !== 'admin') await this.flags.require('video_render', 'Video rendering is paused for a short while. Your card and website still work.');

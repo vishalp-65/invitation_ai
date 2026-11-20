@@ -3,7 +3,7 @@
 import { EVENT_TYPE_IDS, getEventType } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Crown, Eye, EyeOff, Flame, Pencil, Plus, Search, Star, Trash2 } from 'lucide-react';
+import { Crown, ExternalLink, Eye, EyeOff, Flame, Maximize2, Pencil, Plus, Search, Star, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
@@ -36,6 +36,7 @@ export default function AdminTemplatesPage() {
   const [howTo, setHowTo] = useState(false);
   const [editing, setEditing] = useState<TemplateStat | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<TemplateStat | null>(null);
+  const [preview, setPreview] = useState<TemplateStat | null>(null);
 
   const patch = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api(`/admin/catalog/${id}`, { method: 'PATCH', json: body }),
@@ -259,6 +260,9 @@ export default function AdminTemplatesPage() {
                   </div>
                 </dl>
                 <div className="mt-auto flex items-center gap-1 pt-1">
+                  <IconBtn label="Preview and details" onClick={() => setPreview(t)}>
+                    <Maximize2 className="size-4" />
+                  </IconBtn>
                   <IconBtn label={t.featured ? 'Remove from featured' : 'Feature at the top of the gallery'} active={t.featured} onClick={() => patch.mutate({ id: t.id, body: { featured: !t.featured } })}>
                     <Star className="size-4" />
                   </IconBtn>
@@ -330,6 +334,73 @@ export default function AdminTemplatesPage() {
       </Dialog>
 
       {editing && <EditCatalogDialog t={editing} onClose={() => setEditing(null)} />}
+
+      {preview && (
+        <Dialog open onClose={() => setPreview(null)} title={preview.name} size="lg" focusField={false}>
+          <div className="grid gap-5 sm:grid-cols-[minmax(0,15rem)_1fr]">
+            <div className="mx-auto w-full max-w-60">
+              <TemplateThumb id={preview.id} name={preview.name} coverPage={preview.coverPage} />
+            </div>
+            <div className="flex min-w-0 flex-col gap-3 text-sm">
+              <div className="flex flex-wrap gap-1.5">
+                {preview.hidden ? <Badge tone="bad">Hidden</Badge> : <Badge tone="good">Live</Badge>}
+                {preview.featured && <Badge tone="info">Featured</Badge>}
+                {preview.premium ? <Badge tone="warn">Premium</Badge> : <Badge>Free</Badge>}
+                <Badge>{preview.source === 'catalog' ? 'Added by admin' : preview.source === 'marketplace' ? 'Marketplace' : 'Built-in'}</Badge>
+              </div>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+                <dt className="text-ink-soft">ID</dt>
+                <dd className="truncate font-mono text-xs">{preview.id}</dd>
+                {preview.family && (
+                  <>
+                    <dt className="text-ink-soft">Family</dt>
+                    <dd>{preview.family}</dd>
+                  </>
+                )}
+                <dt className="text-ink-soft">Occasions</dt>
+                <dd>{preview.eventTypes === 'all' ? 'All' : preview.eventTypes.map((e) => getEventType(e)?.label.split(' / ')[0] ?? e).join(', ')}</dd>
+                <dt className="text-ink-soft">Tags</dt>
+                <dd className="truncate">{preview.tags.join(', ') || '—'}</dd>
+                <dt className="text-ink-soft">Invitations</dt>
+                <dd className="tabular-nums">{num(preview.invitations)} ({num(preview.invitationsInRange)} in range)</dd>
+                <dt className="text-ink-soft">Views · picks</dt>
+                <dd className="tabular-nums">
+                  {num(preview.views)} · {num(preview.selects)}
+                </dd>
+                <dt className="text-ink-soft">Paid orders</dt>
+                <dd className="tabular-nums">
+                  {num(preview.orders)} · {compactINR(preview.revenuePaise)}
+                </dd>
+              </dl>
+              <div className="mt-auto flex flex-wrap gap-2 pt-2">
+                <ButtonLink href={`/create?type=${preview.eventTypes === 'all' ? 'wedding' : preview.eventTypes[0]}&template=${preview.id}`} target="_blank" variant="line" size="sm">
+                  <ExternalLink className="size-4" /> Try it
+                </ButtonLink>
+                <Button size="sm" variant="line" onClick={() => { patch.mutate({ id: preview.id, body: { featured: !preview.featured } }); setPreview({ ...preview, featured: !preview.featured }); }}>
+                  <Star className="size-4" /> {preview.featured ? 'Unfeature' : 'Feature'}
+                </Button>
+                <Button size="sm" variant="line" onClick={() => { patch.mutate({ id: preview.id, body: { premium: !preview.premium } }); setPreview({ ...preview, premium: !preview.premium }); }}>
+                  <Crown className="size-4" /> {preview.premium ? 'Make free' : 'Make premium'}
+                </Button>
+                {preview.source === 'catalog' && (
+                  <Button size="sm" variant="line" onClick={() => { setEditing(preview); setPreview(null); }}>
+                    <Pencil className="size-4" /> Edit details
+                  </Button>
+                )}
+                {preview.hidden ? (
+                  <Button size="sm" variant="line" onClick={() => { patch.mutate({ id: preview.id, body: { hidden: false } }); setPreview({ ...preview, hidden: false }); }}>
+                    <Eye className="size-4" /> Restore
+                  </Button>
+                ) : (
+                  <Button size="sm" variant="danger" onClick={() => { setConfirmDelete(preview); setPreview(null); }}>
+                    <Trash2 className="size-4" /> Delete / hide
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </Dialog>
+      )}
 
       {picked.size > 0 && (
         <BulkBar count={picked.size} onClear={() => setPicked(new Set())}>

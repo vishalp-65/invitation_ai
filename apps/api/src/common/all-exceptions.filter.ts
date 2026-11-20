@@ -1,6 +1,7 @@
 import type { ApiErrorBody } from '@cardai/shared';
 import { Catch, HttpException, HttpStatus, Logger, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { isUniqueViolation } from './db.js';
 
 /** One error envelope for every failure; internals are logged, never leaked. */
 @Catch()
@@ -25,6 +26,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
         message = Array.isArray(body.message) ? body.message.join(', ') : (body.message ?? exception.message);
         details = body.details;
       }
+    } else if (isUniqueViolation(exception)) {
+      // A race lost to a unique constraint (two saves of the same slug, code, email…) is a conflict, not a crash.
+      status = HttpStatus.CONFLICT;
+      message = 'This already exists. Please refresh and try again.';
+      this.logger.warn({ url: req.url, reqId: req.id }, 'Unique constraint conflict');
     } else {
       this.logger.error({ err: exception, url: req.url, reqId: req.id }, 'Unhandled error');
     }

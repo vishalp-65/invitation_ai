@@ -1,5 +1,5 @@
 import type { LayoutId, Theme } from '@cardai/shared';
-import { AbsoluteFill } from 'remotion';
+import { AbsoluteFill } from '../utils/remotion-lite';
 
 interface FrameProps {
   layout: LayoutId;

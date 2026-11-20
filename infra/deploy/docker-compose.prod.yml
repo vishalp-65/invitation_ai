@@ -2,12 +2,16 @@
 #  - own compose project name (noyta), own network, no shared volumes
 #  - only the API is published, on 127.0.0.1:4100 (loopback); the host's nginx routes api.noyta.in to it
 #  - Postgres (Neon) and Redis (Upstash) are managed services: DATABASE_URL / REDIS_URL come from .env
-# Images are set by the deploy job through .deploy.env (REGISTRY_IMAGE_API / REGISTRY_IMAGE_WORKER).
+# Images are set by deploy.sh through .deploy.env (REGISTRY_IMAGE_API / REGISTRY_IMAGE_WORKER).
+#
+# Defaults fit a shared 1 vCPU / 2 GB droplet (+ swap). Override any ${VAR:-default} in .env.
 name: noyta
 
 x-app: &app
   env_file: .env
   restart: unless-stopped
+  # tini as PID 1: forwards SIGTERM and reaps Chrome's child processes
+  init: true
   logging: { driver: json-file, options: { max-size: 10m, max-file: '3' } }
 
 services:
@@ -17,17 +21,23 @@ services:
     ports: ['127.0.0.1:${API_HOST_PORT:-4100}:4000']
     environment:
       API_PORT: '4000'
-    deploy:
-      resources:
-        limits:
-          memory: ${API_MEMORY:-768m}
+      # Keep the V8 heap well under the container limit so GC runs before the OOM killer does
+      NODE_OPTIONS: ${API_NODE_OPTIONS:---max-old-space-size=320}
+    mem_limit: ${API_MEMORY:-512m}
 
   worker:
     <<: *app
     image: ${REGISTRY_IMAGE_WORKER:?set REGISTRY_IMAGE_WORKER}
-    # Chrome (Remotion) needs a large /dev/shm
-    shm_size: 1gb
-    deploy:
-      resources:
-        limits:
-          memory: ${WORKER_MEMORY:-2g}
+    environment:
+      RENDER_CONCURRENCY: ${RENDER_CONCURRENCY:-1}
+      REMOTION_CONCURRENCY: ${REMOTION_CONCURRENCY:-1}
+      OFFTHREAD_VIDEO_CACHE_MB: ${OFFTHREAD_VIDEO_CACHE_MB:-128}
+      BROWSER_RECYCLE_AFTER: ${BROWSER_RECYCLE_AFTER:-20}
+      BROWSER_IDLE_CLOSE_SEC: ${BROWSER_IDLE_CLOSE_SEC:-300}
+    # Chrome uses /dev/shm for frames; it counts against mem_limit, so keep it modest
+    shm_size: ${WORKER_SHM:-512m}
+    mem_limit: ${WORKER_MEMORY:-1200m}
+    # Half the default CPU weight: under contention the API and interviewpilot win, idle CPU is still used
+    cpu_shares: 512
+    # Let an in-flight render finish (or reach a checkpoint) before a deploy kills it
+    stop_grace_period: 2m

@@ -1,6 +1,6 @@
 import type { Attire, CoupleStyle, FloralKind, LayoutId, MotifId, Theme } from '@cardai/shared';
 import type { ReactNode } from 'react';
-import { Couple } from '../art/Couple';
+import { Couple, COUPLE_CROP } from '../art/Couple';
 import { DiyaArt, MandalaWatermark } from '../art/Diya';
 import { Cluster, FloralCorners } from '../art/Florals';
 import { Ganesha } from '../art/Ganesha';
@@ -8,7 +8,8 @@ import { Balloons, BabyMoon, Cake, Cradle } from '../art/Kids';
 import { Arch, Border, Clouds, Confetti, Corner, Divider, Gift, Lantern, Rainbow, Ribbon, Rings, Skyline, Sprig, Stars, Sunburst, Wreath } from '../art/Ornaments';
 import { Bandhanwar, Bells, DiyaRow, Doves, Elephant, House, Kalash, LotusBloom, Peacock, Rangoli } from '../art/Sacred';
 import { ArchPanel, Bow, Chhatri, Filigree, FnIcon, GendaLadi, GeoFrame, GoldRing, PalaceArch } from '../art/Architecture';
-import { BloomCorner, BloomRing, Greenery, LineFlower } from '../art/Botanicals';
+import { BloomCorner, BloomFrame, BloomRing, Greenery, LineFlower } from '../art/Botanicals';
+import { Bunting, GiftBoxes, GlossyBalloons, Streamers } from '../art/Party';
 import { Butterfly, GoldDust, LaceBand, Wash } from '../art/Atelier';
 import { PaintFilter, useSvgId } from '../art/svg-ids';
 import { Toran } from '../art/Toran';
@@ -78,7 +79,15 @@ export const ASSETS: Record<string, AssetDef> = {
     colors: ['#C9973F', '#F6E7CB'],
     aspect: 0.8,
     render: ({ w, h, c, opts }) =>
-      box(w, h, <Couple style={s(opts.style, 'watercolor') as CoupleStyle} attire={s(opts.attire, 'north') as Attire} ink={c[0]!} wash={c[1] ?? '#F6E7CB'} size={Math.min(w, h / 1.25)} />),
+      box(
+        w,
+        h,
+        (() => {
+          const only = opts.only === 'groom' || opts.only === 'bride' ? opts.only : undefined;
+          const k = only ? COUPLE_CROP[only][1] / 240 : 1;
+          return <Couple style={s(opts.style, 'watercolor') as CoupleStyle} attire={s(opts.attire, 'north') as Attire} ink={c[0]!} wash={c[1] ?? '#F6E7CB'} size={Math.min(w / k, h / 1.25)} only={only} />;
+        })(),
+      ),
   },
   diya: { label: 'Diya', colors: ['#C9973F'], aspect: 1 / 0.62, motion: 'flicker', render: ({ w, h, c }) => box(w, h, <DiyaArt size={Math.min(w, h / 0.62)} gold={c[0]!} />) },
   motif: {
@@ -169,6 +178,11 @@ export const ASSETS: Record<string, AssetDef> = {
   'gold-dust': { label: 'Gold flecks', colors: ['#C9973F'], aspect: 1, motion: 'twinkle', render: (p) => <GoldDust {...p} /> },
   wash: { label: 'Watercolour wash', colors: ['#BFD7EA', '#DCEAF5'], aspect: 1, render: (p) => <Wash {...p} /> },
   'lace-band': { label: 'Gold lace band', colors: ['#C9973F', '#F4E2B0'], aspect: 9, render: (p) => <LaceBand {...p} /> },
+  'bloom-frame': { label: 'Floral name frame', colors: ['#FFFFFF', '#E8B4B8', '#9A5A60', '#9AA77F'], aspect: 1.25, render: (p) => <BloomFrame {...p} /> },
+  'glossy-balloons': { label: 'Glossy balloons', colors: ['#5FA8D3', '#8EC3E3', '#7A8A99'], aspect: 300 / 420, motion: 'float', render: (p) => <GlossyBalloons {...p} /> },
+  'gift-boxes': { label: 'Gift boxes', colors: ['#F4EEE6', '#3D97B8', '#E9E1D6'], aspect: 3, render: (p) => <GiftBoxes {...p} /> },
+  bunting: { label: 'Bunting', colors: ['#3D97B8', '#7FBFD8', '#4A5A66'], aspect: 4, motion: 'sway', render: (p) => <Bunting {...p} /> },
+  streamers: { label: 'Streamers', colors: ['#D4A63A', '#F6E2A8'], aspect: 1, motion: 'sway', render: (p) => <Streamers {...p} /> },
   florals: {
     label: 'Corner flowers',
     colors: [],
@@ -270,6 +284,15 @@ export const STICKERS: Sticker[] = [
   { id: 'gold-dust', asset: 'gold-dust', label: 'Gold flecks', category: 'ornament', w: 600 },
   { id: 'wash', asset: 'wash', label: 'Watercolour wash', category: 'ornament', w: 700 },
   { id: 'lace-band', asset: 'lace-band', label: 'Gold lace band', category: 'ornament', w: 1080 },
+  { id: 'bloom-frame', asset: 'bloom-frame', label: 'Floral name frame', category: 'wedding', w: 640 },
+  ...(['single', 'pair', 'trio', 'cluster'] as const).map((bunch) => ({ id: `balloons-${bunch}`, asset: 'glossy-balloons', label: `Balloons (${bunch})`, category: 'kids' as const, opts: { bunch }, w: 300 })),
+  { id: 'balloons-gold', asset: 'glossy-balloons', label: 'Gold foil balloons', category: 'kids', opts: { bunch: 'cluster', metal: true }, colors: ['#D4A63A', '#E8C66A', '#B08A3A'], w: 320 },
+  { id: 'gift-boxes', asset: 'gift-boxes', label: 'Gift boxes', category: 'kids', w: 1080 },
+  { id: 'bunting', asset: 'bunting', label: 'Bunting', category: 'kids', w: 1080 },
+  { id: 'bunting-banner', asset: 'bunting', label: 'Banner flags', category: 'wedding', opts: { style: 'banner', swags: 1 }, w: 420 },
+  { id: 'streamers', asset: 'streamers', label: 'Streamers', category: 'kids', w: 600 },
+  { id: 'groom', asset: 'couple', label: 'Groom', category: 'wedding', opts: { style: 'caricature', attire: 'north', only: 'groom' }, w: 220 },
+  { id: 'bride', asset: 'couple', label: 'Bride', category: 'wedding', opts: { style: 'caricature', attire: 'north', only: 'bride' }, w: 200 },
   { id: 'bow', asset: 'bow', label: 'Satin bow', category: 'wedding', w: 220 },
   { id: 'chhatri', asset: 'chhatri', label: 'Royal umbrella', category: 'wedding', w: 260 },
   { id: 'genda-ladi', asset: 'genda-ladi', label: 'Marigold strings', category: 'wedding', opts: { count: 3 }, w: 240 },

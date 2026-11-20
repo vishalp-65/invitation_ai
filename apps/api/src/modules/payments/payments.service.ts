@@ -1,4 +1,5 @@
 import {
+  and,
   designerEarnings,
   designerProfiles,
   eq,
@@ -9,9 +10,19 @@ import {
   users,
   type Database,
 } from '@cardai/db';
-import { PRODUCTS, type CheckoutDto, type CreateOrderInput, type ProductCode, type VerifyPaymentInput } from '@cardai/shared';
-import { BadRequestException, ConflictException, Inject, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { productName, type CheckoutDto, type CreateOrderInput, type ProductCode, type VerifyPaymentInput } from '@cardai/shared';
+import {
+  BadRequestException,
+  ConflictException,
+  Inject,
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 import type { AuthUser } from '../../common/auth.decorators.js';
+import { bumpCounter } from '../../common/redis.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { WEBHOOK_FAIL_KEY } from '../ops/ops.service.js';
 import { AnalyticsService } from '../analytics/analytics.service.js';
@@ -20,7 +31,25 @@ import { OffersService } from '../offers/offers.service.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
-import { PAYMENT_GATEWAY, type PaymentGateway } from './payment-gateway.js';
+import { PAYMENT_GATEWAY, type GatewayOrder, type PaymentGateway } from './payment-gateway.js';
+
+/** `orders.refund_id` while a refund call is in flight: `pending:<epoch ms>` (legacy: bare `pending`). */
+const REFUND_CLAIM = 'pending';
+const REFUND_CLAIM_STALE_MS = 15 * 60_000;
+/** When a claim was taken; a legacy claim without a timestamp counts as long stale. */
+export const claimedAt = (refundId: string) => Number(refundId.split(':')[1]) || 0;
+
+/** Retries a DB write a few times with a short backoff (for writes that must land after money moved). */
+export async function withRetry<T>(fn: () => PromiseLike<T>, attempts = 3, baseMs = 250): Promise<T> {
+  for (let i = 1; ; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      if (i >= attempts) throw err;
+      await new Promise((r) => setTimeout(r, baseMs * 2 ** (i - 1)));
+    }
+  }
+}
 
 @Injectable()
 export class PaymentsService {
@@ -75,12 +104,16 @@ export class PaymentsService {
       })
       .returning();
 
-    const gw = await this.gateway.createOrder(amountPaise, order!.id, {
-      orderId: order!.id,
-      eventId: event.id,
-      product: product.code,
-    });
-    await this.db.update(orders).set({ providerOrderId: gw.id }).where(eq(orders.id, order!.id));
+    let gw: GatewayOrder;
+    try {
+      gw = await this.gateway.createOrder(amountPaise, order!.id, { orderId: order!.id, eventId: event.id, product: product.code });
+      // Without the gateway id a payment could never be matched back to this order: retry, then give up cleanly.
+      await withRetry(() => this.db.update(orders).set({ providerOrderId: gw.id }).where(eq(orders.id, order!.id)));
+    } catch (err) {
+      this.logger.error({ err, orderId: order!.id }, 'Could not start checkout');
+      await this.db.update(orders).set({ status: 'failed' }).where(eq(orders.id, order!.id)).catch(() => undefined);
+      throw new ServiceUnavailableException('We could not start the payment right now. Please try again in a minute.');
+    }
 
     return {
       orderId: order!.id,
@@ -131,13 +164,15 @@ export class PaymentsService {
 
   /** Read by the 10-minute health check: several failures in an hour raise an alert. */
   private async countWebhookFailure() {
-    const n = await this.redis.incr(WEBHOOK_FAIL_KEY).catch(() => 0);
-    if (n === 1) await this.redis.expire(WEBHOOK_FAIL_KEY, 3600).catch(() => undefined);
+    await bumpCounter(this.redis, WEBHOOK_FAIL_KEY, 3600).catch(() => undefined);
   }
 
   /**
-   * Admin refund through the gateway. A conditional update claims the order first, so two clicks
-   * (or two admins) can never refund twice. Full refunds can also take back what the order unlocked.
+   * Admin refund through the gateway. A conditional update claims the order first (`pending:<ms>`),
+   * so two clicks (or two admins) can never refund twice. Once the gateway accepts the refund, the
+   * money has moved: it is recorded with one atomic increment (retried), and only then is access
+   * revoked. If recording still fails, the claim stays and `reconcileRefunds` settles it from the
+   * gateway's own refund list, so the order is never stuck and never refunded twice.
    */
   async refund(adminId: string, orderId: string, input: { amountPaise?: number; reason: string; revokeAccess: boolean }) {
     const [order] = await this.db.select().from(orders).where(eq(orders.id, orderId));
@@ -146,10 +181,13 @@ export class PaymentsService {
     const left = order.amountPaise - order.refundedPaise;
     const amount = input.amountPaise ?? left;
     if (amount <= 0 || amount > left) throw new BadRequestException(`You can refund up to ${(left / 100).toFixed(0)} rupees on this order.`);
+    // Also pinned to the refunded amount we validated against, so a concurrent refund can't slip in between.
     const [claimed] = await this.db
       .update(orders)
-      .set({ refundId: 'pending' })
-      .where(sql`${orders.id} = ${orderId} and (${orders.refundId} is null or ${orders.refundId} <> 'pending')`)
+      .set({ refundId: `${REFUND_CLAIM}:${Date.now()}` })
+      .where(
+        sql`${orders.id} = ${orderId} and ${orders.refundedPaise} = ${order.refundedPaise} and (${orders.refundId} is null or ${orders.refundId} not like ${`${REFUND_CLAIM}%`})`,
+      )
       .returning({ id: orders.id });
     if (!claimed) throw new ConflictException('A refund for this order is already in progress.');
     let refundId: string;
@@ -159,27 +197,95 @@ export class PaymentsService {
       await this.db.update(orders).set({ refundId: order.refundId }).where(eq(orders.id, orderId));
       throw new BadRequestException(`Refund failed: ${(err as Error).message}`);
     }
+
     const full = amount === left;
-    await this.db.transaction(async (tx) => {
-      await tx
-        .update(orders)
-        .set({ refundId, refundedPaise: order.refundedPaise + amount, refundedAt: new Date(), refundReason: input.reason, status: full ? 'refunded' : 'paid' })
-        .where(eq(orders.id, orderId));
-      if (full && input.revokeAccess) {
-        await tx.execute(sql`delete from entitlements where order_id = ${orderId}`);
-        // Unpaid designer share for a refunded marketplace sale is cancelled.
-        await tx.execute(sql`delete from designer_earnings where order_id = ${orderId} and status = 'pending'`);
+    try {
+      await withRetry(() =>
+        this.db
+          .update(orders)
+          .set({
+            refundId,
+            refundedPaise: sql`${orders.refundedPaise} + ${amount}`,
+            refundedAt: new Date(),
+            refundReason: input.reason,
+            status: sql`case when ${orders.refundedPaise} + ${amount} >= ${orders.amountPaise} then 'refunded'::order_status else ${orders.status} end`,
+          })
+          .where(eq(orders.id, orderId)),
+      );
+    } catch (err) {
+      this.logger.error({ err, orderId, refundId, amount }, 'Refund issued at the gateway but not recorded; left for reconciliation');
+      throw new InternalServerErrorException(
+        `Razorpay accepted refund ${refundId}, but saving it failed. It will be reconciled automatically within 30 minutes. Do not refund again.`,
+      );
+    }
+
+    let revoked = false;
+    if (full && input.revokeAccess) {
+      try {
+        await this.revokeOrderAccess(orderId);
+        revoked = true;
+      } catch (err) {
+        this.logger.error({ err, orderId }, 'Refund recorded but revoking access failed');
       }
-    });
-    const [event] = await this.db.select({ title: events.title }).from(events).where(eq(events.id, order.eventId));
+    }
+    const eventTitle = await this.eventTitle(order.eventId);
     await this.mail.toUser(
       order.userId,
       'payment.refund',
-      (u) => ({ name: u.name, product: PRODUCTS[order.productCode as ProductCode]?.name ?? order.productCode, eventTitle: event?.title ?? 'Your invitation', amountPaise: amount, full, refundId }),
+      (u) => ({ name: u.name, product: productName(order.productCode), eventTitle, amountPaise: amount, full, refundId }),
       { key: `refund-${refundId}` },
     );
     this.logger.log(`Order ${orderId} refunded ${amount} paise (${full ? 'full' : 'partial'})`);
-    return { ok: true, refundId, amountPaise: amount, full };
+    return { ok: true, refundId, amountPaise: amount, full, revoked };
+  }
+
+  /** Takes back what a fully refunded order unlocked, and cancels the unpaid designer share. */
+  private async revokeOrderAccess(orderId: string) {
+    await this.db.transaction(async (tx) => {
+      await tx.execute(sql`delete from entitlements where order_id = ${orderId}`);
+      await tx.execute(sql`delete from designer_earnings where order_id = ${orderId} and status = 'pending'`);
+    });
+  }
+
+  /**
+   * Settles refund claims older than 15 minutes (a crash or DB error after the gateway call) from
+   * the gateway's refund list: records refunds it holds that we don't, or releases the claim.
+   * Access is never revoked here; that stays an admin decision. Run by the 10-minute ops check.
+   */
+  async reconcileRefunds(): Promise<{ settled: Array<{ orderId: string; refundedPaise: number; recovered: boolean }>; failed: string[] }> {
+    const cutoff = Date.now() - REFUND_CLAIM_STALE_MS;
+    const claims = await this.db
+      .select({ id: orders.id, refundId: orders.refundId, providerPaymentId: orders.providerPaymentId, refundedPaise: orders.refundedPaise, amountPaise: orders.amountPaise })
+      .from(orders)
+      .where(sql`${orders.refundId} like ${`${REFUND_CLAIM}%`}`)
+      .limit(50);
+    const settled: Array<{ orderId: string; refundedPaise: number; recovered: boolean }> = [];
+    const failed: string[] = [];
+    for (const c of claims) {
+      const claim = c.refundId!;
+      if (claimedAt(claim) > cutoff || !c.providerPaymentId) continue;
+      try {
+        const live = (await this.gateway.refundsOf(c.providerPaymentId)).filter((r) => r.status !== 'failed');
+        const total = Math.min(c.amountPaise, live.reduce((sum, r) => sum + r.amountPaise, 0));
+        const latest = live.at(-1)?.id ?? null;
+        const recovered = total > c.refundedPaise;
+        const [row] = await this.db
+          .update(orders)
+          .set(
+            recovered
+              ? { refundId: latest, refundedPaise: total, refundedAt: new Date(), status: total >= c.amountPaise ? 'refunded' : 'paid' }
+              : { refundId: latest },
+          )
+          // Only if nobody touched the claim meanwhile.
+          .where(and(eq(orders.id, c.id), eq(orders.refundId, claim)))
+          .returning({ id: orders.id });
+        if (row) settled.push({ orderId: c.id, refundedPaise: total, recovered });
+      } catch (err) {
+        this.logger.error({ err, orderId: c.id }, 'Refund reconciliation failed');
+        failed.push(c.id);
+      }
+    }
+    return { settled, failed };
   }
 
   /**
@@ -197,7 +303,7 @@ export class PaymentsService {
       if (!order) return undefined; // already fulfilled
       let earning: Paid['earning'];
 
-      await this.entitlements.grantProduct(tx, order.eventId, order.productCode as keyof typeof PRODUCTS, order.id);
+      await this.entitlements.grantProduct(tx, order.eventId, order.productCode as ProductCode, order.id);
 
       // Marketplace revenue share for the template used at purchase time.
       if (order.templateId?.startsWith('mkt-')) {
@@ -218,13 +324,15 @@ export class PaymentsService {
             .where(eq(marketplaceTemplates.id, tpl.id));
         }
       }
-      if (order.couponCode) await this.offers.markUsed(order.couponCode);
-      this.logger.log(`Order ${order.id} paid (${order.productCode})`);
-      this.analytics.record('purchase', { userId: order.userId }, { templateId: order.templateId, props: { product: order.productCode, amountPaise: order.amountPaise, coupon: order.couponCode } });
+      if (order.couponCode) await this.offers.markUsed(order.couponCode, tx);
       return { order, earning };
     });
-    this.templates.invalidate();
     if (paid) {
+      // Side effects run only after the commit, so a rolled-back payment leaves no trace.
+      const { order } = paid;
+      this.logger.log(`Order ${order.id} paid (${order.productCode})`);
+      this.analytics.record('purchase', { userId: order.userId }, { templateId: order.templateId, props: { product: order.productCode, amountPaise: order.amountPaise, coupon: order.couponCode } });
+      this.templates.invalidate(); // marketplace sales counts
       void this.sendPaymentMails(paid.order, paid.earning);
       // UPI vs card vs net banking, for the revenue report (best effort).
       if (!paid.order.paymentMethod) {
@@ -255,9 +363,13 @@ export class PaymentsService {
     return { to: to.email };
   }
 
+  private async eventTitle(eventId: string): Promise<string> {
+    const [event] = await this.db.select({ title: events.title }).from(events).where(eq(events.id, eventId));
+    return event?.title ?? 'Your invitation';
+  }
+
   private async queueReceipt(order: typeof orders.$inferSelect, key: string) {
-    const [event] = await this.db.select({ title: events.title }).from(events).where(eq(events.id, order.eventId));
-    const product = PRODUCTS[order.productCode as keyof typeof PRODUCTS]?.name ?? order.productCode;
+    const [eventTitle, product] = [await this.eventTitle(order.eventId), productName(order.productCode)];
     await this.mail.toUser(
       order.userId,
       'payment.receipt',
@@ -265,7 +377,7 @@ export class PaymentsService {
         name: u.name,
         orderId: order.id,
         product,
-        eventTitle: event?.title ?? 'Your invitation',
+        eventTitle,
         listPricePaise: order.listPricePaise ?? order.amountPaise + order.discountPaise,
         discountPaise: order.discountPaise,
         couponCode: order.couponCode,

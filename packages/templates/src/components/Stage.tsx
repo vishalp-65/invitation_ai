@@ -4,7 +4,7 @@ import { AbsoluteFill, continueRender, delayRender } from 'remotion';
 import { MandalaWatermark } from '../art/Diya';
 import { FloralCorners } from '../art/Florals';
 import { Toran } from '../art/Toran';
-import { useInviteFonts } from '../fonts';
+import { useInviteFonts } from '../fonts-remotion';
 import { skinFor, type Skin } from '../layouts/skin';
 import { withAlpha } from '../utils/color';
 import { Background } from './Background';

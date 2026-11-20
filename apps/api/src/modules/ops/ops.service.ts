@@ -7,6 +7,7 @@ import type { Queue } from 'bullmq';
 import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { MailService } from '../mail/mail.service.js';
+import { PaymentsService } from '../payments/payments.service.js';
 import { WhatsAppClient } from '../whatsapp/whatsapp.client.js';
 
 export type OpsJob = { type: 'check' } | { type: 'digest' } | { type: 'nightly' };
@@ -46,6 +47,7 @@ export class OpsService implements OnApplicationBootstrap {
     @Inject(REDIS) private readonly redis: Redis,
     private readonly mail: MailService,
     private readonly whatsapp: WhatsAppClient,
+    private readonly payments: PaymentsService,
     @InjectQueue(QUEUES.ops) private readonly queue: Queue<OpsJob>,
   ) {}
 
@@ -93,6 +95,33 @@ export class OpsService implements OnApplicationBootstrap {
     ]);
     const webhookFails = n(await this.redis.get(WEBHOOK_FAIL_KEY).catch(() => 0));
     const alerts: Alert[] = [];
+
+    // Refunds left half-done (gateway accepted, DB write failed or the process died) are settled here.
+    const refunds = await this.payments.reconcileRefunds().catch((err: Error) => {
+      this.logger.error(`Refund reconciliation crashed: ${err.message}`);
+      return { settled: [], failed: ['(all)'] };
+    });
+    const recovered = refunds.settled.filter((r) => r.recovered);
+    if (recovered.length) {
+      alerts.push({
+        kind: 'refund-reconciled',
+        severity: 'warn',
+        title: `${recovered.length} refund(s) recovered from Razorpay`,
+        detail: `Razorpay held refunds that were not saved here. They are recorded now. Access was not revoked: check these orders and revoke by hand if needed.`,
+        actions: ['Open Orders and review the listed orders'],
+        data: { orders: recovered.map((r) => r.orderId) },
+      });
+    }
+    if (refunds.failed.length) {
+      alerts.push({
+        kind: 'refund-reconcile-failed',
+        severity: 'critical',
+        title: `${refunds.failed.length} refund(s) could not be reconciled`,
+        detail: 'These orders have a refund claim that could not be checked against Razorpay. Refunds on them are blocked until this clears.',
+        actions: ['Check the Razorpay dashboard for these payments', 'Check API logs for "Refund reconciliation failed"'],
+        data: { orders: refunds.failed },
+      });
+    }
 
     const r = renders[0];
     if (r && n(r.failed) >= 5 && n(r.failed) / Math.max(1, n(r.total)) >= 0.3) {

@@ -6,6 +6,7 @@ import { ArrowDownRight, ArrowUpRight, Minus } from 'lucide-react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { buttonClass } from '@/components/ui/button';
+import { apiFetch } from '@/lib/api';
 
 // ---------- Formatting ----------
 
@@ -94,9 +95,7 @@ export function duration(minutes: number) {
 
 /** Downloads an admin CSV through the authenticated API (refreshes the session if needed). */
 export async function downloadCsv(path: string, filename: string) {
-  const get = () => fetch(`/api${path}`, { credentials: 'include' });
-  let res = await get();
-  if (res.status === 401 && (await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })).ok) res = await get();
+  const res = await apiFetch(path);
   if (!res.ok) throw new Error('Export failed');
   const url = URL.createObjectURL(await res.blob());
   const a = Object.assign(document.createElement('a'), { href: url, download: filename });

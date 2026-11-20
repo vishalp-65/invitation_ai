@@ -6,17 +6,11 @@ import { useEffect, useRef, useState } from 'react';
 import { safeHref, useSite } from './context';
 import { Reveal } from './motion';
 import { PhotoGrid, Shell, youtubeEmbed } from './sections';
+import { postJson as post } from './utils';
 
 const card = 'rounded-[22px] bg-[var(--inv-surface)] text-[var(--inv-on-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_18px_40px_-28px_rgb(0_0_0/0.45)]';
 const field =
   'h-12 w-full rounded-[12px] border-2 inv-line bg-transparent px-3 text-inherit placeholder:opacity-60 focus:border-current focus:outline-none';
-
-async function post<T>(url: string, body: unknown): Promise<T> {
-  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const json = (await res.json().catch(() => ({}))) as T & { message?: string };
-  if (!res.ok) throw new Error(json.message ?? 'Something went wrong');
-  return json;
-}
 
 // ---------------- Shagun & gifts ----------------
 

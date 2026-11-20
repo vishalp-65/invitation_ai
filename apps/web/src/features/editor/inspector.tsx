@@ -306,7 +306,7 @@ function TextCurve({ el }: { el: TextElement }) {
 // ---------------------------------------------------------------- art / image / shape
 
 const OPTION_CHOICES: Record<string, Record<string, string[]>> = {
-  couple: { style: [...COUPLE_STYLES], attire: [...ATTIRES] },
+  couple: { style: [...COUPLE_STYLES], attire: [...ATTIRES], only: ['both', 'groom', 'bride'] },
   'floral-cluster': { kind: ['rose', 'marigold', 'lotus', 'jasmine', 'mixed'] },
   florals: { kind: ['rose', 'marigold', 'lotus', 'jasmine', 'mixed'], placement: ['bottom', 'diagonal', 'corners'] },
   divider: { style: ['ornate', 'lotus', 'leaf', 'dots', 'simple', 'hearts', 'stars', 'deco'] },
@@ -321,6 +321,9 @@ const OPTION_CHOICES: Record<string, Record<string, string[]>> = {
   greenery: { kind: ['eucalyptus', 'olive', 'fern', 'mixed'] },
   'line-flower': { kind: ['poppy', 'lily', 'rose', 'wild'] },
   'genda-ladi': { count: ['1', '2', '3', '4', '5'] },
+  'bloom-frame': { shape: ['hex', 'rect'] },
+  'glossy-balloons': { bunch: ['single', 'pair', 'trio', 'cluster'] },
+  bunting: { style: ['pennant', 'banner'], swags: ['1', '2', '3'] },
 };
 const nice = (s: string) => ({ watercolor: 'Painted', caricature: 'Cute', lineart: 'Line art', north: 'North Indian', south: 'South Indian', muslim: 'Nikah', christian: 'Church' })[s] ?? `${s[0]!.toUpperCase()}${s.slice(1)}`;
 
@@ -425,7 +428,7 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
         <ImageUp className="size-4" /> {el.src || el.bind ? 'Replace photo' : 'Add photo'}
       </button>
       <RemoveBackground el={el} ctx={ctx} />
-      <Seg label="Shape" value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'arch', label: 'Arch' }]} />
+      <Seg label="Shape" value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'oval', label: 'Oval' }, { v: 'arch', label: 'Arch' }]} />
       <Slider label="Border" min={0} max={40} value={el.borderW} onChange={(v) => up(el.id, { borderW: v })} />
       {el.borderW > 0 && <ColorPicker value={el.border ?? '#FFFFFF'} onChange={(c) => up(el.id, { border: c })} docColors={colors} />}
     </div>

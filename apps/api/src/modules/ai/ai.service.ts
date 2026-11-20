@@ -48,6 +48,7 @@ import { z } from 'zod';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { hashJson } from '../../common/crypto.js';
 import { ENV, type Env } from '../../config/env.js';
+import { bumpCounter } from '../../common/redis.js';
 import { DB, OPENROUTER, REDIS, type Redis } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
@@ -80,8 +81,7 @@ export class AiService {
   private async consumeQuota(userId: string, kind: keyof typeof FREE_AI_QUOTA_PER_DAY, amount = 1) {
     const day = new Date().toISOString().slice(0, 10);
     const key = `aiq:${kind}:${userId}:${day}`;
-    const used = await this.redis.incrby(key, amount);
-    if (used === amount) await this.redis.expire(key, 26 * 3600);
+    const used = await bumpCounter(this.redis, key, 26 * 3600, amount);
     if (used > FREE_AI_QUOTA_PER_DAY[kind]) {
       throw new HttpException(`Daily AI limit reached for ${kind}. Please try again tomorrow.`, HttpStatus.TOO_MANY_REQUESTS);
     }

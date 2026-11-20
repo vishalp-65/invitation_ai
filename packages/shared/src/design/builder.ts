@@ -5,7 +5,7 @@ import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
 import { detectScript, EDITOR_FONTS, fontSupports } from './fonts.js';
-import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
+import { curvedTextPath, DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
 
 export type Palette = Theme['palette'];
 
@@ -64,15 +64,15 @@ export interface Tones {
 }
 
 export type Band =
-  | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect; font?: string; group?: string }
+  | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect; font?: string; group?: string; curve?: number }
   | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade'; group?: string }
   | { t: 'divider'; style?: string; w?: number; gap?: number }
   | { t: 'date'; style: DateStyle; gap?: number }
-  | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded'; gap?: number }
+  | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded' | 'oval' | 'rect'; gap?: number; borderW?: number; border?: string; rot?: number; empty?: { bg: string; ink: string; font: string } }
   | { t: 'gap'; h: number };
 
 /** strip: WEEKDAY — 14 — MONTH YEAR; bars: MONTH / WEEKDAY | 14 | TIME / YEAR. */
-export type DateStyle = 'strip' | 'line' | 'stack' | 'boxed' | 'bars';
+export type DateStyle = 'strip' | 'line' | 'stack' | 'boxed' | 'bars' | 'rules';
 
 export interface Zone {
   top: number;
@@ -313,6 +313,71 @@ const RAW_TYPE_SETS = {
     small: r('Didact Gothic', 24, { tone: 'muted', lh: 1.5, indic: 'body' }),
     big: r('Didact Gothic', 110, { tone: 'accent', indic: 'display' }),
   },
+  // ---- Celebration collection (Nov 2026, second set of references) ----
+  /** Mauve arch with rings: Mea Culpa swash names, Noto Serif caps and text. */
+  vintage: {
+    invocation: r('Noto Serif', 24, { tone: 'accent', ls: 0.1, upper: true, indic: 'display' }),
+    eyebrow: r('Noto Serif', 32, { upper: true, ls: 0.1, tone: 'accent', indic: 'body' }),
+    headline: r('Noto Serif', 40, { upper: true, ls: 0.16, tone: 'accent', indic: 'display' }),
+    names: r('Mea Culpa', 156, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    name: r('Mea Culpa', 176, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    connector: r('Noto Serif', 92, { tone: 'ink', weight: 700, lh: 1, indic: 'body' }),
+    detail: r('Noto Serif', 24, { italic: true, tone: 'muted', lh: 1.4, indic: 'body' }),
+    host: r('Noto Serif', 30, { tone: 'ink', ls: 0.04, lh: 1.45, indic: 'body' }),
+    body: r('Noto Serif', 32, { tone: 'ink', ls: 0.05, lh: 1.4, indic: 'body' }),
+    date: r('Noto Serif', 32, { upper: true, ls: 0.06, tone: 'ink', indic: 'display' }),
+    venue: r('Noto Serif', 32, { tone: 'ink', ls: 0.05, lh: 1.4, indic: 'body' }),
+    small: r('Noto Serif', 25, { tone: 'muted', lh: 1.45, indic: 'body' }),
+    big: r('Noto Serif', 104, { tone: 'ink', indic: 'display' }),
+  },
+  /** Vintage florals (Nikah): Allura names, Poppins text. */
+  sage: {
+    invocation: r('Poppins', 26, { tone: 'ink', ls: 0.06, indic: 'display' }),
+    eyebrow: r('Poppins', 36, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    headline: r('Poppins', 34, { upper: true, ls: 0.2, tone: 'ink', indic: 'display' }),
+    names: r('Allura', 116, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    name: r('Allura', 136, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    connector: r('Allura', 70, { tone: 'accent', lh: 1, indic: 'body' }),
+    detail: r('Poppins', 22, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    host: r('Poppins', 27, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    body: r('Poppins', 27, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    date: r('Poppins', 30, { upper: true, ls: 0.08, tone: 'ink', indic: 'display' }),
+    venue: r('Poppins', 30, { tone: 'ink', weight: 600, lh: 1.45, indic: 'body' }),
+    small: r('Poppins', 27, { tone: 'ink', lh: 1.5, indic: 'body' }),
+    big: r('Poppins', 104, { tone: 'accent', indic: 'display' }),
+  },
+  /** Photo birthday: Ephesis name, Cormorant Garamond caps. */
+  party: {
+    invocation: r('Cormorant Garamond', 30, { upper: true, ls: 0.2, tone: 'ink', weight: 500, indic: 'display' }),
+    eyebrow: r('Cormorant Garamond', 34, { upper: true, ls: 0.22, tone: 'ink', weight: 500, indic: 'body' }),
+    headline: r('Cormorant Garamond', 54, { upper: true, ls: 0.04, tone: 'ink', weight: 500, indic: 'display' }),
+    names: r('Ephesis', 150, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    name: r('Ephesis', 176, { tone: 'ink', lh: 1.1, indic: 'display' }),
+    connector: r('Ephesis', 80, { tone: 'accent', lh: 1, indic: 'body' }),
+    detail: r('Cormorant Garamond', 28, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('Cormorant Garamond', 32, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    body: r('Cormorant Garamond', 32, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Cormorant Garamond', 32, { upper: true, ls: 0.16, tone: 'ink', weight: 500, indic: 'display' }),
+    venue: r('Cormorant Garamond', 30, { tone: 'ink', ls: 0.05, lh: 1.4, indic: 'body' }),
+    small: r('Cormorant Garamond', 26, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('Cormorant Garamond', 116, { tone: 'ink', weight: 500, indic: 'display' }),
+  },
+  /** Black & gold party: Monsieur La Doulaise headline, glowing Cormorant caps, script day. */
+  gala: {
+    invocation: r('Cormorant Garamond', 30, { upper: true, ls: 0.16, tone: 'accent', weight: 600, effect: 'glow', indic: 'display' }),
+    eyebrow: r('Cormorant Garamond', 36, { upper: true, ls: 0.14, tone: 'accent', weight: 600, effect: 'glow', indic: 'body' }),
+    headline: r('Monsieur La Doulaise', 124, { tone: 'accent', effect: 'gold', lh: 1.05, indic: 'display' }),
+    names: r('Monsieur La Doulaise', 150, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    name: r('Monsieur La Doulaise', 170, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    connector: r('Cormorant Garamond', 44, { italic: true, tone: 'accent', indic: 'body' }),
+    detail: r('Cormorant Garamond', 28, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('Cormorant Garamond', 32, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    body: r('Cormorant Garamond', 32, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Cormorant Garamond', 30, { upper: true, ls: 0.16, tone: 'accent', weight: 600, indic: 'display' }),
+    venue: r('Cormorant Garamond', 32, { upper: true, ls: 0.08, tone: 'accent', weight: 600, effect: 'glow', lh: 1.4, indic: 'body' }),
+    small: r('Cormorant Garamond', 27, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('Pinyon Script', 120, { tone: 'accent', effect: 'gold', indic: 'display' }),
+  },
 } satisfies Record<string, TypeSet>;
 export type TypeSetKey = keyof typeof RAW_TYPE_SETS;
 
@@ -336,6 +401,10 @@ export const DEVA_PAIRS: Record<TypeSetKey, { script: string; display: string; b
   petal: { script: 'Rozha One', display: 'Tiro Devanagari Hindi', body: 'Noto Serif Devanagari' },
   regal: { script: 'Kurale', display: 'Rhodium Libre', body: 'Sahitya' },
   boho: { script: 'Dekko', display: 'Biryani', body: 'Karma' },
+  vintage: { script: 'Amita', display: 'Noto Serif Devanagari', body: 'Noto Serif Devanagari' },
+  sage: { script: 'Arya', display: 'Poppins', body: 'Poppins' },
+  party: { script: 'Arya', display: 'Rozha One', body: 'Sura' },
+  gala: { script: 'Amita', display: 'Kurale', body: 'Sura' },
 };
 
 const SCRIPT_ROLES = new Set<Role>(['names', 'name', 'connector']);
@@ -427,7 +496,7 @@ export function textEl(
   style: RoleStyle,
   ctx: RecipeCtx,
   tones: Tones,
-  o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right'; font?: string; group?: string },
+  o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right'; font?: string; group?: string; curve?: number },
 ): TextElement {
   const font = fontFor(o.font, style, ctx, o.text);
   return {
@@ -454,6 +523,7 @@ export function textEl(
     effect: o.effect ?? style.effect ?? 'none',
     fit: true,
     ...(o.group ? { group: o.group } : {}),
+    ...(o.curve ? { curve: o.curve } : {}),
   };
 }
 
@@ -534,11 +604,12 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
             size = Math.max(size * 0.55, Math.min(size, one));
           }
           const lh = style.lh ?? 1.25;
-          const h = estimateTextHeight(value, size, w, font, upper, ls, lh) * 1.08;
+          // Arched headings ("YOU ARE INVITED TO" over a photo) take the arc's height.
+          const h = b.curve ? curvedTextPath(w, size, b.curve).height : estimateTextHeight(value, size, w, font, upper, ls, lh) * 1.08;
           return {
             h,
             gap,
-            make: (y) => [textEl(style, ctx, tones, { x: at(w), y, w, h, text: value, bind: b.bind, size, tone: b.tone, effect: b.effect, font: b.font, group: b.group, align: left ? 'left' : 'center' })],
+            make: (y) => [textEl(style, ctx, tones, { x: at(w), y, w, h, text: value, bind: b.bind, size, tone: b.tone, effect: b.effect, font: b.font, group: b.group, align: left ? 'left' : 'center', curve: b.curve })],
           };
         }
         case 'art': {
@@ -548,7 +619,8 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
         }
         case 'photo': {
           // No photo yet: a line-art illustration keeps the card complete (the editor can swap in a photo).
-          if (!ctx.data.photos[0]) {
+          // Photo-first designs keep their frame instead, with initials until a photo is added.
+          if (!ctx.data.photos[0] && !b.empty) {
             const aw = (ctx.people === 2 ? 340 : 300) * k;
             const ah = ctx.people === 2 ? aw * 1.25 : aw;
             const asset = ctx.people === 2 ? 'couple' : 'wreath';
@@ -571,14 +643,15 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
                 y,
                 w,
                 h,
-                rot: 0,
+                rot: b.rot ?? 0,
                 opacity: 1,
                 src: null,
                 bind: 'photo.0',
                 mask: b.mask,
-                border: tones.accent,
-                borderW: 8,
+                border: b.border ?? tones.accent,
+                borderW: b.borderW ?? 8,
                 auto: true,
+                ...(b.empty ? { empty: b.empty } : {}),
               },
             ],
           };
@@ -652,6 +725,44 @@ function dateBand(style: DateStyle, ctx: RecipeCtx, ts: TypeSet, tones: Tones, z
         t('big', { x: cx - w / 2, y: y + small * 1.4, w, h: big * 1.05, text: fn.parts.day, bind: 'fnM.day', size: big }),
         t('date', { x: cx - w / 2, y: y + small * 1.4 + big * 1.05, w, h: small * 1.4, text: `${fn.parts.weekday}, ${fn.timeLabel}`, bind: 'fnM.weekday', size: small }),
       ],
+    };
+  }
+
+  if (style === 'rules') {
+    //                 JUNE
+    //   ──────────          ──────────
+    //    SATURDAY     14    AT 9:00 PM
+    //   ──────────          ──────────
+    //                 2025
+    const big = ts.big.size * k;
+    const side = ts.date.size * 0.84 * k;
+    const lineH = side * 1.45;
+    const midW = Math.max(big * 1.4, zw * 0.2);
+    const colW = (zw - midW) / 2 - 10;
+    const rowH = big * 1.1;
+    const ruleW = Math.max(2, 2.2 * k);
+    const h = lineH + rowH + lineH;
+    return {
+      h,
+      gap,
+      make: (y) => {
+        const row = y + lineH;
+        const lx = cx - midW / 2 - colW - 10;
+        const rx = cx + midW / 2 + 10;
+        const sideY = row + rowH / 2 - lineH / 2;
+        const rules = [lx, rx].flatMap((x) => [
+          shapeEl('line', x, sideY - side * 0.25, colW, ruleW, { fill: tones.accent, opacity: 0.7 }),
+          shapeEl('line', x, sideY + lineH + side * 0.15, colW, ruleW, { fill: tones.accent, opacity: 0.7 }),
+        ]);
+        return [
+          t('date', { x: cx - zw / 2, y, w: zw, h: lineH, text: fn.parts.month, bind: 'fnM.month', size: side }),
+          ...rules,
+          t('date', { x: lx, y: sideY, w: colW, h: lineH, text: fn.parts.weekday, bind: 'fnM.weekday', size: side }),
+          t('big', { x: cx - midW / 2, y: row, w: midW, h: rowH, text: fn.parts.day, bind: 'fnM.day', size: big }),
+          t('date', { x: rx, y: sideY, w: colW, h: lineH, text: fn.timeLabel, bind: 'fnM.time', size: side }),
+          t('date', { x: cx - zw / 2, y: row + rowH, w: zw, h: lineH, text: fn.parts.year, bind: 'fnM.year', size: side }),
+        ];
+      },
     };
   }
 

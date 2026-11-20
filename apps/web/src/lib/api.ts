@@ -28,10 +28,10 @@ async function refreshSession(): Promise<boolean> {
 }
 
 /**
- * Browser-side API client. Same-origin (/api is rewritten to the API server), cookie auth,
- * transparently refreshes the short-lived access token once on 401.
+ * The raw Response for an API call (for blobs / downloads): same cookies and one transparent
+ * session refresh on 401 as `api()`, without parsing the body.
  */
-export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}, retried = false): Promise<T> {
+export async function apiFetch(path: string, init: RequestInit & { json?: unknown } = {}, retried = false): Promise<Response> {
   const { json, ...rest } = init;
   const res = await fetch(`/api${path}`, {
     ...rest,
@@ -42,10 +42,18 @@ export async function api<T>(path: string, init: RequestInit & { json?: unknown 
     },
     body: json !== undefined ? JSON.stringify(json) : rest.body,
   });
-
-  if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
-    if (await refreshSession()) return api<T>(path, init, true);
+  if (res.status === 401 && !retried && !path.startsWith('/auth/') && (await refreshSession())) {
+    return apiFetch(path, init, true);
   }
+  return res;
+}
+
+/**
+ * Browser-side API client. Same-origin (/api is rewritten to the API server), cookie auth,
+ * transparently refreshes the short-lived access token once on 401.
+ */
+export async function api<T>(path: string, init: RequestInit & { json?: unknown } = {}): Promise<T> {
+  const res = await apiFetch(path, init);
   if (res.status === 204) return undefined as T;
 
   const text = await res.text();

@@ -81,9 +81,14 @@ interface CoupleProps {
   wash: string;
   size: number;
   css?: CSSProperties;
+  /** Draw one partner on their own (the two stand in different corners of the card). */
+  only?: 'groom' | 'bride';
 }
 
-export function Couple({ style, attire, ink, wash, size, css }: CoupleProps) {
+/** viewBox x-range per figure (the full drawing is 240 wide). */
+export const COUPLE_CROP = { groom: [22, 118], bride: [116, 98] } as const;
+
+export function Couple({ style, attire, ink, wash, size, css, only }: CoupleProps) {
   const paintId = useSvgId('paint');
   const washId = useSvgId('wash');
   const o = OUTFITS[attire];
@@ -110,7 +115,13 @@ export function Couple({ style, attire, ink, wash, size, css }: CoupleProps) {
   const bHead = { cx: 158, cy: 76 - (H - 1) * 10, r: 15 * H };
 
   return (
-    <svg width={size} height={size * 1.25} viewBox="0 0 240 300" style={css} aria-hidden>
+    <svg
+      width={only ? (size * COUPLE_CROP[only][1]) / 240 : size}
+      height={size * 1.25}
+      viewBox={only ? `${COUPLE_CROP[only][0]} 0 ${COUPLE_CROP[only][1]} 300` : '0 0 240 300'}
+      style={css}
+      aria-hidden
+    >
       <defs>
         <PaintFilter id={paintId} strength={2.2} />
         <radialGradient id={washId}>
@@ -120,38 +131,38 @@ export function Couple({ style, attire, ink, wash, size, css }: CoupleProps) {
       </defs>
 
       {/* Backdrop wash + ground shadow */}
-      {!line && <circle cx={120} cy={150} r={118} fill={`url(#${washId})`} />}
-      {!line && <ellipse cx={120} cy={288} rx={86} ry={6} fill="#000" opacity={0.12} />}
+      {!line && !only && <circle cx={120} cy={150} r={118} fill={`url(#${washId})`} />}
+      {!line && <ellipse cx={only === 'groom' ? 82 : only === 'bride' ? 158 : 120} cy={288} rx={only ? 40 : 86} ry={6} fill="#000" opacity={0.12} />}
 
       {/* ---------- Back layers ---------- */}
-      {o.bride.veilOpacity > 0 && (
+      {only !== 'groom' && o.bride.veilOpacity > 0 && (
         <path {...p(o.bride.veil, { opacity: line ? 1 : o.bride.veilOpacity })} d="M140 70 Q158 50 176 70 L190 206 Q181 212 172 206 L170 112 Q158 105 146 112 L144 206 Q135 212 126 206 Z" />
       )}
-      {o.bride.extra.includes('jasmine') && <Beads x1={171} y1={72} x2={178} y2={176} n={16} color="#FFFFFF" r={2.1} line={line} ink={ink} />}
-      <circle {...(p(SKIN.hair) as SVGProps<SVGCircleElement>)} cx={bHead.cx + 13 * H} cy={bHead.cy - 6 * H} r={6.5 * H} />
-      {(o.groom.head === 'safa' || o.groom.head === 'pheta') && (
+      {only !== 'groom' && o.bride.extra.includes('jasmine') && <Beads x1={171} y1={72} x2={178} y2={176} n={16} color="#FFFFFF" r={2.1} line={line} ink={ink} />}
+      {only !== 'groom' && <circle {...(p(SKIN.hair) as SVGProps<SVGCircleElement>)} cx={bHead.cx + 13 * H} cy={bHead.cy - 6 * H} r={6.5 * H} />}
+      {only !== 'bride' && (o.groom.head === 'safa' || o.groom.head === 'pheta') && (
         <path {...p(o.groom.headColor)} d="M66 62 Q50 82 54 112 L61 110 Q59 86 70 66 Z" />
       )}
 
       {/* ---------- Groom ---------- */}
-      <Groom o={o} p={p} detail={detail} line={line} />
+      {only !== 'bride' && <Groom o={o} p={p} detail={detail} line={line} />}
 
       {/* ---------- Bride ---------- */}
-      <Bride o={o} p={p} detail={detail} line={line} ink={ink} />
+      {only !== 'groom' && <Bride o={o} p={p} detail={detail} line={line} ink={ink} />}
 
       {/* ---------- Heads ---------- */}
-      <Face {...gHead} skin={SKIN.groom} style={style} p={p} detail={detail} ink={ink} bride={false} />
-      <Face {...bHead} skin={SKIN.bride} style={style} p={p} detail={detail} ink={ink} bride />
+      {only !== 'bride' && <Face {...gHead} skin={SKIN.groom} style={style} p={p} detail={detail} ink={ink} bride={false} />}
+      {only !== 'groom' && <Face {...bHead} skin={SKIN.bride} style={style} p={p} detail={detail} ink={ink} bride />}
 
       {/* Groom hair / headgear */}
-      <GroomHead o={o} head={gHead} p={p} detail={detail} line={line} ink={ink} />
+      {only !== 'bride' && <GroomHead o={o} head={gHead} p={p} detail={detail} line={line} ink={ink} />}
       {/* Bride hair cap + head jewellery */}
-      <path {...p(SKIN.hair)} d={`M${bHead.cx - bHead.r} ${bHead.cy - 1} Q${bHead.cx - bHead.r + 1} ${bHead.cy - bHead.r - 3} ${bHead.cx} ${bHead.cy - bHead.r - 1} Q${bHead.cx + bHead.r - 1} ${bHead.cy - bHead.r - 3} ${bHead.cx + bHead.r} ${bHead.cy - 1} Q${bHead.cx + bHead.r * 0.5} ${bHead.cy - bHead.r * 0.55} ${bHead.cx} ${bHead.cy - bHead.r * 0.55} Q${bHead.cx - bHead.r * 0.5} ${bHead.cy - bHead.r * 0.55} ${bHead.cx - bHead.r} ${bHead.cy - 1} Z`} />
-      <BrideHead o={o} head={bHead} p={p} detail={detail} line={line} ink={ink} />
+      {only !== 'groom' && <path {...p(SKIN.hair)} d={`M${bHead.cx - bHead.r} ${bHead.cy - 1} Q${bHead.cx - bHead.r + 1} ${bHead.cy - bHead.r - 3} ${bHead.cx} ${bHead.cy - bHead.r - 1} Q${bHead.cx + bHead.r - 1} ${bHead.cy - bHead.r - 3} ${bHead.cx + bHead.r} ${bHead.cy - 1} Q${bHead.cx + bHead.r * 0.5} ${bHead.cy - bHead.r * 0.55} ${bHead.cx} ${bHead.cy - bHead.r * 0.55} Q${bHead.cx - bHead.r * 0.5} ${bHead.cy - bHead.r * 0.55} ${bHead.cx - bHead.r} ${bHead.cy - 1} Z`} />}
+      {only !== 'groom' && <BrideHead o={o} head={bHead} p={p} detail={detail} line={line} ink={ink} />}
 
       {/* Varmalas */}
-      <Garland cx={82} top={104} depth={46} width={30} colors={o.garland} line={line} ink={ink} />
-      <Garland cx={158} top={104} depth={40} width={26} colors={o.garland} line={line} ink={ink} />
+      {only !== 'bride' && <Garland cx={82} top={104} depth={46} width={30} colors={o.garland} line={line} ink={ink} />}
+      {only !== 'groom' && <Garland cx={158} top={104} depth={40} width={26} colors={o.garland} line={line} ink={ink} />}
     </svg>
   );
 }

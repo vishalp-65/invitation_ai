@@ -1,5 +1,5 @@
 import { and, catalogTemplates, coupons, eq, gte, inArray, isNull, lt, or, orders, events, sql, users, type Database } from '@cardai/db';
-import { PRODUCTS, QUEUES } from '@cardai/shared';
+import { productName, QUEUES } from '@cardai/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Inject, Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -96,7 +96,7 @@ export class LifecycleService implements OnApplicationBootstrap {
         r.email!,
         {
           name: r.name,
-          product: PRODUCTS[r.productCode as keyof typeof PRODUCTS]?.name ?? r.productCode,
+          product: productName(r.productCode),
           eventTitle: r.eventTitle,
           eventId: r.eventId,
           pricePaise: r.amountPaise,

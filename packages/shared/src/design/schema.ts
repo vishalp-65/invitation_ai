@@ -15,7 +15,7 @@ const num = (min: number, max: number) => z.number().finite().min(min).max(max);
 
 export const ELEMENT_ANIMS = ['auto', 'fade', 'rise', 'zoom', 'drop', 'none'] as const;
 export const TEXT_EFFECTS = ['none', 'shadow', 'glow', 'gold', 'outline'] as const;
-export const IMAGE_MASKS = ['rect', 'rounded', 'circle', 'arch'] as const;
+export const IMAGE_MASKS = ['rect', 'rounded', 'circle', 'arch', 'oval'] as const;
 export const SHAPES = ['rect', 'ellipse', 'line'] as const;
 /** One-tap photo looks (CSS filter presets, see imageFilterCss). */
 export const IMAGE_FILTERS = ['none', 'warm', 'cool', 'vivid', 'fade', 'mono', 'sepia', 'noir'] as const;
@@ -95,6 +95,11 @@ export const imageElementSchema = z.object({
   fx: num(0, 100).optional(),
   fy: num(0, 100).optional(),
   flipX: z.boolean().optional(),
+  /**
+   * Template photo frames before a photo is added: a tinted disc with the person's initials,
+   * so the frame keeps its exact place, crop and roundness and the card still looks finished.
+   */
+  empty: z.object({ bg: hex, ink: hex, font: z.string().max(60) }).optional(),
 });
 
 export const shapeElementSchema = z.object({

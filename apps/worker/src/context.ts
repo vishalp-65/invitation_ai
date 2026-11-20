@@ -1,6 +1,6 @@
 import { OpenRouterClient } from '@cardai/ai';
 import { createDb, type Database } from '@cardai/db';
-import { createRedis, S3Storage, type Redis } from '@cardai/infra';
+import { createRedis, storageFromEnv, type Redis, type S3Storage } from '@cardai/infra';
 import { BRAND, QUEUES, type NotificationJobData } from '@cardai/shared';
 import { Queue } from 'bullmq';
 import pino from 'pino';
@@ -33,16 +33,7 @@ export function createContext(): WorkerContext {
     redis,
     log,
     notifications,
-    storage: new S3Storage({
-      endpoint: env.S3_ENDPOINT,
-      region: env.S3_REGION,
-      bucket: env.S3_BUCKET,
-      accessKeyId: env.S3_ACCESS_KEY_ID,
-      secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-      forcePathStyle: env.S3_FORCE_PATH_STYLE,
-      publicUrl: env.STORAGE_PUBLIC_URL,
-      publicRead: env.S3_PUBLIC_READ_ACL,
-    }),
+    storage: storageFromEnv(env),
     ai: new OpenRouterClient({ apiKey: env.OPENROUTER_API_KEY ?? '', appUrl: env.APP_URL, appName: BRAND.name }),
     close: async () => {
       await notifications.close();

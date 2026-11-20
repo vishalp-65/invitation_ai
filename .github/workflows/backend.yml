@@ -1,7 +1,8 @@
 name: backend
 
 # CI/CD for the API + worker:
-#   verify (typecheck, lint, test) -> build Docker images -> push to GHCR -> SSH to droplet -> migrate -> restart -> health gate
+#   verify (typecheck, lint, test) -> build images on GitHub's runners (never on the 2 GB droplet) -> push to GHCR
+#   -> SSH to the droplet -> infra/deploy/deploy.sh (migrate, swap, health gate, rollback)
 on:
   pull_request:
     paths:
@@ -80,6 +81,8 @@ jobs:
             ${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:latest
           cache-from: type=gha,scope=${{ matrix.service }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+          # One plain manifest per image: no attestation blobs to store or pull
+          provenance: false
 
   deploy:
     needs: build
@@ -91,13 +94,13 @@ jobs:
       - uses: actions/checkout@v4
       - name: Lowercase image prefix
         run: echo "IMAGE_PREFIX=${IMAGE_PREFIX,,}" >> "$GITHUB_ENV"
-      - name: Copy compose file
+      - name: Copy compose file + deploy script
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.DO_HOST }}
           username: ${{ secrets.DO_USER }}
           key: ${{ secrets.DO_SSH_KEY }}
-          source: infra/deploy/docker-compose.prod.yml
+          source: infra/deploy/docker-compose.prod.yml,infra/deploy/deploy.sh
           target: ${{ env.APP_DIR }}
           strip_components: 2
       - name: Deploy
@@ -114,33 +117,9 @@ jobs:
           key: ${{ secrets.DO_SSH_KEY }}
           envs: GHCR_USER,GHCR_TOKEN,TAG,PREFIX,APP_DIR
           script_stop: true
+          # infra/deploy/deploy.sh: pull, migrate, swap, health gate, rollback, old-image cleanup
           script: |
             set -eu
-            cd "$APP_DIR"
-            test -f .env || { echo "Missing $APP_DIR/.env"; exit 1; }
-            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin
-            # Remember the running images so a failed health check can roll back
-            [ -f .deploy.env ] && cp .deploy.env .deploy.prev.env || true
-            printf 'REGISTRY_IMAGE_API=%s\nREGISTRY_IMAGE_WORKER=%s\n' "$PREFIX-api:$TAG" "$PREFIX-worker:$TAG" > .deploy.env
-            dc="docker compose -f docker-compose.prod.yml --env-file .env --env-file .deploy.env"
-            $dc pull api worker
-            # Migrations run with the new image before containers are swapped (uses DATABASE_URL_DIRECT if set)
-            $dc run --rm --no-deps api node packages/db/dist/migrate.js
-            $dc up -d --remove-orphans api worker
-            ok=0
-            for i in $(seq 1 40); do
-              if curl -fs http://127.0.0.1:4100/api/health/ready >/dev/null; then ok=1; break; fi
-              sleep 3
-            done
-            if [ "$ok" != 1 ]; then
-              $dc logs --tail=100 api
-              if [ -f .deploy.prev.env ]; then
-                echo "Health check failed, rolling back"
-                cp .deploy.prev.env .deploy.env
-                $dc up -d api worker
-              fi
-              exit 1
-            fi
-            # Only dangling layers: never touches interviewpilot's images
-            docker image prune -f >/dev/null || true
-            echo "Deployed $TAG"
+            # read:packages token only; the login stays so a manual ./deploy.sh rollback can pull too
+            echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USER" --password-stdin >/dev/null
+            bash "$APP_DIR/deploy.sh" "$PREFIX" "$TAG"

@@ -200,6 +200,27 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
     return { x: (e.clientX - r.left) / scale, y: (e.clientY - r.top) / scale };
   };
 
+  /**
+   * Template decorations (flowers, arches, lanterns) are locked so text stays easy to grab and
+   * clicks pass through them. Double-clicking one picks it, so it can be unlocked and edited.
+   */
+  function pickLocked(e: { clientX: number; clientY: number }): boolean {
+    const pg = currentPage(useEditor.getState());
+    const stage = box.current?.querySelector('[data-stage]')?.getBoundingClientRect();
+    if (!pg || !stage || e.clientX < stage.left || e.clientX > stage.right || e.clientY < stage.top || e.clientY > stage.bottom) return false;
+    const p = toCanvas(e);
+    const hits = [...pg.elements].reverse().filter((el) => {
+      if (el.hidden || !el.locked) return false;
+      const b = bounds(withH(el));
+      return p.x >= b.x && p.x <= b.x + b.w && p.y >= b.y && p.y <= b.y + b.h;
+    });
+    // Full-page layers (borders, arches, frames) are the last resort: prefer the piece under the pointer.
+    const big = (el: DesignElement) => el.w * el.h > DESIGN_W * DESIGN_H * 0.6;
+    const hit = hits.find((el) => !big(el)) ?? hits[0];
+    if (hit) useEditor.getState().select(hit.id);
+    return Boolean(hit);
+  }
+
   function capture(id: number) {
     try {
       box.current?.setPointerCapture(id);
@@ -621,7 +642,12 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
         }
         startView(e, 'pan');
       }}
-      onDoubleClick={(e) => e.target === e.currentTarget && st().resetView()}
+      onDoubleClick={(e) => {
+        const t = e.target as HTMLElement;
+        const onEmpty = t === e.currentTarget || t.dataset.stageBg !== undefined;
+        if (onEmpty && pickLocked(e)) return;
+        if (t === e.currentTarget) st().resetView();
+      }}
       onContextMenu={(e) => {
         e.preventDefault();
         const t = e.target as HTMLElement;

@@ -41,6 +41,9 @@ export const PALETTES = {
   dustyRose: { background: '#F6EFEA', backgroundAlt: '#EBDDD5', surface: '#FFFFFF', primary: '#8E4A55', accent: '#B98A6B', text: '#4A2C2F', muted: '#806266' },
   dustyBlue: { background: '#EEF2F7', backgroundAlt: '#DCE4EF', surface: '#FFFFFF', primary: '#3F5577', accent: '#B49A62', text: '#25324A', muted: '#5D6C85' },
   champagne: { background: '#FFFDF8', backgroundAlt: '#F6EEDD', surface: '#FFFFFF', primary: '#A9844A', accent: '#C7A46A', text: '#5A4A34', muted: '#857358' },
+  mauve: { background: '#8A6A66', backgroundAlt: '#6E5350', surface: '#F5EBDD', primary: '#B98A3E', accent: '#E58E6E', text: '#2E2523', muted: '#6B5A55' },
+  parchment: { background: '#F4EEE3', backgroundAlt: '#EAE0D0', surface: '#FCF9F3', primary: '#8C7A5B', accent: '#B98F8A', text: '#4A4440', muted: '#6E6660' },
+  iceBlue: { background: '#E6F4FC', backgroundAlt: '#C4E3F5', surface: '#FFFFFF', primary: '#2F7FA8', accent: '#5FB3D9', text: '#163444', muted: '#466879' },
 } satisfies Record<string, Palette>;
 
 export type PaletteKey = keyof typeof PALETTES;
@@ -52,6 +55,7 @@ const VARIANT_NAMES: Record<PaletteKey, string> = {
   jade: 'Jade', peach: 'Peach', mint: 'Mint', mustard: 'Haldi', coral: 'Coral',
   cream: 'Cream', babyBlue: 'Baby Blue', babyPink: 'Baby Pink', butter: 'Butter', kumkum: 'Kumkum', forest: 'Forest',
   linen: 'Linen', dustyRose: 'Dusty Rose', dustyBlue: 'Dusty Blue', champagne: 'Champagne',
+  mauve: 'Mauve', parchment: 'Parchment', iceBlue: 'Ice Blue',
 };
 
 interface Family {

@@ -325,3 +325,30 @@ export interface PublicFlagsDto {
   maintenance: { on: boolean; message: string | null };
   off: string[];
 }
+
+// ---------- Admin edits (invitations, users, orders) ----------
+
+export const adminInvitationUpdateSchema = z.object({
+  title: z.string().trim().min(2).max(120).optional(),
+  /** Public link /i/<slug>. */
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .regex(/^[a-z0-9][a-z0-9-]{2,60}[a-z0-9]$/, 'Use 4–62 lowercase letters, digits or -')
+    .optional(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+});
+
+export const adminWishActionSchema = z.object({ action: z.enum(['hide', 'show', 'delete']) });
+
+export const adminProfileSchema = z.object({
+  name: z.string().trim().min(1).max(80).nullable().optional(),
+  locale: z.enum(['en', 'hi']).optional(),
+  marketingEmails: z.boolean().optional(),
+});
+
+export const adminUsersBulkSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(200),
+  action: z.enum(['disable', 'enable', 'sign-out']),
+});

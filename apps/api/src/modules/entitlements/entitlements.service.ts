@@ -1,9 +1,8 @@
 import { and, entitlements, eq, gt, sql, type Database } from '@cardai/db';
 import { PRODUCTS, type Feature, type ProductCode } from '@cardai/shared';
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
+import type { DbExecutor } from '../../common/db.js';
 import { DB } from '../../infra/infra.module.js';
-
-type Tx = Parameters<Parameters<Database['transaction']>[0]>[0];
 
 /** What an event has paid for. Single source of truth for watermark / gating decisions. */
 @Injectable()
@@ -33,7 +32,7 @@ export class EntitlementsService {
   }
 
   /** Grants product features; credits accumulate on repeat purchases. Idempotent per order via caller. */
-  async grantProduct(tx: Tx | Database, eventId: string, productCode: ProductCode, orderId: string | null): Promise<void> {
+  async grantProduct(tx: DbExecutor, eventId: string, productCode: ProductCode, orderId: string | null): Promise<void> {
     const product = PRODUCTS[productCode];
     for (const feature of product.features) {
       const credits = product.credits?.[feature] ?? 0;

@@ -35,6 +35,7 @@ import { BadRequestException, ConflictException, Inject, Injectable, NotFoundExc
 import { randomBytes } from 'node:crypto';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { disabledKey } from '../../common/guards.js';
+import { isUniqueViolation } from '../../common/db.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { ACCESS_TTL_SEC } from '../auth/token.service.js';
 import { TokenService } from '../auth/token.service.js';
@@ -170,6 +171,7 @@ export class AdminService {
         avatarUrl: user.avatarUrl,
         google: !!user.googleSub,
         marketingEmails: user.marketingEmails,
+        locale: user.locale,
         note: user.adminNote,
         createdAt: user.createdAt,
         lastSeenAt: user.lastSeenAt,
@@ -468,7 +470,7 @@ export class AdminService {
       this.audit(admin, id ? 'coupon.update' : 'coupon.create', row.code, { kind: row.kind, value: row.value });
       return row;
     } catch (err) {
-      if ((err as { cause?: { code?: string } }).cause?.code === '23505' || (err as { code?: string }).code === '23505') {
+      if (isUniqueViolation(err)) {
         throw new ConflictException('A coupon with this code already exists.');
       }
       throw err;

@@ -280,7 +280,7 @@ function Admins({ owner, meId }: { owner: boolean; meId?: string }) {
       {isLoading || !data ? (
         <Skeleton className="m-5 h-40" />
       ) : (
-        <Table head={['Admin', ...ADMIN_SCOPES.map((s) => s[0]!.toUpperCase() + s.slice(1)), 'Daily email', 'Last active']}>
+        <Table head={['Admin', ...ADMIN_SCOPES.map((s) => s[0]!.toUpperCase() + s.slice(1)), 'Daily email', 'Last active', '']}>
           {data.map((a) => (
             <tr key={a.id}>
               <td>
@@ -308,6 +308,27 @@ function Admins({ owner, meId }: { owner: boolean; meId?: string }) {
                 />
               </td>
               <td className="whitespace-nowrap text-ink-soft">{ago(a.lastSeenAt)}</td>
+              <td className="text-right">
+                {owner && a.id !== meId && (
+                  <Button
+                    size="sm"
+                    variant="quiet"
+                    className="h-8 px-3"
+                    onClick={async () => {
+                      if (!confirm(`Remove admin access for ${a.name ?? a.email}? They keep their customer account.`)) return;
+                      try {
+                        await api(`/admin/admins/${a.id}`, { method: 'DELETE' });
+                        toast.success('Admin access removed');
+                        void qc.invalidateQueries({ queryKey: ['admin', 'admins'] });
+                      } catch (e) {
+                        toast.error(e instanceof ApiError ? e.message : 'Could not remove');
+                      }
+                    }}
+                  >
+                    Remove
+                  </Button>
+                )}
+              </td>
             </tr>
           ))}
         </Table>
@@ -428,9 +449,29 @@ function MusicLibrary() {
                 <Toggle checked={t.active} onChange={(v) => void save(t, v).catch(() => undefined)} label="Available" />
               </td>
               <td>
-                <Button size="sm" variant="quiet" className="h-8 px-3" onClick={() => setEditing(t)}>
-                  Edit
-                </Button>
+                <div className="flex justify-end gap-1">
+                  <Button size="sm" variant="quiet" className="h-8 px-3" onClick={() => setEditing(t)}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="quiet"
+                    className="h-8 px-2"
+                    aria-label={`Delete ${t.title}`}
+                    onClick={async () => {
+                      if (!confirm(`Delete “${t.title}” and its file?`)) return;
+                      try {
+                        await api(`/admin/music/${t.id}`, { method: 'DELETE' });
+                        toast.success('Song deleted');
+                        void qc.invalidateQueries({ queryKey: ['admin', 'music'] });
+                      } catch (e) {
+                        toast.error(e instanceof ApiError ? e.message : 'Could not delete');
+                      }
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                  </Button>
+                </div>
               </td>
             </tr>
           ))}
@@ -499,7 +540,17 @@ function TrackDialog({ track, onClose, onSaved }: { track: Track | null; onClose
 // ---------------- Data requests ----------------
 
 function Privacy() {
+  const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'data-requests'], queryFn: () => api<DataReq[]>('/admin/data-requests') });
+  async function act(id: string, action: 'done' | 'rejected' | 'open' | 'delete') {
+    if (action === 'delete' && !confirm('Delete this record? Keep it if you may need to show the request was handled.')) return;
+    try {
+      await (action === 'delete' ? api(`/admin/data-requests/${id}`, { method: 'DELETE' }) : api(`/admin/data-requests/${id}`, { method: 'PATCH', json: { status: action } }));
+      void qc.invalidateQueries({ queryKey: ['admin', 'data-requests'] });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Failed');
+    }
+  }
   return (
     <Card
       title="Data-protection requests"
@@ -513,7 +564,7 @@ function Privacy() {
           <Empty title="No requests yet">When someone writes in, open them in Users → Privacy.</Empty>
         </div>
       ) : (
-        <Table head={['Requested', 'Person', 'Type', 'Status', 'Handled by', 'Note']}>
+        <Table head={['Requested', 'Person', 'Type', 'Status', 'Handled by', 'Note', '']}>
           {data.map((r) => {
             const overdue = r.status === 'open' && Date.now() - new Date(r.created_at).getTime() > 25 * 86400_000;
             return (
@@ -521,9 +572,23 @@ function Privacy() {
                 <td className="whitespace-nowrap">{shortDate(r.created_at)}</td>
                 <td>{r.name ?? r.email ?? r.user_id.slice(0, 8)}</td>
                 <td>{r.kind === 'export' ? 'Copy of data' : 'Erasure'}</td>
-                <td>{r.status === 'done' ? <Badge tone="good">Done {r.completed_at ? shortDate(r.completed_at) : ''}</Badge> : <Badge tone={overdue ? 'bad' : 'warn'}>{overdue ? 'Overdue' : 'Open'}</Badge>}</td>
+                <td>{r.status === 'done' ? <Badge tone="good">Done {r.completed_at ? shortDate(r.completed_at) : ''}</Badge> : r.status === 'rejected' ? <Badge>Rejected</Badge> : <Badge tone={overdue ? 'bad' : 'warn'}>{overdue ? 'Overdue' : 'Open'}</Badge>}</td>
                 <td>{r.handledByName ?? '—'}</td>
                 <td className="max-w-56 truncate text-xs text-ink-soft">{r.note ?? '—'}</td>
+                <td>
+                  <select
+                    aria-label="Change request"
+                    className="h-8 border border-ink/15 bg-transparent px-2 text-xs"
+                    value=""
+                    onChange={(e) => e.target.value && void act(r.id, e.target.value as 'done' | 'rejected' | 'open' | 'delete')}
+                  >
+                    <option value="">Actions…</option>
+                    {r.status !== 'done' && <option value="done">Mark done</option>}
+                    {r.status !== 'rejected' && <option value="rejected">Mark rejected</option>}
+                    {r.status !== 'open' && <option value="open">Re-open</option>}
+                    <option value="delete">Delete record</option>
+                  </select>
+                </td>
               </tr>
             );
           })}

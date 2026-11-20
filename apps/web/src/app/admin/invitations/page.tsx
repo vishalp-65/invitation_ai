@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Field, Input, Textarea } from '@/components/ui/field';
+import { InvitationDrawer } from '@/features/admin/invitation-drawer';
 import { ago, Badge, Empty, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 
@@ -46,7 +47,9 @@ const typeLabel = (id: string) => EVENT_TYPES.find((e) => e.id === id)?.label.sp
 export default function AdminInvitationsPage() {
   const qc = useQueryClient();
   const [status, setStatus] = useState<Status>('all');
-  const [q, setQ] = useState(useSearchParams().get('q') ?? '');
+  const sp = useSearchParams();
+  const [q, setQ] = useState(sp.get('q') ?? '');
+  const [open, setOpen] = useState<string | null>(sp.get('open'));
   const [debounced, setDebounced] = useState('');
   const [page, setPage] = useState(1);
   const [suspending, setSuspending] = useState<Invitation | null>(null);
@@ -79,7 +82,7 @@ export default function AdminInvitationsPage() {
   const c = data?.counts;
   return (
     <>
-      <PageHeader title="Invitations" description="Every invitation people have made. Take one down if it breaks the rules: its website, guest links and short links stop working until you restore it." />
+      <PageHeader title="Invitations" description="Every invitation people have made. Open one to see and edit everything, moderate guest messages, or delete it. Take one down if it breaks the rules: its website, guest links and short links stop working until you restore it." />
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <Segmented
           value={status}
@@ -115,7 +118,7 @@ export default function AdminInvitationsPage() {
           <>
             <Table head={['Invitation', 'Owner', 'Status', 'Views', 'Guests', 'Paid', 'Created', '']}>
               {data.items.map((inv) => (
-                <tr key={inv.id}>
+                <tr key={inv.id} onClick={() => setOpen(inv.id)} className="cursor-pointer">
                   <td className="max-w-64">
                     <p className="truncate font-medium">{inv.title}</p>
                     <p className="truncate text-xs text-ink-soft">
@@ -123,7 +126,7 @@ export default function AdminInvitationsPage() {
                     </p>
                   </td>
                   <td className="max-w-48">
-                    <Link href={`/admin/users?user=${inv.userId}`} className="block truncate underline-offset-4 hover:underline">
+                    <Link href={`/admin/users?user=${inv.userId}`} onClick={(e) => e.stopPropagation()} className="block truncate underline-offset-4 hover:underline">
                       {inv.userName ?? inv.userEmail ?? 'Unknown'}
                     </Link>
                     {inv.userName && <p className="truncate text-xs text-ink-soft">{inv.userEmail}</p>}
@@ -142,7 +145,7 @@ export default function AdminInvitationsPage() {
                   <td className="tabular-nums">{inv.paidOrders ? <Badge tone="info">{inv.paidOrders}</Badge> : '—'}</td>
                   <td className="whitespace-nowrap text-ink-soft">{ago(inv.createdAt)}</td>
                   <td>
-                    <div className="flex items-center justify-end gap-1">
+                    <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                       {inv.status === 'published' && !inv.suspendedAt && (
                         <a href={`/i/${inv.slug}`} target="_blank" rel="noreferrer" aria-label="Open website" data-tip="Open website" className="grid size-8 place-items-center text-ink-soft hover:bg-ink/[0.05] hover:text-ink">
                           <ExternalLink className="size-4" />
@@ -167,6 +170,7 @@ export default function AdminInvitationsPage() {
         )}
       </section>
 
+      {open && <InvitationDrawer id={open} onClose={() => setOpen(null)} />}
       {suspending && <SuspendDialog inv={suspending} onClose={() => setSuspending(null)} onDone={() => void refresh()} />}
     </>
   );

@@ -12,6 +12,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { REDIS, type Redis } from '../infra/infra.module.js';
 import { TokenService } from '../modules/auth/token.service.js';
+import { bumpCounter } from './redis.js';
 import { IS_PUBLIC, RATE_LIMIT, ROLES, type AuthedRequest, type RateLimitOptions } from './auth.decorators.js';
 
 export const ACCESS_COOKIE = 'cai_at';
@@ -80,8 +81,7 @@ export class RateLimitGuard implements CanActivate {
     const who = opts.by !== 'ip' && req.user ? `u:${req.user.id}` : `ip:${req.ip}`;
     const window = Math.floor(Date.now() / 1000 / opts.windowSec);
     const key = `rl:${ctx.getClass().name}.${ctx.getHandler().name}:${who}:${window}`;
-    const hits = await this.redis.incr(key);
-    if (hits === 1) await this.redis.expire(key, opts.windowSec);
+    const hits = await bumpCounter(this.redis, key, opts.windowSec);
     if (hits > opts.limit) {
       throw new HttpException('Too many requests, please try again shortly', HttpStatus.TOO_MANY_REQUESTS);
     }

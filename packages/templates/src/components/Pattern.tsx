@@ -1,6 +1,6 @@
 import { memo } from 'react';
 import type { PatternId } from '@cardai/shared';
-import { random } from 'remotion';
+import { random } from '../utils/remotion-lite';
 import { useSvgId } from '../art/svg-ids';
 
 interface PatternProps {

@@ -121,16 +121,36 @@ function ListEditor<T>({
   addLabel: string;
   render: (item: T, set: (patch: Partial<T>) => void, index: number) => ReactNode;
 }) {
-  const move = (i: number, d: number) => {
-    const next = [...items];
+  // Stable React keys that travel with each item through moves and removals, so per-item state
+  // (a photo upload in progress, an open picker, focus) stays with the right item. Items have no
+  // ids of their own; when the list changes from outside (AI rewrite, undo) keys are re-synced.
+  const [keys, setKeys] = useState(() => items.map((_, i) => i));
+  const [nextKey, setNextKey] = useState(items.length);
+  if (keys.length !== items.length) {
+    const synced = keys.slice(0, items.length);
+    let k = nextKey;
+    while (synced.length < items.length) synced.push(k++);
+    setKeys(synced);
+    setNextKey(k);
+  }
+  const reorder = <X,>(list: X[], i: number, d: number) => {
+    const next = [...list];
     const [x] = next.splice(i, 1);
     next.splice(i + d, 0, x!);
-    onChange(next);
+    return next;
+  };
+  const move = (i: number, d: number) => {
+    setKeys(reorder(keys, i, d));
+    onChange(reorder(items, i, d));
+  };
+  const remove = (i: number) => {
+    setKeys(keys.filter((_, j) => j !== i));
+    onChange(items.filter((_, j) => j !== i));
   };
   return (
     <div className="flex flex-col gap-3">
       {items.map((item, i) => (
-        <div key={i} className="rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
+        <div key={keys[i] ?? `i${i}`} className="rounded-xl border border-ink/10 bg-ink/[0.03] p-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-xs font-medium uppercase tracking-wider text-ink-soft">#{i + 1}</span>
             <div className="flex gap-0.5">
@@ -140,7 +160,7 @@ function ListEditor<T>({
               <Button size="sm" variant="quiet" disabled={i === items.length - 1} onClick={() => move(i, 1)} aria-label="Move down">
                 <ArrowDown className="size-4" />
               </Button>
-              <Button size="sm" variant="danger" onClick={() => onChange(items.filter((_, j) => j !== i))} aria-label="Remove">
+              <Button size="sm" variant="danger" onClick={() => remove(i)} aria-label="Remove">
                 <Trash2 className="size-4" />
               </Button>
             </div>

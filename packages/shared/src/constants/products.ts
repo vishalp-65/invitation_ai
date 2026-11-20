@@ -126,6 +126,11 @@ export const PRODUCTS: Record<ProductCode, Product> = {
   },
 };
 
+/** Display name for a stored product code; falls back to the code for retired products. */
+export function productName(code: string): string {
+  return (PRODUCTS as Record<string, Product | undefined>)[code]?.name ?? code;
+}
+
 /** Share of the order value paid to the template designer (marketplace). */
 export const DEFAULT_DESIGNER_REVENUE_SHARE_PCT = 30;
 

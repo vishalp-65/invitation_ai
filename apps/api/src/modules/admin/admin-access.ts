@@ -15,6 +15,7 @@ import { randomInt } from 'node:crypto';
 import type { AuthedRequest, AuthUser } from '../../common/auth.decorators.js';
 import { hmacSha256Hex, safeEqual, sha256 } from '../../common/crypto.js';
 import { ENV, type Env } from '../../config/env.js';
+import { bumpCounter } from '../../common/redis.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { MailService } from '../mail/mail.service.js';
 import { effectiveScopes, hasScope } from './scopes.js';
@@ -81,8 +82,7 @@ export class AdminMfaService {
   }
 
   async verify(user: AuthUser, code: string): Promise<boolean> {
-    const tries = await this.redis.incr(`admin:mfa:tries:${user.id}`);
-    if (tries === 1) await this.redis.expire(`admin:mfa:tries:${user.id}`, CODE_TTL_SEC);
+    const tries = await bumpCounter(this.redis, `admin:mfa:tries:${user.id}`, CODE_TTL_SEC);
     if (tries > MAX_ATTEMPTS) throw new ForbiddenException('Too many wrong codes. Ask for a new one in 10 minutes.');
     const stored = await this.redis.get(`admin:mfa:code:${user.id}`);
     if (!stored || !safeEqual(stored, sha256(code))) return false;

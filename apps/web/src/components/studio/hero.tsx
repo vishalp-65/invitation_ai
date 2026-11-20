@@ -67,12 +67,10 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
   const media = useOffers().data?.media ?? {};
   const words = hi ? ['उत्सव', 'आशीर्वाद', 'मिलन', 'स्वागत'] : ['celebrate', 'gather', 'bless', 'say yes'];
   const [i, setI] = useState(0);
-  const [shown, setShown] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const onScreen = useOnScreen(sectionRef);
   useTicker(() => setI((n) => (n + 1) % words.length), 2600, onScreen);
-  useEffect(() => setShown(true), []);
 
   // Play only while visible; skip video entirely for reduced motion or Save-Data.
   useEffect(() => {
@@ -89,7 +87,9 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
     } else v.pause();
   }, [onScreen]);
 
-  const fade = (d = '') => `transition-[opacity,transform] duration-1000 ease-[var(--ease-out-quint)] ${d} ${shown ? 'translate-y-0 opacity-100' : 'translate-y-6 opacity-0'}`;
+  // A CSS entrance, not a hydration-gated one: the headline (the page's LCP element) paints with the
+  // HTML instead of staying invisible until React has loaded. Reduced motion is handled globally.
+  const fade = (d = '') => `animate-fade-up ${d}`;
 
   return (
     <section ref={sectionRef} className="hero-scroll relative flex min-h-[100svh] flex-col overflow-clip bg-black text-white [color-scheme:dark]">
@@ -124,7 +124,7 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
             <span className="h-px w-8 bg-white/30" />
             {hi ? 'हर भारतीय अवसर के लिए AI निमंत्रण' : 'AI invitations for every Indian occasion'}
           </p>
-          <h1 className={`display-hero text-white ${fade('delay-100')}`}>
+          <h1 className={`display-hero text-white ${fade('[animation-delay:100ms]')}`}>
             {/* Stable heading for search engines and screen readers; the rotating word below is visual only. */}
             <span className="sr-only">
               {hi
@@ -139,12 +139,12 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
               </span>
             </span>
           </h1>
-          <p className={`mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:mt-8 sm:text-lg ${fade('delay-200')}`}>
+          <p className={`mt-6 max-w-xl text-base leading-relaxed text-white/70 sm:mt-8 sm:text-lg ${fade('[animation-delay:200ms]')}`}>
             {hi
               ? 'एक बार लिखिए, हिन्दी या 12 भारतीय भाषाओं में। मिलेगा छपाई जैसा कार्ड, WhatsApp वीडियो और RSVP वेबसाइट, दो मिनट में।'
               : 'Write once in Hindi, Tamil, Marathi or any of 12 languages. Get a print-quality card, a WhatsApp-ready video and an RSVP website in two minutes.'}
           </p>
-          <div className={`mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row ${fade('delay-300')}`}>
+          <div className={`mt-8 flex flex-col gap-3 sm:mt-10 sm:flex-row ${fade('[animation-delay:300ms]')}`}>
             <Link
               href="/create"
               className="press group inline-flex h-13 items-center justify-center gap-2 rounded-full bg-white px-8 text-base font-medium text-black transition-colors hover:bg-white/90 sm:h-14"
@@ -165,7 +165,7 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
         </div>
 
         {/* Stats: in the flow on phones (never collide with the buttons), pushed to the bottom on desktop. */}
-        <dl className={`mt-12 grid grid-cols-3 gap-4 transition-opacity delay-500 duration-700 sm:flex sm:gap-10 lg:mt-auto lg:gap-20 lg:pt-16 ${shown ? 'opacity-100' : 'opacity-0'}`}>
+        <dl className={`mt-12 grid grid-cols-3 gap-4 animate-[fade-in_0.7s_ease-out_0.5s_both] sm:flex sm:gap-10 lg:mt-auto lg:gap-20 lg:pt-16`}>
           {[
             ['140+', hi ? 'डिज़ाइन, हर परंपरा के लिए' : 'designs for every tradition'],
             ['12', hi ? 'भारतीय भाषाएँ' : 'Indian languages'],

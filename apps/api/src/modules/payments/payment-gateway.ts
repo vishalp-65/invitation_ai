@@ -16,6 +16,15 @@ export interface PaymentGateway {
   refund(paymentId: string, amountPaise: number, notes: Record<string, string>): Promise<{ id: string }>;
   /** Method used for a payment: upi, card, netbanking, wallet, emi, paylater. */
   paymentMethod(paymentId: string): Promise<string | null>;
+  /** Every refund the gateway holds for a payment, oldest first (for reconciliation). */
+  refundsOf(paymentId: string): Promise<GatewayRefund[]>;
+}
+
+export interface GatewayRefund {
+  id: string;
+  amountPaise: number;
+  status: 'pending' | 'processed' | 'failed';
+  createdAt: number;
 }
 
 /** Razorpay Orders API over plain fetch (no SDK needed). */
@@ -78,6 +87,16 @@ export class RazorpayGateway implements PaymentGateway {
     const body = (await res.json()) as { method?: string };
     return body.method ?? null;
   }
+
+  async refundsOf(paymentId: string): Promise<GatewayRefund[]> {
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refunds?count=100`, {
+      headers: { Authorization: this.auth },
+      signal: AbortSignal.timeout(10_000),
+    });
+    const body = (await res.json()) as { items?: Array<{ id: string; amount: number; status: GatewayRefund['status']; created_at: number }>; error?: { description?: string } };
+    if (!res.ok || !body.items) throw new Error(body.error?.description ?? `Razorpay refunds lookup failed (${res.status})`);
+    return body.items.map((r) => ({ id: r.id, amountPaise: r.amount, status: r.status, createdAt: r.created_at })).sort((a, b) => a.createdAt - b.createdAt);
+  }
 }
 
 /** Local development without Razorpay keys: signature = "mock". Never used in production. */
@@ -103,6 +122,10 @@ export class MockGateway implements PaymentGateway {
 
   async paymentMethod(): Promise<string | null> {
     return 'upi';
+  }
+
+  async refundsOf(): Promise<GatewayRefund[]> {
+    return [];
   }
 }
 

@@ -1,6 +1,6 @@
 import { OpenRouterClient } from '@cardai/ai';
 import { createDb, type Database } from '@cardai/db';
-import { createRedis, S3Storage, type Redis } from '@cardai/infra';
+import { createRedis, storageFromEnv, type Redis, type S3Storage } from '@cardai/infra';
 import { BRAND, QUEUES } from '@cardai/shared';
 import { BullModule } from '@nestjs/bullmq';
 import { Global, Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
@@ -49,17 +49,7 @@ const readHandle = env.DATABASE_URL_READ ? createDb(env.DATABASE_URL_READ, { max
     { provide: REDIS, useFactory: () => createRedis(env.REDIS_URL) },
     {
       provide: STORAGE,
-      useFactory: () =>
-        new S3Storage({
-          endpoint: env.S3_ENDPOINT,
-          region: env.S3_REGION,
-          bucket: env.S3_BUCKET,
-          accessKeyId: env.S3_ACCESS_KEY_ID,
-          secretAccessKey: env.S3_SECRET_ACCESS_KEY,
-          forcePathStyle: env.S3_FORCE_PATH_STYLE,
-          publicUrl: env.STORAGE_PUBLIC_URL,
-          publicRead: env.S3_PUBLIC_READ_ACL,
-        }),
+      useFactory: () => storageFromEnv(env),
     },
     {
       provide: OPENROUTER,

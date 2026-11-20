@@ -16,18 +16,18 @@ const H = DESIGN_H;
 
 // ------------------------------------------------------------ helpers
 
-const WHITE_BLOOMS = ['#FFF9F0', '#E5D5BC', '#5E7D4A', '#E9B949'];
+export const WHITE_BLOOMS = ['#FFF9F0', '#E5D5BC', '#5E7D4A', '#E9B949'];
 /** The palette as seen on its light surface (for gold that sits on a cream panel). */
-const onSurface = (ctx: RecipeCtx): RecipeCtx => ({ ...ctx, p: { ...ctx.p, background: ctx.p.surface } });
+export const onSurface = (ctx: RecipeCtx): RecipeCtx => ({ ...ctx, p: { ...ctx.p, background: ctx.p.surface } });
 
-function corner(asset: string, where: 'tl' | 'tr' | 'bl' | 'br', size: number, colors: string[], opts?: Record<string, string | number | boolean>, inset = 0, opacity = 1): DesignElement {
+export function corner(asset: string, where: 'tl' | 'tr' | 'bl' | 'br', size: number, colors: string[], opts?: Record<string, string | number | boolean>, inset = 0, opacity = 1): DesignElement {
   const x = where === 'tl' || where === 'bl' ? inset : W - size - inset;
   const y = where === 'tl' || where === 'tr' ? inset : H - size - inset;
   return artEl(asset, x, y, size, size, colors, { opts, locked: true, flipX: where === 'tr' || where === 'br', flipY: where === 'bl' || where === 'br', opacity });
 }
 
 /** Watercolour petals from the palette (deep primaries are lifted so blooms stay soft). */
-function petals(ctx: RecipeCtx, base?: string, leaf = '#7A9A6B'): string[] {
+export function petals(ctx: RecipeCtx, base?: string, leaf = '#7A9A6B'): string[] {
   const p = base ?? mix(ctx.p.primary, '#FFFFFF', isDarkColor(ctx.p.primary) ? 0.4 : 0.18);
   return [p, mix(p, '#2A1420', 0.38), leaf, '#E9C46A'];
 }
@@ -47,7 +47,7 @@ const laceBands = (ctx: RecipeCtx, h = 86): DesignElement[] => {
  * Names set inside a ring (floral gold ring, hoop): the ring band, then the names pulled back
  * up over it with a negative gap, then a spacer so the next band starts below the ring.
  */
-function namesInRing(type: TypeSetKey, ring: Extract<Band, { t: 'art' }>, nameSize: number): Band[] {
+export function namesInRing(type: TypeSetKey, ring: Extract<Band, { t: 'art' }>, nameSize: number): Band[] {
   const ts = TYPE_SETS[type];
   const nh = nameSize * (ts.names.lh ?? 1.25) * 1.08;
   const ch = ts.connector.size * 0.8 * (ts.connector.lh ?? 1.25) * 1.08;
@@ -61,21 +61,21 @@ function namesInRing(type: TypeSetKey, ring: Extract<Band, { t: 'art' }>, nameSi
   ];
 }
 
-const coupleNames = (size?: number): Band[] => [
+export const coupleNames = (size?: number): Band[] => [
   { t: 'text', role: 'names', bind: 'name1', gap: 26, ...(size ? { size } : {}) },
   { t: 'text', role: 'connector', bind: 'connector', gap: 2 },
   { t: 'text', role: 'names', bind: 'name2', gap: 2, ...(size ? { size } : {}) },
 ];
 
 /** One person (birthday, puja host) or none: a single name line, else the headline. */
-const soloOrNames = (ctx: RecipeCtx, size?: number): Band[] =>
+export const soloOrNames = (ctx: RecipeCtx, size?: number): Band[] =>
   ctx.people === 2
     ? coupleNames(size)
     : ctx.people === 1
       ? [{ t: 'text', role: 'name', bind: 'name1', gap: 24 }, { t: 'text', role: 'detail', bind: 'detail1', gap: 6 }]
       : [{ t: 'text', role: 'headline', bind: 'headline', gap: 20, size: 70 }, { t: 'text', role: 'body', bind: 'message', gap: 18 }];
 
-const venue: Band[] = [
+export const venue: Band[] = [
   { t: 'text', role: 'venue', bind: 'fnM.venue', gap: 26 },
   { t: 'text', role: 'small', bind: 'fnM.address', gap: 4 },
 ];

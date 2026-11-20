@@ -3,6 +3,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger, Module } from '@nestjs/common';
 import type { Job } from 'bullmq';
 import { MailModule } from '../mail/mail.module.js';
+import { PaymentsModule } from '../payments/payments.module.js';
 import { WhatsAppModule } from '../whatsapp/whatsapp.module.js';
 import { OpsService, type OpsJob } from './ops.service.js';
 
@@ -30,7 +31,7 @@ export class OpsProcessor extends WorkerHost {
 }
 
 @Module({
-  imports: [MailModule, WhatsAppModule],
+  imports: [MailModule, WhatsAppModule, PaymentsModule],
   providers: [OpsService, OpsProcessor],
   exports: [OpsService],
 })

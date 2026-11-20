@@ -47,7 +47,6 @@ import { useMediaQuery } from '@/lib/use-media-query';
 import { EditorCanvas } from './canvas';
 import { InspectorPanel, useInspectorSections, useMultiSections, type InspectorCtx } from './inspector';
 import { DownloadDialog, MoreMenu, SaveTemplateDialog } from './header-actions';
-import { PublishTemplateDialog } from './publish-dialog';
 import { ToolPanel, type ToolId } from './panels';
 import { ShortcutsDialog } from './shortcuts';
 import { currentPage, useEditor, ZOOM_MAX, ZOOM_MIN, zoomBy, zoomTo } from './store';
@@ -55,6 +54,8 @@ import { splitIso, useDesignData, useEventWriter } from './use-event-data';
 import { track } from '@/lib/track';
 import { controlClass } from '@/components/ui/field';
 
+/** Admin-only: never downloaded for regular users. */
+const PublishTemplateDialog = dynamic(() => import('./publish-dialog').then((m) => m.PublishTemplateDialog));
 const DesignPlayer = dynamic(() => import('@/components/design/design-player').then((m) => m.DesignPlayer), {
   ssr: false,
   loading: () => <div className="skeleton aspect-[9/16] w-full" />,

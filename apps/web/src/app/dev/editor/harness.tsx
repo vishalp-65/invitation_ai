@@ -41,11 +41,26 @@ let aiUsed = 1;
 let packCredits = 0;
 const myTemplates: unknown[] = [];
 let renderPolls = 0;
+let PHOTO_URL: string | null = null;
 
 /** Stubs `/api/*` in the browser so the editor runs without the backend. */
 function installStub() {
   if (typeof window === 'undefined' || (window as { __editorStub?: boolean }).__editorStub) return;
   (window as { __editorStub?: boolean }).__editorStub = true;
+  // `?template=gubbare-ice-blue&type=birthday` opens another design (dev review).
+  const q = new URLSearchParams(location.search);
+  const pick = q.get('template');
+  if (pick && BUILTIN_TEMPLATES.some((t) => t.id === pick)) EVENT.templateId = pick;
+  // `?photo=1`: the event has one photo, so photo frames show a real picture (crop/roundness review).
+  if (q.get('photo')) {
+    const portrait = `<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200"><defs><linearGradient id="b" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3D97B8"/><stop offset="1" stop-color="#1F5F7A"/></linearGradient></defs><rect width="900" height="1200" fill="url(#b)"/><ellipse cx="450" cy="1250" rx="380" ry="420" fill="#E9EEF3"/><path d="M290 1000 L610 1000 L560 860 L340 860 Z" fill="#D9A07F"/><ellipse cx="450" cy="560" rx="170" ry="210" fill="#E3AE8C"/><path d="M270 560 C250 330 650 300 640 560 C640 470 560 400 450 400 C340 400 270 470 270 560 Z M270 560 C250 760 300 900 330 960 L300 960 C230 820 240 680 270 560 Z M630 560 C650 760 600 900 570 960 L600 960 C670 820 660 680 630 560 Z" fill="#3A2418"/><circle cx="390" cy="560" r="12" fill="#3A2418"/><circle cx="510" cy="560" r="12" fill="#3A2418"/><path d="M405 660 Q450 690 495 660" stroke="#B5524A" stroke-width="10" fill="none" stroke-linecap="round"/></svg>`;
+    EVENT.settings = { ...EVENT.settings, photoAssetIds: ['p1'] };
+    PHOTO_URL = `data:image/svg+xml;utf8,${encodeURIComponent(portrait)}`;
+  }
+  if (q.get('type') === 'birthday') {
+    Object.assign(EVENT, { type: 'birthday', title: 'Juliana — Birthday' });
+    EVENT.content = { ...EVENT.content, headline: 'You are invited to', primaryNames: ['Juliana Silva'], primaryDetails: [], message: '18th Birthday Party' };
+  }
   const real = window.fetch.bind(window);
   const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
   window.fetch = async (input, init) => {
@@ -56,7 +71,7 @@ function installStub() {
     await new Promise((r) => setTimeout(r, 120));
     if (path === `/api/events/${ID}` && method === 'GET') return json(EVENT);
     if (path === `/api/events/${ID}/design` && method === 'PUT') return json({ ok: true });
-    if (path === `/api/events/${ID}/media`) return json({ items: [] });
+    if (path === `/api/events/${ID}/media`) return json({ items: PHOTO_URL ? [{ id: 'p1', url: PHOTO_URL, kind: 'photo' }] : [] });
     if (path.startsWith('/api/templates')) return json({ items: BUILTIN_TEMPLATES });
     if (path === `/api/ai/quota/${ID}`) return json({ background: { used: aiUsed, included: 3, credits: packCredits, remaining: 3 - aiUsed + packCredits, upgraded: false }, configured: true });
     if (path === '/api/ai/images') {

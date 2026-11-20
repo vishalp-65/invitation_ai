@@ -14,3 +14,7 @@ docs
 apps/worker/.remotion-cache
 apps/worker/renders
 apps/worker/remotion-bundle
+# Not needed inside images (Dockerfiles are read outside the context)
+infra
+**/*.test.ts
+**/coverage

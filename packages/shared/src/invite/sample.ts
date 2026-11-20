@@ -81,7 +81,8 @@ function weddingSample(t: TemplateDefinition, hi: boolean): Sample {
 function occasionSample(t: TemplateDefinition, hi: boolean): Sample | null {
   const types = t.eventTypes === 'all' ? [] : (t.eventTypes as string[]);
   const first = types[0];
-  if (!first || types.includes('wedding') || types.includes('nikah') || types.includes('anand-karaj') || types.includes('christian-wedding')) return null;
+  // Couple occasions (anniversary, engagement, reception) use the wedding sample: names, not a puja.
+  if (!first || ['wedding', 'nikah', 'anand-karaj', 'christian-wedding'].some((x) => types.includes(x)) || ['anniversary', 'engagement', 'reception'].includes(first)) return null;
   const base = {
     invocation: t.theme.motif === 'balloons' ? undefined : T(hi, '॥ श्री गणेशाय नमः ॥', '|| Shree Ganeshaya Namah ||'),
     primaryDetails: [],

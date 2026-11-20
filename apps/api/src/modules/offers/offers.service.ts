@@ -10,6 +10,7 @@ import {
   type SaleDto,
 } from '@cardai/shared';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import type { DbExecutor } from '../../common/db.js';
 import { DB, STORAGE, type S3Storage } from '../../infra/infra.module.js';
 import { FlagsService } from '../flags/flags.service.js';
 
@@ -122,7 +123,8 @@ export class OffersService {
     return { couponId: c.id, code, pricePaise: price, discountPaise, totalPaise: price - discountPaise, description: c.description };
   }
 
-  async markUsed(code: string) {
-    await this.db.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` }).where(eq(coupons.code, code));
+  /** Pass the open transaction so a rolled-back payment never counts as a coupon use. */
+  async markUsed(code: string, tx: DbExecutor = this.db) {
+    await tx.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` }).where(eq(coupons.code, code));
   }
 }

@@ -2,6 +2,7 @@
 
 import { getEventType } from '@cardai/shared';
 import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, ExternalLink, Eye, Globe, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
+import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
@@ -9,14 +10,17 @@ import { buttonClass } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { PageSkeleton } from '@/components/ui/skeletons';
 import { useMediaQuery } from '@/lib/use-media-query';
-import { EditPanel } from '@/features/event/edit-panel';
-import { GuestsPanel } from '@/features/event/guests-panel';
-import { PrintPanel } from '@/features/event/print-panel';
-import { RsvpPanel } from '@/features/event/rsvp-panel';
-import { SharePanel } from '@/features/event/share-panel';
-import { UpgradePanel } from '@/features/event/upgrade-panel';
 import { EventDesignPreview } from '@/features/event/design-preview';
 import { useEvent } from '@/lib/hooks';
+
+/** Only the open tab is shown, so each panel is its own chunk, fetched when its tab is first opened. */
+const panelLoading = () => <PageSkeleton variant="form" />;
+const SharePanel = dynamic(() => import('@/features/event/share-panel').then((m) => m.SharePanel), { loading: panelLoading });
+const EditPanel = dynamic(() => import('@/features/event/edit-panel').then((m) => m.EditPanel), { loading: panelLoading });
+const GuestsPanel = dynamic(() => import('@/features/event/guests-panel').then((m) => m.GuestsPanel), { loading: panelLoading });
+const RsvpPanel = dynamic(() => import('@/features/event/rsvp-panel').then((m) => m.RsvpPanel), { loading: panelLoading });
+const UpgradePanel = dynamic(() => import('@/features/event/upgrade-panel').then((m) => m.UpgradePanel), { loading: panelLoading });
+const PrintPanel = dynamic(() => import('@/features/event/print-panel').then((m) => m.PrintPanel), { loading: panelLoading });
 
 const TABS = [
   { id: 'share', label: 'Share & download', icon: Send },

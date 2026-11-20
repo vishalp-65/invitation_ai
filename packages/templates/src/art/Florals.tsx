@@ -1,6 +1,6 @@
 import type { FloralKind } from '@cardai/shared';
 import type { ReactNode } from 'react';
-import { AbsoluteFill } from 'remotion';
+import { AbsoluteFill } from '../utils/remotion-lite';
 import { PaintFilter, useSvgId } from './svg-ids';
 
 /** Watercolour-style flowers drawn in a local unit space (radius 1 = one "flower size"). */

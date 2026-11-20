@@ -28,10 +28,10 @@ fi
 dc up -d --remove-orphans api worker
 
 for _ in $(seq 1 40); do
-  if curl -fsS -o /dev/null "$HEALTH_URL"; then
+  if curl -fs -o /dev/null "$HEALTH_URL"; then
     echo "Healthy: $TAG"
     # Keep only the current + previous tags of our own images
-    keep="$(cat .deploy.env .deploy.prev.env 2>/dev/null | cut -d= -f2 | sort -u)"
+    keep="$( (cat .deploy.env .deploy.prev.env 2>/dev/null || true) | cut -d= -f2 | sort -u)"
     docker images --format '{{.Repository}}:{{.Tag}}' "$PREFIX-*" | grep -vxF "$keep" | xargs -r docker rmi >/dev/null 2>&1 || true
     docker image prune -f >/dev/null 2>&1 || true
     exit 0

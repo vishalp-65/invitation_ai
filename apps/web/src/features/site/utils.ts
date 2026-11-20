@@ -2,6 +2,27 @@
 
 import { useEffect, useState } from 'react';
 
+/**
+ * POSTs JSON to a public (no sign-in) endpoint and returns the JSON reply. Throws an Error with
+ * the API's own message on a non-2xx reply, and a readable one when the network drops (guests are
+ * often on patchy mobile data), so callers can always leave their "sending…" state.
+ */
+export async function postJson<T>(url: string, body: unknown, fallbackError = 'Something went wrong'): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+  } catch {
+    throw Object.assign(new Error('No connection. Check your internet and try again.'), { name: 'NetworkError' });
+  }
+  const json = (await res.json().catch(() => ({}))) as T & { message?: string };
+  if (!res.ok) throw new Error(json.message ?? fallbackError);
+  return json;
+}
+
 /** Google Maps search link for a venue name / address. */
 export const mapsUrl = (q: string) =>
   `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(q)}`;

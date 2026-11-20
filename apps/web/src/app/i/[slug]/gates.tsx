@@ -4,6 +4,7 @@ import type { LockedSiteDto } from '@cardai/shared';
 import { Lock } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { postJson } from '@/features/site/utils';
 
 /** Password / guests-only gate for private websites (Site Royale). */
 export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }) {
@@ -17,17 +18,17 @@ export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }
     e.preventDefault();
     setBusy(true);
     setError('');
-    const res = await fetch(`/api/public/events/${slug}/unlock`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password }),
-    });
-    setBusy(false);
-    if (!res.ok) {
-      setError(hi ? 'पासवर्ड सही नहीं है' : 'That password is not right');
+    let key: string;
+    try {
+      ({ key } = await postJson<{ key: string }>(`/api/public/events/${slug}/unlock`, { password }));
+    } catch (err) {
+      const offline = (err as Error).name === 'NetworkError';
+      if (offline) setError(hi ? 'इंटरनेट कनेक्शन नहीं है, फिर कोशिश करें' : (err as Error).message);
+      else setError(hi ? 'पासवर्ड सही नहीं है' : 'That password is not right');
       return;
+    } finally {
+      setBusy(false);
     }
-    const { key } = (await res.json()) as { key: string };
     document.cookie = `inv_k_${slug}=${key}; path=/i/${slug}; max-age=${60 * 60 * 24 * 365}; samesite=lax${location.protocol === 'https:' ? '; secure' : ''}`;
     router.refresh();
   }

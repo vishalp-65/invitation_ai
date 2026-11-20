@@ -2,6 +2,7 @@ import { and, eq, events, guests, inArray, isNull, shortAliases, sql, type Datab
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { ENV, type Env } from '../../config/env.js';
+import { onUniqueViolation } from '../../common/db.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 
 // No look-alikes (0/O, 1/l/I) so codes survive being read out over the phone.
@@ -45,15 +46,11 @@ export class ShortLinksService {
     if (existing) return existing;
     for (let i = 0; i < 5; i++) {
       const code = eventCode();
-      const [row] = await this.db
-        .update(events)
-        .set({ shortCode: code })
-        .where(and(eq(events.id, eventId), isNull(events.shortCode)))
-        .returning({ code: events.shortCode })
-        .catch((err: { code?: string }) => {
-          if (err.code === '23505') return []; // collision, retry
-          throw err;
-        });
+      // A code collision returns no row, so the loop tries a fresh code.
+      const [row] = await onUniqueViolation(
+        this.db.update(events).set({ shortCode: code }).where(and(eq(events.id, eventId), isNull(events.shortCode))).returning({ code: events.shortCode }),
+        [],
+      );
       if (row?.code) return row.code;
       const [current] = await this.db.select({ code: events.shortCode }).from(events).where(eq(events.id, eventId));
       if (current?.code) return current.code; // someone else set it first
@@ -71,15 +68,10 @@ export class ShortLinksService {
       }
       for (let i = 0; i < 5 && !out.has(r.id); i++) {
         const code = guestCode();
-        const [row] = await this.db
-          .update(guests)
-          .set({ shortCode: code })
-          .where(and(eq(guests.id, r.id), isNull(guests.shortCode)))
-          .returning({ code: guests.shortCode })
-          .catch((err: { code?: string }) => {
-            if (err.code === '23505') return [];
-            throw err;
-          });
+        const [row] = await onUniqueViolation(
+          this.db.update(guests).set({ shortCode: code }).where(and(eq(guests.id, r.id), isNull(guests.shortCode))).returning({ code: guests.shortCode }),
+          [],
+        );
         if (row?.code) out.set(r.id, row.code);
         else {
           const [current] = await this.db.select({ code: guests.shortCode }).from(guests).where(eq(guests.id, r.id));

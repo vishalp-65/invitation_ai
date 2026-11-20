@@ -2,6 +2,7 @@ import { BadRequestException, HttpException, HttpStatus, Inject, Injectable, Log
 import { randomInt } from 'node:crypto';
 import { ENV, type Env } from '../../config/env.js';
 import { hmacSha256Hex, safeEqual } from '../../common/crypto.js';
+import { bumpCounter } from '../../common/redis.js';
 import { REDIS, type Redis } from '../../infra/infra.module.js';
 import { MailService } from '../mail/mail.service.js';
 
@@ -41,8 +42,7 @@ export class OtpService {
       throw new HttpException('Please wait a few seconds before requesting another code.', HttpStatus.TOO_MANY_REQUESTS);
     }
     const hourKey = `otp:h:email:${email}`;
-    const sends = await this.redis.incr(hourKey);
-    if (sends === 1) await this.redis.expire(hourKey, 3600);
+    const sends = await bumpCounter(this.redis, hourKey, 3600);
     if (sends > MAX_SENDS_PER_HOUR) {
       throw new HttpException('Too many codes requested. Please try again in an hour.', HttpStatus.TOO_MANY_REQUESTS);
     }
@@ -69,8 +69,7 @@ export class OtpService {
     const stored = await this.redis.get(`otp:c:${k}`);
     if (!stored) throw new BadRequestException('This code has expired. Please request a new one.');
 
-    const attempts = await this.redis.incr(`otp:a:${k}`);
-    if (attempts === 1) await this.redis.expire(`otp:a:${k}`, OTP_TTL_SEC);
+    const attempts = await bumpCounter(this.redis, `otp:a:${k}`, OTP_TTL_SEC);
     if (attempts > MAX_ATTEMPTS) {
       await this.redis.del(`otp:c:${k}`, `otp:a:${k}`);
       throw new BadRequestException('Too many wrong attempts. Please request a new code.');

@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import { ENV, type Env } from '../../config/env.js';
 import { hashPassword, sha256, verifyPassword } from '../../common/crypto.js';
+import { bumpCounter } from '../../common/redis.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { FlagsService } from '../flags/flags.service.js';
 import { MailService } from '../mail/mail.service.js';
@@ -88,8 +89,7 @@ export class AuthService {
     // Always spend one scrypt run so response time doesn't reveal whether the account exists.
     const matches = verifyPassword(password, row?.passwordHash ?? DUMMY_HASH);
     if (!row || !row.passwordHash || !matches) {
-      const fails = await this.redis.incr(failKey);
-      if (fails === 1) await this.redis.expire(failKey, LOGIN_FAIL_WINDOW_SEC);
+      await bumpCounter(this.redis, failKey, LOGIN_FAIL_WINDOW_SEC);
       throw new UnauthorizedException('Incorrect email or password.');
     }
     await this.redis.del(failKey);

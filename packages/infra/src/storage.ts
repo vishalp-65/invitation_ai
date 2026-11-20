@@ -23,6 +23,32 @@ export interface StorageConfig {
   publicRead?: boolean;
 }
 
+/** The S3_* / STORAGE_PUBLIC_URL variables shared by the API and the worker. */
+export interface StorageEnv {
+  S3_ENDPOINT?: string;
+  S3_REGION: string;
+  S3_BUCKET: string;
+  S3_ACCESS_KEY_ID: string;
+  S3_SECRET_ACCESS_KEY: string;
+  S3_FORCE_PATH_STYLE: boolean;
+  S3_PUBLIC_READ_ACL?: boolean;
+  STORAGE_PUBLIC_URL: string;
+}
+
+/** One place that maps env to storage config, so the API and worker can never drift apart. */
+export function storageFromEnv(env: StorageEnv): S3Storage {
+  return new S3Storage({
+    endpoint: env.S3_ENDPOINT,
+    region: env.S3_REGION,
+    bucket: env.S3_BUCKET,
+    accessKeyId: env.S3_ACCESS_KEY_ID,
+    secretAccessKey: env.S3_SECRET_ACCESS_KEY,
+    forcePathStyle: env.S3_FORCE_PATH_STYLE,
+    publicUrl: env.STORAGE_PUBLIC_URL,
+    publicRead: env.S3_PUBLIC_READ_ACL,
+  });
+}
+
 /** S3-compatible object storage (DigitalOcean Spaces, Cloudflare R2, AWS S3, MinIO). */
 export class S3Storage {
   private readonly client: S3Client;

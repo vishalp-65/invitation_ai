@@ -6,7 +6,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { WorkerContext } from '../context.js';
-import type { RemotionRuntime } from '../remotion.js';
+import type { Browser, RemotionRuntime } from '../remotion.js';
 import { loadDesignProps, type DesignRenderProps } from './load-design.js';
 import { loadSiteVideoProps } from './load-site-video.js';
 import { buildPrintPdf, buildScreenPdf } from './pdf.js';
@@ -35,32 +35,38 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
       log.info({ outputs: outputs.length }, 'render completed');
     };
 
+    const prefix = `renders/${render.eventId}/${render.id}`;
+
+    /** One H.264 MP4 (card video or cinematic site video), uploaded; 1080p for everyone. */
+    const renderMp4 = async (browser: Browser, serveUrl: string, id: string, inputProps: Record<string, unknown>): Promise<RenderOutput> => {
+      const composition = await selectComposition({ serveUrl, id, inputProps, puppeteerInstance: browser });
+      const file = join(dir, 'invite.mp4');
+      await renderMedia({
+        composition,
+        serveUrl,
+        codec: 'h264',
+        outputLocation: file,
+        inputProps,
+        puppeteerInstance: browser,
+        scale: 1, // free renders differ only by the watermark
+        // Bitrate budget keeps the MP4 under WhatsApp's forwarding limit regardless of length.
+        videoBitrate: `${videoKbps(composition.durationInFrames / composition.fps)}k`,
+        audioBitrate: '128k',
+        x264Preset: render.watermark ? 'medium' : 'slow',
+        jpegQuality: RENDER_QUALITY.videoFrameQuality,
+        concurrency: ctx.env.REMOTION_CONCURRENCY,
+        // Remotion's default frame cache is half of system RAM, far too much inside a container.
+        offthreadVideoCacheSizeInBytes: ctx.env.OFFTHREAD_VIDEO_CACHE_MB * 1024 * 1024,
+        onProgress: ({ progress }) => void setProgress(progress),
+      });
+      return upload(ctx, file, `${prefix}/invite.mp4`, 'video/mp4');
+    };
+
     try {
-      const prefix = `renders/${render.eventId}/${render.id}`;
       if (render.format === 'site_video') {
         // Cinematic video from the website's design pack (painted scene, bands, music).
         const props = await loadSiteVideoProps(ctx, render.eventId, { watermark: render.watermark });
-        const outputs = await remotion.withBrowser(async (browser, serveUrl): Promise<RenderOutput[]> => {
-          const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.siteVideo, inputProps: props, puppeteerInstance: browser });
-          const file = join(dir, 'invite.mp4');
-          await renderMedia({
-            composition,
-            serveUrl,
-            codec: 'h264',
-            outputLocation: file,
-            inputProps: props,
-            puppeteerInstance: browser,
-            scale: 1,
-            videoBitrate: `${videoKbps(composition.durationInFrames / composition.fps)}k`,
-            audioBitrate: '128k',
-            x264Preset: render.watermark ? 'medium' : 'slow',
-            jpegQuality: RENDER_QUALITY.videoFrameQuality,
-            concurrency: ctx.env.REMOTION_CONCURRENCY,
-            offthreadVideoCacheSizeInBytes: ctx.env.OFFTHREAD_VIDEO_CACHE_MB * 1024 * 1024,
-            onProgress: ({ progress }) => void setProgress(progress),
-          });
-          return [await upload(ctx, file, `${prefix}/invite.mp4`, 'video/mp4')];
-        });
+        const outputs = await remotion.withBrowser(async (browser, serveUrl) => [await renderMp4(browser, serveUrl, COMPOSITION_IDS.siteVideo, props)]);
         await finish(outputs);
         return;
       }
@@ -72,32 +78,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
       });
       const outputs = await remotion.withBrowser(async (browser, serveUrl): Promise<RenderOutput[]> => {
         const outputs: RenderOutput[] = [];
-        if (render.format === 'video') {
-          const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designVideo, inputProps: props, puppeteerInstance: browser });
-          const seconds = composition.durationInFrames / composition.fps;
-          // Bitrate budget keeps the MP4 under WhatsApp's forwarding limit regardless of length.
-          const kbps = videoKbps(seconds);
-          const file = join(dir, 'invite.mp4');
-          await renderMedia({
-            composition,
-            serveUrl,
-            codec: 'h264',
-            outputLocation: file,
-            inputProps: props,
-            puppeteerInstance: browser,
-            scale: 1, // 1080p for everyone; free renders differ only by the watermark
-            videoBitrate: `${kbps}k`,
-            audioBitrate: '128k',
-            x264Preset: render.watermark ? 'medium' : 'slow',
-            jpegQuality: RENDER_QUALITY.videoFrameQuality,
-            concurrency: ctx.env.REMOTION_CONCURRENCY,
-            // Remotion's default frame cache is half of system RAM — far too much inside a container.
-            offthreadVideoCacheSizeInBytes: ctx.env.OFFTHREAD_VIDEO_CACHE_MB * 1024 * 1024,
-            onProgress: ({ progress }) => void setProgress(progress),
-          });
-          outputs.push(await upload(ctx, file, `${prefix}/invite.mp4`, 'video/mp4'));
-          return outputs;
-        }
+        if (render.format === 'video') return [await renderMp4(browser, serveUrl, COMPOSITION_IDS.designVideo, props)];
 
         const print = render.format === 'print_pdf';
         const needsPdf = print || render.format === 'pdf';

@@ -1,4 +1,4 @@
-import { AbsoluteFill } from 'remotion';
+import { AbsoluteFill } from '../utils/remotion-lite';
 import { Leaf, Marigold } from './Florals';
 import { useSvgId } from './svg-ids';
 

@@ -70,6 +70,11 @@ export function fontsForPages(pages: Page[], data: DesignData | null): Array<{ f
   const out = new Map<string, { family: string; script: string }>();
   for (const p of pages)
     for (const e of p.elements) {
+      if (e.type === 'image' && e.empty) {
+        const script = detectScript((data ? resolveBinding('monogram', data) : null) ?? '');
+        out.set(`${e.empty.font}|${script}`, { family: e.empty.font, script });
+        continue;
+      }
       if (e.type !== 'text') continue;
       const text = displayText(e, data);
       const script = detectScript(text);
@@ -243,16 +248,41 @@ function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: Te
 
 function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: DesignData | null; placeholders?: boolean }) {
   const src = el.src ?? (el.bind && data ? resolveBinding(el.bind, data) : null);
-  const radius = el.mask === 'circle' ? '50%' : el.mask === 'arch' ? `${el.w / 2}px ${el.w / 2}px 18px 18px` : el.mask === 'rounded' ? 36 : 0;
+  // A circle stays a true circle whatever the frame's proportions (centred, cropped to fit).
+  const side = Math.min(el.w, el.h);
+  const circle = el.mask === 'circle';
+  const radius = circle || el.mask === 'oval' ? '50%' : el.mask === 'arch' ? `${el.w / 2}px ${el.w / 2}px 18px 18px` : el.mask === 'rounded' ? Math.min(36, side * 0.12) : 0;
   const frame: CSSProperties = {
-    width: '100%',
-    height: '100%',
+    width: circle ? side : '100%',
+    height: circle ? side : '100%',
+    margin: circle ? `${(el.h - side) / 2}px ${(el.w - side) / 2}px` : undefined,
     borderRadius: radius,
     overflow: 'hidden',
     boxSizing: 'border-box',
     border: el.borderW && el.border ? `${el.borderW}px solid ${el.border}` : undefined,
     boxShadow: el.borderW ? '0 18px 40px rgba(0,0,0,0.18)' : undefined,
   };
+  if (!src && el.empty) {
+    // Template frame before a photo is added: initials on a tinted disc, same crop and roundness.
+    const initials = (data ? resolveBinding('monogram', data) : '') || '♡';
+    return (
+      <div style={{ ...frame, position: 'relative', display: 'grid', placeItems: 'center', background: `radial-gradient(circle at 35% 30%, rgba(255,255,255,0.55), rgba(255,255,255,0) 60%), ${el.empty.bg}` }}>
+        {/* A fine inner keyline, like a printed monogram seal. */}
+        <span style={{ position: 'absolute', inset: '7%', borderRadius: radius, border: `2px solid ${el.empty.ink}`, opacity: 0.28 }} />
+        <span style={{ fontFamily: fontStack(el.empty.font, initials), color: el.empty.ink, fontSize: Math.min(el.w, el.h) * (initials.length > 2 ? 0.22 : 0.36), lineHeight: 1, whiteSpace: 'nowrap' }}>{initials}</span>
+        {placeholders && (
+          <span style={{ position: 'absolute', bottom: '12%', left: '50%', transform: 'translateX(-50%)', display: 'flex', alignItems: 'center', gap: 10, padding: '10px 22px', borderRadius: 999, background: 'rgba(255,255,255,0.88)', color: '#333', fontFamily: 'Inter, sans-serif', fontSize: Math.max(22, side * 0.06), whiteSpace: 'nowrap' }}>
+            <svg width="1.1em" height="1.1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} aria-hidden>
+              <rect x="3" y="5" width="18" height="14" rx="2" />
+              <circle cx="9" cy="11" r="2" />
+              <path d="M21 17l-5-5-8 7" />
+            </svg>
+            Add photo
+          </span>
+        )}
+      </div>
+    );
+  }
   if (!src) {
     if (!placeholders) return null;
     return (
