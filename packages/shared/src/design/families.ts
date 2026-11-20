@@ -1,6 +1,6 @@
 import type { Community, EventTypeId } from '../constants/event-types.js';
 import type { LayoutId, MotifId, PatternId } from '../templates/types.js';
-import { artEl, fullPage, shapeEl, solidBg, type Band, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
+import { artEl, fullPage, shapeEl, solidBg, type Band, type DateStyle, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
 import { contrast, isDarkColor, mix } from './color.js';
 import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground } from './schema.js';
 
@@ -34,7 +34,7 @@ export interface DesignFamily {
   /** Fallback for the classic auto-layout renderer. */
   legacy: { layout: LayoutId; motif: MotifId; pattern: PatternId };
   type: TypeSetKey;
-  date: 'strip' | 'line' | 'stack' | 'boxed';
+  date: DateStyle;
   divider?: string;
   zone: Zone;
   /** Colour the text sits on (defaults to the page background). */

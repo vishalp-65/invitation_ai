@@ -161,12 +161,16 @@ const initials = (name: string | null, email: string | null) =>
     .map((w) => w[0]!.toUpperCase())
     .join('');
 
-/** Closes a popover on outside press and Esc. */
+/** Closes a popover on outside press and Esc (Esc hands focus back to the popover's trigger button). */
 function useDismiss(open: boolean, close: () => void, ref: React.RefObject<HTMLElement | null>) {
   useEffect(() => {
     if (!open) return;
     const away = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && close();
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && close();
+    const key = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (ref.current?.contains(document.activeElement)) ref.current.querySelector<HTMLElement>('[aria-expanded]')?.focus();
+      close();
+    };
     window.addEventListener('pointerdown', away, true);
     window.addEventListener('keydown', key);
     return () => {
@@ -605,8 +609,9 @@ function OccasionsMenu({ linkCls }: { linkCls: string }) {
 // ---------------------------------------------------------------- Account menu
 
 export function Avatar({ size = 'size-9' }: { size?: string }) {
-  const { data: me } = useMe();
-  if (!me) return null;
+  const { data: me, isLoading } = useMe();
+  // Hold the space while the session loads so headers don't jump when the avatar arrives.
+  if (!me) return isLoading ? <span className={clsx(size, 'skeleton shrink-0 rounded-full')} aria-hidden /> : null;
   return me.avatarUrl ? (
     // eslint-disable-next-line @next/next/no-img-element -- provider avatar URL (Google), tiny
     <img
@@ -652,6 +657,13 @@ export function AccountMenu({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
+        onKeyDown={(e) => {
+          // ArrowDown opens the menu and lands on the first item.
+          if (e.key !== 'ArrowDown') return;
+          e.preventDefault();
+          setOpen(true);
+          requestAnimationFrame(() => ref.current?.querySelector<HTMLElement>('[role="menuitem"]')?.focus());
+        }}
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={t('account')}
@@ -668,6 +680,8 @@ export function AccountMenu({
       {open && (
         <div
           role="menu"
+          aria-label={t('account')}
+          onKeyDown={menuKeys}
           className={clsx(
             'absolute z-50 w-72 animate-[sheet-in_0.18s_var(--ease-out-quint)] menu',
             align === 'right'
@@ -730,6 +744,22 @@ export function AccountMenu({
   );
 }
 
+/** Arrow keys / Home / End move between a menu's items (WAI-ARIA menu pattern). */
+function menuKeys(e: React.KeyboardEvent<HTMLElement>) {
+  const items = [...e.currentTarget.querySelectorAll<HTMLElement>('[role="menuitem"]:not(:disabled)')];
+  if (!items.length) return;
+  const i = items.indexOf(document.activeElement as HTMLElement);
+  const to =
+    e.key === 'ArrowDown' ? (i + 1) % items.length
+    : e.key === 'ArrowUp' ? (i <= 0 ? items.length - 1 : i - 1)
+    : e.key === 'Home' ? 0
+    : e.key === 'End' ? items.length - 1
+    : -1;
+  if (to < 0) return;
+  e.preventDefault();
+  items[to]!.focus();
+}
+
 function MenuDivider() {
   return <div className="menu-sep" />;
 }
@@ -765,18 +795,45 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
   const lang = useSwitchLocale();
   const [occasions, setOccasions] = useState(false);
 
-  // Lock page scroll and close on Esc while open.
+  const panel = useRef<HTMLElement>(null);
+  // The parent passes a fresh onClose each render; read it through a ref so the effect below runs
+  // once per open (re-running would bounce focus to the opener and back).
+  const closeRef = useRef(onClose);
+  closeRef.current = onClose;
+
+  // While open: lock page scroll, move focus into the drawer and keep Tab inside it, close on Esc.
+  // On close, focus goes back to whatever opened it (the menu button).
   useEffect(() => {
     if (!open) return;
+    const opener = document.activeElement as HTMLElement | null;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
-    const key = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    panel.current?.querySelector<HTMLElement>('button')?.focus();
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') return closeRef.current();
+      if (e.key !== 'Tab' || !panel.current) return;
+      const focusable = [...panel.current.querySelectorAll<HTMLElement>('a[href]:not([tabindex="-1"]), button:not(:disabled):not([tabindex="-1"])')];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first || !last) return;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      } else if (!panel.current.contains(document.activeElement)) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     window.addEventListener('keydown', key);
     return () => {
       document.body.style.overflow = prev;
       window.removeEventListener('keydown', key);
+      if (opener?.isConnected) opener.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
   const row =
@@ -791,9 +848,12 @@ function MobileDrawer({ open, onClose }: { open: boolean; onClose: () => void })
         className="absolute inset-0 animate-[fade-in_0.15s_ease-out] bg-[var(--color-overlay)]"
       />
       <aside
+        ref={panel}
         role="dialog"
         aria-modal="true"
         aria-label={t('menu')}
+        // Any link closes the drawer, including one to the page you're already on (no route change).
+        onClick={(e) => (e.target as Element).closest('a[href]') && onClose()}
         className="thin-scroll absolute inset-y-0 right-0 flex w-[min(380px,88vw)] animate-[drawer-in_0.28s_var(--ease-out-quint)] flex-col overflow-y-auto border-l border-hairline bg-surface text-ink"
       >
         <div className="flex h-16 shrink-0 items-center justify-between border-b border-hairline px-4">
@@ -970,10 +1030,12 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
           <FooterCol
             title="Occasions"
             links={[
-              ['/create?type=wedding', 'Wedding'],
-              ['/create?type=griha-pravesh', 'Griha Pravesh'],
-              ['/create?type=birthday', 'Birthday'],
-              ['/create?type=nikah', 'Nikah'],
+              ['/wedding-invitation', 'Wedding invitations'],
+              ['/engagement-invitation', 'Engagement invitations'],
+              ['/griha-pravesh-invitation', 'Griha pravesh invitations'],
+              ['/birthday-invitation', 'Birthday invitations'],
+              ['/nikah-invitation', 'Nikah invitations'],
+              ['/puja-invitation', 'Puja invitations'],
             ]}
           />
           <FooterCol

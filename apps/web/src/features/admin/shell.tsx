@@ -2,7 +2,7 @@
 
 import { BRAND } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowLeft, BarChart3, LayoutDashboard, LayoutTemplate, Mail, ScrollText, ShoppingBag, Store, Tag, Users } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clapperboard, Gauge, LayoutDashboard, LayoutTemplate, Mail, MailOpen, ScrollText, ShoppingBag, Store, Tag, TrendingUp, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -10,17 +10,52 @@ import { ThemeToggle } from '@/lib/theme';
 import { useMe } from '@/lib/hooks';
 import { Skeleton } from './ui';
 
-const NAV = [
-  { href: '/admin', label: 'Overview', icon: LayoutDashboard },
-  { href: '/admin/analytics', label: 'Behaviour', icon: BarChart3 },
-  { href: '/admin/templates', label: 'Templates', icon: LayoutTemplate },
-  { href: '/admin/users', label: 'Users', icon: Users },
-  { href: '/admin/offers', label: 'Offers & pricing', icon: Tag },
-  { href: '/admin/emails', label: 'Emails', icon: Mail },
-  { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
-  { href: '/admin/marketplace', label: 'Marketplace & print', icon: Store },
-  { href: '/admin/activity', label: 'Admin log', icon: ScrollText },
-] as const;
+interface NavItem {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+}
+const GROUPS: Array<{ label: string; items: NavItem[] }> = [
+  {
+    label: 'Insights',
+    items: [
+      { href: '/admin', label: 'Overview', icon: LayoutDashboard },
+      { href: '/admin/growth', label: 'Growth & retention', icon: TrendingUp },
+      { href: '/admin/analytics', label: 'Behaviour', icon: BarChart3 },
+    ],
+  },
+  {
+    label: 'Catalogue',
+    items: [
+      { href: '/admin/templates', label: 'Card templates', icon: LayoutTemplate },
+      { href: '/admin/designs', label: 'Video & web designs', icon: Clapperboard },
+    ],
+  },
+  {
+    label: 'People',
+    items: [
+      { href: '/admin/users', label: 'Users', icon: Users },
+      { href: '/admin/invitations', label: 'Invitations', icon: MailOpen },
+    ],
+  },
+  {
+    label: 'Revenue',
+    items: [
+      { href: '/admin/offers', label: 'Plans & offers', icon: Tag },
+      { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
+      { href: '/admin/emails', label: 'Emails', icon: Mail },
+      { href: '/admin/marketplace', label: 'Marketplace & print', icon: Store },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { href: '/admin/operations', label: 'Operations', icon: Gauge },
+      { href: '/admin/activity', label: 'Admin log', icon: ScrollText },
+    ],
+  },
+];
+const NAV = GROUPS.flatMap((g) => g.items);
 
 /** Wordmark + a quiet mono "Admin" tag. */
 function AdminMark() {
@@ -80,26 +115,30 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="flex h-16 shrink-0 items-center border-b border-ink/10 px-5">
           <AdminMark />
         </div>
-        <p className="px-6 pb-2 pt-5 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-ink-soft/80">Console</p>
-        <nav className="thin-scroll flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 pb-4" aria-label="Admin">
-          {NAV.map(({ href, label, icon: Icon }) => {
-            const on = active(href);
-            return (
-              <Link
-                key={href}
-                href={href}
-                aria-current={on ? 'page' : undefined}
-                className={clsx(
-                  'relative flex h-10 shrink-0 items-center gap-3 border px-3 text-sm transition-colors',
-                  on ? 'border-ink/20 bg-ink/[0.04] text-ink' : 'border-transparent text-ink-soft hover:border-ink/10 hover:text-ink',
-                )}
-              >
-                <span aria-hidden className={clsx('absolute -left-3 bottom-2 top-2 w-[2px] bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]', on ? 'scale-y-100' : 'scale-y-0')} />
-                <Icon className="size-[1.1rem] shrink-0" strokeWidth={1.75} aria-hidden />
-                <span className="truncate">{label}</span>
-              </Link>
-            );
-          })}
+        <nav className="thin-scroll flex flex-1 flex-col overflow-y-auto px-3 pb-4" aria-label="Admin">
+          {GROUPS.map((g) => (
+            <div key={g.label} className="flex flex-col gap-0.5">
+              <p className="px-3 pb-1.5 pt-5 font-mono text-[0.625rem] uppercase tracking-[0.1em] text-ink-soft/80">{g.label}</p>
+              {g.items.map(({ href, label, icon: Icon }) => {
+                const on = active(href);
+                return (
+                  <Link
+                    key={href}
+                    href={href}
+                    aria-current={on ? 'page' : undefined}
+                    className={clsx(
+                      'relative flex h-9 shrink-0 items-center gap-3 border px-3 text-sm transition-colors',
+                      on ? 'border-ink/20 bg-ink/[0.04] text-ink' : 'border-transparent text-ink-soft hover:border-ink/10 hover:text-ink',
+                    )}
+                  >
+                    <span aria-hidden className={clsx('absolute -left-3 bottom-2 top-2 w-[2px] bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]', on ? 'scale-y-100' : 'scale-y-0')} />
+                    <Icon className="size-[1.05rem] shrink-0" strokeWidth={1.75} aria-hidden />
+                    <span className="truncate">{label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="border-t border-ink/10 p-4">
           <div className="mb-3 flex items-center gap-3">

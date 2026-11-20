@@ -11,17 +11,25 @@ import { Dialog } from '@/components/ui/dialog';
 import { Chip, Field, Input, controlClass } from '@/components/ui/field';
 import type { TemplateStat } from '@/features/admin/types';
 import { TemplateThumb } from '@/features/admin/template-thumb';
-import { Badge, compactINR, Empty, num, PageHeader, RangePicker, Segmented, Skeleton, useRange } from '@/features/admin/ui';
+import { BarList } from '@/features/admin/charts';
+import { Badge, BulkBar, Card, compactINR, Empty, num, PageHeader, RangePicker, Segmented, Skeleton, useRange } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 
 type Tab = 'all' | 'trending' | 'popular' | 'catalog' | 'featured' | 'hidden';
 type Sort = 'uses' | 'views' | 'revenue' | 'trend' | 'name';
+interface Catalog {
+  items: TemplateStat[];
+  eventTypes: Array<{ type: string; total: number; recent: number; paid: number }>;
+}
 
 export default function AdminTemplatesPage() {
   const [range] = useRange();
   const qc = useQueryClient();
   const key = ['admin', 'catalog', range];
-  const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => api<{ items: TemplateStat[] }>(`/admin/catalog?range=${range}`), select: (d) => d.items });
+  const { data: raw, isLoading } = useQuery({ queryKey: key, queryFn: () => api<Catalog>(`/admin/catalog?range=${range}`) });
+  const data = raw?.items;
+  const [picked, setPicked] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
   const [tab, setTab] = useState<Tab>('all');
   const [sort, setSort] = useState<Sort>('uses');
   const [q, setQ] = useState('');
@@ -33,8 +41,8 @@ export default function AdminTemplatesPage() {
     mutationFn: ({ id, body }: { id: string; body: Record<string, unknown> }) => api(`/admin/catalog/${id}`, { method: 'PATCH', json: body }),
     onMutate: async ({ id, body }) => {
       await qc.cancelQueries({ queryKey: key });
-      const prev = qc.getQueryData<{ items: TemplateStat[] }>(key);
-      qc.setQueryData<{ items: TemplateStat[] }>(key, (cur) => (cur ? { items: cur.items.map((t) => (t.id === id ? { ...t, ...body } : t)) } : cur));
+      const prev = qc.getQueryData<Catalog>(key);
+      qc.setQueryData<Catalog>(key, (cur) => (cur ? { ...cur, items: cur.items.map((t) => (t.id === id ? { ...t, ...body } : t)) } : cur));
       return { prev };
     },
     onError: (e, _v, ctx) => {
@@ -77,6 +85,32 @@ export default function AdminTemplatesPage() {
     return [...list].sort(by[s]);
   }, [data, tab, q, sort]);
 
+  async function bulk(body: { hidden?: boolean; featured?: boolean }, ok: string) {
+    const ids = [...picked];
+    if (body.hidden && !confirm(`Hide ${ids.length} template(s) from customers and the landing page? Invitations already made with them keep working.`)) return;
+    setBulkBusy(true);
+    try {
+      await api('/admin/catalog/bulk', { method: 'POST', json: { ids, ...body } });
+      qc.setQueryData<Catalog>(key, (cur) => (cur ? { ...cur, items: cur.items.map((t) => (picked.has(t.id) ? { ...t, ...body } : t)) } : cur));
+      toast.success(ok);
+      setPicked(new Set());
+      void qc.invalidateQueries({ queryKey: ['templates'] });
+      void qc.invalidateQueries({ queryKey: ['offers'] });
+    } catch (e) {
+      toast.error(e instanceof ApiError ? e.message : 'Could not update');
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
+  const togglePick = (id: string) =>
+    setPicked((cur) => {
+      const n = new Set(cur);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
+
   async function remove(t: TemplateStat, permanent: boolean) {
     try {
       await api(`/admin/catalog/${t.id}${permanent ? '?permanent=true' : ''}`, { method: 'DELETE' });
@@ -92,8 +126,8 @@ export default function AdminTemplatesPage() {
   return (
     <>
       <PageHeader
-        title="Templates"
-        description="See what customers love, feature or hide any template, and publish new ones designed in the editor."
+        title="Card templates"
+        description="See what customers love, feature or hide any template (it also leaves the landing-page demos), and publish new ones designed in the editor."
         actions={
           <>
             <RangePicker />
@@ -138,6 +172,27 @@ export default function AdminTemplatesPage() {
 
       {tab === 'trending' && <p className="mb-4 text-sm text-ink-soft">Ranked by picks and new invitations in the last 7 days compared with the 7 days before.</p>}
 
+      {tab === 'popular' && !!raw?.eventTypes.length && (
+        <Card className="mb-6" title="Invitations by occasion" description="All time · in this period · paid">
+          <BarList
+            format={num}
+            items={raw.eventTypes.slice(0, 12).map((e) => ({
+              key: e.type,
+              label: `${getEventType(e.type)?.label.split(' / ')[0] ?? e.type} · ${num(e.recent)} new · ${num(e.paid)} paid`,
+              value: e.total,
+            }))}
+          />
+        </Card>
+      )}
+
+      {!!shown.length && (
+        <div className="mb-3 flex justify-end">
+          <button type="button" className="text-sm text-ink-soft underline-offset-4 hover:text-ink hover:underline" onClick={() => setPicked(picked.size === shown.length ? new Set() : new Set(shown.map((t) => t.id)))}>
+            {picked.size && picked.size === shown.length ? 'Clear selection' : `Select all ${num(shown.length)} shown`}
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
           {Array.from({ length: 10 }, (_, i) => (
@@ -151,9 +206,12 @@ export default function AdminTemplatesPage() {
       ) : (
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {shown.map((t, i) => (
-            <li key={t.id} className={clsx('group flex flex-col overflow-hidden border border-ink/10 bg-ink/[0.015] transition-colors hover:border-ink/25', t.hidden && 'opacity-70')}>
+            <li key={t.id} className={clsx('group flex flex-col overflow-hidden border bg-ink/[0.015] transition-colors', picked.has(t.id) ? 'border-ink' : 'border-ink/10 hover:border-ink/25', t.hidden && 'opacity-70')}>
               <div className="relative p-2 pb-0">
                 <TemplateThumb id={t.id} name={t.name} coverPage={t.coverPage} />
+                <label className={clsx('absolute bottom-1.5 right-3.5 grid size-7 cursor-pointer place-items-center bg-ivory/90 transition-opacity', picked.size || picked.has(t.id) ? 'opacity-100' : 'opacity-0 group-hover:opacity-100 focus-within:opacity-100')}>
+                  <input type="checkbox" className="size-4 accent-[var(--color-ink)]" checked={picked.has(t.id)} onChange={() => togglePick(t.id)} aria-label={`Select ${t.name}`} />
+                </label>
                 <div className="absolute left-3.5 top-3.5 flex flex-wrap gap-1">
                   {(tab === 'trending' || tab === 'popular') && <span className="grid size-6 place-items-center bg-ivory font-mono text-[0.6875rem]">{String(i + 1).padStart(2, '0')}</span>}
                   {t.featured && (
@@ -272,6 +330,23 @@ export default function AdminTemplatesPage() {
       </Dialog>
 
       {editing && <EditCatalogDialog t={editing} onClose={() => setEditing(null)} />}
+
+      {picked.size > 0 && (
+        <BulkBar count={picked.size} onClear={() => setPicked(new Set())}>
+          <Button size="sm" variant="line" disabled={bulkBusy} onClick={() => void bulk({ featured: true }, `${picked.size} featured`)}>
+            <Star className="size-3.5" /> Feature
+          </Button>
+          <Button size="sm" variant="line" disabled={bulkBusy} onClick={() => void bulk({ featured: false }, `${picked.size} unfeatured`)}>
+            Unfeature
+          </Button>
+          <Button size="sm" variant="line" disabled={bulkBusy} onClick={() => void bulk({ hidden: false }, `${picked.size} restored`)}>
+            <Eye className="size-3.5" /> Restore
+          </Button>
+          <Button size="sm" variant="solid" disabled={bulkBusy} onClick={() => void bulk({ hidden: true }, `${picked.size} hidden from customers`)}>
+            <EyeOff className="size-3.5" /> Hide
+          </Button>
+        </BulkBar>
+      )}
     </>
   );
 }

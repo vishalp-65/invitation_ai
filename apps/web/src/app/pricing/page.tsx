@@ -1,12 +1,18 @@
-import { formatINR, type ProductCode } from '@cardai/shared';
+import { BRAND, formatINR, type ActiveOffersDto, type ProductCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { Check, Minus } from 'lucide-react';
 import type { Metadata } from 'next';
 import { SiteFooter, SiteHeader } from '@/components/layout/site-header';
+import { JsonLd } from '@/components/seo/json-ld';
 import { ButtonLink } from '@/components/ui/button';
 import { loadOffers } from '@/lib/offers-server';
 
-export const metadata: Metadata = { title: 'Pricing' };
+export const metadata: Metadata = {
+  title: 'Pricing: invitation card, video & website plans',
+  description:
+    'Make and share invitations free. Pay once per event for an HD card, a WhatsApp video invite or an RSVP website. No subscription; UPI, cards and wallets.',
+  alternates: { canonical: '/pricing' },
+};
 
 const FREE = [
   'Unlimited previews in every design',
@@ -16,6 +22,14 @@ const FREE = [
   'AI wording in 12 languages',
 ];
 const ORDER: ProductCode[] = ['card', 'video', 'website', 'website_royale', 'combo'];
+const ADDONS = ['royale_upgrade', 'site_year', 'ai_clip', 'ai_backgrounds', 'print'] as const;
+
+/** Shown in "Questions" and sent as FAQPage schema, so the two never drift apart. */
+const PRICING_FAQ: Array<[string, string]> = [
+  ['Is it a subscription?', 'No. You pay once for one event, and edits stay free until the event.'],
+  ['Can I change the design after paying?', 'Yes. Switch designs, edit words and remake files as often as you like.'],
+  ['I live abroad. Can I pay?', 'Yes, international cards work. Your guests in India get the same WhatsApp-friendly files.'],
+];
 
 /** Website plans side by side. */
 const SITE_ROWS: Array<[string, boolean | string, boolean | string, boolean | string]> = [
@@ -41,6 +55,7 @@ export default async function PricingPage() {
   const { products: PRODUCTS, sale } = await loadOffers();
   return (
     <>
+      <JsonLd data={pricingSchema(PRODUCTS, sale)} />
       <SiteHeader />
       <main id="main" className="mx-auto max-w-[1400px] px-6 py-16 lg:px-12 lg:py-24">
         <span className="kicker mb-8">Pricing</span>
@@ -77,7 +92,7 @@ export default async function PricingPage() {
           </section>
 
           <section className="grid gap-4 sm:grid-cols-2">
-            {ORDER.map((code) => {
+            {ORDER.filter((code) => !PRODUCTS[code].disabled).map((code) => {
               const p = PRODUCTS[code];
               const save = p.mrpPaise && p.mrpPaise > p.pricePaise ? Math.round((1 - p.pricePaise / p.mrpPaise) * 100) : 0;
               return (
@@ -171,7 +186,7 @@ export default async function PricingPage() {
           <div>
             <h2 className="text-2xl">Add-ons</h2>
             <ul className="mt-4 flex flex-col gap-3">
-              {(['royale_upgrade', 'site_year', 'ai_clip', 'ai_backgrounds', 'print'] as const).map((c) => (
+              {ADDONS.filter((c) => !PRODUCTS[c].disabled).map((c) => (
                 <li key={c} className="flex justify-between gap-4 border-b border-line pb-3">
                   <span>
                     <strong>{PRODUCTS[c].name}</strong>
@@ -185,18 +200,12 @@ export default async function PricingPage() {
           <div>
             <h2 className="text-2xl">Questions</h2>
             <dl className="mt-4 flex flex-col gap-4">
-              <div>
-                <dt className="font-medium">Is it a subscription?</dt>
-                <dd className="text-ink-soft">No. You pay once for one event, and edits stay free until the event.</dd>
-              </div>
-              <div>
-                <dt className="font-medium">Can I change the design after paying?</dt>
-                <dd className="text-ink-soft">Yes. Switch designs, edit words and remake files as often as you like.</dd>
-              </div>
-              <div>
-                <dt className="font-medium">I live abroad. Can I pay?</dt>
-                <dd className="text-ink-soft">Yes, international cards work. Your guests in India get the same WhatsApp-friendly files.</dd>
-              </div>
+              {PRICING_FAQ.map(([q, a]) => (
+                <div key={q}>
+                  <dt className="font-medium">{q}</dt>
+                  <dd className="text-ink-soft">{a}</dd>
+                </div>
+              ))}
             </dl>
           </div>
         </section>
@@ -204,4 +213,59 @@ export default async function PricingPage() {
       <SiteFooter />
     </>
   );
+}
+
+/**
+ * Plans as schema.org Offers on the Noyta WebApplication, published by the Organization the
+ * landing page declares (`/#org`), plus the FAQ. Prices are the live ones the page shows; a sale price carries its end date.
+ */
+function pricingSchema(products: ActiveOffersDto['products'], sale: ActiveOffersDto['sale']) {
+  const url = `${BRAND.url}/pricing`;
+  const validUntil = sale ? new Date(sale.endsAt).toISOString().slice(0, 10) : undefined;
+  const offer = (code: ProductCode, category: string) => {
+    const p = products[code];
+    return {
+      '@type': 'Offer',
+      name: p.name,
+      description: p.description,
+      category,
+      price: (p.pricePaise / 100).toFixed(2),
+      priceCurrency: 'INR',
+      availability: 'https://schema.org/InStock',
+      url,
+      ...(p.sale && validUntil ? { priceValidUntil: validUntil } : {}),
+    };
+  };
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebApplication',
+        '@id': `${BRAND.url}/#app`,
+        name: BRAND.name,
+        url: BRAND.url,
+        applicationCategory: 'DesignApplication',
+        operatingSystem: 'Any (web browser)',
+        publisher: { '@id': `${BRAND.url}/#org` },
+        offers: [
+          {
+            '@type': 'Offer',
+            name: 'Free',
+            description: FREE.join('. '),
+            category: 'Plan',
+            price: '0',
+            priceCurrency: 'INR',
+            url,
+          },
+          ...ORDER.map((c) => offer(c, 'Plan, one time per event')),
+          ...ADDONS.map((c) => offer(c, 'Add-on')),
+        ],
+      },
+      {
+        '@type': 'FAQPage',
+        '@id': `${url}#faq`,
+        mainEntity: PRICING_FAQ.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+      },
+    ],
+  };
 }

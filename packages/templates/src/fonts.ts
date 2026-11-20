@@ -79,6 +79,44 @@ const FONT_LOADERS: Record<string, () => Promise<FontModule>> = {
   Khand: () => import('@remotion/google-fonts/Khand') as Promise<FontModule>,
   Hind: () => import('@remotion/google-fonts/Hind') as Promise<FontModule>,
   'Noto Naskh Arabic': () => import('@remotion/google-fonts/NotoNaskhArabic') as Promise<FontModule>,
+  'Monsieur La Doulaise': () => import('@remotion/google-fonts/MonsieurLaDoulaise') as Promise<FontModule>,
+  'Mrs Saint Delafield': () => import('@remotion/google-fonts/MrsSaintDelafield') as Promise<FontModule>,
+  'Ms Madi': () => import('@remotion/google-fonts/MsMadi') as Promise<FontModule>,
+  'Imperial Script': () => import('@remotion/google-fonts/ImperialScript') as Promise<FontModule>,
+  'Bonheur Royale': () => import('@remotion/google-fonts/BonheurRoyale') as Promise<FontModule>,
+  Corinthia: () => import('@remotion/google-fonts/Corinthia') as Promise<FontModule>,
+  Cormorant: () => import('@remotion/google-fonts/Cormorant') as Promise<FontModule>,
+  Forum: () => import('@remotion/google-fonts/Forum') as Promise<FontModule>,
+  Questrial: () => import('@remotion/google-fonts/Questrial') as Promise<FontModule>,
+  'Didact Gothic': () => import('@remotion/google-fonts/DidactGothic') as Promise<FontModule>,
+  Kurale: () => import('@remotion/google-fonts/Kurale') as Promise<FontModule>,
+  Arya: () => import('@remotion/google-fonts/Arya') as Promise<FontModule>,
+  Sura: () => import('@remotion/google-fonts/Sura') as Promise<FontModule>,
+  Sumana: () => import('@remotion/google-fonts/Sumana') as Promise<FontModule>,
+  Sahitya: () => import('@remotion/google-fonts/Sahitya') as Promise<FontModule>,
+  'Tiro Devanagari Sanskrit': () => import('@remotion/google-fonts/TiroDevanagariSanskrit') as Promise<FontModule>,
+  'Noto Serif Devanagari': () => import('@remotion/google-fonts/NotoSerifDevanagari') as Promise<FontModule>,
+  'Noto Sans Devanagari': () => import('@remotion/google-fonts/NotoSansDevanagari') as Promise<FontModule>,
+  'Rhodium Libre': () => import('@remotion/google-fonts/RhodiumLibre') as Promise<FontModule>,
+  'Vesper Libre': () => import('@remotion/google-fonts/VesperLibre') as Promise<FontModule>,
+  'Inknut Antiqua': () => import('@remotion/google-fonts/InknutAntiqua') as Promise<FontModule>,
+  'Jaini Purva': () => import('@remotion/google-fonts/JainiPurva') as Promise<FontModule>,
+  Sarpanch: () => import('@remotion/google-fonts/Sarpanch') as Promise<FontModule>,
+  Modak: () => import('@remotion/google-fonts/Modak') as Promise<FontModule>,
+  Dekko: () => import('@remotion/google-fonts/Dekko') as Promise<FontModule>,
+  Palanquin: () => import('@remotion/google-fonts/Palanquin') as Promise<FontModule>,
+  'Palanquin Dark': () => import('@remotion/google-fonts/PalanquinDark') as Promise<FontModule>,
+  Akshar: () => import('@remotion/google-fonts/Akshar') as Promise<FontModule>,
+  'Anek Devanagari': () => import('@remotion/google-fonts/AnekDevanagari') as Promise<FontModule>,
+  Khula: () => import('@remotion/google-fonts/Khula') as Promise<FontModule>,
+  Karma: () => import('@remotion/google-fonts/Karma') as Promise<FontModule>,
+  Biryani: () => import('@remotion/google-fonts/Biryani') as Promise<FontModule>,
+  Glegoo: () => import('@remotion/google-fonts/Glegoo') as Promise<FontModule>,
+  Teko: () => import('@remotion/google-fonts/Teko') as Promise<FontModule>,
+  Rajdhani: () => import('@remotion/google-fonts/Rajdhani') as Promise<FontModule>,
+  'Pragati Narrow': () => import('@remotion/google-fonts/PragatiNarrow') as Promise<FontModule>,
+  Sarala: () => import('@remotion/google-fonts/Sarala') as Promise<FontModule>,
+  Amiko: () => import('@remotion/google-fonts/Amiko') as Promise<FontModule>,
 };
 
 /** Families a designer may pick in the theme editor. */
@@ -96,6 +134,8 @@ const SCRIPT_SUBSETS: Record<string, string> = {
   Orya: 'oriya',
   Arab: 'arabic',
 };
+
+const ITALIC_FAMILIES = new Set(['Cormorant Garamond', 'Cormorant', 'EB Garamond', 'Playfair Display', 'Lora', 'Bodoni Moda']);
 
 const loaded = new Map<string, Promise<void>>();
 
@@ -117,12 +157,17 @@ export function loadFamily(family: string, script?: string): Promise<void> {
     const weights = ['400', '500', '600', '700'].filter((w) => w in normal);
     const wanted = ['latin', script ? SCRIPT_SUBSETS[script] : undefined].filter(Boolean) as string[];
     const subsets = wanted.filter((s) => info.subsets.includes(s));
-    await mod
-      .loadFont('normal', {
+    const jobs = [
+      mod.loadFont('normal', {
         weights: weights.length ? weights : undefined,
         subsets: subsets.length ? subsets : undefined,
-      })
-      .waitUntilDone();
+      }),
+    ];
+    // Text serifs used in italic on templates get their real italic (not a slanted roman).
+    if (ITALIC_FAMILIES.has(family) && info.fonts.italic && '400' in info.fonts.italic) {
+      jobs.push(mod.loadFont('italic', { weights: ['400'], subsets: subsets.length ? subsets : undefined }));
+    }
+    await Promise.all(jobs.map((j) => j.waitUntilDone()));
   })();
 
   loaded.set(key, promise);

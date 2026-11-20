@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { CurrentUser, Public, Roles, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { PrintService } from './print.service.js';
+import { RequireFlag } from '../flags/flags.module.js';
 
 @Controller()
 export class PrintController {
@@ -15,6 +16,7 @@ export class PrintController {
     return this.print.partners();
   }
 
+  @RequireFlag('print_orders', 'Print orders are paused for a short while.')
   @Post('print/orders')
   create(@CurrentUser() user: AuthUser, @ZBody(createPrintOrderSchema) body: CreatePrintOrderInput) {
     return this.print.create(user, body);

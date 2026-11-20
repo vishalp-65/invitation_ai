@@ -82,7 +82,7 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
   const switchHref = signup ? `/login${qs}` : `/signup${qs}`;
 
   return (
-    <main className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
+    <main id="main" className="grid min-h-dvh bg-surface lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
       <section className="flex min-h-dvh flex-col">
         <div className="flex h-16 items-center justify-between px-5 sm:px-8 lg:px-12">
           <Logo />

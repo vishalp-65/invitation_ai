@@ -3,14 +3,14 @@
 import { ANNOUNCEMENT_TONES, PRODUCT_CODES, PRODUCTS, type PricedProduct, type ProductCode } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Mail, Megaphone, Pencil, Percent, Plus, Tag, Ticket, Trash2 } from 'lucide-react';
+import { Copy, Download, Mail, Megaphone, Pencil, Percent, Plus, Sparkles, Tag, Ticket, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
-import { Chip, Field, Input, Select } from '@/components/ui/field';
-import { Badge, Empty, fromLocalInput, inr, num, PageHeader, Segmented, shortDate, Skeleton, Table, toDate, toLocalInput, Toggle } from '@/features/admin/ui';
+import { Chip, Field, Input, Select, Textarea } from '@/components/ui/field';
+import { ago, Badge, BulkBar, compactINR, Empty, fromLocalInput, inr, num, PageHeader, Segmented, shortDate, Skeleton, Table, toDate, toLocalInput, Toggle } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 
 interface Coupon {
@@ -26,6 +26,7 @@ interface Coupon {
   perUserLimit: number;
   usedCount: number;
   active: boolean;
+  stats: { redemptions: number; customers: number; revenuePaise: number; discountPaise: number; lastUsedAt: string | null };
 }
 interface Sale {
   id: string;
@@ -47,9 +48,13 @@ interface Banner {
   endsAt: string | null;
   active: boolean;
 }
-type PriceRow = PricedProduct & { override: { pricePaise: number | null; mrpPaise: number | null } | null };
+type PriceRow = PricedProduct & {
+  defaults: { name: string; description: string; pricePaise: number; mrpPaise: number | null; highlight: boolean };
+  override: { pricePaise: number | null; mrpPaise: number | null; name: string | null; description: string | null; highlight: boolean | null; disabled: boolean } | null;
+  stats: { orders: number; revenuePaise: number; orders30: number };
+};
 
-type Tab = 'coupons' | 'sales' | 'banners' | 'prices';
+type Tab = 'plans' | 'coupons' | 'sales' | 'banners';
 
 function liveState(o: { active: boolean; startsAt: string | null; endsAt: string | null }): { label: string; tone: 'good' | 'warn' | 'neutral' | 'bad' } {
   const now = Date.now();
@@ -75,27 +80,27 @@ async function call<T>(p: Promise<T>, ok: string) {
 }
 
 export default function AdminOffersPage() {
-  const [tab, setTab] = useState<Tab>('coupons');
+  const [tab, setTab] = useState<Tab>('plans');
   return (
     <>
-      <PageHeader title="Offers & pricing" description="Launch coupon codes and sitewide sales, schedule banners, and change product prices. Changes go live within a minute." />
+      <PageHeader title="Plans & offers" description="Edit plans (price, wording, on or off sale), launch coupon codes and sitewide sales, and schedule banners. Changes go live within a minute." />
       <div className="mb-5">
         <Segmented
           value={tab}
           onChange={setTab}
           label="Offer type"
           options={[
+            { value: 'plans', label: 'Plans' },
             { value: 'coupons', label: 'Coupon codes' },
             { value: 'sales', label: 'Sitewide sales' },
             { value: 'banners', label: 'Banners' },
-            { value: 'prices', label: 'Prices' },
           ]}
         />
       </div>
       {tab === 'coupons' && <Coupons />}
       {tab === 'sales' && <Sales />}
       {tab === 'banners' && <Banners />}
-      {tab === 'prices' && <Prices />}
+      {tab === 'plans' && <Plans />}
     </>
   );
 }
@@ -148,16 +153,43 @@ function Coupons() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'coupons'], queryFn: () => api<Coupon[]>('/admin/coupons') });
   const [editing, setEditing] = useState<Coupon | 'new' | null>(null);
+  const [bulk, setBulk] = useState(false);
+  const [q, setQ] = useState('');
+  const [picked, setPicked] = useState<Set<string>>(new Set());
   const refresh = () => qc.invalidateQueries({ queryKey: ['admin', 'coupons'] });
+  const rows = (data ?? []).filter((c) => !q || c.code.includes(q.toUpperCase()) || c.description?.toLowerCase().includes(q.toLowerCase()));
+  const totals = (data ?? []).reduce((t, c) => ({ uses: t.uses + c.stats.redemptions, revenue: t.revenue + c.stats.revenuePaise, discount: t.discount + c.stats.discountPaise }), { uses: 0, revenue: 0, discount: 0 });
+
+  async function bulkAction(action: 'pause' | 'activate' | 'delete') {
+    const ids = [...picked];
+    if (action === 'delete' && !confirm(`Delete ${ids.length} coupon(s)? Paid orders keep their discount.`)) return;
+    await call(api('/admin/coupons/bulk-action', { method: 'POST', json: { ids, action } }), `${ids.length} coupon(s) ${action === 'delete' ? 'deleted' : action === 'pause' ? 'paused' : 'activated'}`).catch(() => undefined);
+    setPicked(new Set());
+    void refresh();
+  }
+
+  const toggle = (id: string) =>
+    setPicked((s) => {
+      const n = new Set(s);
+      if (n.has(id)) n.delete(id);
+      else n.add(id);
+      return n;
+    });
 
   return (
     <SectionCard
       title="Coupon codes"
-      description="Customers type the code at checkout. Coupons stack on top of a running sale."
+      description={`Customers type the code at checkout; coupons stack on a running sale. All time: ${num(totals.uses)} uses, ${inr(totals.revenue)} revenue, ${inr(totals.discount)} given away.`}
       action={
-        <Button size="sm" variant="solid" onClick={() => setEditing('new')}>
-          <Plus className="size-4" /> New coupon
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Find a code" aria-label="Find a coupon" className="h-9 w-40" />
+          <Button size="sm" variant="line" onClick={() => setBulk(true)}>
+            <Sparkles className="size-4" /> Generate codes
+          </Button>
+          <Button size="sm" variant="solid" onClick={() => setEditing('new')}>
+            <Plus className="size-4" /> New coupon
+          </Button>
+        </div>
       }
     >
       {isLoading ? (
@@ -165,30 +197,57 @@ function Coupons() {
       ) : !data?.length ? (
         <div className="px-5 pb-5">
           <Empty icon={<Ticket className="size-6" />} title="No coupons yet">
-            Create one like DIWALI20 for 20% off, or FLAT100 for ₹100 off.
+            Create one like DIWALI20 for 20% off, or FLAT100 for ₹100 off. Use Generate codes for single-use partner or influencer codes.
           </Empty>
         </div>
       ) : (
-        <Table head={['Code', 'Discount', 'Products', 'Used', 'Valid', 'Status', '']}>
-          {data.map((c) => {
+        <Table
+          head={[
+            <input
+              key="all"
+              type="checkbox"
+              aria-label="Select all"
+              className="size-4 accent-[var(--color-ink)]"
+              checked={rows.length > 0 && rows.every((c) => picked.has(c.id))}
+              onChange={(e) => setPicked(e.target.checked ? new Set(rows.map((c) => c.id)) : new Set())}
+            />,
+            'Code',
+            'Discount',
+            'Products',
+            'Used',
+            'Revenue',
+            'Given away',
+            'Valid',
+            'Status',
+            '',
+          ]}
+        >
+          {rows.slice(0, 300).map((c) => {
             const st = liveState(c);
+            const exhausted = c.maxUses != null && c.usedCount >= c.maxUses;
             return (
               <tr key={c.id}>
+                <td className="w-8">
+                  <input type="checkbox" aria-label={`Select ${c.code}`} className="size-4 accent-[var(--color-ink)]" checked={picked.has(c.id)} onChange={() => toggle(c.id)} />
+                </td>
                 <td>
                   <p className="font-mono font-medium tracking-wide">{c.code}</p>
-                  {c.description && <p className="text-xs text-ink-soft">{c.description}</p>}
+                  {c.description && <p className="max-w-48 truncate text-xs text-ink-soft">{c.description}</p>}
                 </td>
-                <td className="font-medium">{c.kind === 'percent' ? `${c.value}% off` : `${inr(c.value)} off`}</td>
-                <td className="max-w-48 truncate text-ink-soft" title={productNames(c.productCodes)}>
+                <td className="whitespace-nowrap font-medium">{c.kind === 'percent' ? `${c.value}% off` : `${inr(c.value)} off`}</td>
+                <td className="max-w-40 truncate text-ink-soft" title={productNames(c.productCodes)}>
                   {productNames(c.productCodes)}
                 </td>
-                <td className="tabular-nums">
-                  {num(c.usedCount)}
+                <td className="whitespace-nowrap tabular-nums" title={c.stats.lastUsedAt ? `Last used ${ago(c.stats.lastUsedAt)}` : 'Never used'}>
+                  {num(c.stats.redemptions)}
                   {c.maxUses ? ` / ${num(c.maxUses)}` : ''}
+                  {c.stats.customers > 0 && <span className="block text-xs text-ink-soft">{num(c.stats.customers)} people</span>}
                 </td>
+                <td className="whitespace-nowrap tabular-nums">{c.stats.revenuePaise ? compactINR(c.stats.revenuePaise) : '—'}</td>
+                <td className="whitespace-nowrap tabular-nums text-ink-soft">{c.stats.discountPaise ? compactINR(c.stats.discountPaise) : '—'}</td>
                 <td className="whitespace-nowrap text-ink-soft">{c.endsAt ? `Until ${shortDate(c.endsAt)}` : 'No end date'}</td>
                 <td>
-                  <Badge tone={st.tone}>{st.label}</Badge>
+                  <Badge tone={exhausted ? 'neutral' : st.tone}>{exhausted ? 'Used up' : st.label}</Badge>
                 </td>
                 <td>
                   <RowActions
@@ -204,12 +263,132 @@ function Coupons() {
           })}
         </Table>
       )}
+      {rows.length > 300 && <p className="border-t border-ink/10 px-5 py-3 text-xs text-ink-soft">Showing 300 of {num(rows.length)}. Search to narrow down.</p>}
+      {picked.size > 0 && (
+        <BulkBar count={picked.size} onClear={() => setPicked(new Set())}>
+          <Button size="sm" variant="line" onClick={() => void bulkAction('activate')}>
+            Activate
+          </Button>
+          <Button size="sm" variant="line" onClick={() => void bulkAction('pause')}>
+            Pause
+          </Button>
+          <Button size="sm" variant="danger" onClick={() => void bulkAction('delete')}>
+            <Trash2 className="size-3.5" /> Delete
+          </Button>
+        </BulkBar>
+      )}
       {editing && <CouponDialog coupon={editing === 'new' ? null : editing} onClose={() => setEditing(null)} onSaved={refresh} />}
+      {bulk && <BulkCouponDialog onClose={() => setBulk(false)} onSaved={refresh} />}
     </SectionCard>
   );
 }
 
-function couponBody(c: Omit<Coupon, 'id' | 'usedCount'>) {
+/** Generates many unique single-use codes (PREFIX-XXXXXX) and hands them back for download. */
+function BulkCouponDialog({ onClose, onSaved }: { onClose: () => void; onSaved: () => void }) {
+  const [prefix, setPrefix] = useState('');
+  const [count, setCount] = useState('50');
+  const [kind, setKind] = useState<'percent' | 'flat'>('percent');
+  const [value, setValue] = useState('20');
+  const [uses, setUses] = useState('1');
+  const [products, setProducts] = useState<ProductCode[]>([]);
+  const [end, setEnd] = useState('');
+  const [description, setDescription] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [codes, setCodes] = useState<string[] | null>(null);
+
+  async function save(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const v = Number(value);
+      const r = await call(
+        api<{ codes: string[] }>('/admin/coupons/bulk', {
+          method: 'POST',
+          json: {
+            prefix,
+            count: Number(count),
+            kind,
+            value: kind === 'flat' ? Math.round(v * 100) : Math.round(v),
+            productCodes: products,
+            endsAt: fromLocalInput(end),
+            maxUses: Number(uses) || 1,
+            description: description.trim() || null,
+          },
+        }),
+        `${count} codes created`,
+      );
+      setCodes(r.codes);
+      onSaved();
+    } catch {
+      /* toast shown */
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function download() {
+    const url = URL.createObjectURL(new Blob([`code\r\n${codes!.join('\r\n')}\r\n`], { type: 'text/csv' }));
+    Object.assign(document.createElement('a'), { href: url, download: `${prefix}-codes.csv` }).click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  if (codes)
+    return (
+      <Dialog open onClose={onClose} title={`${codes.length} codes ready`}>
+        <Textarea readOnly rows={8} value={codes.join('\n')} className="font-mono text-xs" aria-label="Generated codes" />
+        <div className="mt-4 flex justify-end gap-2">
+          <Button size="sm" variant="line" onClick={() => void navigator.clipboard.writeText(codes.join('\n')).then(() => toast.success('Copied'))}>
+            <Copy className="size-4" /> Copy
+          </Button>
+          <Button size="sm" variant="solid" onClick={download}>
+            <Download className="size-4" /> Download CSV
+          </Button>
+        </div>
+      </Dialog>
+    );
+
+  return (
+    <Dialog open onClose={onClose} title="Generate coupon codes">
+      <form onSubmit={(e) => void save(e)} className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3">
+          <Field label="Prefix" hint="e.g. DIWALI → DIWALI-7KQ2M9">
+            {(id, d) => <Input id={id} aria-describedby={d} value={prefix} onChange={(e) => setPrefix(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} required minLength={2} maxLength={12} className="font-mono uppercase" />}
+          </Field>
+          <Field label="How many">{(id) => <Input id={id} type="number" min={1} max={500} value={count} onChange={(e) => setCount(e.target.value)} required />}</Field>
+        </div>
+        <div className="grid grid-cols-3 gap-3">
+          <Field label="Type">
+            {(id) => (
+              <Select id={id} value={kind} onChange={(e) => setKind(e.target.value as 'percent' | 'flat')}>
+                <option value="percent">% off</option>
+                <option value="flat">₹ off</option>
+              </Select>
+            )}
+          </Field>
+          <Field label={kind === 'percent' ? 'Percent' : 'Rupees'}>
+            {(id) => <Input id={id} type="number" min={1} max={kind === 'percent' ? 90 : 100000} value={value} onChange={(e) => setValue(e.target.value)} required />}
+          </Field>
+          <Field label="Uses per code">{(id) => <Input id={id} type="number" min={1} max={1000} value={uses} onChange={(e) => setUses(e.target.value)} />}</Field>
+        </div>
+        <ProductPicker value={products} onChange={setProducts} />
+        <Field label="Ends (optional)">{(id) => <Input id={id} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />}</Field>
+        <Field label="Note (optional)" hint="Shown to the customer when the code is applied">
+          {(id, d) => <Input id={id} aria-describedby={d} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />}
+        </Field>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="line" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="solid" size="sm" loading={busy}>
+            Generate
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function couponBody(c: Omit<Coupon, 'id' | 'usedCount' | 'stats'>) {
   return {
     code: c.code,
     description: c.description || null,
@@ -570,70 +749,110 @@ function BannerDialog({ banner, onClose, onSaved }: { banner: Banner | null; onC
   );
 }
 
-// ---------------- Prices ----------------
+// ---------------- Plans ----------------
 
-function Prices() {
+function Plans() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'prices'], queryFn: () => api<PriceRow[]>('/admin/prices') });
   const [editing, setEditing] = useState<PriceRow | null>(null);
+  const saved = (rows: PriceRow[]) => {
+    qc.setQueryData(['admin', 'prices'], rows);
+    void qc.invalidateQueries({ queryKey: ['offers'] });
+  };
+
+  async function setOnSale(p: PriceRow, onSale: boolean) {
+    if (!onSale && !confirm(`Take ${p.name} off sale? It disappears from pricing and checkout. People who already bought it keep it.`)) return;
+    const rows = await call(api<PriceRow[]>(`/admin/prices/${p.code}`, { method: 'PUT', json: { ...planBody(p), disabled: !onSale } }), onSale ? `${p.name} is on sale again` : `${p.name} taken off sale`).catch(() => null);
+    if (rows) saved(rows);
+  }
 
   return (
-    <SectionCard title="Product prices" description="The price customers pay before sales and coupons. MRP is the crossed-out price.">
+    <SectionCard title="Plans" description="What each plan is called, what it costs and whether it is for sale. Paid orders keep the price they were bought at.">
       {isLoading || !data ? (
         <Skeleton className="m-5 h-48" />
       ) : (
-        <Table head={['Product', 'Price', 'MRP', 'With current sale', '']}>
-          {data.map((p) => (
-            <tr key={p.code}>
-              <td>
-                <p className="font-medium">{p.name}</p>
-                <p className="max-w-sm truncate text-xs text-ink-soft">{p.description}</p>
-              </td>
-              <td className="whitespace-nowrap">
-                <span className="font-medium tabular-nums">{inr(p.basePricePaise)}</span>
-                {p.override?.pricePaise != null && (
-                  <span className="ml-2">
-                    <Badge tone="info">Edited · was {inr(PRODUCTS[p.code].pricePaise)}</Badge>
+        <Table head={['Plan', 'Price', 'MRP', 'With current sale', 'Sold', 'For sale', '']}>
+          {data.map((p) => {
+            const edited = p.override && (p.override.pricePaise != null || p.override.mrpPaise != null || p.override.name || p.override.description || p.override.highlight != null);
+            return (
+              <tr key={p.code} className={clsx(p.disabled && 'opacity-60')}>
+                <td className="max-w-72">
+                  <p className="flex flex-wrap items-center gap-1.5 font-medium">
+                    {p.name}
+                    {p.highlight && <Badge tone="info">Most popular</Badge>}
+                    {edited && <Badge>Edited</Badge>}
+                  </p>
+                  <p className="truncate text-xs text-ink-soft" title={p.description}>
+                    {p.description}
+                  </p>
+                </td>
+                <td className="whitespace-nowrap">
+                  <span className="font-medium tabular-nums">{inr(p.basePricePaise)}</span>
+                  {p.override?.pricePaise != null && <span className="block text-xs text-ink-soft">was {inr(p.defaults.pricePaise)}</span>}
+                </td>
+                <td className="whitespace-nowrap tabular-nums text-ink-soft">{(p.override?.mrpPaise ?? p.defaults.mrpPaise) ? inr((p.override?.mrpPaise ?? p.defaults.mrpPaise)!) : '—'}</td>
+                <td className="whitespace-nowrap">{p.sale ? <span className="font-medium text-leaf">{inr(p.pricePaise)} · {p.sale.percentOff}% off</span> : <span className="text-ink-soft">No sale</span>}</td>
+                <td className="whitespace-nowrap tabular-nums">
+                  {num(p.stats.orders)}
+                  <span className="block text-xs text-ink-soft">
+                    {compactINR(p.stats.revenuePaise)} · {num(p.stats.orders30)} in 30 d
                   </span>
-                )}
-              </td>
-              <td className="whitespace-nowrap tabular-nums text-ink-soft">{p.override?.mrpPaise ?? PRODUCTS[p.code].mrpPaise ? inr((p.override?.mrpPaise ?? PRODUCTS[p.code].mrpPaise)!) : '—'}</td>
-              <td className="whitespace-nowrap">{p.sale ? <span className="font-medium text-leaf">{inr(p.pricePaise)} · {p.sale.percentOff}% off</span> : <span className="text-ink-soft">No sale</span>}</td>
-              <td className="text-right">
-                <Button size="sm" variant="line" className="h-8 px-3" onClick={() => setEditing(p)}>
-                  <Pencil className="size-3.5" /> Edit
-                </Button>
-              </td>
-            </tr>
-          ))}
+                </td>
+                <td>
+                  <Toggle checked={!p.disabled} onChange={(v) => void setOnSale(p, v)} label={p.disabled ? 'Put on sale' : 'Take off sale'} />
+                </td>
+                <td className="text-right">
+                  <Button size="sm" variant="line" className="h-8 px-3" onClick={() => setEditing(p)}>
+                    <Pencil className="size-3.5" /> Edit
+                  </Button>
+                </td>
+              </tr>
+            );
+          })}
         </Table>
       )}
-      {editing && <PriceDialog p={editing} onClose={() => setEditing(null)} onSaved={(rows) => {
-        qc.setQueryData(['admin', 'prices'], rows);
-        void qc.invalidateQueries({ queryKey: ['offers'] });
-      }} />}
+      {editing && <PlanDialog p={editing} onClose={() => setEditing(null)} onSaved={saved} />}
     </SectionCard>
   );
 }
 
-function PriceDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void; onSaved: (rows: PriceRow[]) => void }) {
-  const def = PRODUCTS[p.code];
+/** The full override the API expects, built from what is live now. */
+function planBody(p: PriceRow) {
+  return {
+    pricePaise: p.override?.pricePaise ?? null,
+    mrpPaise: p.override?.mrpPaise ?? null,
+    name: p.override?.name ?? null,
+    description: p.override?.description ?? null,
+    highlight: p.override?.highlight ?? null,
+    disabled: p.override?.disabled ?? false,
+  };
+}
+
+function PlanDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void; onSaved: (rows: PriceRow[]) => void }) {
+  const def = p.defaults;
+  const [name, setName] = useState(p.name);
+  const [description, setDescription] = useState(p.description);
   const [price, setPrice] = useState(String(p.basePricePaise / 100));
   const [mrp, setMrp] = useState(String(((p.override?.mrpPaise ?? def.mrpPaise) ?? 0) / 100 || ''));
+  const [highlight, setHighlight] = useState(Boolean(p.highlight));
+  const [onSale, setOnSale] = useState(!p.disabled);
   const [busy, setBusy] = useState(false);
+  const discount = mrp && Number(mrp) > Number(price) ? Math.round((1 - Number(price) / Number(mrp)) * 100) : 0;
 
   async function save(reset = false) {
     setBusy(true);
     try {
-      const pricePaise = reset ? null : Math.round(Number(price) * 100);
-      const mrpPaise = reset || !mrp ? null : Math.round(Number(mrp) * 100);
-      const rows = await call(
-        api<PriceRow[]>(`/admin/prices/${p.code}`, {
-          method: 'PUT',
-          json: { pricePaise: pricePaise === def.pricePaise ? null : pricePaise, mrpPaise: mrpPaise === (def.mrpPaise ?? null) ? null : mrpPaise },
-        }),
-        reset ? 'Back to the default price' : `${p.name} price updated`,
-      );
+      const body = reset
+        ? { pricePaise: null, mrpPaise: null, name: null, description: null, highlight: null, disabled: false }
+        : {
+            pricePaise: Math.round(Number(price) * 100),
+            mrpPaise: mrp ? Math.round(Number(mrp) * 100) : null,
+            name: name.trim(),
+            description: description.trim(),
+            highlight,
+            disabled: !onSale,
+          };
+      const rows = await call(api<PriceRow[]>(`/admin/prices/${p.code}`, { method: 'PUT', json: body }), reset ? `${def.name} is back to the defaults` : `${body.name ?? def.name} saved`);
       onSaved(rows);
       onClose();
     } catch {
@@ -644,7 +863,7 @@ function PriceDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void
   }
 
   return (
-    <Dialog open onClose={onClose} title={`Price: ${p.name}`}>
+    <Dialog open onClose={onClose} title={`Edit plan: ${p.name}`} size="lg">
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -652,28 +871,50 @@ function PriceDialog({ p, onClose, onSaved }: { p: PriceRow; onClose: () => void
         }}
         className="flex flex-col gap-4"
       >
+        <Field label="Name" hint={`Default: ${def.name}`}>
+          {(id, d) => <Input id={id} aria-describedby={d} value={name} onChange={(e) => setName(e.target.value)} required minLength={2} maxLength={40} />}
+        </Field>
+        <Field label="What is included" hint="Shown on the pricing page and at checkout">
+          {(id, d) => <Textarea id={id} aria-describedby={d} rows={3} value={description} onChange={(e) => setDescription(e.target.value)} required minLength={4} maxLength={300} />}
+        </Field>
         <div className="grid grid-cols-2 gap-3">
           <Field label="Price (₹)" hint={`Default ${inr(def.pricePaise)}`}>
             {(id, d) => <Input id={id} aria-describedby={d} type="number" min={1} step={1} value={price} onChange={(e) => setPrice(e.target.value)} required />}
           </Field>
-          <Field label="MRP (₹, optional)" hint={def.mrpPaise ? `Default ${inr(def.mrpPaise)}` : 'Crossed-out price'}>
+          <Field label="MRP (₹, optional)" hint={discount ? `Shows as ${discount}% off` : def.mrpPaise ? `Default ${inr(def.mrpPaise)}` : 'Crossed-out price'}>
             {(id, d) => <Input id={id} aria-describedby={d} type="number" min={1} step={1} value={mrp} onChange={(e) => setMrp(e.target.value)} />}
           </Field>
         </div>
+        <div className="flex flex-col gap-3 border border-ink/10 p-3 text-sm">
+          <label className="flex items-center justify-between gap-3">
+            <span>
+              Most popular ribbon
+              <span className="block text-xs text-ink-soft">Highlights this plan on the pricing page</span>
+            </span>
+            <Toggle checked={highlight} onChange={setHighlight} label="Most popular ribbon" />
+          </label>
+          <label className="flex items-center justify-between gap-3">
+            <span>
+              For sale
+              <span className="block text-xs text-ink-soft">Off = hidden from pricing and refused at checkout; existing buyers keep it</span>
+            </span>
+            <Toggle checked={onSale} onChange={setOnSale} label="For sale" />
+          </label>
+        </div>
         <p className="flex items-center gap-2 border border-dashed border-ink/15 px-3 py-2 text-[0.8125rem] text-ink-soft">
-          <Tag className="size-4" /> Existing paid orders keep the price they were bought at.
+          <Tag className="size-4 shrink-0" /> Sales and coupons apply on top of this price. Existing paid orders keep the price they were bought at.
         </p>
         <div className="flex flex-wrap justify-end gap-2">
           {p.override && (
             <Button type="button" variant="quiet" size="sm" onClick={() => void save(true)} disabled={busy}>
-              Reset to default
+              Reset to defaults
             </Button>
           )}
           <Button type="button" variant="line" size="sm" onClick={onClose}>
             Cancel
           </Button>
           <Button type="submit" variant="solid" size="sm" loading={busy}>
-            Save price
+            Save plan
           </Button>
         </div>
       </form>

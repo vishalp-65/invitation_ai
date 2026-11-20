@@ -4,6 +4,7 @@ import { BUILTIN_TEMPLATES, groupByFamily, type TemplateDefinition } from '@card
 import { clsx } from 'clsx';
 import { useMemo, useState } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
+import { useDesignVisibility } from '@/lib/offers';
 
 const has = (t: TemplateDefinition, ids: string[]) => t.eventTypes !== 'all' && (t.eventTypes as string[]).some((e) => ids.includes(e));
 
@@ -19,10 +20,12 @@ export const designHref = (t: TemplateDefinition) => `/create?type=${t.eventType
 /** Landing-page design families with colourway switching — static images, no Remotion on load. */
 export function FamilyShowcase({ limit = 8 }: { limit?: number }) {
   const [tab, setTab] = useState<(typeof TABS)[number]['id']>('traditional');
+  const { hiddenTemplates } = useDesignVisibility();
   const families = useMemo(() => {
     const test = TABS.find((t) => t.id === tab)!.test;
-    return groupByFamily(BUILTIN_TEMPLATES.filter(test)).slice(0, limit);
-  }, [tab, limit]);
+    const off = new Set(hiddenTemplates);
+    return groupByFamily(BUILTIN_TEMPLATES.filter((t) => test(t) && !off.has(t.id))).slice(0, limit);
+  }, [tab, limit, hiddenTemplates]);
 
   return (
     <div>

@@ -74,8 +74,14 @@ export class SitesController {
   @Post(':slug/view')
   @HttpCode(200)
   @RateLimit({ limit: 60, windowSec: 60, by: 'ip' })
-  view(@Param('slug') slug: string, @Req() req: FastifyRequest, @ZBody(trackViewSchema) body: z.infer<typeof trackViewSchema>) {
-    return this.sites.trackView(slug, req.ip, body.g);
+  async view(@Param('slug') slug: string, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply, @ZBody(trackViewSchema) body: z.infer<typeof trackViewSchema>) {
+    const r = await this.sites.trackView(slug, req.ip, body.g, req.headers['user-agent']);
+    // Remembers (30 days, first-party) that this browser was a guest of this invitation, so a
+    // guest who later makes their own invitation is counted as word of mouth.
+    if (!(req.cookies as Record<string, string | undefined>)?.cai_ref) {
+      reply.setCookie('cai_ref', r.eventId, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 3600 });
+    }
+    return { ok: true };
   }
 
   @Post(':slug/rsvp')

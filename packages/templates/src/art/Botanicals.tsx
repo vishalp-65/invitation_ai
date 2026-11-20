@@ -103,6 +103,41 @@ function Daisy({ x, y, s, rot = 0, petal, deep }: BloomProps) {
   );
 }
 
+const ROSE_PETAL = 'M0 0 C0.5 -0.06 0.86 -0.5 0.62 -0.92 Q0.3 -1.12 0 -1 Q-0.3 -1.12 -0.62 -0.92 C-0.86 -0.5 -0.5 -0.06 0 0 Z';
+
+/** Garden rose: cupped outer petals around a tight spiral heart. */
+function Rose({ x, y, s, rot = 0, petal, deep }: BloomProps) {
+  const light = mix(petal, '#FFFFFF', 0.4);
+  const mid = mix(petal, deep, 0.35);
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+      <circle r={0.98} fill={light} opacity={0.5} />
+      {[0, 60, 120, 180, 240, 300].map((a) => (
+        <path key={`o${a}`} d={ROSE_PETAL} fill={petal} opacity={0.72} transform={`rotate(${a + 15})`} />
+      ))}
+      {[30, 102, 174, 246, 318].map((a) => (
+        <path key={`m${a}`} d={ROSE_PETAL} fill={mid} opacity={0.6} transform={`rotate(${a}) scale(0.7)`} />
+      ))}
+      <circle r={0.42} fill={mix(petal, deep, 0.55)} opacity={0.85} />
+      <path d="M-0.34 0.08 C-0.36 -0.3 0.1 -0.42 0.3 -0.18 C0.42 0.04 0.2 0.3 -0.04 0.26 C-0.24 0.2 -0.22 -0.06 -0.04 -0.12 C0.1 -0.16 0.18 -0.02 0.1 0.08" fill="none" stroke={deep} strokeWidth={0.06} strokeLinecap="round" opacity={0.8} />
+      <path d="M-0.5 0.2 C-0.3 0.5 0.3 0.52 0.5 0.18" fill="none" stroke={light} strokeWidth={0.06} strokeLinecap="round" opacity={0.75} />
+      <path d="M-0.55 -0.2 C-0.5 -0.55 -0.1 -0.68 0.2 -0.6" fill="none" stroke={light} strokeWidth={0.05} strokeLinecap="round" opacity={0.6} />
+    </g>
+  );
+}
+
+/** Rosebud with sepals. */
+function Bud({ x, y, s, rot = 0, petal, deep }: BloomProps) {
+  return (
+    <g transform={`translate(${x} ${y}) rotate(${rot}) scale(${s})`}>
+      <path d="M0 0.9 C0.02 0.5 0 0.3 0 0.1" stroke="#5E7D4A" strokeWidth={0.06} fill="none" />
+      <path d="M-0.32 0.05 C-0.42 -0.45 -0.1 -0.8 0 -0.82 C0.1 -0.8 0.42 -0.45 0.32 0.05 C0.15 0.2 -0.15 0.2 -0.32 0.05 Z" fill={petal} opacity={0.85} />
+      <path d="M-0.12 -0.1 C-0.16 -0.45 0 -0.7 0.06 -0.72 C0.16 -0.5 0.12 -0.2 -0.12 -0.1 Z" fill={deep} opacity={0.55} />
+      <path d="M-0.32 0.05 C-0.2 0.25 -0.36 0.1 -0.5 -0.2 M0.32 0.05 C0.2 0.25 0.36 0.1 0.5 -0.2" stroke="#5E7D4A" strokeWidth={0.07} fill="none" strokeLinecap="round" />
+    </g>
+  );
+}
+
 function Mimosa({ x, y, s, rot = 0, color }: { x: number; y: number; s: number; rot?: number; color: string }) {
   const r = rng(Math.round(x * 3 + y * 11 + 5));
   return (
@@ -220,7 +255,7 @@ export function Greenery({ w, h, c, opts }: ArtProps) {
 
 // ------------------------------------------------------------------ corner bouquet
 
-export const BLOOM_KINDS = ['peony', 'hydrangea', 'tulip', 'daisy', 'mixed'] as const;
+export const BLOOM_KINDS = ['peony', 'rose', 'hydrangea', 'tulip', 'daisy', 'mixed'] as const;
 
 /**
  * Watercolour corner bouquet growing from the box's top-left corner (flip for other corners).
@@ -234,7 +269,7 @@ export function BloomCorner({ w, h, c, opts }: ArtProps) {
   const pick = (i: number) => {
     const order = kind === 'mixed' ? ['peony', 'hydrangea', 'daisy', 'tulip'] : [kind, kind, kind === 'tulip' ? 'tulip' : 'daisy', kind];
     const k = order[i % order.length]!;
-    return k === 'hydrangea' ? Hydrangea : k === 'tulip' ? Tulip : k === 'daisy' ? Daisy : Peony;
+    return k === 'hydrangea' ? Hydrangea : k === 'tulip' ? Tulip : k === 'daisy' ? Daisy : k === 'rose' ? Rose : Peony;
   };
   const [A, B, C] = [pick(0), pick(1), pick(2)];
   const leaf2 = mix(leaf, '#1F2E1A', 0.3);
@@ -266,6 +301,73 @@ export function BloomCorner({ w, h, c, opts }: ArtProps) {
         <C x={3.4 * u} y={0.45 * u} s={0.32 * u} rot={0} petal={C === Daisy ? '#FFFFFF' : petal} deep={deep} />
         <C x={0.45 * u} y={3.4 * u} s={0.32 * u} rot={0} petal={C === Daisy ? '#FFFFFF' : petal} deep={deep} />
       </g>
+    </>,
+  );
+}
+
+// ------------------------------------------------------------------ floral gold ring
+
+/**
+ * Overlapping fine gold hoops dressed with watercolour bouquets (names sit inside).
+ * c = [gold, petal, deep petal, leaf]; opts.kind = rose | peony | hydrangea | mixed;
+ * opts.layout = diagonal (top-left + bottom-right) | left (an arc down the left side).
+ */
+export function BloomRing({ w, h, c, opts }: ArtProps) {
+  const [gold = '#C9973F', petal = '#E58FAB', deep = mix(petal, '#3B1F2A', 0.4), leaf = '#7A9A6B'] = c;
+  const kind = String(opts?.kind ?? 'rose');
+  const layout = String(opts?.layout ?? 'diagonal');
+  const fid = useSvgId('bring');
+  const gid = useSvgId('bringg');
+  const leaf2 = mix(leaf, '#1F2E1A', 0.3);
+  const Big = kind === 'hydrangea' ? Hydrangea : kind === 'peony' ? Peony : Rose;
+  const Small = kind === 'mixed' ? Hydrangea : kind === 'hydrangea' ? Peony : Peony;
+  const R = 200;
+  const at = (deg: number, r = R) => [250 + Math.cos((deg * Math.PI) / 180) * r, 250 + Math.sin((deg * Math.PI) / 180) * r] as const;
+  /** A bouquet hugging the ring at `deg` (0 = right, 90 = bottom). */
+  const bouquet = (deg: number, scale: number, seed: number) => {
+    const [x, y] = at(deg);
+    const tangent = deg + 90;
+    const p = (d: number, r: number) => [x + Math.cos(((tangent + d) * Math.PI) / 180) * r, y + Math.sin(((tangent + d) * Math.PI) / 180) * r] as const;
+    const [ax, ay] = p(0, 70 * scale);
+    const [bx, by] = p(180, 70 * scale);
+    const [cx2, cy2] = p(0, 130 * scale);
+    const [dx, dy] = p(180, 125 * scale);
+    return (
+      <g key={deg}>
+        <g transform={`translate(${x} ${y}) rotate(${tangent - 12})`}><Eucalyptus len={190 * scale} leaf={leaf} leaf2={leaf2} seed={seed} /></g>
+        <g transform={`translate(${x} ${y}) rotate(${tangent + 192})`}><Olive len={180 * scale} leaf={leaf} leaf2={leaf2} seed={seed + 2} /></g>
+        <g transform={`translate(${x} ${y}) rotate(${tangent + 40})`}><Fern len={110 * scale} leaf={leaf2} leaf2={leaf} /></g>
+        <Mimosa x={x + 30 * scale} y={y - 40 * scale} s={80 * scale} rot={deg} color={mix(gold, '#FFFFFF', 0.25)} />
+        <Small x={ax} y={ay} s={44 * scale} rot={seed * 7} petal={petal} deep={deep} />
+        <Small x={bx} y={by} s={40 * scale} rot={seed * 11} petal={mix(petal, '#FFFFFF', 0.25)} deep={deep} />
+        <Bud x={cx2} y={cy2} s={34 * scale} rot={tangent} petal={petal} deep={deep} />
+        <Bud x={dx} y={dy} s={30 * scale} rot={tangent + 180} petal={petal} deep={deep} />
+        <Big x={x} y={y} s={62 * scale} rot={seed * 13} petal={petal} deep={deep} />
+      </g>
+    );
+  };
+  const spots = layout === 'left' ? [[200, 1.05, 3], [140, 0.8, 9], [300, 0.55, 15]] : [[225, 1, 3], [45, 1, 9]];
+  return svg(
+    w,
+    h,
+    '0 0 500 500',
+    <>
+      <defs>
+        <PaintFilter id={fid} strength={5} />
+        <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={gold} />
+          <stop offset="0.5" stopColor={mix(gold, '#FFFFFF', 0.55)} />
+          <stop offset="1" stopColor={gold} />
+        </linearGradient>
+      </defs>
+      <circle cx={250} cy={250} r={R} fill="none" stroke={`url(#${gid})`} strokeWidth={4.5} />
+      <circle cx={244} cy={256} r={R - 9} fill="none" stroke={gold} strokeWidth={1.6} opacity={0.85} />
+      <circle cx={257} cy={246} r={R + 7} fill="none" stroke={gold} strokeWidth={1.1} opacity={0.6} />
+      {[[60, 3], [150, 2.4], [320, 2.8]].map(([d, r]) => {
+        const [x, y] = at(d!, R + 7);
+        return <circle key={d} cx={x} cy={y} r={r} fill={gold} />;
+      })}
+      <g filter={`url(#${fid})`}>{spots.map(([d, sc, seed]) => bouquet(d!, sc!, seed!))}</g>
     </>,
   );
 }

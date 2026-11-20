@@ -1,13 +1,17 @@
 'use client';
 
-import { PRODUCTS, type ProductCode, type UserRole } from '@cardai/shared';
+import { PRODUCT_CODES, PRODUCTS, type ProductCode, type UserRole } from '@cardai/shared';
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Ban, Mail, Search, ShieldCheck, Users, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { Ban, Download, Gift, Mail, Search, ShieldCheck, StickyNote, Users, X } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { ago, Badge, dateTime, Empty, EVENT_LABELS, inr, num, PageHeader, Pager, Segmented, shortDate, Skeleton, Table } from '@/features/admin/ui';
+import { Dialog } from '@/components/ui/dialog';
+import { Field, Select, Textarea } from '@/components/ui/field';
+import { TrendChart } from '@/features/admin/charts';
+import { ago, Badge, dateTime, downloadCsv, duration, Empty, EVENT_LABELS, inr, num, PageHeader, Pager, Segmented, shortDate, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/hooks';
 import { controlClass } from '@/components/ui/field';
@@ -26,14 +30,21 @@ interface UserRow {
   events: number;
   orders: number;
   spentPaise: number;
+  activeSeconds30: number;
+  hasNote: boolean;
 }
 interface UserDetail {
-  user: Omit<UserRow, 'events' | 'orders' | 'spentPaise'>;
-  events: Array<{ id: string; title: string; type: string; templateId: string; status: string; viewCount: number; createdAt: string }>;
+  user: Omit<UserRow, 'events' | 'orders' | 'spentPaise' | 'activeSeconds30' | 'hasNote'> & { note: string | null; marketingEmails: boolean };
+  events: Array<{ id: string; title: string; type: string; templateId: string; status: string; slug: string; viewCount: number; suspendedAt: string | null; createdAt: string }>;
   orders: Array<{ id: string; productCode: string; amountPaise: number; status: string; couponCode: string | null; createdAt: string; paidAt: string | null }>;
   activity: Array<{ name: string; path: string | null; templateId: string | null; device: string | null; props: Record<string, unknown> | null; createdAt: string }>;
   spentPaise: number;
+  time: { today: number; week: number; month: number; year: number; allTime: number; activeDays: number; activeDays30: number; pageViews: number };
+  daily: Array<{ day: string; seconds: number }>;
 }
+
+type Sort = 'new' | 'active' | 'spend' | 'seen';
+const SORTS: Record<Sort, string> = { new: 'Newest first', active: 'Most time (30 d)', spend: 'Top spenders', seen: 'Recently active' };
 
 const ROLE_TONE: Record<UserRole, 'neutral' | 'info' | 'warn' | 'good'> = { user: 'neutral', designer: 'info', agent: 'good', admin: 'warn' };
 
@@ -45,7 +56,11 @@ export default function AdminUsersPage() {
   const [role, setRole] = useState<UserRole | ''>('');
   const [status, setStatus] = useState<Status>('all');
   const [page, setPage] = useState(1);
-  const [open, setOpen] = useState<string | null>(null);
+  const [sort, setSort] = useState<Sort>('new');
+  const deepLink = useSearchParams().get('user');
+  const [open, setOpen] = useState<string | null>(deepLink);
+  const [exporting, setExporting] = useState(false);
+  useEffect(() => setOpen(deepLink), [deepLink]);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -59,6 +74,7 @@ export default function AdminUsersPage() {
   if (debounced) params.set('q', debounced);
   if (role) params.set('role', role);
   if (status !== 'all') params.set('status', status);
+  if (sort !== 'new') params.set('sort', sort);
   const { data, isLoading, isFetching } = useQuery({
     queryKey: ['admin', 'users', params.toString()],
     queryFn: () => api<{ items: UserRow[]; total: number; pageSize: number }>(`/admin/users?${params}`),
@@ -67,7 +83,29 @@ export default function AdminUsersPage() {
 
   return (
     <>
-      <PageHeader title="Users" description="Everyone who has signed up. Open a person to see their invitations, payments and what they did." />
+      <PageHeader
+        title="Users"
+        description="Everyone who has signed up. Open a person to see their invitations, payments, time in the app and what they did."
+        actions={
+          <Button
+            size="sm"
+            variant="line"
+            loading={exporting}
+            onClick={async () => {
+              setExporting(true);
+              try {
+                await downloadCsv('/admin/users/export', `noyta-users-${new Date().toISOString().slice(0, 10)}.csv`);
+              } catch {
+                toast.error('Export failed');
+              } finally {
+                setExporting(false);
+              }
+            }}
+          >
+            <Download className="size-4" /> Export CSV
+          </Button>
+        }
+      />
       <div className="mb-4 flex flex-col gap-3 xl:flex-row xl:items-center">
         <Segmented
           value={status}
@@ -104,6 +142,21 @@ export default function AdminUsersPage() {
             <option value="agent">Agents</option>
             <option value="admin">Admins</option>
           </select>
+          <select
+            value={sort}
+            onChange={(e) => {
+              setSort(e.target.value as Sort);
+              setPage(1);
+            }}
+            aria-label="Sort"
+            className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}
+          >
+            {(Object.keys(SORTS) as Sort[]).map((k) => (
+              <option key={k} value={k}>
+                {SORTS[k]}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
 
@@ -122,7 +175,7 @@ export default function AdminUsersPage() {
           </div>
         ) : (
           <>
-            <Table head={['Person', 'Role', 'Joined', 'Last active', 'Invites', 'Paid', 'Spent', '']}>
+            <Table head={['Person', 'Role', 'Joined', 'Last active', 'Time (30 d)', 'Invites', 'Paid', 'Spent', '']}>
               {data.items.map((u) => (
                 <tr key={u.id} onClick={() => setOpen(u.id)} className="cursor-pointer">
                   <td>
@@ -139,10 +192,16 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="whitespace-nowrap text-ink-soft">{shortDate(u.createdAt)}</td>
                   <td className="whitespace-nowrap text-ink-soft">{ago(u.lastSeenAt)}</td>
+                  <td className="whitespace-nowrap tabular-nums">{u.activeSeconds30 ? duration(u.activeSeconds30 / 60) : '—'}</td>
                   <td className="tabular-nums">{num(u.events)}</td>
                   <td className="tabular-nums">{num(u.orders)}</td>
                   <td className="font-medium tabular-nums">{u.spentPaise ? inr(u.spentPaise) : '—'}</td>
-                  <td>{u.disabledAt && <Badge tone="bad">Disabled</Badge>}</td>
+                  <td>
+                    <div className="flex items-center justify-end gap-1.5">
+                      {u.hasNote && <StickyNote className="size-3.5 text-ink-soft" aria-label="Has a note" />}
+                      {u.disabledAt && <Badge tone="bad">Disabled</Badge>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </Table>
@@ -171,6 +230,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'user', id], queryFn: () => api<UserDetail>(`/admin/users/${id}`) });
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState<'activity' | 'events' | 'orders'>('activity');
+  const [granting, setGranting] = useState(false);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
@@ -178,7 +238,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
     return () => removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  async function update(body: { role?: UserRole; disabled?: boolean }, msg: string) {
+  async function update(body: { role?: UserRole; disabled?: boolean; note?: string | null }, msg: string) {
     setBusy(true);
     try {
       const next = await api<UserDetail>(`/admin/users/${id}`, { method: 'PATCH', json: body });
@@ -240,6 +300,9 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
               ))}
             </dl>
 
+            <TimePanel time={data.time} daily={data.daily} />
+            <NoteBox key={u.note ?? ''} note={u.note} busy={busy} onSave={(note) => void update({ note }, note ? 'Note saved' : 'Note removed')} />
+
             <div className="m-5 flex flex-wrap items-center gap-2 border border-ink/10 p-3">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <ShieldCheck className="size-4 text-ink-soft" /> Role
@@ -256,6 +319,9 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                 </select>
               </label>
               <span className="flex-1" />
+              <Button size="sm" variant="line" disabled={!data.events.length} onClick={() => setGranting(true)}>
+                <Gift className="size-4" /> Give a plan
+              </Button>
               {u.disabledAt ? (
                 <Button size="sm" variant="line" loading={busy} onClick={() => void update({ disabled: false }, 'Account enabled')}>
                   Enable account
@@ -321,7 +387,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                         </div>
                         <div className="flex shrink-0 items-center gap-2">
                           <span className="text-xs text-ink-soft">{num(e.viewCount)} views</span>
-                          <Badge tone={e.status === 'published' ? 'good' : 'neutral'}>{e.status}</Badge>
+                          {e.suspendedAt ? <Badge tone="bad">Taken down</Badge> : <Badge tone={e.status === 'published' ? 'good' : 'neutral'}>{e.status}</Badge>}
                         </div>
                       </li>
                     ))}
@@ -355,6 +421,138 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
           </div>
         )}
       </div>
+      {granting && data && (
+        <GrantDialog
+          userId={id}
+          events={data.events}
+          onClose={() => setGranting(false)}
+          onDone={(next) => {
+            qc.setQueryData(['admin', 'user', id], next);
+            setGranting(false);
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+/** Engaged time (tab open and in use) for this person, with the last 30 days drawn as bars. */
+function TimePanel({ time, daily }: { time: UserDetail['time']; daily: UserDetail['daily'] }) {
+  const days = useMemo(() => {
+    const by = new Map(daily.map((d) => [d.day, d.seconds]));
+    return Array.from({ length: 30 }, (_, i) => {
+      const day = new Date(Date.now() - (29 - i) * 86400_000).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+      return { day, value: Math.round(((by.get(day) ?? 0) / 60) * 10) / 10 };
+    });
+  }, [daily]);
+  const cells: Array<[string, string]> = [
+    ['Today', duration(time.today / 60)],
+    ['7 days', duration(time.week / 60)],
+    ['30 days', duration(time.month / 60)],
+    ['12 months', duration(time.year / 60)],
+  ];
+  return (
+    <div className="mx-5 mt-5 border border-ink/10">
+      <div className="flex items-baseline justify-between gap-3 border-b border-ink/10 px-3 py-2">
+        <p className="text-sm font-medium">Time in the app</p>
+        <p className="font-mono text-[0.6875rem] text-ink-soft">
+          {num(time.activeDays30)} of 30 days active · {duration(time.allTime / 60)} all time
+        </p>
+      </div>
+      <dl className="grid grid-cols-4 border-b border-ink/10">
+        {cells.map(([k, v]) => (
+          <div key={k} className="border-r border-ink/10 px-3 py-2 last:border-0">
+            <dt className="font-mono text-[0.5625rem] uppercase tracking-[0.08em] text-ink-soft">{k}</dt>
+            <dd className="mt-1 text-sm tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      <div className="px-2 pb-1 pt-2">
+        <TrendChart kind="bar" label="Minutes" data={days} format={(v) => duration(v)} />
+      </div>
+    </div>
+  );
+}
+
+function NoteBox({ note, busy, onSave }: { note: string | null; busy: boolean; onSave: (note: string | null) => void }) {
+  const [value, setValue] = useState(note ?? '');
+  const dirty = value.trim() !== (note ?? '');
+  return (
+    <div className="mx-5 mt-4">
+      <Field label="Private note (admins only)">
+        {(fid) => <Textarea id={fid} rows={2} maxLength={2000} value={value} onChange={(e) => setValue(e.target.value)} placeholder="e.g. Refunded on WhatsApp, wedding moved to March" />}
+      </Field>
+      {dirty && (
+        <div className="mt-2 flex justify-end gap-2">
+          <Button size="sm" variant="quiet" onClick={() => setValue(note ?? '')}>
+            Cancel
+          </Button>
+          <Button size="sm" variant="solid" loading={busy} onClick={() => onSave(value.trim() || null)}>
+            Save note
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Comp a plan onto one of the user's invitations (support, goodwill). No order or revenue is created. */
+function GrantDialog({ userId, events, onClose, onDone }: { userId: string; events: UserDetail['events']; onClose: () => void; onDone: (d: UserDetail) => void }) {
+  const [eventId, setEventId] = useState(events[0]?.id ?? '');
+  const [productCode, setProductCode] = useState<ProductCode>('website');
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      const next = await api<UserDetail>(`/admin/users/${userId}/grant`, { method: 'POST', json: { eventId, productCode, reason } });
+      toast.success(`${PRODUCTS[productCode].name} given`);
+      onDone(next);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Could not give the plan');
+    } finally {
+      setBusy(false);
+    }
+  }
+  return (
+    <Dialog open onClose={onClose} title="Give a plan for free">
+      <form onSubmit={submit} className="flex flex-col gap-4">
+        <Field label="Invitation">
+          {(fid) => (
+            <Select id={fid} value={eventId} onChange={(e) => setEventId(e.target.value)} required>
+              {events.map((ev) => (
+                <option key={ev.id} value={ev.id}>
+                  {ev.title}
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Plan">
+          {(fid) => (
+            <Select id={fid} value={productCode} onChange={(e) => setProductCode(e.target.value as ProductCode)}>
+              {PRODUCT_CODES.map((c) => (
+                <option key={c} value={c}>
+                  {PRODUCTS[c].name} ({inr(PRODUCTS[c].pricePaise)})
+                </option>
+              ))}
+            </Select>
+          )}
+        </Field>
+        <Field label="Reason" hint="Saved in the admin log">
+          {(fid, d) => <Textarea id={fid} aria-describedby={d} rows={2} minLength={3} maxLength={200} required value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Render failed twice, goodwill" />}
+        </Field>
+        <p className="border border-dashed border-ink/15 px-3 py-2 text-[0.8125rem] text-ink-soft">Unlocks the plan on that invitation right away. No payment or order is recorded, so revenue is not affected.</p>
+        <div className="flex justify-end gap-2">
+          <Button type="button" variant="line" size="sm" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" variant="solid" size="sm" loading={busy}>
+            Give plan
+          </Button>
+        </div>
+      </form>
+    </Dialog>
   );
 }

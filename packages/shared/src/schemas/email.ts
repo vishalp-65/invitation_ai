@@ -77,5 +77,5 @@ export interface EmailCampaignDto {
 export interface EmailTemplateInfo {
   kind: string;
   label: string;
-  group: 'Sign-in' | 'Account' | 'Payments' | 'Marketplace' | 'Offers' | 'Automations';
+  group: 'Sign-in' | 'Account' | 'Payments' | 'Marketplace' | 'Offers' | 'Automations' | 'Admin';
 }

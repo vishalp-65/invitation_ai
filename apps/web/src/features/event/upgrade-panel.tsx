@@ -123,7 +123,7 @@ export function UpgradePanel({ event }: { event: EventDto }) {
       </Panel>
 
       <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {codes.map((code) => {
+        {codes.filter((code) => !products[code].disabled).map((code) => {
           const p = products[code];
           const q = coupon?.quotes[code];
           const pay = q ? q.totalPaise : p.pricePaise;

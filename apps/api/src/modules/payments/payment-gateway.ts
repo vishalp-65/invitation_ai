@@ -12,6 +12,10 @@ export interface PaymentGateway {
   createOrder(amountPaise: number, receipt: string, notes: Record<string, string>): Promise<GatewayOrder>;
   verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean;
   verifyWebhookSignature(rawBody: Buffer, signature: string): boolean;
+  /** Refunds a captured payment (paise). Returns the gateway's refund id. */
+  refund(paymentId: string, amountPaise: number, notes: Record<string, string>): Promise<{ id: string }>;
+  /** Method used for a payment: upi, card, netbanking, wallet, emi, paylater. */
+  paymentMethod(paymentId: string): Promise<string | null>;
 }
 
 /** Razorpay Orders API over plain fetch (no SDK needed). */
@@ -51,6 +55,29 @@ export class RazorpayGateway implements PaymentGateway {
     if (!this.webhookSecret) return false;
     return safeEqual(hmacSha256Hex(this.webhookSecret, rawBody), signature);
   }
+
+  private get auth() {
+    return `Basic ${Buffer.from(`${this.keyId}:${this.keySecret}`).toString('base64')}`;
+  }
+
+  async refund(paymentId: string, amountPaise: number, notes: Record<string, string>): Promise<{ id: string }> {
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}/refund`, {
+      method: 'POST',
+      headers: { Authorization: this.auth, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: amountPaise, speed: 'normal', notes }),
+      signal: AbortSignal.timeout(20_000),
+    });
+    const body = (await res.json()) as { id?: string; error?: { description?: string } };
+    if (!res.ok || !body.id) throw new Error(body.error?.description ?? `Razorpay refund failed (${res.status})`);
+    return { id: body.id };
+  }
+
+  async paymentMethod(paymentId: string): Promise<string | null> {
+    const res = await fetch(`https://api.razorpay.com/v1/payments/${encodeURIComponent(paymentId)}`, { headers: { Authorization: this.auth }, signal: AbortSignal.timeout(10_000) });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { method?: string };
+    return body.method ?? null;
+  }
 }
 
 /** Local development without Razorpay keys: signature = "mock". Never used in production. */
@@ -68,6 +95,14 @@ export class MockGateway implements PaymentGateway {
 
   verifyWebhookSignature(): boolean {
     return false;
+  }
+
+  async refund(paymentId: string): Promise<{ id: string }> {
+    return { id: `rfnd_mock_${paymentId.slice(-8)}` };
+  }
+
+  async paymentMethod(): Promise<string | null> {
+    return 'upi';
   }
 }
 

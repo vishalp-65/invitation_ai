@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { couponDiscount, priceProducts } from './admin.js';
+import { couponDiscount, priceProducts, visibleDesigns } from './admin.js';
 import { PRODUCTS } from '../constants/products.js';
 
 describe('offer pricing', () => {
@@ -24,5 +24,25 @@ describe('offer pricing', () => {
   it('uses the pre-sale price as strike-through when there is no MRP', () => {
     const p = priceProducts({}, { id: 's', name: 'Sale', percentOff: 10, productCodes: [] });
     expect(p.ai_clip.mrpPaise).toBe(PRODUCTS.ai_clip.pricePaise);
+  });
+
+  it('applies plan wording, highlight and off-sale edits', () => {
+    const p = priceProducts({ video: { pricePaise: null, mrpPaise: null, name: 'Reel', description: null, highlight: true, disabled: true } }, null);
+    expect(p.video.name).toBe('Reel');
+    expect(p.video.description).toBe(PRODUCTS.video.description);
+    expect(p.video.highlight).toBe(true);
+    expect(p.video.disabled).toBe(true);
+    expect(p.card.disabled).toBeUndefined();
+  });
+});
+
+describe('design visibility', () => {
+  const list = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+  const v = { hiddenTemplates: [], hiddenDesigns: ['a'], hiddenShowcase: ['b'], featuredDesigns: ['c'] };
+  it('hides packs from the picker but keeps showcase-only ones', () => {
+    expect(visibleDesigns(list, v, 'picker').map((d) => d.id)).toEqual(['c', 'b']);
+  });
+  it('removes both hidden and showcase-hidden packs from demos, featured first', () => {
+    expect(visibleDesigns(list, v, 'showcase').map((d) => d.id)).toEqual(['c']);
   });
 });

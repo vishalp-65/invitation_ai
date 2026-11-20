@@ -1,0 +1,52 @@
+/*
+ * Scene animation (art from @cardai/templates/scenes). Shared by invite websites and the
+ * marketing design previews; the video computes the same motion per frame instead.
+ */
+/* Scene loops (art from @cardai/templates/scenes; the video computes the same motion per frame). */
+.scn-sway { animation: scn-sway 7s ease-in-out infinite; }
+.scn-bob { animation: scn-bob 5s ease-in-out infinite; }
+.scn-flicker { animation: scn-flicker 1.8s ease-in-out infinite; }
+.scn-glide { animation: scn-glide 14s ease-in-out infinite; }
+.scn-shimmer { animation: scn-shimmer 4s ease-in-out infinite; }
+.scn-twinkle { animation: scn-twinkle 2.4s ease-in-out infinite; }
+@keyframes scn-sway { 0%, 100% { transform: rotate(-2deg); } 50% { transform: rotate(2deg); } }
+@keyframes scn-bob { 0%, 100% { transform: translateY(-3px); } 50% { transform: translateY(3px); } }
+@keyframes scn-flicker { 0%, 100% { opacity: 0.8; transform: scale(1); } 30% { opacity: 1; transform: scale(1.06); } 60% { opacity: 0.7; transform: scale(0.97); } }
+@keyframes scn-glide { 0%, 100% { transform: translateX(-16px); } 50% { transform: translateX(16px); } }
+@keyframes scn-shimmer { 0%, 100% { opacity: 0.25; } 50% { opacity: 0.8; } }
+@keyframes scn-twinkle { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
+
+/* Ambient particles. */
+@keyframes scn-a-rise {
+  0% { transform: translate3d(0, 0, 0); opacity: 0; }
+  8% { opacity: 1; }
+  50% { transform: translate3d(14px, -60vh, 0); }
+  92% { opacity: 1; }
+  100% { transform: translate3d(-10px, -125vh, 0); opacity: 0; }
+}
+@keyframes scn-a-fall {
+  0% { transform: translate3d(0, 0, 0) rotate(0deg); }
+  50% { transform: translate3d(-24px, 55vh, 0) rotate(200deg); }
+  100% { transform: translate3d(18px, 112vh, 0) rotate(400deg); }
+}
+@keyframes scn-a-drift {
+  0%, 100% { transform: translate3d(0, 0, 0); }
+  25% { transform: translate3d(36px, -18px, 0); }
+  50% { transform: translate3d(8px, -36px, 0); }
+  75% { transform: translate3d(-30px, -12px, 0); }
+}
+@keyframes scn-a-twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.7); } 50% { opacity: 1; transform: scale(1); } }
+
+/* Fireworks: each burst grows and fades (one transform + opacity animation). */
+@keyframes scn-a-burst {
+  0% { transform: scale(0.1); opacity: 0; }
+  8% { opacity: 1; }
+  45% { transform: scale(1); opacity: 1; }
+  85%, 100% { transform: scale(1.05); opacity: 0; }
+}
+
+/* Marketing design previews (DesignPoster): `data-still` freezes the loops on small cards. */
+[data-still] [class*='scn-'] { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .design-poster [class*='scn-'] { animation: none !important; }
+}

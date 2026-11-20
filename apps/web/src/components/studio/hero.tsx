@@ -1,6 +1,7 @@
 'use client';
 
 import { ArrowRight } from 'lucide-react';
+import { useOffers } from '@/lib/offers';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
@@ -62,6 +63,8 @@ function BlurWord({ word }: { word: string }) {
  * hero is on screen, pauses when scrolled away, and stays a still image for reduced motion / data saver.
  */
 export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string; whatsappHref: string }) {
+  // Admin can replace the hero video and poster (Settings → Media) without a deploy.
+  const media = useOffers().data?.media ?? {};
   const words = hi ? ['उत्सव', 'आशीर्वाद', 'मिलन', 'स्वागत'] : ['celebrate', 'gather', 'bless', 'say yes'];
   const [i, setI] = useState(0);
   const [shown, setShown] = useState(false);
@@ -97,12 +100,13 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
           loop
           playsInline
           preload="none"
-          poster="/video/hero-poster.jpg"
+          poster={media['hero.poster'] ?? '/video/hero-poster.jpg'}
           aria-hidden
+          key={`${media['hero.video'] ?? ''}${media['hero.video_sm'] ?? ''}`}
           className="h-full w-full object-cover object-[70%_center] opacity-80 sm:object-center"
         >
-          <source src="/video/hero-sm.mp4" type="video/mp4" media="(max-width: 900px)" />
-          <source src="/video/hero.mp4" type="video/mp4" />
+          <source src={media['hero.video_sm'] ?? '/video/hero-sm.mp4'} media="(max-width: 900px)" />
+          <source src={media['hero.video'] ?? '/video/hero.mp4'} />
         </video>
         <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent max-sm:bg-black/45" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/75" />
@@ -121,8 +125,14 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
             {hi ? 'हर भारतीय अवसर के लिए AI निमंत्रण' : 'AI invitations for every Indian occasion'}
           </p>
           <h1 className={`display-hero text-white ${fade('delay-100')}`}>
-            <span className="block">{hi ? 'सुंदर निमंत्रण,' : 'Beautiful invitations,'}</span>
-            <span className="block">
+            {/* Stable heading for search engines and screen readers; the rotating word below is visual only. */}
+            <span className="sr-only">
+              {hi
+                ? 'शादी, गृह प्रवेश और हर भारतीय अवसर के लिए सुंदर निमंत्रण'
+                : 'Beautiful wedding, griha pravesh and festival invitations for every Indian occasion'}
+            </span>
+            <span aria-hidden className="block">{hi ? 'सुंदर निमंत्रण,' : 'Beautiful invitations,'}</span>
+            <span aria-hidden className="block">
               {hi ? 'मिलकर करें ' : 'made to '}
               <span className="relative inline-block whitespace-nowrap">
                 <BlurWord word={words[i]!} />

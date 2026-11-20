@@ -66,7 +66,7 @@ export function Chip({
       type="button"
       aria-pressed={selected}
       className={clsx(
-        'inline-flex h-9 items-center gap-2 border px-4 text-sm transition-colors duration-150 disabled:opacity-50',
+        'inline-flex h-9 items-center gap-2 rounded-[var(--radius-control)] border px-4 text-sm transition-colors duration-150 disabled:opacity-50',
         selected ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink-soft hover:border-ink/30 hover:text-ink',
         className,
       )}

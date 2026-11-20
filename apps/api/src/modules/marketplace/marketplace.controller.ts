@@ -4,11 +4,13 @@ import { z } from 'zod';
 import { CurrentUser, Roles, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { MarketplaceService } from './marketplace.service.js';
+import { RequireFlag } from '../flags/flags.module.js';
 
 @Controller()
 export class MarketplaceController {
   constructor(private readonly market: MarketplaceService) {}
 
+  @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
   @Post('designers/apply')
   apply(@CurrentUser() user: AuthUser, @ZBody(designerApplySchema) body: z.infer<typeof designerApplySchema>) {
     return this.market.apply(user, body);
@@ -24,6 +26,7 @@ export class MarketplaceController {
     return this.market.myTemplates(user);
   }
 
+  @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
   @Post('designer/templates')
   create(@CurrentUser() user: AuthUser, @ZBody(marketplaceTemplateSchema) body: MarketplaceTemplateInput) {
     return this.market.createTemplate(user, body);
@@ -34,6 +37,7 @@ export class MarketplaceController {
     return this.market.updateTemplate(user, id, body);
   }
 
+  @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
   @Post('designer/templates/:id/submit')
   @HttpCode(200)
   submit(@CurrentUser() user: AuthUser, @UuidParam('id') id: string) {

@@ -9,6 +9,7 @@ import { MotionContext, Petals, useEffectiveMotion } from './motion';
 import { Opening } from './opening';
 import { SectionView } from './sections';
 import { bandVars, googleFontsHref, siteVars } from './theme';
+import './scenes.css';
 import './site.css';
 
 const OPEN_LABEL: Record<string, string> = {

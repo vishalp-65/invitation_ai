@@ -21,9 +21,12 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? BRAND.url),
   title: { default: `${BRAND.name} — ${BRAND.tagline}`, template: `%s · ${BRAND.name}` },
   description:
-    'Make wedding, griha pravesh, birthday and puja invitations in Hindi and 11 more Indian languages: image card, video invite and website with RSVP. Share on WhatsApp.',
+    'Wedding, griha pravesh, birthday and puja invitations in Hindi and 11 more Indian languages: card, video and RSVP website for WhatsApp. Free to try.',
   applicationName: BRAND.name,
-  openGraph: { siteName: BRAND.name, type: 'website', locale: 'en_IN' },
+  // og:title / og:description fall back to each page's title and description; og:image comes
+  // from app/opengraph-image.tsx, and Twitter reuses it.
+  openGraph: { siteName: BRAND.name, type: 'website', locale: 'en_IN', alternateLocale: ['hi_IN'] },
+  twitter: { card: 'summary_large_image' },
 };
 
 export const viewport: Viewport = {

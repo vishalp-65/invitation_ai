@@ -58,6 +58,8 @@ export const QUEUES = {
   aiClip: 'ai-clip',
   notifications: 'notifications',
   email: 'email',
+  /** Health checks, daily digest, nightly metrics and partition upkeep. */
+  ops: 'ops',
 } as const;
 
 export interface RenderJobData {

@@ -4,6 +4,8 @@ export * from './constants/event-types.js';
 export * from './constants/faith.js';
 export * from './constants/products.js';
 export * from './constants/render.js';
+export * from './constants/india.js';
+export * from './constants/flags.js';
 
 export * from './templates/types.js';
 export * from './templates/catalog.js';

@@ -4,7 +4,7 @@ import { attireFor, faithMotif, markSuitsFaith, sacredMarkOf, type Faith } from 
 import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
-import { EDITOR_FONTS, fontSupports } from './fonts.js';
+import { detectScript, EDITOR_FONTS, fontSupports } from './fonts.js';
 import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
 
 export type Palette = Theme['palette'];
@@ -52,6 +52,8 @@ export interface RoleStyle {
   lh?: number;
   tone?: Tone;
   effect?: TextEffect;
+  /** Devanagari face for Hindi/Marathi text in this role (keeps the template's personality). */
+  deva?: string;
 }
 export type Tone = 'ink' | 'accent' | 'muted';
 export type TypeSet = Record<Role, RoleStyle>;
@@ -65,9 +67,12 @@ export type Band =
   | { t: 'text'; role: Role; bind?: string; text?: string; size?: number; tone?: Tone; gap?: number; width?: number; effect?: TextEffect; font?: string; group?: string }
   | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade'; group?: string }
   | { t: 'divider'; style?: string; w?: number; gap?: number }
-  | { t: 'date'; style: 'strip' | 'line' | 'stack' | 'boxed'; gap?: number }
+  | { t: 'date'; style: DateStyle; gap?: number }
   | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded'; gap?: number }
   | { t: 'gap'; h: number };
+
+/** strip: WEEKDAY — 14 — MONTH YEAR; bars: MONTH / WEEKDAY | 14 | TIME / YEAR. */
+export type DateStyle = 'strip' | 'line' | 'stack' | 'boxed' | 'bars';
 
 export interface Zone {
   top: number;
@@ -82,7 +87,7 @@ export interface Zone {
 
 const r = (font: string, size: number, rest: Partial<RoleStyle> = {}): RoleStyle => ({ font, size, ...rest });
 
-export const TYPE_SETS = {
+const RAW_TYPE_SETS = {
   /** Gold calligraphy names, Cinzel caps, Cormorant body. */
   royal: {
     invocation: r('Cinzel', 30, { tone: 'accent', ls: 0.12, indic: 'display' }),
@@ -211,8 +216,142 @@ export const TYPE_SETS = {
     small: r('Montserrat', 25, { tone: 'muted', lh: 1.5, indic: 'body' }),
     big: r('DM Serif Display', 110, { tone: 'accent', indic: 'display' }),
   },
+  // ---- Atelier collection (Nov 2026): type matched to the reference invitations ----
+  /** Maroon arch + lanterns: Monsieur La Doulaise swash names, Cormorant Garamond text and caps. */
+  mahal: {
+    invocation: r('Cormorant Garamond', 32, { tone: 'accent', ls: 0.06, indic: 'display' }),
+    eyebrow: r('Cormorant Garamond', 30, { upper: true, ls: 0.26, tone: 'accent', weight: 500, indic: 'body' }),
+    headline: r('Cormorant Garamond', 46, { upper: true, ls: 0.2, tone: 'accent', weight: 600, indic: 'display' }),
+    names: r('Monsieur La Doulaise', 150, { tone: 'accent', lh: 1.12, indic: 'display' }),
+    name: r('Monsieur La Doulaise', 172, { tone: 'accent', lh: 1.12, indic: 'display' }),
+    connector: r('Monsieur La Doulaise', 84, { tone: 'accent', lh: 1, indic: 'body' }),
+    detail: r('Cormorant Garamond', 30, { italic: true, tone: 'muted', lh: 1.3, indic: 'body' }),
+    host: r('Cormorant Garamond', 38, { tone: 'ink', lh: 1.35, indic: 'body' }),
+    body: r('Cormorant Garamond', 38, { italic: true, tone: 'ink', lh: 1.35, indic: 'body' }),
+    date: r('Cormorant Garamond', 34, { upper: true, ls: 0.16, tone: 'ink', weight: 500, indic: 'display' }),
+    venue: r('Cormorant Garamond', 34, { upper: true, ls: 0.08, tone: 'ink', weight: 500, lh: 1.35, indic: 'body' }),
+    small: r('Cormorant Garamond', 30, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    big: r('Cormorant Garamond', 108, { tone: 'ink', weight: 500, indic: 'display' }),
+  },
+  /** Lavender garden: Alex Brush gold names, Questrial (geometric sans) for everything else. */
+  garden: {
+    invocation: r('Questrial', 24, { tone: 'accent', ls: 0.16, upper: true, indic: 'display' }),
+    eyebrow: r('Questrial', 36, { tone: 'ink', ls: 0.04, lh: 1.35, indic: 'body' }),
+    headline: r('Questrial', 38, { upper: true, ls: 0.24, tone: 'ink', indic: 'display' }),
+    names: r('Alex Brush', 140, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    name: r('Alex Brush', 164, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    connector: r('Alex Brush', 90, { tone: 'accent', effect: 'gold', lh: 1, indic: 'body' }),
+    detail: r('Questrial', 24, { tone: 'muted', lh: 1.45, indic: 'body' }),
+    host: r('Questrial', 30, { tone: 'ink', lh: 1.5, indic: 'body' }),
+    body: r('Questrial', 30, { tone: 'ink', lh: 1.5, indic: 'body' }),
+    date: r('Questrial', 32, { upper: true, ls: 0.14, tone: 'ink', indic: 'display' }),
+    venue: r('Questrial', 32, { tone: 'ink', lh: 1.45, indic: 'body' }),
+    small: r('Questrial', 26, { tone: 'muted', lh: 1.45, indic: 'body' }),
+    big: r('Questrial', 124, { tone: 'ink', indic: 'display' }),
+  },
+  /** Blue watercolour: Ms Madi signature-brush names, Montserrat caps and text. */
+  brush: {
+    invocation: r('Montserrat', 22, { upper: true, ls: 0.36, tone: 'accent', indic: 'body' }),
+    eyebrow: r('Montserrat', 26, { upper: true, ls: 0.3, tone: 'ink', weight: 500, indic: 'body' }),
+    headline: r('Montserrat', 30, { upper: true, ls: 0.3, tone: 'ink', weight: 500, indic: 'display' }),
+    names: r('Ms Madi', 172, { tone: 'accent', lh: 1.05, indic: 'display' }),
+    name: r('Ms Madi', 196, { tone: 'accent', lh: 1.05, indic: 'display' }),
+    connector: r('Ms Madi', 64, { tone: 'accent', lh: 1, indic: 'body' }),
+    detail: r('Montserrat', 22, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    host: r('Montserrat', 28, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    body: r('Montserrat', 28, { tone: 'ink', lh: 1.55, indic: 'body' }),
+    date: r('Montserrat', 30, { upper: true, ls: 0.12, tone: 'accent', weight: 700, indic: 'display' }),
+    venue: r('Montserrat', 28, { tone: 'ink', lh: 1.5, indic: 'body' }),
+    small: r('Montserrat', 24, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    big: r('Montserrat', 76, { tone: 'accent', weight: 700, indic: 'display' }),
+  },
+  /** Pink roses + gold ring: Cormorant caps names, Italianno connector, Cormorant text. */
+  petal: {
+    invocation: r('Cormorant', 30, { italic: true, tone: 'accent', indic: 'display' }),
+    eyebrow: r('Cormorant', 32, { upper: true, ls: 0.12, tone: 'ink', weight: 500, lh: 1.3, indic: 'body' }),
+    headline: r('Cormorant', 44, { upper: true, ls: 0.2, tone: 'ink', weight: 500, indic: 'display' }),
+    names: r('Cormorant', 124, { upper: true, ls: 0.06, tone: 'ink', lh: 1.05, indic: 'display' }),
+    name: r('Cormorant', 140, { upper: true, ls: 0.06, tone: 'ink', lh: 1.05, indic: 'display' }),
+    connector: r('Italianno', 92, { tone: 'ink', lh: 0.9, indic: 'body' }),
+    detail: r('Cormorant', 28, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    host: r('Cormorant', 32, { upper: true, ls: 0.1, tone: 'ink', weight: 500, lh: 1.4, indic: 'body' }),
+    body: r('Cormorant', 36, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Cormorant', 36, { upper: true, ls: 0.16, tone: 'ink', weight: 500, indic: 'display' }),
+    venue: r('Cormorant', 34, { upper: true, ls: 0.1, tone: 'ink', weight: 500, lh: 1.35, indic: 'body' }),
+    small: r('Cormorant', 30, { tone: 'muted', lh: 1.4, indic: 'body' }),
+    big: r('Cormorant', 112, { tone: 'ink', weight: 500, indic: 'display' }),
+  },
+  /** Regal heritage: Imperial Script gold names, Forum caps, Cormorant Garamond text. */
+  regal: {
+    invocation: r('Forum', 30, { tone: 'accent', ls: 0.12, indic: 'display' }),
+    eyebrow: r('Forum', 28, { upper: true, ls: 0.34, tone: 'accent', indic: 'body' }),
+    headline: r('Forum', 48, { upper: true, ls: 0.22, tone: 'accent', indic: 'display' }),
+    names: r('Imperial Script', 140, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    name: r('Imperial Script', 164, { tone: 'accent', effect: 'gold', lh: 1.1, indic: 'display' }),
+    connector: r('Forum', 46, { tone: 'ink', indic: 'body' }),
+    detail: r('Cormorant Garamond', 30, { italic: true, tone: 'muted', lh: 1.3, indic: 'body' }),
+    host: r('Cormorant Garamond', 36, { tone: 'ink', lh: 1.4, indic: 'body' }),
+    body: r('Cormorant Garamond', 34, { italic: true, tone: 'ink', lh: 1.4, indic: 'body' }),
+    date: r('Forum', 34, { upper: true, ls: 0.18, tone: 'accent', indic: 'display' }),
+    venue: r('Forum', 32, { upper: true, ls: 0.12, tone: 'ink', lh: 1.4, indic: 'body' }),
+    small: r('Cormorant Garamond', 29, { italic: true, tone: 'muted', lh: 1.35, indic: 'body' }),
+    big: r('Forum', 108, { tone: 'accent', indic: 'display' }),
+  },
+  /** Boho modern: Mrs Saint Delafield names, Didact Gothic text. */
+  boho: {
+    invocation: r('Didact Gothic', 22, { upper: true, ls: 0.34, tone: 'accent', indic: 'body' }),
+    eyebrow: r('Didact Gothic', 24, { upper: true, ls: 0.38, tone: 'accent', indic: 'body' }),
+    headline: r('Didact Gothic', 32, { upper: true, ls: 0.36, tone: 'ink', indic: 'display' }),
+    names: r('Mrs Saint Delafield', 150, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    name: r('Mrs Saint Delafield', 176, { tone: 'ink', lh: 1.15, indic: 'display' }),
+    connector: r('Mrs Saint Delafield', 80, { tone: 'accent', lh: 1, indic: 'body' }),
+    detail: r('Didact Gothic', 23, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    host: r('Didact Gothic', 27, { tone: 'ink', lh: 1.6, indic: 'body' }),
+    body: r('Didact Gothic', 27, { tone: 'ink', lh: 1.6, indic: 'body' }),
+    date: r('Didact Gothic', 28, { upper: true, ls: 0.24, tone: 'ink', indic: 'display' }),
+    venue: r('Didact Gothic', 27, { upper: true, ls: 0.14, tone: 'ink', lh: 1.5, indic: 'body' }),
+    small: r('Didact Gothic', 24, { tone: 'muted', lh: 1.5, indic: 'body' }),
+    big: r('Didact Gothic', 110, { tone: 'accent', indic: 'display' }),
+  },
 } satisfies Record<string, TypeSet>;
-export type TypeSetKey = keyof typeof TYPE_SETS;
+export type TypeSetKey = keyof typeof RAW_TYPE_SETS;
+
+/**
+ * Hindi/Marathi pairing for every type set: a calligraphic face for names, a display face
+ * for headings and dates, and a text face for the rest. A Hindi card then keeps the template's
+ * mood (swashy, royal, editorial, playful) instead of falling back to one generic font.
+ */
+export const DEVA_PAIRS: Record<TypeSetKey, { script: string; display: string; body: string }> = {
+  royal: { script: 'Amita', display: 'Kurale', body: 'Sura' },
+  classic: { script: 'Tiro Devanagari Sanskrit', display: 'Tiro Devanagari Sanskrit', body: 'Noto Serif Devanagari' },
+  script: { script: 'Amita', display: 'Kurale', body: 'Sahitya' },
+  modern: { script: 'Vesper Libre', display: 'Akshar', body: 'Palanquin' },
+  deco: { script: 'Rhodium Libre', display: 'Rajdhani', body: 'Khula' },
+  playful: { script: 'Modak', display: 'Baloo 2', body: 'Baloo 2' },
+  desi: { script: 'Rozha One', display: 'Yatra One', body: 'Mukta' },
+  corporate: { script: 'Vesper Libre', display: 'Akshar', body: 'Anek Devanagari' },
+  mahal: { script: 'Amita', display: 'Tiro Devanagari Sanskrit', body: 'Sura' },
+  garden: { script: 'Arya', display: 'Akshar', body: 'Palanquin' },
+  brush: { script: 'Kalam', display: 'Khula', body: 'Khula' },
+  petal: { script: 'Rozha One', display: 'Tiro Devanagari Hindi', body: 'Noto Serif Devanagari' },
+  regal: { script: 'Kurale', display: 'Rhodium Libre', body: 'Sahitya' },
+  boho: { script: 'Dekko', display: 'Biryani', body: 'Karma' },
+};
+
+const SCRIPT_ROLES = new Set<Role>(['names', 'name', 'connector']);
+const DISPLAY_ROLES = new Set<Role>(['headline', 'invocation', 'date', 'big']);
+
+function withDeva(ts: TypeSet, pair: { script: string; display: string; body: string }): TypeSet {
+  const out = {} as TypeSet;
+  for (const role of Object.keys(ts) as Role[]) {
+    out[role] = { ...ts[role], deva: ts[role].deva ?? (SCRIPT_ROLES.has(role) ? pair.script : DISPLAY_ROLES.has(role) ? pair.display : pair.body) };
+  }
+  return out;
+}
+
+export const TYPE_SETS = Object.fromEntries(
+  (Object.keys(RAW_TYPE_SETS) as TypeSetKey[]).map((k) => [k, withDeva(RAW_TYPE_SETS[k], DEVA_PAIRS[k])]),
+) as Record<TypeSetKey, TypeSet>;
 
 // ---------------------------------------------------------------- helpers
 
@@ -261,11 +400,20 @@ let seq = 0;
 export const resetIds = () => {
   seq = 0;
 };
-/** The template's own font when it can draw the invitation's script; otherwise the language's font. */
-function roleFont(style: RoleStyle, ctx: RecipeCtx): string {
-  if (ctx.latin || fontSupports(style.font, ctx.script)) return style.font;
+/**
+ * The template's own font when it can draw the invitation's script; for Hindi/Marathi the type
+ * set's Devanagari pairing; otherwise the language's font.
+ */
+export function roleFont(style: RoleStyle, ctx: Pick<RecipeCtx, 'latin' | 'script' | 'langFonts'>): string {
+  if (ctx.latin) return style.font;
+  if (ctx.script === 'Deva' && style.deva) return style.deva;
+  if (fontSupports(style.font, ctx.script)) return style.font;
   return style.indic === 'body' ? ctx.langFonts.body : ctx.langFonts.display;
 }
+
+/** A band's explicit font only when it can draw its text (a Latin script face can't write Hindi). */
+const fontFor = (explicit: string | undefined, style: RoleStyle, ctx: RecipeCtx, text: string) =>
+  explicit && fontSupports(explicit, detectScript(text)) ? explicit : roleFont(style, ctx);
 
 export const nextId = (prefix = 'e') => `${prefix}${(seq++).toString(36)}`;
 
@@ -275,7 +423,7 @@ export function textEl(
   tones: Tones,
   o: { x: number; y: number; w: number; h: number; text: string; bind?: string; size?: number; tone?: Tone; effect?: TextEffect; align?: 'left' | 'center' | 'right'; font?: string; group?: string },
 ): TextElement {
-  const font = o.font ?? roleFont(style, ctx);
+  const font = fontFor(o.font, style, ctx, o.text);
   return {
     id: nextId('t'),
     type: 'text',
@@ -370,7 +518,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           const style = ts[b.role];
           const value = (b.bind ? resolveBinding(b.bind, ctx.data) : b.text) ?? '';
           const w = zw * (b.width ?? 1);
-          const font = b.font ?? roleFont(style, ctx);
+          const font = fontFor(b.font, style, ctx, value);
           const upper = ctx.latin && (style.upper ?? false);
           const ls = ctx.latin ? (style.ls ?? 0) : 0;
           let size = (b.size ?? style.size) * k;
@@ -460,7 +608,7 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
   return out;
 }
 
-function dateBand(style: 'strip' | 'line' | 'stack' | 'boxed', ctx: RecipeCtx, ts: TypeSet, tones: Tones, zone: Zone, k: number, gap: number): Placed {
+function dateBand(style: DateStyle, ctx: RecipeCtx, ts: TypeSet, tones: Tones, zone: Zone, k: number, gap: number): Placed {
   const zw = DESIGN_W - zone.left - zone.right;
   const cx = zone.left + zw / 2;
   const fn = ctx.data.functions[ctx.data.mainFunction];
@@ -498,6 +646,39 @@ function dateBand(style: 'strip' | 'line' | 'stack' | 'boxed', ctx: RecipeCtx, t
         t('big', { x: cx - w / 2, y: y + small * 1.4, w, h: big * 1.05, text: fn.parts.day, bind: 'fnM.day', size: big }),
         t('date', { x: cx - w / 2, y: y + small * 1.4 + big * 1.05, w, h: small * 1.4, text: `${fn.parts.weekday}, ${fn.timeLabel}`, bind: 'fnM.weekday', size: small }),
       ],
+    };
+  }
+
+  if (style === 'bars') {
+    // Invitation-suite classic:      JULY
+    //                       SUNDAY | 28 | AT 8 PM
+    //                                2024
+    const big = ts.big.size * 0.92 * k;
+    const side = ts.date.size * 0.86 * k;
+    const lineH = side * 1.45;
+    const colW = zw * 0.36;
+    const midW = Math.max(big * 1.5, zw * 0.2);
+    const rowH = big * 1.08;
+    const barW = Math.max(2, 2.4 * k);
+    const h = lineH + rowH + lineH;
+    return {
+      h,
+      gap,
+      make: (y) => {
+        const row = y + lineH;
+        const lx = cx - midW / 2 - colW;
+        const rx = cx + midW / 2;
+        const sideY = row + rowH / 2 - lineH / 2;
+        return [
+          t('date', { x: cx - zw / 2, y, w: zw, h: lineH, text: fn.parts.month, bind: 'fnM.month', size: side }),
+          shapeEl('line', cx - midW / 2, row + rowH * 0.12, barW, rowH * 0.76, { fill: tones.accent, opacity: 0.85 }),
+          shapeEl('line', cx + midW / 2 - barW, row + rowH * 0.12, barW, rowH * 0.76, { fill: tones.accent, opacity: 0.85 }),
+          t('date', { x: lx, y: sideY, w: colW - 18, h: lineH, text: fn.parts.weekday, bind: 'fnM.weekday', size: side, align: 'right' }),
+          t('big', { x: cx - midW / 2, y: row, w: midW, h: rowH, text: fn.parts.day, bind: 'fnM.day', size: big }),
+          t('date', { x: rx + 18, y: sideY, w: colW - 18, h: lineH, text: fn.timeLabel, bind: 'fnM.time', size: side, align: 'left' }),
+          t('date', { x: cx - zw / 2, y: row + rowH, w: zw, h: lineH, text: fn.parts.year, bind: 'fnM.year', size: side }),
+        ];
+      },
     };
   }
 

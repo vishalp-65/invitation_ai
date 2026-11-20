@@ -5,6 +5,8 @@ import type { FastifyRequest } from 'fastify';
 export interface AuthUser {
   id: string;
   role: UserRole;
+  /** Set while an admin views the product as this user (read-only): the admin's id. */
+  imp?: string;
 }
 
 export type AuthedRequest = FastifyRequest & { user?: AuthUser };

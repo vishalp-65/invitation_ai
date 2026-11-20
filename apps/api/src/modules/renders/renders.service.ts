@@ -8,12 +8,14 @@ import { hashJson } from '../../common/crypto.js';
 import { DB, STORAGE, type S3Storage } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService } from '../events/events.service.js';
+import { FlagsService } from '../flags/flags.service.js';
 
 type RenderRow = typeof renders.$inferSelect;
 
 @Injectable()
 export class RendersService {
   constructor(
+    private readonly flags: FlagsService,
     @Inject(DB) private readonly db: Database,
     @Inject(STORAGE) private readonly storage: S3Storage,
     @InjectQueue(QUEUES.render) private readonly queue: Queue<RenderJobData>,
@@ -33,6 +35,7 @@ export class RendersService {
       await this.entitlements.require(event.id, 'print_pdf', 'Print-ready PDF is a paid feature');
     }
     const isVideo = input.format === 'video' || input.format === 'site_video';
+    if (isVideo && user.role !== 'admin') await this.flags.require('video_render', 'Video rendering is paused for a short while. Your card and website still work.');
     const watermark = isVideo ? !features.has('video_hd') : input.format === 'print_pdf' ? false : !features.has('image_hd');
 
     const inputHash = hashJson({

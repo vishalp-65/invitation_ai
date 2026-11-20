@@ -1,6 +1,6 @@
 import { BISMILLAH, invocationFor, type BlessingKind } from '../constants/faith.js';
 import type { LanguageCode } from '../constants/languages.js';
-import { TYPE_SETS, type Band, type RecipeCtx, type TypeSetKey } from './builder.js';
+import { TYPE_SETS, type Band, type DateStyle, type RecipeCtx, type TypeSetKey } from './builder.js';
 
 /**
  * Extra pages every template offers (Canva-style multi-page invitations):
@@ -168,7 +168,7 @@ export function familyBands(ctx: RecipeCtx, divider: string, withFamily: boolean
 
 // ------------------------------------------------------------ photo / save the date
 
-export function photoBands(ctx: RecipeCtx, dateStyle: 'strip' | 'line' | 'stack' | 'boxed'): Band[] {
+export function photoBands(ctx: RecipeCtx, dateStyle: DateStyle): Band[] {
   const two = ctx.people === 2;
   return [
     { t: 'text', role: 'eyebrow', text: pick(SAVE_DATE, ctx.language), gap: 0 },

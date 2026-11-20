@@ -12,6 +12,9 @@ interface Closable {
 
 export const DB = Symbol('DB');
 export const PG_POOL = Symbol('PG_POOL');
+/** Read-only handle for heavy reports: a Neon read replica when DATABASE_URL_READ is set, else the primary. */
+export const DB_READ = Symbol('DB_READ');
+export const PG_POOL_READ = Symbol('PG_POOL_READ');
 export const REDIS = Symbol('REDIS');
 export const STORAGE = Symbol('STORAGE');
 export const OPENROUTER = Symbol('OPENROUTER');
@@ -20,6 +23,7 @@ export type { Database, Redis, S3Storage, Env };
 
 const env = loadEnv();
 const dbHandle = createDb(env.DATABASE_URL, { max: 15 });
+const readHandle = env.DATABASE_URL_READ ? createDb(env.DATABASE_URL_READ, { max: 6 }) : null;
 
 /** Global singletons: config, Postgres, Redis, object storage, OpenRouter and queues. */
 @Global()
@@ -34,12 +38,14 @@ const dbHandle = createDb(env.DATABASE_URL, { max: 15 });
         removeOnFail: { age: 7 * 24 * 3600 },
       },
     }),
-    BullModule.registerQueue({ name: QUEUES.render }, { name: QUEUES.aiClip }, { name: QUEUES.notifications }, { name: QUEUES.email }),
+    BullModule.registerQueue({ name: QUEUES.render }, { name: QUEUES.aiClip }, { name: QUEUES.notifications }, { name: QUEUES.email }, { name: QUEUES.ops }),
   ],
   providers: [
     { provide: ENV, useValue: env },
     { provide: DB, useValue: dbHandle.db },
     { provide: PG_POOL, useValue: dbHandle.pool },
+    { provide: DB_READ, useValue: readHandle?.db ?? dbHandle.db },
+    { provide: PG_POOL_READ, useValue: readHandle?.pool ?? null },
     { provide: REDIS, useFactory: () => createRedis(env.REDIS_URL) },
     {
       provide: STORAGE,
@@ -65,15 +71,16 @@ const dbHandle = createDb(env.DATABASE_URL, { max: 15 });
         }),
     },
   ],
-  exports: [ENV, DB, PG_POOL, REDIS, STORAGE, OPENROUTER, BullModule],
+  exports: [ENV, DB, DB_READ, PG_POOL, REDIS, STORAGE, OPENROUTER, BullModule],
 })
 export class InfraModule implements OnApplicationShutdown {
   constructor(
     @Inject(PG_POOL) private readonly pool: Closable,
+    @Inject(PG_POOL_READ) private readonly readPool: Closable | null,
     @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   async onApplicationShutdown() {
-    await Promise.allSettled([this.pool.end(), this.redis.quit()]);
+    await Promise.allSettled([this.pool.end(), this.readPool?.end(), this.redis.quit()]);
   }
 }

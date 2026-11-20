@@ -5,7 +5,7 @@ import { LayoutGrid, Package, Palette, PanelLeftClose, PanelLeftOpen, Plus, Sett
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useMe } from '@/lib/hooks';
 import { ThemeToggle } from '@/lib/theme';
 import { AccountMenu, Avatar, LocaleSwitch, Logo } from './site-header';
@@ -31,12 +31,23 @@ const SETTINGS: NavItem = { key: 'settings', href: '/dashboard/settings', icon: 
 
 const SIDEBAR_KEY = 'cardai-sidebar';
 
-/** Collapsed state lives on <html data-sidebar> (set before paint by the boot script), so there's no flash. */
+const isMac = () => /Mac|iPhone|iPad/.test(navigator.platform);
+
+/**
+ * Collapsed state lives on <html data-sidebar> (set before paint by the boot script) and the
+ * collapsed layout is pure CSS, so there's no flash; React state only feeds tooltips and labels.
+ * Ctrl/⌘+B toggles it (ignored while typing).
+ */
 function useSidebar() {
   const [collapsed, setCollapsed] = useState(false);
-  useEffect(() => setCollapsed(document.documentElement.dataset.sidebar === 'collapsed'), []);
-  const toggle = () => {
-    const next = !collapsed;
+  // Read after mount (the server can't know the platform), so hydration matches.
+  const [mac, setMac] = useState(false);
+  useEffect(() => {
+    setCollapsed(document.documentElement.dataset.sidebar === 'collapsed');
+    setMac(isMac());
+  }, []);
+  const toggle = useCallback(() => {
+    const next = document.documentElement.dataset.sidebar !== 'collapsed';
     setCollapsed(next);
     if (next) document.documentElement.dataset.sidebar = 'collapsed';
     else delete document.documentElement.dataset.sidebar;
@@ -45,8 +56,20 @@ function useSidebar() {
     } catch {
       /* storage blocked: still applies for this visit */
     }
-  };
-  return { collapsed, toggle };
+  }, []);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== 'b' || !(isMac() ? e.metaKey : e.ctrlKey) || e.shiftKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (el?.closest('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return;
+      if (!window.matchMedia('(min-width: 1024px)').matches) return; // sidebar is desktop-only
+      e.preventDefault();
+      toggle();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [toggle]);
+  return { collapsed, toggle, kbd: mac ? { label: '⌘B', aria: 'Meta+B' } : { label: 'Ctrl+B', aria: 'Control+B' } };
 }
 
 /**
@@ -57,7 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations('nav');
   const pathname = usePathname();
   const { data: me } = useMe();
-  const { collapsed, toggle } = useSidebar();
+  const { collapsed, toggle, kbd } = useSidebar();
   const items = [...MAIN];
   const more = me?.role === 'admin' ? [...MORE, ADMIN] : MORE;
   const current = [...items, ...more, SETTINGS].find((i) => i.match(pathname));
@@ -67,20 +90,21 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ---------------- Sidebar (desktop) ---------------- */}
       <aside
         aria-label={t('dashboard')}
+        data-tip-side="right"
+        data-tip-delay="150"
         className="app-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-ink/10 bg-ivory lg:flex"
       >
-        <div className="flex h-16 shrink-0 items-center gap-2 border-b border-ink/10 px-5">
-          <Logo compact={collapsed} />
+        <div className="sb-head flex h-16 shrink-0 items-center gap-2 border-b border-ink/10 px-5">
+          <Logo className="sb-label" />
+          <Logo compact className="sb-mark" />
         </div>
 
         <div className="px-3 pt-4">
           <Link
             href="/create"
+            aria-label={collapsed ? t('newInvite') : undefined}
             data-tip={collapsed ? t('newInvite') : undefined}
-            className={clsx(
-              'flex h-10 items-center gap-2 rounded-full bg-primary text-sm font-medium text-on-primary transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-[0.98]',
-              collapsed ? 'justify-center' : 'justify-center px-4',
-            )}
+            className="sb-item flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-4 text-sm font-medium text-on-primary transition-[background-color,transform] duration-150 hover:bg-primary-hover active:scale-[0.98]"
           >
             <Plus className="size-4 shrink-0" aria-hidden />
             <span className="sb-label">{t('newInvite')}</span>
@@ -103,13 +127,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             type="button"
             onClick={toggle}
             aria-label={collapsed ? t('expand') : t('collapse')}
-            data-tip={collapsed ? t('expand') : undefined}
-            className={clsx(
-              'flex h-9 items-center gap-3 text-sm text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink',
-              collapsed ? 'justify-center' : 'px-3',
-            )}
+            aria-expanded={!collapsed}
+            aria-keyshortcuts={kbd.aria}
+            data-tip={collapsed ? t('expand') : t('collapse')}
+            data-tip-kbd={kbd.label}
+            className="sb-item flex h-9 items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
           >
-            {collapsed ? <PanelLeftOpen className="size-[1.1rem] shrink-0" /> : <PanelLeftClose className="size-[1.1rem] shrink-0" />}
+            <PanelLeftOpen className="sb-mark size-[1.1rem] shrink-0" aria-hidden />
+            <PanelLeftClose className="sb-label size-[1.1rem] shrink-0" aria-hidden />
             <span className="sb-label">{t('collapse')}</span>
           </button>
         </div>
@@ -171,12 +196,11 @@ function SideLink({ item, label, active, collapsed }: { item: NavItem; label: st
       aria-label={collapsed ? label : undefined}
       data-tip={collapsed ? label : undefined}
       className={clsx(
-        'relative flex h-10 shrink-0 items-center gap-3 border text-sm transition-colors',
-        collapsed ? 'justify-center' : 'px-3',
+        'sb-item relative flex h-10 shrink-0 items-center gap-3 rounded-[var(--radius-control)] border px-3 text-sm transition-colors',
         active ? 'border-ink/20 bg-ink/[0.04] text-ink' : 'border-transparent text-ink-soft hover:border-ink/10 hover:text-ink',
       )}
     >
-      {/* Rose marker on the active item. */}
+      {/* Gold marker on the active item. */}
       <span
         aria-hidden
         className={clsx(

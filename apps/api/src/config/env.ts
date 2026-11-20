@@ -25,6 +25,11 @@ const envSchema = z.object({
   API_PORT: z.coerce.number().int().default(4000),
 
   DATABASE_URL: z.string().min(1),
+  /** Optional read replica (Neon read-only endpoint) for admin reports. Unset = the primary. */
+  DATABASE_URL_READ: z
+    .string()
+    .optional()
+    .transform((v) => v || undefined),
   REDIS_URL: z.string().min(1),
 
   S3_ENDPOINT: z.string().optional(),
@@ -89,6 +94,26 @@ const envSchema = z.object({
     .string()
     .optional()
     .transform((v) => (v ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)),
+
+  /** Admins confirm a 6-digit email code once per device every 12 h. Default: on in production. */
+  ADMIN_MFA: z
+    .string()
+    .optional()
+    .transform((v) => (v === undefined || v === '' ? undefined : v === 'true' || v === '1')),
+  /** Raw analytics events are kept this many months (whole monthly partitions are dropped). */
+  ANALYTICS_RETENTION_MONTHS: z.coerce.number().int().min(3).max(60).default(13),
+  /** Alert when AI spend in 24 h passes this (USD). */
+  ALERT_AI_USD_DAY: z.coerce.number().min(0).default(20),
+  /** Optional WhatsApp number (E.164 without +) that also gets critical alerts, via the WhatsApp Cloud API. */
+  ADMIN_ALERT_WHATSAPP: z
+    .string()
+    .optional()
+    .transform((v) => v?.replace(/\D/g, '') || undefined),
+  /** Health checks, daily digest and nightly metrics. Turn off only for local debugging. */
+  OPS_JOBS: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
 
   OPENROUTER_API_KEY: z.string().optional(),
   AI_TEXT_MODELS: csv.default(['google/gemini-4-hydrogen']),

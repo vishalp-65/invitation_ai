@@ -40,6 +40,10 @@ export class AuthGuard implements CanActivate {
       const user = await this.tokens.verifyAccess(token).catch(() => null);
       if (user && !(await this.redis.exists(disabledKey(user.id)))) req.user = user;
     }
+    // An admin viewing as a customer can look, never change anything on their behalf.
+    if (req.user?.imp && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !/^\/api\/(auth\/(refresh|logout)|track|flags)(\/|$)/.test(req.url)) {
+      throw new ForbiddenException({ message: 'You are viewing as this customer (read-only). Exit to make changes.', details: { impersonating: true } });
+    }
     if (isPublic) return true;
     if (!req.user) throw new UnauthorizedException('Please sign in');
     return true;

@@ -5,6 +5,8 @@ import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
 import { AuthGuard, RateLimitGuard, RolesGuard } from './common/guards.js';
 import { InfraModule } from './infra/infra.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
+import { FlagsModule, MaintenanceGuard } from './modules/flags/flags.module.js';
+import { OpsModule } from './modules/ops/ops.module.js';
 import { AnalyticsModule } from './modules/analytics/analytics.module.js';
 import { OffersModule } from './modules/offers/offers.module.js';
 import { AiModule } from './modules/ai/ai.module.js';
@@ -38,6 +40,7 @@ const isDev = process.env.NODE_ENV !== 'production';
       },
     }),
     InfraModule,
+    FlagsModule,
     MailModule,
     AnalyticsModule,
     OffersModule,
@@ -57,12 +60,15 @@ const isDev = process.env.NODE_ENV !== 'production';
     MarketplaceModule,
     UserTemplatesModule,
     AdminModule,
+    OpsModule,
   ],
   controllers: [HealthController],
   providers: [
     // Order matters: authenticate → authorise roles → rate-limit (can key by user).
     { provide: APP_GUARD, useClass: AuthGuard },
     { provide: APP_GUARD, useClass: RolesGuard },
+    // Maintenance mode + kill switches, after auth so admins are recognised and never blocked.
+    { provide: APP_GUARD, useClass: MaintenanceGuard },
     { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_FILTER, useClass: AllExceptionsFilter },
   ],

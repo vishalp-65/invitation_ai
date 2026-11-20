@@ -1,10 +1,10 @@
 'use client';
 
-import { PRODUCTS, priceProducts, type ActiveOffersDto, type PricedProduct, type ProductCode } from '@cardai/shared';
+import { EMPTY_DESIGN_VISIBILITY, PRODUCTS, priceProducts, type ActiveOffersDto, type DesignVisibilityDto, type PricedProduct, type ProductCode } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 
-const FALLBACK: ActiveOffersDto = { products: priceProducts({}, null), sale: null, announcements: [] };
+const FALLBACK: ActiveOffersDto = { products: priceProducts({}, null), sale: null, announcements: [], designs: EMPTY_DESIGN_VISIBILITY };
 
 /** Live prices (admin edits + running sale) and banners. Falls back to the prices in code. */
 export function useOffers() {
@@ -23,4 +23,9 @@ export function usePrice(code: ProductCode): PricedProduct {
 
 export function useProducts(): Record<ProductCode, PricedProduct> {
   return (useOffers().data ?? FALLBACK).products;
+}
+
+/** Which demo templates / design packs an admin has hidden or featured. Same cached request as prices. */
+export function useDesignVisibility(): DesignVisibilityDto {
+  return useOffers().data?.designs ?? EMPTY_DESIGN_VISIBILITY;
 }

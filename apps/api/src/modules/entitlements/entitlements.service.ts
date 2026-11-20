@@ -33,7 +33,7 @@ export class EntitlementsService {
   }
 
   /** Grants product features; credits accumulate on repeat purchases. Idempotent per order via caller. */
-  async grantProduct(tx: Tx | Database, eventId: string, productCode: ProductCode, orderId: string): Promise<void> {
+  async grantProduct(tx: Tx | Database, eventId: string, productCode: ProductCode, orderId: string | null): Promise<void> {
     const product = PRODUCTS[productCode];
     for (const feature of product.features) {
       const credits = product.credits?.[feature] ?? 0;

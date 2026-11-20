@@ -24,6 +24,7 @@ import { AuthService } from './auth.service.js';
 import { safeEqual } from '../../common/crypto.js';
 import { GoogleService, safeNext } from './google.service.js';
 import { ACCESS_TTL_SEC, REFRESH_TTL_SEC, TokenService, type IssuedTokens } from './token.service.js';
+import { RequireFlag } from '../flags/flags.module.js';
 
 const REFRESH_COOKIE = 'cai_rt';
 const REFRESH_PATH = '/api/auth';
@@ -55,6 +56,7 @@ export class AuthController {
 
   /** Sign-up step 1: email a verification code (rejects addresses that already have an account). */
   @Public()
+  @RequireFlag('signups', 'New sign-ups are paused for a short while. Please try again later.')
   @Post('signup/request')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
@@ -64,6 +66,7 @@ export class AuthController {
 
   /** Sign-up step 2: verify the code and create the account with its password. */
   @Public()
+  @RequireFlag('signups', 'New sign-ups are paused for a short while. Please try again later.')
   @Post('signup')
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
@@ -203,6 +206,7 @@ export class AuthController {
     if (!token) throw new UnauthorizedException('Not signed in');
     const tokens = await this.auth.refresh(token, req.headers['user-agent']);
     this.setCookies(reply, tokens);
+    if (req.cookies.cai_imp) reply.clearCookie('cai_imp', { path: '/', domain: this.env.COOKIE_DOMAIN });
     return { ok: true };
   }
 
@@ -218,8 +222,9 @@ export class AuthController {
   }
 
   @Get('me')
-  me(@CurrentUser() user: AuthUser) {
-    return this.auth.me(user.id);
+  async me(@CurrentUser() user: AuthUser) {
+    const me = await this.auth.me(user.id);
+    return user.imp ? { ...me, impersonatedBy: user.imp } : me;
   }
 
   @Patch('me')
@@ -230,6 +235,8 @@ export class AuthController {
   private trackSignIn(req: FastifyRequest, userId: string, isNew: boolean, method: 'email' | 'google') {
     const visitorId = req.cookies[VISITOR_COOKIE];
     this.analytics.identify(visitorId, userId);
+    const ref = req.cookies.cai_ref;
+    if (isNew && ref && /^[0-9a-f-]{36}$/i.test(ref)) this.analytics.referred(userId, ref);
     this.analytics.record(isNew ? 'signup' : 'login', { visitorId, userId, userAgent: req.headers['user-agent'] }, { props: { method } });
   }
 

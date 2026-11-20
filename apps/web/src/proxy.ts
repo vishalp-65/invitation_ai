@@ -9,6 +9,26 @@ const SHORT_HOST = process.env.NEXT_PUBLIC_SHORT_HOST?.toLowerCase() || null;
  * 2. Cheap edge check so signed-out users go straight to /login instead of seeing a flash of an
  *    empty dashboard. Real authorisation happens in the API on every request.
  */
+/**
+ * Coarse visitor location (country | state code | city) from the hosting edge's own geo headers
+ * (Vercel, or Cloudflare's country), stored once in a first-party cookie so /api/track can file
+ * the visit under an Indian state and city tier. No IP address is ever stored.
+ */
+function withGeo(req: NextRequest, res: NextResponse): NextResponse {
+  if (req.cookies.has('cai_geo')) return res;
+  const country = req.headers.get('x-vercel-ip-country') ?? req.headers.get('cf-ipcountry');
+  if (!country) return res;
+  const region = req.headers.get('x-vercel-ip-country-region') ?? '';
+  let city = req.headers.get('x-vercel-ip-city') ?? '';
+  try {
+    city = decodeURIComponent(city);
+  } catch {
+    city = '';
+  }
+  res.cookies.set('cai_geo', encodeURIComponent(`${country}|${region}|${city}`.slice(0, 100)), { path: '/', maxAge: 7 * 24 * 3600, sameSite: 'lax', httpOnly: true, secure: req.nextUrl.protocol === 'https:' });
+  return res;
+}
+
 export function proxy(req: NextRequest) {
   const host = req.headers.get('host')?.split(':')[0]?.toLowerCase();
   const path = req.nextUrl.pathname;
@@ -33,7 +53,7 @@ export function proxy(req: NextRequest) {
       return NextResponse.redirect(url);
     }
   }
-  return NextResponse.next();
+  return withGeo(req, NextResponse.next());
 }
 
 export const config = {

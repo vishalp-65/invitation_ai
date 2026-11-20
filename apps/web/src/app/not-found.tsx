@@ -6,7 +6,7 @@ export default function NotFound() {
     <>
       <SiteHeader />
       <div className="toran animate-sway" aria-hidden />
-      <main className="mx-auto flex max-w-xl flex-col items-center px-5 py-20 text-center sm:py-28">
+      <main id="main" className="mx-auto flex max-w-xl flex-col items-center px-5 py-20 text-center sm:py-28">
         <p className="animate-fade-up font-display text-7xl text-primary sm:text-8xl">404</p>
         <h1 className="mt-4 animate-fade-up text-[2rem] [animation-delay:80ms] sm:text-[2.75rem]">This page does not exist</h1>
         <p className="mt-4 animate-fade-up text-lg text-ink-soft [animation-delay:160ms]">

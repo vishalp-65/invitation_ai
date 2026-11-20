@@ -6,6 +6,7 @@ import {
   CHARACTER_TIER,
   DESIGN_TIER,
   designsFor,
+  visibleDesigns,
   getSiteDesign,
   MUSIC_TRACKS,
   COUPLE_STYLES,
@@ -32,6 +33,7 @@ import { useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Chip, Field, Input, Select, Textarea } from '@/components/ui/field';
+import { useDesignVisibility } from '@/lib/offers';
 import { api, ApiError } from '@/lib/api';
 import { uploadAudio } from '@/lib/upload';
 import type { EditorCtx } from './section-editor';
@@ -211,7 +213,10 @@ export function LookPanel({
   community?: string | null;
   ctx?: EditorCtx;
 }) {
-  const designs = designsFor(eventType, community);
+  const visibility = useDesignVisibility();
+  const designs = visibleDesigns(designsFor(eventType, community), visibility, 'picker').concat(
+    designsFor(eventType, community).filter((d) => d.id === doc.design && visibility.hiddenDesigns.includes(d.id)),
+  );
   const [uploading, setUploading] = useState(false);
   const songUrl = doc.music?.assetId ? ctx?.assets[doc.music.assetId] : undefined;
   async function uploadSong(file: File) {

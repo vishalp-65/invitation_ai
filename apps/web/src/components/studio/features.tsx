@@ -62,7 +62,7 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
               ['rajwada-gold-maroon', 'z-10'],
               ['golden-vows-onyx', 'rotate-[8deg] -translate-x-[38%] translate-y-6'],
             ].map(([id, pos]) => (
-              <CardShot key={id} id={id!} sizes="40vw" className={clsx('-mb-16 w-[36%] max-w-[190px] border border-white/10', pos)} />
+              <CardShot key={id} id={id!} alt={DESIGN_ALT[id!]} sizes="40vw" className={clsx('-mb-16 w-[36%] max-w-[190px] border border-white/10', pos)} />
             ))}
             <div className="absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black to-transparent" />
           </div>
@@ -77,6 +77,7 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
                 <CardShot
                   key={id}
                   id={id!}
+                  alt={DESIGN_ALT[id!]}
                   sizes="230px"
                   className={clsx('absolute w-[42%] max-w-[230px] border border-white/10 transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]', pos)}
                 />
@@ -109,3 +110,10 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
     </section>
   );
 }
+
+/** Alt text for the real design renders shown in the feature fan. */
+const DESIGN_ALT: Record<string, string> = {
+  'genda-jharokha-emerald': 'Wedding invitation card with marigold jharokha arch on emerald',
+  'rajwada-gold-maroon': 'Royal Rajwada wedding invitation card in gold and maroon',
+  'golden-vows-onyx': 'Golden Vows wedding invitation card on black',
+};

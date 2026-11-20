@@ -11,9 +11,10 @@ const PER_FAMILY = 2;
  * The premium collection as a scroll-driven 3D corridor. Only the newest (heritage) design families
  * flagged premium, two colourways each, interleaved so neighbouring cards are different designs.
  */
-function premiumItems(): TunnelItem[] {
+function premiumItems(hidden: readonly string[]): TunnelItem[] {
+  const off = new Set(hidden);
   const families = HERITAGE_FAMILIES.filter((f) => f.premium).map((f) => f.id);
-  const byFamily = families.map((id) => BUILTIN_TEMPLATES.filter((t) => t.premium && t.design === id).slice(0, PER_FAMILY));
+  const byFamily = families.map((id) => BUILTIN_TEMPLATES.filter((t) => t.premium && t.design === id && !off.has(t.id)).slice(0, PER_FAMILY));
   const items: TunnelItem[] = [];
   for (let k = 0; k < PER_FAMILY; k++) {
     for (const list of byFamily) {
@@ -31,10 +32,11 @@ function premiumItems(): TunnelItem[] {
   return items;
 }
 
-export function StudioPremiumTunnel({ hi }: { hi: boolean }) {
+/** `hidden`: template ids an admin removed from the catalogue (they leave the landing demos too). */
+export function StudioPremiumTunnel({ hi, hidden = [] }: { hi: boolean; hidden?: readonly string[] }) {
   return (
     <PerspectiveTunnel
-      items={premiumItems()}
+      items={premiumItems(hidden)}
       kicker={<Kicker center>{hi ? 'प्रीमियम संग्रह' : 'Premium collection'}</Kicker>}
       title={
         <>

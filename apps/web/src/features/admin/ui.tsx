@@ -80,7 +80,29 @@ export function useRange(): [AnalyticsRange, (r: AnalyticsRange) => void] {
   ];
 }
 
-const RANGE_LABEL: Record<AnalyticsRange, string> = { '7d': '7 days', '30d': '30 days', '90d': '90 days' };
+const RANGE_LABEL: Record<AnalyticsRange, string> = { '7d': '7 days', '30d': '30 days', '90d': '90 days', '1y': '1 year' };
+
+/** Minutes → "42 min" / "3 h 5 min". */
+export function duration(minutes: number) {
+  if (!minutes) return '0 min';
+  if (minutes < 1) return `${Math.round(minutes * 60)} s`;
+  if (minutes < 60) return `${minutes < 10 ? minutes.toFixed(1).replace(/\.0$/, '') : Math.round(minutes)} min`;
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  return m ? `${num(h)} h ${m} min` : `${num(h)} h`;
+}
+
+/** Downloads an admin CSV through the authenticated API (refreshes the session if needed). */
+export async function downloadCsv(path: string, filename: string) {
+  const get = () => fetch(`/api${path}`, { credentials: 'include' });
+  let res = await get();
+  if (res.status === 401 && (await fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })).ok) res = await get();
+  if (!res.ok) throw new Error('Export failed');
+  const url = URL.createObjectURL(await res.blob());
+  const a = Object.assign(document.createElement('a'), { href: url, download: filename });
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 export function RangePicker() {
   const [range, setRange] = useRange();
@@ -256,3 +278,18 @@ export const EVENT_LABELS: Record<string, string> = {
   purchase: 'Paid',
   share: 'Shared an invitation',
 };
+
+/** Sticky action bar for multi-select. */
+export function BulkBar({ count, onClear, children }: { count: number; onClear: () => void; children: ReactNode }) {
+  return (
+    <div className="fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
+      <div className="flex max-w-full flex-wrap items-center gap-2 border border-ink/20 bg-ivory px-4 py-2.5">
+        <span className="mr-2 font-mono text-xs">{count} selected</span>
+        {children}
+        <button type="button" onClick={onClear} className="ml-1 text-xs text-ink-soft underline-offset-4 hover:underline">
+          Clear
+        </button>
+      </div>
+    </div>
+  );
+}

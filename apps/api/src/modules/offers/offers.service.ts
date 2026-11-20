@@ -1,4 +1,4 @@
-import { and, announcements, coupons, desc, eq, gte, isNull, lte, or, orders, productOverrides, sales, sql, type Database } from '@cardai/db';
+import { and, announcements, coupons, desc, eq, gte, isNull, lte, or, orders, productOverrides, sales, siteDesignOverrides, siteMedia, sql, templateOverrides, type Database } from '@cardai/db';
 import {
   couponDiscount,
   priceProducts,
@@ -10,7 +10,8 @@ import {
   type SaleDto,
 } from '@cardai/shared';
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
-import { DB } from '../../infra/infra.module.js';
+import { DB, STORAGE, type S3Storage } from '../../infra/infra.module.js';
+import { FlagsService } from '../flags/flags.service.js';
 
 const CACHE_MS = 30_000;
 
@@ -32,7 +33,11 @@ function saleDto(s: SaleRow): SaleDto {
 export class OffersService {
   private cache: { at: number; value: ActiveOffersDto } | null = null;
 
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    @Inject(STORAGE) private readonly storage: S3Storage,
+    private readonly flags: FlagsService,
+  ) {}
 
   invalidate() {
     this.cache = null;
@@ -41,7 +46,7 @@ export class OffersService {
   async active(): Promise<ActiveOffersDto> {
     if (this.cache && Date.now() - this.cache.at < CACHE_MS) return this.cache.value;
     const now = new Date();
-    const [overrides, running, banners] = await Promise.all([
+    const [overrides, running, banners, hiddenTemplates, designOv, media, flags] = await Promise.all([
       this.db.select().from(productOverrides),
       this.db
         .select()
@@ -61,6 +66,10 @@ export class OffersService {
         )
         .orderBy(desc(announcements.createdAt))
         .limit(3),
+      this.db.select({ id: templateOverrides.templateId }).from(templateOverrides).where(eq(templateOverrides.hidden, true)),
+      this.db.select().from(siteDesignOverrides),
+      this.db.select({ slot: siteMedia.slot, key: siteMedia.storageKey }).from(siteMedia),
+      this.flags.publicFlags(),
     ]);
     const sale = running[0] ? saleDto(running[0]) : null;
     const value: ActiveOffersDto = {
@@ -76,6 +85,14 @@ export class OffersService {
           audience: b.audience as AnnouncementDto['audience'],
         }),
       ),
+      designs: {
+        hiddenTemplates: hiddenTemplates.map((t) => t.id),
+        hiddenDesigns: designOv.filter((d) => d.hidden).map((d) => d.designId),
+        hiddenShowcase: designOv.filter((d) => d.hideShowcase).map((d) => d.designId),
+        featuredDesigns: designOv.filter((d) => d.featured).map((d) => d.designId),
+      },
+      media: Object.fromEntries(media.map((m) => [m.slot, this.storage.publicUrl(m.key)])),
+      flags,
     };
     this.cache = { at: Date.now(), value };
     return value;

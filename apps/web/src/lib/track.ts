@@ -68,7 +68,57 @@ export function track(name: TrackEventName, extra: Omit<Queued, 'name'> = {}) {
   timer ??= setTimeout(flush, 1500);
 }
 
+// ---------- Time in app ----------
+// Engaged time = tab visible AND the person touched, typed, scrolled or moved the mouse in the last
+// minute. Counted in 5 s ticks and reported every 30 s (and when the tab is hidden), so an idle open
+// tab never inflates "time spent". The API folds these into one row per visitor per day.
+
+const TICK_MS = 5_000;
+const REPORT_MS = 30_000;
+const IDLE_MS = 60_000;
+let lastInput = 0;
+let engagedMs = 0;
+let lastReport = 0;
+
+function excluded() {
+  return /^\/(admin|preview|dev|i|s)(\/|$)/.test(location.pathname);
+}
+
+function reportEngagement() {
+  const sec = Math.round(engagedMs / 1000);
+  if (sec < 1) return;
+  engagedMs = 0;
+  lastReport = Date.now();
+  // Bypasses the 2 s de-dupe in track(): a report right after a heartbeat must not be dropped.
+  queue.push({ name: 'engagement', path: location.pathname, props: { sec } });
+  timer ??= setTimeout(flush, 0);
+}
+
 if (typeof window !== 'undefined') {
-  addEventListener('pagehide', flush);
-  addEventListener('visibilitychange', () => document.visibilityState === 'hidden' && flush());
+  const onInput = () => (lastInput = Date.now());
+  for (const ev of ['pointerdown', 'keydown', 'scroll', 'touchstart', 'wheel'] as const) addEventListener(ev, onInput, { passive: true, capture: true });
+  let lastMove = 0;
+  addEventListener('pointermove', () => {
+    const now = Date.now();
+    if (now - lastMove > 2_000) lastInput = lastMove = now;
+  }, { passive: true });
+  lastInput = Date.now();
+  lastReport = Date.now();
+
+  setInterval(() => {
+    if (document.visibilityState !== 'visible' || excluded()) return;
+    if (Date.now() - lastInput < IDLE_MS) engagedMs += TICK_MS;
+    if (Date.now() - lastReport >= REPORT_MS) reportEngagement();
+  }, TICK_MS);
+
+  addEventListener('pagehide', () => {
+    reportEngagement();
+    flush();
+  });
+  addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      reportEngagement();
+      flush();
+    } else lastInput = Date.now();
+  });
 }

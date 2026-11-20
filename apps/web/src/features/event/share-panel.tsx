@@ -21,8 +21,8 @@ const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof 
 ];
 
 /** Shares the actual file (not a link) — on Android this opens WhatsApp with the image attached. */
-async function shareFile(url: string, name: string, contentType: string) {
-  track('share', { props: { kind: 'file' } });
+async function shareFile(url: string, name: string, contentType: string, eventId?: string) {
+  track('share', { props: { kind: 'file', eventId: eventId ?? null } });
   const blob = await (await fetch(url)).blob();
   const file = new File([blob], name, { type: contentType });
   if (navigator.canShare?.({ files: [file] })) {
@@ -99,7 +99,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                 target="_blank"
                 rel="noopener"
                 className="col-span-2"
-                onClick={() => track('share', { props: { kind: 'link' } })}
+                onClick={() => track('share', { props: { kind: 'link', eventId: event.id } })}
               >
                 <WhatsAppIcon className="size-4" />
                 Share on WhatsApp
@@ -167,7 +167,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                       const name = `${event.slug}-${format}${r.outputs.length > 1 ? `-${i + 1}` : ''}.${ext}`;
                       return (
                         <span key={o.url} className="inline-flex overflow-hidden rounded-lg border border-ink/10">
-                          <button type="button" onClick={() => void shareFile(o.url, name, o.contentType)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-medium hover:bg-ink/[0.04]">
+                          <button type="button" onClick={() => void shareFile(o.url, name, o.contentType, event.id)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-medium hover:bg-ink/[0.04]">
                             <Share2 className="size-3.5" aria-hidden />
                             {r.outputs.length > 1 ? `Page ${i + 1}` : 'Share'}
                           </button>

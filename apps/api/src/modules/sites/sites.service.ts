@@ -5,6 +5,7 @@ import {
   events,
   guests,
   inArray,
+  invitationDaily,
   mediaAssets,
   renders,
   rsvps,
@@ -224,7 +225,7 @@ export class SitesService {
 
   private async publishedBySlug(slug: string): Promise<EventRow> {
     const [event] = await this.db.select().from(events).where(eq(events.slug, slug));
-    if (!event || event.status !== 'published') throw new NotFoundException('Invitation not found');
+    if (!event || event.status !== 'published' || event.suspendedAt) throw new NotFoundException('Invitation not found');
     return event;
   }
 
@@ -388,10 +389,28 @@ export class SitesService {
   }
 
   /** Counts a view at most once per IP per hour per event/guest to keep numbers honest. */
-  async trackView(slug: string, ip: string, guestToken?: string) {
+  async trackView(slug: string, ip: string, guestToken?: string, userAgent?: string): Promise<{ ok: true; eventId: string }> {
     const event = await this.publishedBySlug(slug);
     const dedupeKey = `view:${event.id}:${guestToken ?? '-'}:${ip}`;
-    if (!(await this.redis.set(dedupeKey, '1', 'EX', 3600, 'NX'))) return { ok: true };
+    if (!(await this.redis.set(dedupeKey, '1', 'EX', 3600, 'NX'))) return { ok: true, eventId: event.id };
+
+    // Guest-side numbers per day (India time): opens, personal-link opens, from WhatsApp, on phones.
+    const ua = userAgent ?? '';
+    const whatsapp = /WhatsApp/i.test(ua) ? 1 : 0;
+    const mobile = /mobi|iphone|android/i.test(ua) ? 1 : 0;
+    void this.db
+      .insert(invitationDaily)
+      .values({ eventId: event.id, day: sql`(now() at time zone 'Asia/Kolkata')::date`, views: 1, guestViews: guestToken ? 1 : 0, whatsappViews: whatsapp, mobileViews: mobile })
+      .onConflictDoUpdate({
+        target: [invitationDaily.eventId, invitationDaily.day],
+        set: {
+          views: sql`${invitationDaily.views} + 1`,
+          guestViews: sql`${invitationDaily.guestViews} + excluded.guest_views`,
+          whatsappViews: sql`${invitationDaily.whatsappViews} + excluded.whatsapp_views`,
+          mobileViews: sql`${invitationDaily.mobileViews} + excluded.mobile_views`,
+        },
+      })
+      .catch(() => undefined);
 
     await this.db.update(events).set({ viewCount: sql`${events.viewCount} + 1` }).where(eq(events.id, event.id));
     if (guestToken) {
@@ -404,7 +423,7 @@ export class SitesService {
         })
         .where(and(eq(guests.token, guestToken), eq(guests.eventId, event.id)));
     }
-    return { ok: true };
+    return { ok: true, eventId: event.id };
   }
 
   async submitRsvp(slug: string, input: SubmitRsvpInput) {

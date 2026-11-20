@@ -124,11 +124,22 @@ export function ThemeToggle({ className, compact }: { className?: string; compac
   );
 }
 
-/** Segmented Light / Dark / System picker (settings menus). */
+/**
+ * Segmented Light / Dark / System picker (settings menus). Radio-group keyboard pattern: one tab
+ * stop (the selected option), arrow keys move and select.
+ */
 export function ThemeSegmented() {
   const p = useThemePref();
+  const onKey = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+    if (!step) return;
+    e.preventDefault();
+    const next = ORDER[(ORDER.indexOf(p) + step + ORDER.length) % ORDER.length]!;
+    setThemePref(next);
+    e.currentTarget.querySelector<HTMLElement>(`[data-value="${next}"]`)?.focus();
+  };
   return (
-    <div role="radiogroup" aria-label="Theme" className="inline-flex border border-ink/15 p-0.5">
+    <div role="radiogroup" aria-label="Theme" onKeyDown={onKey} className="inline-flex rounded-[var(--radius-control)] border border-ink/15 p-0.5">
       {ORDER.map((o) => {
         const Icon = META[o].icon;
         return (
@@ -136,9 +147,11 @@ export function ThemeSegmented() {
             key={o}
             type="button"
             role="radio"
+            data-value={o}
             aria-checked={p === o}
+            tabIndex={p === o ? 0 : -1}
             onClick={() => setThemePref(o)}
-            className="flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] text-ink-soft transition-colors duration-200 hover:text-ink aria-checked:bg-ink/[0.08] aria-checked:text-ink"
+            className="flex h-8 items-center gap-1.5 rounded-[calc(var(--radius-control)-2px)] px-3 text-[0.8125rem] text-ink-soft transition-colors duration-200 hover:text-ink aria-checked:bg-ink/[0.08] aria-checked:text-ink"
           >
             <Icon className="size-3.5" strokeWidth={1.75} />
             {META[o].label}

@@ -3,6 +3,7 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteFooter, SiteHeader } from '@/components/layout/site-header';
 import { MobileDock } from '@/components/marketing/mobile-dock';
 import { StudioCta } from '@/components/studio/cta';
+import { StudioVideoCarousel } from '@/components/studio/design-showcase';
 import { StudioFeatures } from '@/components/studio/features';
 import { StudioHero } from '@/components/studio/hero';
 import { StudioLanguages } from '@/components/studio/languages';
@@ -17,9 +18,18 @@ import { StudioVoice } from '@/components/studio/voice';
 import { ArtProvider, Frame, Kicker } from '@/components/studio/primitives';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
+import { BRAND, EVENT_TYPES, formatINR, type PricedProduct } from '@cardai/shared';
+import type { Metadata } from 'next';
+import { JsonLd } from '@/components/seo/json-ld';
 import { loadOffers } from '@/lib/offers-server';
 
 const WHATSAPP_BOT = 'https://wa.me/910000000000?text=Hi';
+
+export const metadata: Metadata = {
+  // Main search term first; the brand tagline stays the default title for other pages.
+  title: { absolute: `Wedding Invitation Maker: Card, Video & Website · ${BRAND.name}` },
+  alternates: { canonical: '/' },
+};
 
 /**
  * Landing page, "studio" theme: full-screen video hero, then numbered sections with huge serif
@@ -28,21 +38,27 @@ const WHATSAPP_BOT = 'https://wa.me/910000000000?text=Hi';
 export default async function HomePage() {
   const t = await getTranslations();
   const hi = (await getLocale()) === 'hi';
-  const { products } = await loadOffers();
+  const { products, designs } = await loadOffers();
   const plans = [products.card, products.video, products.combo, products.website];
   const art = await landingArt();
+  const prices = plans.map((p) => p.pricePaise / 100);
+  const faq = homeFaq(plans);
 
   return (
     <ArtProvider names={art}>
+      <JsonLd data={structuredData(Math.max(...prices), faq)} />
       <div className="grain bg-ivory">
         <SiteHeader overlay />
         <StudioHero hi={hi} cta={t('hero.cta')} whatsappHref={WHATSAPP_BOT} />
 
         <main id="main">
           <StudioFeatures hi={hi} />
-          <StudioPremiumTunnel hi={hi} />
+          <StudioPremiumTunnel hi={hi} hidden={designs.hiddenTemplates} />
           <div className="cv-auto">
             <StudioProcess hi={hi} />
+          </div>
+          <div className="cv-auto">
+            <StudioVideoCarousel hi={hi} />
           </div>
           <div className="cv-auto">
             <StudioLanguages hi={hi} />
@@ -78,7 +94,7 @@ export default async function HomePage() {
                 </h2>
               </div>
               <div className="divide-y divide-ink/10 border-y border-ink/10 lg:col-span-7">
-                {FAQ.map(([q, a], k) => (
+                {faq.map(([q, a], k) => (
                   <details key={q} className="faq group">
                     <summary className="flex min-h-14 cursor-pointer list-none items-center gap-4 py-5 text-base sm:gap-6 sm:py-6 sm:text-lg [&::-webkit-details-marker]:hidden">
                       <span className="font-mono text-xs text-ink-soft">
@@ -113,6 +129,54 @@ async function landingArt(): Promise<string[]> {
   } catch {
     return [];
   }
+}
+
+/** Organization, WebSite, the app itself (free to try, paid plans up to `highPrice` INR) and the FAQ below. */
+function structuredData(highPrice: number, faq: Array<[string, string]>) {
+  const org = { '@type': 'Organization', '@id': `${BRAND.url}/#org`, name: BRAND.name, url: BRAND.url, logo: `${BRAND.url}/icon.svg`, email: BRAND.supportEmail };
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      org,
+      { '@type': 'WebSite', '@id': `${BRAND.url}/#site`, url: BRAND.url, name: BRAND.name, inLanguage: ['en-IN', 'hi-IN'], publisher: { '@id': org['@id'] } },
+      {
+        '@type': 'WebApplication',
+        name: BRAND.name,
+        url: BRAND.url,
+        description: BRAND.tagline,
+        applicationCategory: 'DesignApplication',
+        operatingSystem: 'Any (web browser)',
+        inLanguage: ['en-IN', 'hi-IN'],
+        publisher: { '@id': org['@id'] },
+        offers: { '@type': 'AggregateOffer', priceCurrency: 'INR', lowPrice: 0, highPrice, offerCount: 5 },
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: faq.map(([q, a]) => ({ '@type': 'Question', name: q, acceptedAnswer: { '@type': 'Answer', text: a } })),
+      },
+    ],
+  };
+}
+
+/**
+ * FAQ shown on the page and in FAQPage schema. The price and occasion answers are built from live
+ * offers and the event list, so they never drift from what the app actually charges and supports.
+ */
+function homeFaq(plans: PricedProduct[]): Array<[string, string]> {
+  const [card, video, combo, website] = plans as [PricedProduct, PricedProduct, PricedProduct, PricedProduct];
+  const occasions = EVENT_TYPES.filter((e) => e.id !== 'other').map((e) => e.label);
+  return [
+    FAQ[0]!,
+    [
+      'How much does an invitation cost?',
+      `Making and sharing is free. Pay once per event: ${card.name} ${formatINR(card.pricePaise)}, ${video.name} ${formatINR(video.pricePaise)}, ${website.name} ${formatINR(website.pricePaise)}, or all three in the ${combo.name} for ${formatINR(combo.pricePaise)}. No subscription. UPI, cards and wallets accepted.`,
+    ],
+    [
+      'Which occasions can I make invitations for?',
+      `${occasions.slice(0, -1).join(', ')} and ${occasions.at(-1)}. Each occasion comes with its own functions, wording and designs.`,
+    ],
+    ...FAQ.slice(1),
+  ];
 }
 
 const FAQ: Array<[string, string]> = [

@@ -11,7 +11,7 @@ import {
   type EventFunctionInput,
   type UpdateEventInput,
 } from '@cardai/shared';
-import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { DB } from '../../infra/infra.module.js';
@@ -176,7 +176,10 @@ export class EventsService {
   }
 
   async setStatus(user: AuthUser, eventId: string, status: 'published' | 'archived' | 'draft'): Promise<EventDto> {
-    await this.getOwned(user, eventId);
+    const owned = await this.getOwned(user, eventId);
+    if (status === 'published' && owned.suspendedAt) {
+      throw new ForbiddenException('This invitation was taken down by our team. Write to support if you think this is a mistake.');
+    }
     await this.db
       .update(events)
       .set({ status, publishedAt: status === 'published' ? new Date() : undefined })

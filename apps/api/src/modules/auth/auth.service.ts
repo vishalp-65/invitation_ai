@@ -15,6 +15,7 @@ import {
 import { ENV, type Env } from '../../config/env.js';
 import { hashPassword, sha256, verifyPassword } from '../../common/crypto.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
+import { FlagsService } from '../flags/flags.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { toLocale } from '../mail/templates/index.js';
 import { GoogleService, type GoogleProfile } from './google.service.js';
@@ -48,6 +49,7 @@ export class AuthService {
     @Inject(ENV) private readonly env: Env,
     @Inject(REDIS) private readonly redis: Redis,
     private readonly mail: MailService,
+    private readonly flags: FlagsService,
   ) {}
 
   /** Sign-up step 1: refuse addresses that already have an account, otherwise email a code. */
@@ -156,6 +158,7 @@ export class AuthService {
       return this.finish(toMe(linked!), false, userAgent, 'Google');
     }
 
+    await this.flags.require('signups', 'New sign-ups are paused for a short while. Please try again later.');
     const [created] = await this.db
       .insert(users)
       .values({ googleSub: g.sub, email: g.email, emailVerifiedAt: new Date(), name: g.name, avatarUrl: g.picture })
@@ -258,6 +261,7 @@ function toMe(u: UserRow): MeResponse {
     role: u.role as UserRole,
     locale: u.locale,
     marketingEmails: u.marketingEmails,
+    ...(u.role === 'admin' ? { adminScopes: (u.adminScopes as string[] | null)?.length ? (u.adminScopes as string[]) : ['owner'] } : {}),
   };
 }
 

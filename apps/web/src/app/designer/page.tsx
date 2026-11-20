@@ -56,7 +56,7 @@ export default function DesignerPage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto max-w-6xl px-5 py-10 sm:px-6">
+      <main id="main" className="mx-auto max-w-6xl px-5 py-10 sm:px-6">
         <h1 className="text-5xl">Designer studio</h1>
         <p className="mt-3 max-w-2xl text-lg text-ink-soft">
           Publish invitation themes and earn a share of every paid invitation that uses them.

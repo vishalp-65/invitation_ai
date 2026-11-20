@@ -9,7 +9,7 @@ export default function UnsubscribePage() {
   return (
     <>
       <SiteHeader />
-      <main className="mx-auto flex max-w-xl flex-col px-5 py-20 sm:py-28">
+      <main id="main" className="mx-auto flex max-w-xl flex-col px-5 py-20 sm:py-28">
         <Suspense>
           <UnsubscribeCard />
         </Suspense>

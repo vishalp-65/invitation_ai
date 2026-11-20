@@ -74,6 +74,9 @@
     "loading": "Loading…",
     "save": "Save changes",
     "saved": "Saved",
-    "retry": "Try again"
+    "retry": "Try again",
+    "close": "Close",
+    "offer": "Offer",
+    "dismiss": "Dismiss"
   }
 }

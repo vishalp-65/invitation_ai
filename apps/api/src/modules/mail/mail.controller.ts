@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { CurrentUser, Public, RateLimit, type AuthedRequest, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { ENV, type Env } from '../../config/env.js';
-import { AdminGuard } from '../admin/admin.controller.js';
+import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
 import { CampaignsService } from './campaigns.service.js';
 import { MailService } from './mail.service.js';
 import { renderMail, TEMPLATE_INFO, TEMPLATES, type MailKind } from './templates/index.js';
@@ -108,6 +108,7 @@ type CampaignBody = z.output<typeof emailCampaignInputSchema>;
 
 /** Admin: transactional template gallery + offer campaigns. */
 @UseGuards(AdminGuard)
+@AdminScopes('marketing')
 @Controller('admin/emails')
 export class AdminMailController {
   constructor(

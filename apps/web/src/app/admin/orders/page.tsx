@@ -2,11 +2,11 @@
 
 import { PRODUCTS, type ProductCode } from '@cardai/shared';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Mail, ShoppingBag } from 'lucide-react';
+import { Download, Mail, ShoppingBag } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Badge, dateTime, Empty, inr, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
+import { Badge, dateTime, downloadCsv, Empty, inr, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 
 interface OrderRow {
@@ -65,7 +65,25 @@ export default function AdminOrdersPage() {
       <PageHeader
         title="Orders"
         description="Every checkout, with what was charged, discounts and coupons."
-        actions={data && <span className="flex items-baseline gap-2 border border-ink/15 px-4 py-2"><span className="font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-soft">Collected</span><span className="font-display text-lg tabular-nums">{inr(data.paidPaise)}</span></span>}
+        actions={
+          <>
+            {data && (
+              <span className="flex items-baseline gap-2 border border-ink/15 px-4 py-2">
+                <span className="font-mono text-[0.625rem] uppercase tracking-[0.08em] text-ink-soft">Collected</span>
+                <span className="font-display text-lg tabular-nums">{inr(data.paidPaise)}</span>
+              </span>
+            )}
+            <Button
+              size="sm"
+              variant="line"
+              onClick={() =>
+                void downloadCsv(`/admin/orders/export${status !== 'all' ? `?status=${status}` : ''}`, `noyta-orders-${status}-${new Date().toISOString().slice(0, 10)}.csv`).catch(() => toast.error('Export failed'))
+              }
+            >
+              <Download className="size-4" /> Export CSV
+            </Button>
+          </>
+        }
       />
       <div className="mb-4">
         <Segmented

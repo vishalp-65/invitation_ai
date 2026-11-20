@@ -42,19 +42,19 @@ export class TokenService {
     return { accessToken, refreshToken };
   }
 
-  signAccess(user: AuthUser): Promise<string> {
-    return new SignJWT({ role: user.role })
+  signAccess(user: AuthUser, ttlSec = ACCESS_TTL_SEC): Promise<string> {
+    return new SignJWT(user.imp ? { role: user.role, imp: user.imp } : { role: user.role })
       .setProtectedHeader({ alg: 'HS256' })
       .setSubject(user.id)
       .setIssuedAt()
-      .setExpirationTime(`${ACCESS_TTL_SEC}s`)
+      .setExpirationTime(`${ttlSec}s`)
       .sign(this.accessKey);
   }
 
   async verifyAccess(token: string): Promise<AuthUser> {
     const { payload } = await jwtVerify(token, this.accessKey, { algorithms: ['HS256'] });
     if (!payload.sub) throw new UnauthorizedException();
-    return { id: payload.sub, role: (payload.role as UserRole) ?? 'user' };
+    return { id: payload.sub, role: (payload.role as UserRole) ?? 'user', ...(typeof payload.imp === 'string' ? { imp: payload.imp } : {}) };
   }
 
   /** Returns the session's userId and revokes the old token (rotation). */

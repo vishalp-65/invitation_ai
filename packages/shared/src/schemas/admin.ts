@@ -23,6 +23,7 @@ export const TRACK_EVENTS = [
   'coupon_applied',
   'purchase', // server-side: order paid
   'share',
+  'engagement', // client heartbeat: engaged seconds since the last one (props.sec); rolled up, not stored raw
 ] as const;
 export type TrackEventName = (typeof TRACK_EVENTS)[number];
 
@@ -102,11 +103,36 @@ export const announcementInputSchema = z.object({
 });
 export type AnnouncementInput = z.input<typeof announcementInputSchema>;
 
+/** Full plan edit; every null = back to the value in code. */
 export const productOverrideSchema = z.object({
-  /** null = back to the price in code. */
   pricePaise: z.number().int().min(100).max(10_000_000).nullable(),
   mrpPaise: z.number().int().min(100).max(10_000_000).nullable(),
+  name: z.string().trim().min(2).max(40).nullish().transform((v) => v || null),
+  description: z.string().trim().min(4).max(300).nullish().transform((v) => v || null),
+  /** "Most popular" ribbon on the pricing page. */
+  highlight: z.boolean().nullish().transform((v) => v ?? null),
+  /** Off sale: hidden from pricing, refused at checkout. */
+  disabled: z.boolean().default(false),
 });
+export type ProductOverrideInput = z.input<typeof productOverrideSchema>;
+export type ProductOverride = z.output<typeof productOverrideSchema>;
+
+/** Generates many single-use codes at once (campaigns, partners, influencers). */
+export const couponBulkSchema = z.object({
+  prefix: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .regex(/^[A-Z0-9]{2,12}$/, 'Use 2–12 letters or digits'),
+  count: z.number().int().min(1).max(500),
+  description: z.string().trim().max(200).nullish(),
+  kind: z.enum(['percent', 'flat']),
+  value: z.number().int().min(1),
+  productCodes,
+  endsAt: optDate,
+  /** Uses per code (1 = single-use). */
+  maxUses: z.number().int().min(1).max(1000).default(1),
+}).refine((c) => c.kind !== 'percent' || c.value <= 90, { message: 'Percent off must be 1–90', path: ['value'] });
 
 export interface SaleDto {
   id: string;
@@ -131,12 +157,42 @@ export interface PricedProduct extends Product {
   /** Price in code / admin override, before any sale. */
   basePricePaise: number;
   sale?: { id: string; name: string; percentOff: number };
+  /** Taken off sale by an admin. */
+  disabled?: boolean;
 }
+
+/** Admin visibility of the demo designs shown across the public site. */
+export interface DesignVisibilityDto {
+  /** Card templates hidden by an admin (also removed from landing-page demos). */
+  hiddenTemplates: string[];
+  /** Video / website design packs taken out of the picker. */
+  hiddenDesigns: string[];
+  /** Design packs removed only from the public showcase (landing demos). */
+  hiddenShowcase: string[];
+  /** Design packs shown first. */
+  featuredDesigns: string[];
+}
+
+export const EMPTY_DESIGN_VISIBILITY: DesignVisibilityDto = { hiddenTemplates: [], hiddenDesigns: [], hiddenShowcase: [], featuredDesigns: [] };
 
 export interface ActiveOffersDto {
   products: Record<ProductCode, PricedProduct>;
   sale: SaleDto | null;
   announcements: AnnouncementDto[];
+  designs?: DesignVisibilityDto;
+  /** Admin-replaced landing media (slot → URL). */
+  media?: Record<string, string>;
+  /** Maintenance notice and switched-off features. */
+  flags?: PublicFlagsDto;
+}
+
+/** Applies admin visibility to a list of design packs: hidden removed, featured first, order otherwise kept. */
+export function visibleDesigns<T extends { id: string }>(list: readonly T[], v: DesignVisibilityDto | undefined, surface: 'picker' | 'showcase'): T[] {
+  if (!v) return [...list];
+  const hidden = new Set(surface === 'showcase' ? [...v.hiddenDesigns, ...v.hiddenShowcase] : v.hiddenDesigns);
+  const featured = new Set(v.featuredDesigns);
+  const kept = list.filter((d) => !hidden.has(d.id));
+  return [...kept.filter((d) => featured.has(d.id)), ...kept.filter((d) => !featured.has(d.id))];
 }
 
 export function saleApplies(sale: Pick<SaleDto, 'productCodes'>, code: ProductCode): boolean {
@@ -144,8 +200,17 @@ export function saleApplies(sale: Pick<SaleDto, 'productCodes'>, code: ProductCo
 }
 
 /** Single source of truth for what a product costs right now (API checkout + web display). */
+export interface PlanOverride {
+  pricePaise: number | null;
+  mrpPaise: number | null;
+  name?: string | null;
+  description?: string | null;
+  highlight?: boolean | null;
+  disabled?: boolean;
+}
+
 export function priceProducts(
-  overrides: Partial<Record<ProductCode, { pricePaise: number | null; mrpPaise: number | null }>>,
+  overrides: Partial<Record<ProductCode, PlanOverride>>,
   sale: Pick<SaleDto, 'id' | 'name' | 'percentOff' | 'productCodes'> | null,
 ): Record<ProductCode, PricedProduct> {
   const out = {} as Record<ProductCode, PricedProduct>;
@@ -158,6 +223,10 @@ export function priceProducts(
     const price = onSale ? Math.max(100, Math.round((base * (100 - sale.percentOff)) / 100 / 100) * 100) : base;
     out[code] = {
       ...p,
+      ...(o?.name ? { name: o.name } : {}),
+      ...(o?.description ? { description: o.description } : {}),
+      ...(o?.highlight != null ? { highlight: o.highlight } : {}),
+      ...(o?.disabled ? { disabled: true } : {}),
       basePricePaise: base,
       pricePaise: price,
       // On sale, the pre-sale price is the honest strike-through when there is no MRP.
@@ -213,7 +282,108 @@ export const templateOverrideSchema = z.object({
 export const adminUserUpdateSchema = z.object({
   role: z.enum(['user', 'designer', 'agent', 'admin']).optional(),
   disabled: z.boolean().optional(),
+  /** Private support note; null clears it. */
+  note: z.string().trim().max(2000).nullable().optional(),
 });
 
-export const ANALYTICS_RANGES = ['7d', '30d', '90d'] as const;
+/** Gives a product to an invitation for free (support, refunds, partners). Logged as a ₹0 order. */
+export const adminGrantSchema = z.object({
+  eventId: z.uuid(),
+  productCode: z.enum(PRODUCT_CODES),
+  reason: z.string().trim().min(3).max(200),
+});
+
+export const designOverrideSchema = z.object({
+  hidden: z.boolean().optional(),
+  hideShowcase: z.boolean().optional(),
+  featured: z.boolean().optional(),
+});
+
+export const bulkTemplateSchema = z.object({
+  ids: z.array(z.string().regex(/^[a-z0-9-]{3,64}$/)).min(1).max(500),
+  hidden: z.boolean().optional(),
+  featured: z.boolean().optional(),
+});
+
+/** Take an invitation's public site down (abuse, copyright, complaints) or restore it. */
+export const eventModerationSchema = z.object({
+  suspended: z.boolean(),
+  reason: z.string().trim().max(300).nullish(),
+});
+
+export const ANALYTICS_RANGES = ['7d', '30d', '90d', '1y'] as const;
 export type AnalyticsRange = (typeof ANALYTICS_RANGES)[number];
+
+// ---------- Admin access ----------
+
+/**
+ * What an admin can do. `owner` = everything (roles, refunds, exports, data requests, switches).
+ * An admin with no scopes is treated as owner, so accounts promoted before scopes existed keep working.
+ */
+export const ADMIN_SCOPES = ['owner', 'support', 'marketing', 'content'] as const;
+export type AdminScope = (typeof ADMIN_SCOPES)[number];
+export const ADMIN_SCOPE_LABEL: Record<AdminScope, string> = {
+  owner: 'Owner: everything',
+  support: 'Support: users, invitations, orders',
+  marketing: 'Marketing: offers, plans, emails',
+  content: 'Content: templates, designs, media',
+};
+
+export const adminScopesSchema = z.object({ scopes: z.array(z.enum(ADMIN_SCOPES)).min(1).max(ADMIN_SCOPES.length) });
+
+export const adminMfaVerifySchema = z.object({ code: z.string().regex(/^\d{6}$/, 'Enter the 6-digit code') });
+
+// ---------- Money ----------
+
+export const refundSchema = z.object({
+  /** Paise; omitted = refund what is left on the order. */
+  amountPaise: z.number().int().min(100).optional(),
+  reason: z.string().trim().min(3).max(200),
+  /** Remove what the order unlocked (full refunds only). */
+  revokeAccess: z.boolean().default(false),
+});
+
+// ---------- Landing media ----------
+
+/** Files on the public site an admin can replace without a deploy. */
+export const MEDIA_SLOTS = {
+  'hero.video': { label: 'Hero video (desktop)', accept: ['video/mp4', 'video/webm'], maxMb: 40, fallback: '/video/hero.mp4' },
+  'hero.video_sm': { label: 'Hero video (phones)', accept: ['video/mp4', 'video/webm'], maxMb: 15, fallback: '/video/hero-sm.mp4' },
+  'hero.poster': { label: 'Hero poster image', accept: ['image/jpeg', 'image/webp', 'image/png'], maxMb: 3, fallback: '/video/hero-poster.jpg' },
+  'og.image': { label: 'Share preview image (WhatsApp / social)', accept: ['image/jpeg', 'image/png'], maxMb: 2, fallback: null },
+} as const;
+export type MediaSlot = keyof typeof MEDIA_SLOTS;
+export const MEDIA_SLOT_KEYS = Object.keys(MEDIA_SLOTS) as MediaSlot[];
+
+export const mediaPresignSchema = z.object({
+  contentType: z.string().max(80),
+  bytes: z.number().int().min(1).max(60 * 1024 * 1024),
+});
+
+export const musicTrackSchema = z.object({
+  id: z.string().regex(/^[a-z0-9-]{3,40}$/),
+  title: z.string().trim().min(2).max(60),
+  mood: z.string().trim().min(2).max(30),
+  durationSec: z.number().int().min(5).max(900),
+  license: z.string().trim().min(2).max(120),
+  active: z.boolean().default(true),
+  /** Storage key from the presigned upload; omitted when only editing details. */
+  storageKey: z.string().max(300).optional(),
+});
+
+// ---------- Data protection (DPDP Act 2023) ----------
+
+export const dataRequestSchema = z.object({
+  kind: z.enum(['export', 'erasure']),
+  /** Where the request came from, e.g. "Email from the user on 12 Nov". */
+  note: z.string().trim().max(300).nullish(),
+});
+
+/** Erasure must be typed out, so it is never one stray click. */
+export const erasureConfirmSchema = z.object({ confirm: z.literal('DELETE') });
+
+/** Public slice of the switches, sent with /offers/active. */
+export interface PublicFlagsDto {
+  maintenance: { on: boolean; message: string | null };
+  off: string[];
+}

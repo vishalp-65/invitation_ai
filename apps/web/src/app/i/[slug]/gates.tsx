@@ -33,7 +33,7 @@ export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }
   }
 
   return (
-    <main className="grid min-h-svh place-items-center bg-[#1E2250] px-6 py-16 text-center text-white">
+    <main id="main" className="grid min-h-svh place-items-center bg-[#1E2250] px-6 py-16 text-center text-white">
       <div className="w-full max-w-sm">
         {site.coverUrl && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -76,7 +76,7 @@ export function LockedSite({ slug, site }: { slug: string; site: LockedSiteDto }
 
 export function ExpiredSite() {
   return (
-    <main className="grid min-h-svh place-items-center bg-[#FBF6EC] px-6 text-center text-[#1E2250]">
+    <main id="main" className="grid min-h-svh place-items-center bg-[#FBF6EC] px-6 text-center text-[#1E2250]">
       <div className="max-w-sm">
         <h1 className="text-3xl">This invitation website is no longer online</h1>
         <p className="mt-3 text-[#1E2250]/75">The celebration has passed. Thank you for being part of it.</p>

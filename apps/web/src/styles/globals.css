@@ -544,11 +544,61 @@
   font: 500 0.78rem/1.3 var(--font-sans);
   pointer-events: none;
   opacity: 0;
-  transition: opacity 0.09s ease-out;
+  /* Position lives in `transform` (set inline, never animated); the entrance nudge uses `translate`. */
+  translate: var(--tip-dx, 0) var(--tip-dy, 0);
+  transition:
+    opacity 0.12s ease-out,
+    translate 0.16s var(--ease-out-quint);
   will-change: transform, opacity;
+}
+.tip-layer[data-side='right'] {
+  --tip-dx: -4px;
+}
+.tip-layer[data-side='left'] {
+  --tip-dx: 4px;
+}
+.tip-layer[data-side='bottom'] {
+  --tip-dy: -4px;
+}
+.tip-layer[data-side='top'] {
+  --tip-dy: 4px;
 }
 .tip-layer[data-open] {
   opacity: 1;
+  --tip-dx: 0;
+  --tip-dy: 0;
+}
+/* Arrow: a small rotated square in the bubble's colour, aimed via --tip-arrow (set in JS). */
+.tip-layer::before {
+  content: '';
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 1.5px;
+  background: inherit;
+  rotate: 45deg;
+}
+.tip-layer[data-side='right']::before {
+  left: -3px;
+  top: calc(var(--tip-arrow, 50%) - 4px);
+}
+.tip-layer[data-side='left']::before {
+  right: -3px;
+  top: calc(var(--tip-arrow, 50%) - 4px);
+}
+.tip-layer[data-side='bottom']::before {
+  top: -3px;
+  left: calc(var(--tip-arrow, 50%) - 4px);
+}
+.tip-layer[data-side='top']::before {
+  bottom: -3px;
+  left: calc(var(--tip-arrow, 50%) - 4px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tip-layer {
+    translate: none;
+    transition: opacity 0.12s ease-out;
+  }
 }
 [data-theme='dark'] .tip-layer {
   background: oklch(0.94 0.005 90);
@@ -772,8 +822,24 @@
     transition: margin-left 0.25s var(--ease-out-quint);
   }
 }
+/* Collapsed layout is pure CSS off <html data-sidebar>, so a reload in collapsed mode paints
+ * correctly on the first frame (React state only drives tooltips/labels after hydration). */
+.app-sidebar .sb-mark {
+  display: none;
+}
 [data-sidebar='collapsed'] .app-sidebar .sb-label {
   display: none;
+}
+[data-sidebar='collapsed'] .app-sidebar .sb-mark {
+  display: flex;
+}
+[data-sidebar='collapsed'] .app-sidebar .sb-item {
+  justify-content: center;
+  padding-inline: 0;
+}
+[data-sidebar='collapsed'] .app-sidebar .sb-head {
+  justify-content: center;
+  padding-inline: 0;
 }
 
 /* Hero scene: pieces settle into place once on load. */

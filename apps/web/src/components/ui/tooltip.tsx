@@ -6,7 +6,9 @@ import { cloneElement, isValidElement, useEffect, type ReactElement } from 'reac
  * Global tooltips.
  *
  * Any element with `data-tip="Label"` gets a tooltip — no wrappers, no per-button state.
- * Optional: `data-tip-kbd="Ctrl+Z"` (shortcut hint), `data-tip-side="top|bottom|left|right"`.
+ * Optional: `data-tip-kbd="Ctrl+Z"` (shortcut hint), `data-tip-side="top|bottom|left|right"`,
+ * `data-tip-delay="150"` (ms). Side and delay are inherited from the nearest ancestor that sets
+ * them, so a whole rail can opt in once (e.g. the dashboard sidebar sets side="right").
  *
  * One <TooltipLayer/> (mounted in Providers) listens with delegated pointer/focus events and
  * positions a single fixed element imperatively, so hovering a toolbar costs no React renders.
@@ -29,7 +31,13 @@ export function Tooltip({ content, kbd, side, children }: { content: string; kbd
 const SHOW_DELAY = 380;
 /** After one tooltip, moving to a neighbour shows the next instantly (like native toolbars). */
 const WARM_WINDOW = 450;
-const GAP = 8;
+const GAP = 10;
+
+/** Reads a data-* option from the element or its nearest ancestor that sets it. */
+function inherited(t: HTMLElement, key: 'tipSide' | 'tipDelay'): string | undefined {
+  const attr = key === 'tipSide' ? 'data-tip-side' : 'data-tip-delay';
+  return t.closest<HTMLElement>(`[${attr}]`)?.dataset[key];
+}
 
 export function TooltipLayer() {
   useEffect(() => {
@@ -49,7 +57,7 @@ export function TooltipLayer() {
       const h = el.offsetHeight;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
-      let side = (t.dataset.tipSide as Side | undefined) ?? 'bottom';
+      let side = (inherited(t, 'tipSide') as Side | undefined) ?? 'bottom';
       // Flip when there isn't room.
       if (side === 'bottom' && r.bottom + GAP + h > vh) side = 'top';
       else if (side === 'top' && r.top - GAP - h < 0) side = 'bottom';
@@ -59,6 +67,11 @@ export function TooltipLayer() {
       let y = side === 'top' ? r.top - GAP - h : side === 'bottom' ? r.bottom + GAP : r.top + r.height / 2 - h / 2;
       x = Math.max(6, Math.min(vw - w - 6, x));
       y = Math.max(6, Math.min(vh - h - 6, y));
+      // Arrow stays aimed at the target's centre even when the bubble is clamped to the viewport.
+      const vertical = side === 'top' || side === 'bottom';
+      const arrow = vertical ? r.left + r.width / 2 - x : r.top + r.height / 2 - y;
+      const span = vertical ? w : h;
+      el.style.setProperty('--tip-arrow', `${Math.round(Math.max(8, Math.min(span - 8, arrow)))}px`);
       el.dataset.side = side;
       el.style.transform = `translate3d(${Math.round(x)}px, ${Math.round(y)}px, 0)`;
     };
@@ -92,7 +105,8 @@ export function TooltipLayer() {
       hide();
       target = t;
       const warm = performance.now() - lastHide < WARM_WINDOW;
-      timer = setTimeout(() => target === t && t.isConnected && show(t), warm ? 0 : SHOW_DELAY);
+      const delay = Number(inherited(t, 'tipDelay') ?? SHOW_DELAY);
+      timer = setTimeout(() => target === t && t.isConnected && show(t), warm ? 0 : delay);
     };
 
     const find = (n: EventTarget | null) => (n instanceof Element ? (n.closest('[data-tip]') as HTMLElement | null) : null);

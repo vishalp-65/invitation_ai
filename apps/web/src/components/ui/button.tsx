@@ -38,10 +38,15 @@ export function Button({
   loading,
   className,
   children,
+  disabled,
+  type = 'button',
   ...props
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size; loading?: boolean }) {
+  // Defaults to type="button" so an action button inside a <form> never submits it by accident;
+  // submit buttons say `type="submit"`. `disabled` is pulled out so a caller's `disabled={false}`
+  // can't re-enable a loading button (double submits).
   return (
-    <button className={buttonClass(variant, size, className)} disabled={loading || props.disabled} {...props}>
+    <button type={type} className={buttonClass(variant, size, className)} {...props} disabled={loading || disabled} aria-busy={loading || undefined}>
       {loading && <span className="size-4 animate-spin rounded-full border-2 border-current border-t-transparent" aria-hidden />}
       {children}
     </button>

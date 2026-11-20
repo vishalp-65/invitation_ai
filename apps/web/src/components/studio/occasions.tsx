@@ -4,6 +4,7 @@ import { ArrowLeft, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 import { useEffect, useRef, useState } from 'react';
+import { occasionHref } from '@/features/occasions/routes';
 import { CardShot, Frame, useInView, useOnScreen } from './primitives';
 
 const ROTATE_MS = 8000;
@@ -81,10 +82,15 @@ export function StudioOccasions({ hi }: { hi: boolean }) {
                 <p className="text-ivory/60">{cur.who}</p>
               </div>
             </div>
-            <Link href={`/create?type=${cur.type}`} className="group mt-10 inline-flex items-center gap-2 font-mono text-sm text-ivory/60 transition-colors hover:text-ivory">
-              {hi ? 'इस अवसर के लिए बनाएँ' : 'Make one for this occasion'}
-              <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
-            </Link>
+            <div className="mt-10 flex flex-wrap gap-x-8 gap-y-3">
+              <Link href={`/create?type=${cur.type}`} className="group inline-flex items-center gap-2 font-mono text-sm text-ivory/60 transition-colors hover:text-ivory">
+                {hi ? 'इस अवसर के लिए बनाएँ' : 'Make one for this occasion'}
+                <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
+              </Link>
+              <Link href={occasionHref(cur.type)} className="font-mono text-sm text-ivory/40 underline decoration-ivory/20 underline-offset-4 transition-colors hover:text-ivory">
+                {hi ? `${cur.occ} के निमंत्रण` : `${cur.occ} invitations`}
+              </Link>
+            </div>
           </div>
 
           <div className="flex flex-col justify-center gap-6 lg:col-span-5">

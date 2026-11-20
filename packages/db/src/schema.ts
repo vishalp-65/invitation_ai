@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 import {
   boolean,
   check,
+  date,
   index,
   integer,
   jsonb,
@@ -92,14 +93,23 @@ export const users = pgTable(
   winbackSentAt: timestamp({ withTimezone: true }),
   /** Reseller agent who onboarded this user (P2 agent network). */
   referredByAgentId: uuid(),
+  /** Invitation this person was a guest of before signing up (viral loop). */
+  referredEventId: uuid(),
+  /** Admin permissions (see ADMIN_SCOPES); empty on an admin = owner. */
+  adminScopes: jsonb().$type<string[]>().notNull().default([]),
+  /** Admins: receive the 8 am daily summary email. */
+  adminDigest: boolean().notNull().default(true),
   /** Set by an admin to block sign-in (existing sessions are revoked). */
   disabledAt: timestamp({ withTimezone: true }),
+  /** Private support note, visible to admins only. */
+  adminNote: text(),
   lastSeenAt: timestamp({ withTimezone: true }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
   },
   (t) => [
     uniqueIndex('users_email_verified_uq').on(sql`lower(${t.email})`).where(sql`${t.emailVerifiedAt} is not null`),
+    index('users_created_idx').on(t.createdAt),
     check('users_has_contact', sql`${t.phone} is not null or ${t.email} is not null or ${t.googleSub} is not null`),
   ],
 );
@@ -149,10 +159,13 @@ export const events = pgTable(
     shortCode: text(),
     viewCount: integer().notNull().default(0),
     publishedAt: timestamp({ withTimezone: true }),
+    /** Taken down by an admin: the public site, links and short codes stop working until restored. */
+    suspendedAt: timestamp({ withTimezone: true }),
+    suspendedReason: text(),
     createdAt: createdAt(),
     updatedAt: updatedAt(),
   },
-  (t) => [uniqueIndex().on(t.slug), uniqueIndex('events_short_code_uq').on(t.shortCode), index().on(t.userId, t.createdAt)],
+  (t) => [uniqueIndex().on(t.slug), uniqueIndex('events_short_code_uq').on(t.shortCode), index().on(t.userId, t.createdAt), index('events_created_idx').on(t.createdAt)],
 );
 
 export const eventFunctions = pgTable(
@@ -298,8 +311,21 @@ export const orders = pgTable(
     paidAt: timestamp({ withTimezone: true }),
     /** Abandoned-checkout reminder sent for this unpaid order. */
     reminderSentAt: timestamp({ withTimezone: true }),
+    /** upi | card | netbanking | wallet | emi | paylater (from the gateway). */
+    paymentMethod: text(),
+    refundedPaise: integer().notNull().default(0),
+    refundedAt: timestamp({ withTimezone: true }),
+    /** Gateway refund id; 'pending' while a refund call is in flight (blocks double refunds). */
+    refundId: text(),
+    refundReason: text(),
   },
-  (t) => [uniqueIndex().on(t.providerOrderId), index().on(t.userId), index().on(t.eventId)],
+  (t) => [
+    uniqueIndex().on(t.providerOrderId),
+    index().on(t.userId),
+    index().on(t.eventId),
+    index('orders_paid_idx').on(t.paidAt).where(sql`${t.status} = 'paid'`),
+    index('orders_coupon_idx').on(t.couponCode).where(sql`${t.couponCode} is not null`),
+  ],
 );
 
 // ---------------- Guests & RSVP ----------------
@@ -548,6 +574,20 @@ export const templateOverrides = pgTable('template_overrides', {
   updatedAt: updatedAt(),
 });
 
+/**
+ * Admin overrides on the cinematic video / website design packs (defined in code). `hidden` takes a
+ * pack out of the picker (invitations already using it keep working); `hideShowcase` only removes
+ * it from the public demos on the landing page.
+ */
+export const siteDesignOverrides = pgTable('site_design_overrides', {
+  designId: text().primaryKey(),
+  hidden: boolean().notNull().default(false),
+  hideShowcase: boolean().notNull().default(false),
+  featured: boolean().notNull().default(false),
+  updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: updatedAt(),
+});
+
 export const catalogStatus = pgEnum('catalog_status', ['draft', 'published']);
 
 /** Templates designed by admins in the editor and published straight into the catalogue. */
@@ -573,11 +613,16 @@ export const catalogTemplates = pgTable(
   (t) => [uniqueIndex('catalog_templates_key_uq').on(t.templateKey)],
 );
 
-/** Admin price/MRP edits per product code. Missing row = the price in code. */
+/** Admin plan edits per product code (price, MRP, wording, on/off). Missing row / null = the value in code. */
 export const productOverrides = pgTable('product_overrides', {
   code: text().primaryKey(),
   pricePaise: integer(),
   mrpPaise: integer(),
+  name: text(),
+  description: text(),
+  highlight: boolean(),
+  /** Taken off sale: hidden from pricing and refused at checkout. Existing purchases keep working. */
+  disabled: boolean().notNull().default(false),
   updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
   updatedAt: updatedAt(),
 });
@@ -640,7 +685,8 @@ export const announcements = pgTable('announcements', {
 export const analyticsEvents = pgTable(
   'analytics_events',
   {
-    id: id(),
+    // Partitioned by month on created_at (migration 0011), so the key includes it.
+    id: uuid().notNull().default(sql`gen_random_uuid()`),
     name: text().notNull(),
     visitorId: text().notNull(),
     sessionId: text(),
@@ -657,6 +703,32 @@ export const analyticsEvents = pgTable(
     index('analytics_visitor_idx').on(t.visitorId),
     index('analytics_user_idx').on(t.userId, t.createdAt),
     index('analytics_template_idx').on(t.templateId, t.createdAt),
+    // Append-only time series: a BRIN index serves every "created_at >= X" scan at a tiny size.
+    index('analytics_time_brin').using('brin', t.createdAt),
+    primaryKey({ columns: [t.id, t.createdAt] }),
+  ],
+);
+
+/**
+ * One row per visitor per India-time day: engaged seconds (tab visible + recent input) and page
+ * views. Time-spent, DAU/WAU/MAU and repeat-visit analytics read this small rollup instead of
+ * scanning raw events.
+ */
+export const activityDaily = pgTable(
+  'activity_daily',
+  {
+    day: date({ mode: 'string' }).notNull(),
+    visitorId: text().notNull(),
+    userId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    activeSeconds: integer().notNull().default(0),
+    pageViews: integer().notNull().default(0),
+    device: text(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [
+    primaryKey({ columns: [t.day, t.visitorId] }),
+    index('activity_daily_user_idx').on(t.userId, t.day),
+    index('activity_daily_day_idx').on(t.day),
   ],
 );
 
@@ -672,6 +744,130 @@ export const adminAuditLog = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('admin_audit_time_idx').on(t.createdAt)],
+);
+
+// ---------------- Growth & operations ----------------
+
+/**
+ * First touch per anonymous visitor: where they came from (UTM / channel), coarse location
+ * (state + city from the edge, never an IP), language and connection. One row per visitor, so
+ * campaign, state and tier reports never scan raw events.
+ */
+export const visitorAttribution = pgTable(
+  'visitor_attribution',
+  {
+    visitorId: text().primaryKey(),
+    userId: uuid().references(() => users.id, { onDelete: 'set null' }),
+    firstSeenAt: createdAt(),
+    channel: text().notNull(),
+    utmSource: text(),
+    utmMedium: text(),
+    utmCampaign: text(),
+    referrer: text(),
+    landingPath: text(),
+    country: text(),
+    state: text(),
+    city: text(),
+    tier: text(),
+    language: text(),
+    network: text(),
+    inApp: text(),
+    device: text(),
+    /** Latest campaign seen (last touch), when different from the first. */
+    lastCampaign: text(),
+  },
+  (t) => [
+    index('visitor_attr_user_idx').on(t.userId),
+    index('visitor_attr_time_idx').on(t.firstSeenAt),
+    index('visitor_attr_campaign_idx').on(t.utmCampaign).where(sql`${t.utmCampaign} is not null`),
+  ],
+);
+
+/** Guest side of an invitation per day: opens, personal-link opens, WhatsApp opens. */
+export const invitationDaily = pgTable(
+  'invitation_daily',
+  {
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    day: date({ mode: 'string' }).notNull(),
+    views: integer().notNull().default(0),
+    guestViews: integer().notNull().default(0),
+    whatsappViews: integer().notNull().default(0),
+    mobileViews: integer().notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.day] }), index('invitation_daily_day_idx').on(t.day)],
+);
+
+/** Feature switches and gradual roll-outs (see BUILTIN_FLAGS). Missing row = the default. */
+export const featureFlags = pgTable('feature_flags', {
+  key: text().primaryKey(),
+  enabled: boolean().notNull(),
+  rolloutPct: integer().notNull().default(100),
+  description: text(),
+  message: text(),
+  updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: updatedAt(),
+});
+
+/** Health alerts raised by the 10-minute checks (also emailed to admins, de-duplicated). */
+export const adminAlerts = pgTable(
+  'admin_alerts',
+  {
+    id: id(),
+    kind: text().notNull(),
+    severity: text().notNull().default('warn'),
+    title: text().notNull(),
+    detail: text(),
+    data: jsonb().$type<Record<string, unknown>>(),
+    resolvedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('admin_alerts_time_idx').on(t.createdAt)],
+);
+
+/** Finished days, computed nightly (India time). Long-range charts and the digest read this. */
+export const dailyMetrics = pgTable('daily_metrics', {
+  day: date({ mode: 'string' }).primaryKey(),
+  visitors: integer().notNull().default(0),
+  signups: integer().notNull().default(0),
+  activeUsers: integer().notNull().default(0),
+  invitations: integer().notNull().default(0),
+  orders: integer().notNull().default(0),
+  revenuePaise: integer().notNull().default(0),
+  refundsPaise: integer().notNull().default(0),
+  engagedSeconds: integer().notNull().default(0),
+  guestViews: integer().notNull().default(0),
+  rendersFailed: integer().notNull().default(0),
+  aiCostMicroUsd: integer().notNull().default(0),
+  computedAt: updatedAt(),
+});
+
+/** Landing-page media an admin replaced (hero video, poster, share image). */
+export const siteMedia = pgTable('site_media', {
+  slot: text().primaryKey(),
+  storageKey: text().notNull(),
+  contentType: text().notNull(),
+  bytes: integer(),
+  updatedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: updatedAt(),
+});
+
+/** Data-protection requests (DPDP Act): export or erasure, handled by an admin, kept as a record. */
+export const dataRequests = pgTable(
+  'data_requests',
+  {
+    id: id(),
+    /** Kept as text: the account itself may be erased. */
+    userId: uuid().notNull(),
+    kind: text().notNull(),
+    status: text().notNull().default('open'),
+    note: text(),
+    handledBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    createdAt: createdAt(),
+    completedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [index('data_requests_user_idx').on(t.userId)],
 );
 
 // ---------------- Email ----------------

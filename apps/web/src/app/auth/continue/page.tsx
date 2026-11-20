@@ -30,7 +30,7 @@ function ContinueInner() {
 
 export default function ContinuePage() {
   return (
-    <main className="min-h-dvh bg-surface">
+    <main id="main" className="min-h-dvh bg-surface">
       <div className="px-5 py-4 sm:px-8">
         <Logo />
       </div>

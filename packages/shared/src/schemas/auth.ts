@@ -62,4 +62,8 @@ export interface MeResponse {
   role: UserRole;
   locale: string;
   marketingEmails: boolean;
+  /** Admins only: what they can do in the console. */
+  adminScopes?: string[];
+  /** Set while an admin is viewing the product as this user (read-only). */
+  impersonatedBy?: string;
 }

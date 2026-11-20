@@ -1,4 +1,4 @@
-import { artEl, fullPage, shapeEl, solidBg, type Band, type RecipeCtx } from './builder.js';
+import { artEl, fullPage, shapeEl, solidBg, type Band, type DateStyle, type RecipeCtx } from './builder.js';
 import { isDarkColor, mix } from './color.js';
 import { ALL_WEDDINGS, couple, DESIGN_FAMILIES, ganesha, goldOn, motif, radial, SACRED, trueGold, WEDDINGS, type Chrome, type DesignFamily } from './families.js';
 import { DESIGN_H, DESIGN_W, type DesignElement } from './schema.js';
@@ -47,7 +47,7 @@ const coupleNames = (big = 1): Band[] => [
   { t: 'text', role: 'names', bind: 'name2', gap: 4, size: 130 * big },
 ];
 
-const whenWhere = (date: 'strip' | 'line' | 'stack' | 'boxed', divider = 'ornate'): Band[] => [
+const whenWhere = (date: DateStyle, divider = 'ornate'): Band[] => [
   { t: 'divider', style: divider, gap: 30 },
   { t: 'date', style: date, gap: 30 },
   { t: 'text', role: 'venue', bind: 'fnM.venue', gap: 24 },

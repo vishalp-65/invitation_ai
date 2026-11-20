@@ -513,6 +513,119 @@ export const TEMPLATES = {
         ],
       }),
   }),
+  'admin.otp': define<{ code: string; ttlMinutes: number; device: string }>({
+    label: 'Admin sign-in check',
+    group: 'Admin',
+    category: 'auth',
+    sample: { code: '615204', ttlMinutes: 10, device: 'Chrome on Windows' },
+    render: (p, { layout, kicker, heading, para, codeBox, notice, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: `${p.code} is your ${BRAND.name} admin console code`,
+        preheader: `Someone is opening the admin console. The code expires in ${p.ttlMinutes} minutes.`,
+        reason: `You are receiving this because your account has admin access to ${BRAND.name}.`,
+        blocks: [
+          kicker('Admin console'),
+          heading('Confirm it is you'),
+          para(`Enter this code to open the admin console on ${p.device}. You will not be asked again on this device for 12 hours.`),
+          codeBox(p.code),
+          notice('If you did not just try to open the admin console, someone may have your password. Change it now and tell the other admins.', 'Not you?'),
+        ],
+      }),
+  }),
+
+  'admin.alert': define<{ title: string; detail: string; severity: 'warn' | 'critical'; actions: string[] }>({
+    label: 'Admin alert',
+    group: 'Admin',
+    category: 'transactional',
+    sample: { title: '7 video renders failed in 30 minutes', detail: '7 of 9 renders failed since 14:10 IST. Latest error: Chrome crashed.', severity: 'critical', actions: ['Check the worker logs', 'Pause video rendering from Settings → Switches if it keeps failing'] },
+    render: (p, { layout, kicker, heading, para, list, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: `${p.severity === 'critical' ? '🔴' : '🟠'} ${p.title}`,
+        preheader: p.detail.slice(0, 120),
+        reason: `You are receiving this because you are a ${BRAND.name} admin. Alerts repeat at most every 2 hours per problem.`,
+        blocks: [
+          kicker(p.severity === 'critical' ? 'Critical alert' : 'Alert'),
+          heading(p.title),
+          para(p.detail),
+          ...(p.actions.length ? [list(p.actions)] : []),
+          button('Open operations', url('/admin/operations')),
+        ],
+      }),
+  }),
+
+  'admin.digest': define<{
+    day: string;
+    rows: Array<{ label: string; value: string; change: string }>;
+    topTemplates: string[];
+    topStates: string[];
+    alerts: number;
+  }>({
+    label: 'Daily summary (admins)',
+    group: 'Admin',
+    category: 'transactional',
+    sample: {
+      day: 'Thursday, 19 Nov 2026',
+      rows: [
+        { label: 'Visitors', value: '1,240', change: '+12%' },
+        { label: 'Sign-ups', value: '86 (6.9%)', change: '+4%' },
+        { label: 'Revenue', value: '₹18,420', change: '−3%' },
+      ],
+      topTemplates: ['Royal Rajasthani · 14 invitations', 'Kerala Kasavu · 9 invitations'],
+      topStates: ['Maharashtra · 312 visitors', 'Uttar Pradesh · 205 visitors'],
+      alerts: 0,
+    },
+    render: (p, { layout, kicker, heading, para, details, list, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: `${BRAND.name} yesterday: ${p.rows.find((r) => r.label === 'Revenue')?.value ?? ''} · ${p.rows.find((r) => r.label === 'Sign-ups')?.value ?? ''} sign-ups`,
+        preheader: `Your daily summary for ${p.day}.`,
+        reason: `You are receiving this daily summary as a ${BRAND.name} admin. Turn it off from the admin console (Settings → Admins).`,
+        blocks: [
+          kicker('Daily summary'),
+          heading(p.day),
+          details(p.rows.map((r) => ({ label: r.label, value: r.change ? `${r.value}   ${r.change}` : r.value }))),
+          ...(p.topTemplates.length ? [para('Most used templates', { small: true, muted: true }), list(p.topTemplates)] : []),
+          ...(p.topStates.length ? [para('Top states', { small: true, muted: true }), list(p.topStates)] : []),
+          para(p.alerts ? `${p.alerts} alert(s) were raised. Check Operations.` : 'No alerts were raised.', { small: true, muted: true }),
+          button('Open the admin console', url('/admin')),
+        ],
+      }),
+  }),
+
+  'payment.refund': define<{ name: string | null; product: string; eventTitle: string; amountPaise: number; full: boolean; refundId: string }>({
+    label: 'Refund issued',
+    group: 'Payments',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma', product: 'Video Invite', eventTitle: 'Priya & Arjun — Wedding', amountPaise: 24900, full: true, refundId: 'rfnd_PQ8x2LmN0aBc' },
+    render: (p, { t, layout, kicker, heading, greeting, para, details, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`Refund of ${formatINR(p.amountPaise)} started`, `${formatINR(p.amountPaise)} का रिफ़ंड शुरू हो गया`),
+        preheader: t('It usually reaches your account in 5–7 working days.', 'यह आमतौर पर 5–7 कार्यदिवस में आपके खाते में आ जाता है।'),
+        blocks: [
+          kicker(t('Refund', 'रिफ़ंड')),
+          heading(t('Your refund is on its way', 'आपका रिफ़ंड भेज दिया गया है')),
+          greeting(p.name),
+          para(
+            t(
+              `We have refunded ${formatINR(p.amountPaise)} for ${p.product} (“${p.eventTitle}”). It goes back to the same UPI account, card or bank you paid with.`,
+              `${p.product} (“${p.eventTitle}”) के लिए ${formatINR(p.amountPaise)} रिफ़ंड कर दिए गए हैं। पैसे उसी UPI, कार्ड या बैंक खाते में लौटेंगे जिससे भुगतान हुआ था।`,
+            ),
+          ),
+          details([
+            { label: t('Amount', 'राशि'), value: formatINR(p.amountPaise), strong: true },
+            { label: t('Type', 'प्रकार'), value: p.full ? t('Full refund', 'पूरा रिफ़ंड') : t('Partial refund', 'आंशिक रिफ़ंड') },
+            { label: t('Refund ID', 'रिफ़ंड ID'), value: p.refundId },
+          ]),
+          para(
+            t('UPI refunds usually arrive within 2 days; cards and net banking can take 5–7 working days. Your bank may show it under the refund ID above.', 'UPI रिफ़ंड आमतौर पर 2 दिन में आ जाता है; कार्ड और नेट बैंकिंग में 5–7 कार्यदिवस लग सकते हैं। बैंक स्टेटमेंट में ऊपर दिया रिफ़ंड ID दिख सकता है।'),
+            { muted: true, small: true },
+          ),
+        ],
+      }),
+  }),
 };
 
 export type MailKind = keyof typeof TEMPLATES;
