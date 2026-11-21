@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
+import { ErrorReporter } from '@/components/error-reporter';
 import { SystemBars } from '@/components/layout/system-bars';
 import { Tracker } from '@/components/tracker';
 import { TooltipLayer } from '@/components/ui/tooltip';
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={client}>
       <ThemeSync />
+      <ErrorReporter />
       <TooltipLayer />
       <Tracker />
       <SystemBars />

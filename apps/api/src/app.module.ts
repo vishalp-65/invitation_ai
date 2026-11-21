@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { AllExceptionsFilter } from './common/all-exceptions.filter.js';
+import { redactQuery, redactUrl } from './common/http-hardening.js';
 import { AuthGuard, RateLimitGuard, RolesGuard } from './common/guards.js';
 import { InfraModule } from './infra/infra.module.js';
 import { AdminModule } from './modules/admin/admin.module.js';
@@ -18,6 +19,9 @@ import { HealthController } from './modules/health/health.controller.js';
 import { MailModule } from './modules/mail/mail.module.js';
 import { MarketplaceModule } from './modules/marketplace/marketplace.module.js';
 import { MediaModule } from './modules/media/media.module.js';
+import { MembersModule } from './modules/members/members.module.js';
+import { FollowUpsModule } from './modules/follow-ups/follow-ups.module.js';
+import { ErrorsModule } from './modules/errors/errors.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { PrintModule } from './modules/print/print.module.js';
 import { RendersModule } from './modules/renders/renders.module.js';
@@ -35,7 +39,11 @@ const isDev = process.env.NODE_ENV !== 'production';
       pinoHttp: {
         level: isDev ? 'debug' : 'info',
         transport: isDev ? { target: 'pino-pretty', options: { singleLine: true } } : undefined,
-        redact: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
+        redact: ['req.headers.authorization', 'req.headers.cookie', 'req.headers["x-noyta-client-sig"]', 'res.headers["set-cookie"]'],
+        // Guest links, unlock keys and OAuth codes travel in the query string: keep them out of logs.
+        serializers: {
+          req: (req: { url?: string; query?: unknown }) => Object.assign(req, { url: redactUrl(req.url), query: redactQuery(req.query) }),
+        },
         autoLogging: { ignore: (req) => req.url?.startsWith('/api/health') ?? false },
       },
     }),
@@ -55,6 +63,9 @@ const isDev = process.env.NODE_ENV !== 'production';
     ShortLinksModule,
     SitesModule,
     GuestsModule,
+    MembersModule,
+    FollowUpsModule,
+    ErrorsModule,
     WhatsAppModule,
     PrintModule,
     MarketplaceModule,

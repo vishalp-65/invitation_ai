@@ -11,6 +11,7 @@ import { Field, Input, Textarea } from '@/components/ui/field';
 import { ago, Badge, Card, Empty, PageHeader, Segmented, shortDate, Skeleton, Table, Toggle } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/hooks';
+import { Select } from '@/components/ui/select';
 
 type Tab = 'switches' | 'admins' | 'media' | 'music' | 'privacy';
 
@@ -576,9 +577,9 @@ function Privacy() {
                 <td>{r.handledByName ?? '—'}</td>
                 <td className="max-w-56 truncate text-xs text-ink-soft">{r.note ?? '—'}</td>
                 <td>
-                  <select
+                  <Select
                     aria-label="Change request"
-                    className="h-8 border border-ink/15 bg-transparent px-2 text-xs"
+                    className="h-8 w-auto min-w-32 text-xs"
                     value=""
                     onChange={(e) => e.target.value && void act(r.id, e.target.value as 'done' | 'rejected' | 'open' | 'delete')}
                   >
@@ -587,7 +588,7 @@ function Privacy() {
                     {r.status !== 'rejected' && <option value="rejected">Mark rejected</option>}
                     {r.status !== 'open' && <option value="open">Re-open</option>}
                     <option value="delete">Delete record</option>
-                  </select>
+                  </Select>
                 </td>
               </tr>
             );

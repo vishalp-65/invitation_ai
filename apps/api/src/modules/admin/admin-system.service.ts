@@ -257,6 +257,20 @@ export class AdminSystemService {
 
   /** Everything we hold about a person, as one JSON file (right to access). */
   async exportData(admin: AuthUser, userId: string) {
+    const data = await this.collectData(userId);
+    this.audit(admin, 'dpdp.export', userId, { name: data.profile.name ?? data.profile.email });
+    await this.db.update(dataRequests).set({ status: 'done', completedAt: new Date() }).where(sql`${dataRequests.userId} = ${userId} and ${dataRequests.kind} = 'export' and ${dataRequests.status} = 'open'`);
+    return data;
+  }
+
+  /** The person's own download (Settings → Your data). */
+  async exportOwnData(userId: string) {
+    const data = await this.collectData(userId);
+    void this.db.insert(dataRequests).values({ userId, kind: 'export', status: 'done', note: 'Self-service download', completedAt: new Date() }).catch(() => undefined);
+    return data;
+  }
+
+  private async collectData(userId: string) {
     const [user] = await this.db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new NotFoundException('User not found');
     const q = async <T>(s: ReturnType<typeof sql>) => (await this.db.execute(s)).rows as T[];
@@ -272,8 +286,6 @@ export class AdminSystemService {
       q(sql`select name, path, device, template_id, created_at from analytics_events where user_id = ${userId} order by created_at desc limit 5000`),
     ]);
     const { passwordHash: _p, adminNote: _n, googleSub: _g, ...profile } = user;
-    this.audit(admin, 'dpdp.export', userId, { name: user.name ?? user.email });
-    await this.db.update(dataRequests).set({ status: 'done', completedAt: new Date() }).where(sql`${dataRequests.userId} = ${userId} and ${dataRequests.kind} = 'export' and ${dataRequests.status} = 'open'`);
     return {
       exportedAt: new Date().toISOString(),
       note: 'Personal data held by Noyta for this account (Digital Personal Data Protection Act, 2023). Guest names and numbers were added by the account holder for their invitations.',
@@ -294,10 +306,24 @@ export class AdminSystemService {
    * and their invitations are blanked instead of deleted.
    */
   async eraseUser(admin: AuthUser, userId: string) {
+    if (userId === admin.id) throw new ForbiddenException('You cannot erase your own account here.');
+    const result = await this.erase(userId);
+    this.audit(admin, 'dpdp.erase', userId, { invitationsDeleted: result.invitationsDeleted, invitationsBlanked: result.invitationsBlanked, files: result.files });
+    return result;
+  }
+
+  /** The person deleting their own account (Settings → Delete account, confirmed by an emailed code). */
+  async eraseOwnAccount(userId: string) {
+    await this.db.insert(dataRequests).values({ userId, kind: 'erasure', note: 'Self-service deletion' });
+    const result = await this.erase(userId);
+    void this.db.execute(sql`insert into admin_audit_log (admin_id, action, target, details) values (null, 'dpdp.self-erase', ${userId}, ${JSON.stringify({ invitationsDeleted: result.invitationsDeleted, invitationsBlanked: result.invitationsBlanked, files: result.files })}::jsonb)`).catch(() => undefined);
+    return result;
+  }
+
+  private async erase(userId: string) {
     const [user] = await this.db.select().from(users).where(eq(users.id, userId));
     if (!user) throw new NotFoundException('User not found');
     if (user.role === 'admin') throw new ForbiddenException('Remove admin access before erasing this account.');
-    if (user.id === admin.id) throw new ForbiddenException('You cannot erase your own account here.');
 
     const files = await this.db.select({ key: mediaAssets.storageKey }).from(mediaAssets).where(eq(mediaAssets.userId, userId));
     // Invitations with orders or print orders are kept (blanked): those records must stay.
@@ -355,7 +381,7 @@ export class AdminSystemService {
       const failed = r.filter((x) => x.status === 'rejected').length;
       if (failed) this.logger.warn(`Erasure ${userId}: ${failed} file(s) could not be deleted`);
     });
-    this.audit(admin, 'dpdp.erase', userId, { invitationsDeleted: deletable.length, invitationsBlanked: keep.length, files: files.length });
+    await this.tokens.revokeAll(userId);
     return { ok: true, invitationsDeleted: deletable.length, invitationsBlanked: keep.length, files: files.length };
   }
 

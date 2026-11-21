@@ -143,36 +143,36 @@ export default function AdminUsersPage() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-ink-soft" />
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Name, email or phone" className={`${controlClass} h-10 w-full pl-9 pr-3 text-sm`} />
           </label>
-          <select
+          <Select
             value={role}
             onChange={(e) => {
               setRole(e.target.value as UserRole | '');
               setPage(1);
             }}
             aria-label="Role"
-            className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}
+            className="h-10 w-auto min-w-36 text-sm font-medium"
           >
             <option value="">All roles</option>
             <option value="user">Customers</option>
             <option value="designer">Designers</option>
             <option value="agent">Agents</option>
             <option value="admin">Admins</option>
-          </select>
-          <select
+          </Select>
+          <Select
             value={sort}
             onChange={(e) => {
               setSort(e.target.value as Sort);
               setPage(1);
             }}
             aria-label="Sort"
-            className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}
+            className="h-10 w-auto min-w-36 text-sm font-medium"
           >
             {(Object.keys(SORTS) as Sort[]).map((k) => (
               <option key={k} value={k}>
                 {SORTS[k]}
               </option>
             ))}
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -400,17 +400,17 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
             <div className="m-5 flex flex-wrap items-center gap-2 border border-ink/10 p-3">
               <label className="flex items-center gap-2 text-sm font-medium">
                 <ShieldCheck className="size-4 text-ink-soft" /> Role
-                <select
+                <Select
                   value={u.role}
                   disabled={busy || self}
                   onChange={(e) => void update({ role: e.target.value as UserRole }, `Role changed to ${e.target.value}`)}
-                  className={`${controlClass} select h-9 pl-3 pr-9 text-sm`}
+                  className="h-9 w-auto min-w-32 text-sm"
                 >
                   <option value="user">Customer</option>
                   <option value="designer">Designer</option>
                   <option value="agent">Agent</option>
                   <option value="admin">Admin</option>
-                </select>
+                </Select>
               </label>
               <span className="flex-1" />
               {u.role !== 'admin' && !u.disabledAt && (

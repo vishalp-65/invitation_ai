@@ -1,10 +1,12 @@
 import {
   albumUploadSchema,
+  submitGiftSchema,
   submitRsvpSchema,
   trackViewSchema,
   unlockSiteSchema,
   wishInputSchema,
   type AlbumUploadInput,
+  type SubmitGiftInput,
   type SubmitRsvpInput,
   type WishInput,
 } from '@cardai/shared';
@@ -89,6 +91,21 @@ export class SitesController {
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
   rsvp(@Param('slug') slug: string, @ZBody(submitRsvpSchema) body: SubmitRsvpInput) {
     return this.sites.submitRsvp(slug, body);
+  }
+
+  @Post(':slug/gifts')
+  @HttpCode(200)
+  @RateLimit({ limit: 20, windowSec: 600, by: 'ip' })
+  gift(@Param('slug') slug: string, @ZBody(submitGiftSchema) body: SubmitGiftInput) {
+    return this.sites.submitGift(slug, body);
+  }
+
+  /** Entry pass QR for a personal link (scanned at the gate). */
+  @Get(':slug/pass.svg')
+  @Header('Content-Type', 'image/svg+xml')
+  @Header('Cache-Control', 'private, max-age=3600')
+  pass(@Param('slug') slug: string, @Query('g') guestToken?: string) {
+    return this.sites.passQr(slug, guestToken);
   }
 
   @Get(':slug/upi-qr.svg')

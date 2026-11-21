@@ -2,15 +2,17 @@ import {
   and,
   designerEarnings,
   designerProfiles,
+  entitlements,
   eq,
   events,
   marketplaceTemplates,
+  ne,
   orders,
   sql,
   users,
   type Database,
 } from '@cardai/db';
-import { productName, type CheckoutDto, type CreateOrderInput, type ProductCode, type VerifyPaymentInput } from '@cardai/shared';
+import { PRODUCTS, productName, type CheckoutDto, type Feature, type CreateOrderInput, type ProductCode, type VerifyPaymentInput } from '@cardai/shared';
 import {
   BadRequestException,
   ConflictException,
@@ -38,6 +40,39 @@ const REFUND_CLAIM = 'pending';
 const REFUND_CLAIM_STALE_MS = 15 * 60_000;
 /** When a claim was taken; a legacy claim without a timestamp counts as long stale. */
 export const claimedAt = (refundId: string) => Number(refundId.split(':')[1]) || 0;
+
+type EntitlementRow = { feature: Feature; credits: number; orderId: string | null };
+export type RevocationStep = { feature: Feature; action: 'delete' } | { feature: Feature; action: 'update'; credits: number; orderId: string | null };
+
+/**
+ * What a full refund of `refunded` takes back from the event's entitlement rows:
+ * - its credits come off the shared row (never below zero);
+ * - a feature is removed only when no other paid order of the event grants it and the row is not
+ *   an admin grant (`order_id` null; a purchase on top of a grant keeps it null);
+ * - a kept row that pointed at the refunded order is re-pointed at an order that still grants it.
+ */
+export function revocationPlan(
+  refunded: { id: string; productCode: ProductCode },
+  otherPaid: Array<{ id: string; productCode: ProductCode }>,
+  rows: EntitlementRow[],
+): RevocationStep[] {
+  const product = PRODUCTS[refunded.productCode];
+  const steps: RevocationStep[] = [];
+  for (const feature of product.features) {
+    const row = rows.find((r) => r.feature === feature);
+    if (!row) continue;
+    const stillGranted = otherPaid.filter((o) => PRODUCTS[o.productCode]?.features.includes(feature));
+    const credits = Math.max(0, row.credits - (product.credits?.[feature] ?? 0));
+    const adminGrant = row.orderId === null;
+    if (!stillGranted.length && !adminGrant && credits === 0) {
+      steps.push({ feature, action: 'delete' });
+      continue;
+    }
+    const orderId = row.orderId === refunded.id ? (stillGranted[0]?.id ?? null) : row.orderId;
+    if (credits !== row.credits || orderId !== row.orderId) steps.push({ feature, action: 'update', credits, orderId });
+  }
+  return steps;
+}
 
 /** Retries a DB write a few times with a short backoff (for writes that must land after money moved). */
 export async function withRetry<T>(fn: () => PromiseLike<T>, attempts = 3, baseMs = 250): Promise<T> {
@@ -85,6 +120,26 @@ export class PaymentsService {
     const [me] = await this.db.select({ phone: users.phone, name: users.name }).from(users).where(eq(users.id, user.id));
 
     // Price is always computed here (admin override -> running sale -> coupon), never trusted from the browser.
+    // One coupon checkout per user at a time, so parallel requests can't each pass the limit check.
+    const couponLock = input.couponCode ? `coupon:checkout:${user.id}:${input.couponCode.trim().toUpperCase()}` : null;
+    if (couponLock && !(await this.redis.set(couponLock, '1', 'EX', 15, 'NX'))) {
+      throw new ConflictException('Your checkout is already starting. Please wait a moment.');
+    }
+    try {
+      if (input.couponCode) await this.offers.releaseOwnHolds(user.id, input.couponCode);
+      return await this.startCheckout(user, input, event, product, me);
+    } finally {
+      if (couponLock) await this.redis.del(couponLock).catch(() => undefined);
+    }
+  }
+
+  private async startCheckout(
+    user: AuthUser,
+    input: CreateOrderInput,
+    event: { id: string; templateId: string },
+    product: Awaited<ReturnType<OffersService['product']>>,
+    me: { phone: string | null; name: string | null } | undefined,
+  ): Promise<CheckoutDto> {
     const coupon = input.couponCode ? await this.offers.quote(user.id, input.couponCode, product.code) : null;
     const amountPaise = coupon ? coupon.totalPaise : product.pricePaise;
 
@@ -219,10 +274,15 @@ export class PaymentsService {
       );
     }
 
+    // A full refund means the coupon wasn't really used (best effort: the money is already back).
+    if (full && order.couponCode) {
+      await this.offers.releaseUse(order.couponCode).catch((err: Error) => this.logger.warn({ err, orderId }, 'Could not give the coupon use back'));
+    }
+
     let revoked = false;
     if (full && input.revokeAccess) {
       try {
-        await this.revokeOrderAccess(orderId);
+        await this.revokeOrderAccess(order);
         revoked = true;
       } catch (err) {
         this.logger.error({ err, orderId }, 'Refund recorded but revoking access failed');
@@ -239,11 +299,26 @@ export class PaymentsService {
     return { ok: true, refundId, amountPaise: amount, full, revoked };
   }
 
-  /** Takes back what a fully refunded order unlocked, and cancels the unpaid designer share. */
-  private async revokeOrderAccess(orderId: string) {
+  /**
+   * Takes back what a fully refunded order unlocked, and cancels the unpaid designer share.
+   * Entitlement rows are one per (event, feature) and repeat purchases only add credits, so the
+   * row's `order_id` is not this order's grant: see `revocationPlan`.
+   */
+  private async revokeOrderAccess(order: { id: string; eventId: string; productCode: string }) {
     await this.db.transaction(async (tx) => {
-      await tx.execute(sql`delete from entitlements where order_id = ${orderId}`);
-      await tx.execute(sql`delete from designer_earnings where order_id = ${orderId} and status = 'pending'`);
+      const [rows, others] = await Promise.all([
+        tx.select({ feature: entitlements.feature, credits: entitlements.credits, orderId: entitlements.orderId }).from(entitlements).where(eq(entitlements.eventId, order.eventId)),
+        tx
+          .select({ id: orders.id, productCode: orders.productCode })
+          .from(orders)
+          .where(and(eq(orders.eventId, order.eventId), eq(orders.status, 'paid'), ne(orders.id, order.id))),
+      ]);
+      for (const step of revocationPlan({ id: order.id, productCode: order.productCode as ProductCode }, others as Array<{ id: string; productCode: ProductCode }>, rows)) {
+        const where = and(eq(entitlements.eventId, order.eventId), eq(entitlements.feature, step.feature));
+        if (step.action === 'delete') await tx.delete(entitlements).where(where);
+        else await tx.update(entitlements).set({ credits: step.credits, orderId: step.orderId }).where(where);
+      }
+      await tx.execute(sql`delete from designer_earnings where order_id = ${order.id} and status = 'pending'`);
     });
   }
 
@@ -298,9 +373,12 @@ export class PaymentsService {
       const [order] = await tx
         .update(orders)
         .set({ status: 'paid', providerPaymentId, paidAt: new Date() })
-        .where(sql`${orders.providerOrderId} = ${providerOrderId} AND ${orders.status} <> 'paid'`)
+        // Only unpaid orders. A refunded order must never flip back to paid: the browser can resend its
+        // still-valid Checkout signature and Razorpay retries webhooks, both long after a refund.
+        // 'failed' stays allowed: an admin may cancel a checkout the customer then still paid.
+        .where(sql`${orders.providerOrderId} = ${providerOrderId} AND ${orders.status} in ('created', 'failed')`)
         .returning();
-      if (!order) return undefined; // already fulfilled
+      if (!order) return undefined; // already fulfilled, or refunded
       let earning: Paid['earning'];
 
       await this.entitlements.grantProduct(tx, order.eventId, order.productCode as ProductCode, order.id);

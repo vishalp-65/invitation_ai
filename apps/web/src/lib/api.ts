@@ -42,7 +42,9 @@ export async function apiFetch(path: string, init: RequestInit & { json?: unknow
     },
     body: json !== undefined ? JSON.stringify(json) : rest.body,
   });
-  if (res.status === 401 && !retried && !path.startsWith('/auth/') && (await refreshSession())) {
+  if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
+    // Retry even when our refresh lost: another tab may have just rotated the shared cookies.
+    await refreshSession();
     return apiFetch(path, init, true);
   }
   return res;

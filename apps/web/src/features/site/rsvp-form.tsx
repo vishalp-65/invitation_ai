@@ -4,6 +4,7 @@ import { MEAL_PREFERENCES, type RsvpStatus } from '@cardai/shared';
 import { useState } from 'react';
 import { useSite } from './context';
 import { postJson } from './utils';
+import { Select } from '@/components/ui/select';
 
 const LABELS: Record<RsvpStatus, string> = { yes: 'Coming', maybe: 'Maybe', no: "Can't come" };
 const MEAL: Record<(typeof MEAL_PREFERENCES)[number], string> = { veg: 'Veg', non_veg: 'Non-veg', jain: 'Jain', vegan: 'Vegan' };
@@ -120,14 +121,14 @@ export function RsvpForm() {
         {site.event.settings.askMealPreference && (
           <label className="flex flex-col gap-1.5 font-semibold">
             Food preference
-            <select className={field} value={meal} onChange={(e) => setMeal(e.target.value)}>
+            <Select variant="plain" className={`${field} font-normal`} value={meal} onChange={(e) => setMeal(e.target.value)}>
               <option value="">No preference</option>
               {MEAL_PREFERENCES.map((m) => (
                 <option key={m} value={m}>
                   {MEAL[m]}
                 </option>
               ))}
-            </select>
+            </Select>
           </label>
         )}
         {site.event.settings.askAccommodation && (

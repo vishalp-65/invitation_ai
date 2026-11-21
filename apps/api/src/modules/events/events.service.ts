@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, eventFunctions, events, guests, inArray, ne, rsvps, sql, type Database } from '@cardai/db';
+import { and, asc, desc, eq, eventFunctions, eventMembers, events, guests, inArray, isNotNull, isNull, ne, or, rsvps, sql, users, type Database } from '@cardai/db';
 import {
   eventSettingsSchema,
   getEventType,
@@ -26,6 +26,16 @@ export type FunctionRow = typeof eventFunctions.$inferSelect;
 
 const OUTER_EVENT_ID = sql.raw('"events"."id"');
 
+/** What a call needs: read, manage guests, edit the invitation, or owner-only (billing, co-hosts, delete). */
+export type Need = 'view' | 'guests' | 'edit' | 'owner';
+export type Access = 'owner' | 'editor' | 'guests' | 'viewer';
+const RANK: Record<Access, number> = { viewer: 0, guests: 1, editor: 2, owner: 3 };
+const NEED_RANK: Record<Need, number> = { view: 0, guests: 1, edit: 2, owner: 3 };
+
+export function accessAllows(access: Access, need: Need): boolean {
+  return RANK[access] >= NEED_RANK[need];
+}
+
 @Injectable()
 export class EventsService {
   constructor(
@@ -35,11 +45,44 @@ export class EventsService {
     private readonly links: ShortLinksService,
   ) {}
 
-  /** Loads an event the caller owns (admins can access all). 404 instead of 403 to avoid leaking ids. */
-  async getOwned(user: AuthUser, eventId: string): Promise<EventRow> {
+  /**
+   * Loads an event the caller may act on with `need` (default: edit). Owners can do everything,
+   * co-hosts what their role allows. Admins may only *read* customer invitations here: changes go
+   * through AdminGuard routes (DB re-check, MFA, scopes), never a bare JWT role claim.
+   * 404 instead of 403 when there is no access at all, to avoid leaking ids.
+   */
+  async getOwned(user: AuthUser, eventId: string, need: Need = 'edit'): Promise<EventRow> {
+    return (await this.access(user, eventId, need)).event;
+  }
+
+  async access(user: AuthUser, eventId: string, need: Need = 'edit'): Promise<{ event: EventRow; access: Access }> {
     const [row] = await this.db.select().from(events).where(eq(events.id, eventId));
-    if (!row || (row.userId !== user.id && user.role !== 'admin')) throw new NotFoundException('Event not found');
-    return row;
+    if (!row) throw new NotFoundException('Event not found');
+    let access: Access | null = row.userId === user.id ? 'owner' : null;
+    if (!access) {
+      const [m] = await this.db
+        .select({ role: eventMembers.role })
+        .from(eventMembers)
+        .where(and(eq(eventMembers.eventId, eventId), eq(eventMembers.userId, user.id), isNotNull(eventMembers.acceptedAt)));
+      if (m) access = m.role as Access;
+    }
+    if (!access && user.role === 'admin' && need === 'view') access = 'viewer';
+    if (!access) throw new NotFoundException('Event not found');
+    if (!accessAllows(access, need)) {
+      throw new ForbiddenException(need === 'owner' ? 'Only the person who created this invitation can do this.' : 'Your co-host role does not allow this. Ask the host to change it.');
+    }
+    return { event: row, access };
+  }
+
+  /** Links pending co-host invites to this account once its email is verified. */
+  async acceptInvites(user: AuthUser): Promise<number> {
+    const [me] = await this.db.select({ email: users.email, verified: users.emailVerifiedAt }).from(users).where(eq(users.id, user.id));
+    if (!me?.email || !me.verified) return 0;
+    const res = await this.db
+      .update(eventMembers)
+      .set({ userId: user.id, acceptedAt: new Date() })
+      .where(and(eq(eventMembers.email, me.email.toLowerCase()), isNull(eventMembers.userId)));
+    return res.rowCount ?? 0;
   }
 
   async functionsOf(eventId: string): Promise<FunctionRow[]> {
@@ -83,6 +126,11 @@ export class EventsService {
   }
 
   async list(user: AuthUser) {
+    await this.acceptInvites(user);
+    const shared = this.db
+      .select({ id: eventMembers.eventId })
+      .from(eventMembers)
+      .where(and(eq(eventMembers.userId, user.id), isNotNull(eventMembers.acceptedAt)));
     const rows = await this.db
       .select({
         id: events.id,
@@ -99,17 +147,18 @@ export class EventsService {
         firstStartsAt: sql<Date | null>`(select min(${eventFunctions.startsAt}) from ${eventFunctions} where ${eventFunctions.eventId} = ${OUTER_EVENT_ID})`.mapWith(eventFunctions.startsAt),
         guestCount: sql<number>`(select count(*)::int from ${guests} where ${guests.eventId} = ${OUTER_EVENT_ID})`,
         comingCount: sql<number>`(select coalesce(sum(${rsvps.headcount}), 0)::int from ${rsvps} where ${rsvps.eventId} = ${OUTER_EVENT_ID} and ${rsvps.status} = 'yes')`,
+        shared: sql<boolean>`${events.userId} <> ${user.id}`,
       })
       .from(events)
-      .where(and(eq(events.userId, user.id), ne(events.status, 'archived')))
+      .where(and(or(eq(events.userId, user.id), inArray(events.id, shared)), ne(events.status, 'archived')))
       .orderBy(desc(events.updatedAt))
       .limit(100);
     return { items: rows };
   }
 
   async getDto(user: AuthUser, eventId: string): Promise<EventDto> {
-    const event = await this.getOwned(user, eventId);
-    return this.toDto(event, await this.functionsOf(eventId));
+    const { event, access } = await this.access(user, eventId, 'view');
+    return this.toDto(event, await this.functionsOf(eventId), access);
   }
 
   async update(user: AuthUser, eventId: string, input: UpdateEventInput): Promise<EventDto> {
@@ -176,7 +225,7 @@ export class EventsService {
   }
 
   async setStatus(user: AuthUser, eventId: string, status: 'published' | 'archived' | 'draft'): Promise<EventDto> {
-    const owned = await this.getOwned(user, eventId);
+    const owned = await this.getOwned(user, eventId, status === 'archived' ? 'owner' : 'edit');
     if (status === 'published' && owned.suspendedAt) {
       throw new ForbiddenException('This invitation was taken down by our team. Write to support if you think this is a mistake.');
     }
@@ -216,7 +265,7 @@ export class EventsService {
     return copy;
   }
 
-  async toDto(event: EventRow, fns: FunctionRow[]): Promise<EventDto> {
+  async toDto(event: EventRow, fns: FunctionRow[], access: Access = 'owner'): Promise<EventDto> {
     const ent = await this.entitlements.forEvent(event.id);
     return {
       id: event.id,
@@ -235,6 +284,7 @@ export class EventsService {
       features: [...ent.features],
       credits: ent.credits as Record<string, number>,
       viewCount: event.viewCount,
+      access,
       createdAt: event.createdAt.toISOString(),
       updatedAt: event.updatedAt.toISOString(),
     };

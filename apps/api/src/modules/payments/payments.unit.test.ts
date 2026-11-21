@@ -10,7 +10,7 @@ vi.mock('../../infra/infra.module.js', () => ({
   OPENROUTER: Symbol('OPENROUTER'),
 }));
 
-const { claimedAt, PaymentsService, withRetry } = await import('./payments.service.js');
+const { claimedAt, PaymentsService, revocationPlan, withRetry } = await import('./payments.service.js');
 
 type Claim = { id: string; refundId: string; providerPaymentId: string | null; refundedPaise: number; amountPaise: number };
 
@@ -107,5 +107,40 @@ describe('helpers', () => {
     await expect(withRetry(async () => (++calls < 3 ? Promise.reject(new Error('flaky')) : 'ok'), 3, 1)).resolves.toBe('ok');
     expect(calls).toBe(3);
     await expect(withRetry(async () => Promise.reject(new Error('down')), 2, 1)).rejects.toThrow('down');
+  });
+});
+
+describe('revocationPlan', () => {
+  const row = (feature: string, credits = 0, orderId: string | null = 'o1') => ({ feature: feature as never, credits, orderId });
+
+  it('removes features only this order granted', () => {
+    const steps = revocationPlan({ id: 'o1', productCode: 'website' }, [], [row('website_premium'), row('rsvp'), row('personalized_links'), row('image_hd', 0, 'o0')]);
+    expect(steps).toEqual([
+      { feature: 'website_premium', action: 'delete' },
+      { feature: 'rsvp', action: 'delete' },
+      { feature: 'personalized_links', action: 'delete' },
+    ]);
+  });
+
+  it("takes only this order's credits off a shared row, even when the row names another order", () => {
+    // Two background packs: the row still points at the first order.
+    const steps = revocationPlan({ id: 'o2', productCode: 'ai_backgrounds' }, [{ id: 'o1', productCode: 'ai_backgrounds' }], [row('ai_background', 20, 'o1')]);
+    expect(steps).toEqual([{ feature: 'ai_background', action: 'update', credits: 10, orderId: 'o1' }]);
+  });
+
+  it('keeps a feature another paid order grants and re-points the row at it', () => {
+    const steps = revocationPlan({ id: 'o1', productCode: 'website' }, [{ id: 'o2', productCode: 'combo' }], [row('website_premium'), row('rsvp'), row('personalized_links')]);
+    expect(steps.every((s) => s.action === 'update' && s.orderId === 'o2')).toBe(true);
+  });
+
+  it('never drops credits below zero, and keeps admin grants', () => {
+    expect(revocationPlan({ id: 'o1', productCode: 'ai_backgrounds' }, [], [row('ai_background', 3, null)])).toEqual([
+      { feature: 'ai_background', action: 'update', credits: 0, orderId: null },
+    ]);
+    expect(revocationPlan({ id: 'o1', productCode: 'card' }, [], [row('image_hd', 0, null)])).toEqual([]);
+  });
+
+  it('deletes a spent credit row nothing else backs', () => {
+    expect(revocationPlan({ id: 'o1', productCode: 'ai_clip' }, [], [row('ai_clip', 0)])).toEqual([{ feature: 'ai_clip', action: 'delete' }]);
   });
 });

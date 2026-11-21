@@ -1,7 +1,9 @@
-import { activityDaily, analyticsEvents, and, eq, isNull, lt, or, sql, users, visitorAttribution, type Database } from '@cardai/db';
+import { activityDaily, analyticsEvents, and, coupons, eq, events, isNull, lt, or, orders, sql, users, visitorAttribution, type Database } from '@cardai/db';
+import { createHash } from 'node:crypto';
 import { cityTier, classifyChannel, inAppBrowser, normaliseNetwork, type TrackBatchInput, type TrackEventName } from '@cardai/shared';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { DB } from '../../infra/infra.module.js';
+import { MailService } from '../mail/mail.service.js';
 import { parseGeo, type Geo } from './geo.js';
 
 export { parseGeo };
@@ -56,7 +58,10 @@ function cleanReferrer(r?: string | null): string | null {
 export class AnalyticsService {
   private readonly logger = new Logger(AnalyticsService.name);
 
-  constructor(@Inject(DB) private readonly db: Database) {}
+  constructor(
+    @Inject(DB) private readonly db: Database,
+    private readonly mail: MailService,
+  ) {}
 
   async ingest(batch: TrackBatchInput, ctx: TrackContext): Promise<void> {
     const device = deviceOf(ctx.userAgent);
@@ -172,6 +177,30 @@ export class AnalyticsService {
         props: extra.props ?? null,
       })
       .catch((err: Error) => this.logger.warn(`record ${name} failed: ${err.message}`));
+    if (name === 'purchase' && ctx.userId) void this.rewardReferrer(ctx.userId).catch((err: Error) => this.logger.warn(`referral reward failed: ${err.message}`));
+  }
+
+  /**
+   * Viral loop payoff: when someone who first came as a guest pays for their first order, the
+   * family whose invitation they saw gets a one-time 20% coupon. The coupon code is derived from
+   * the new customer, so the reward is issued at most once per referred person.
+   */
+  private async rewardReferrer(userId: string): Promise<void> {
+    const [me] = await this.db.select({ ref: users.referredEventId }).from(users).where(eq(users.id, userId));
+    if (!me?.ref) return;
+    const [paid] = await this.db.select({ n: sql<number>`count(*)::int` }).from(orders).where(and(eq(orders.userId, userId), eq(orders.status, 'paid')));
+    if ((paid?.n ?? 0) !== 1) return;
+    const [ev] = await this.db.select({ ownerId: events.userId }).from(events).where(eq(events.id, me.ref));
+    if (!ev || ev.ownerId === userId) return;
+    const code = `THANKS-${createHash('sha1').update(userId).digest('hex').slice(0, 6).toUpperCase()}`;
+    const days = 90;
+    const [made] = await this.db
+      .insert(coupons)
+      .values({ code, description: `Referral thank-you (owner ${ev.ownerId})`, kind: 'percent', value: 20, maxUses: 1, perUserLimit: 1, endsAt: new Date(Date.now() + days * 86_400_000) })
+      .onConflictDoNothing()
+      .returning({ id: coupons.id });
+    if (!made) return;
+    await this.mail.toUser(ev.ownerId, 'referral.reward', (u) => ({ name: u.name, code, percent: 20, validDays: days }), { key: code });
   }
 
   /** A new account that first came as a guest of this invitation (viral loop). */

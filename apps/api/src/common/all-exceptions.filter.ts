@@ -1,12 +1,17 @@
+import { recordAppError, type Database } from '@cardai/db';
 import type { ApiErrorBody } from '@cardai/shared';
-import { Catch, HttpException, HttpStatus, Logger, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
+import { Catch, HttpException, HttpStatus, Inject, Logger, type ArgumentsHost, type ExceptionFilter } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
+import { DB } from '../infra/infra.module.js';
 import { isUniqueViolation } from './db.js';
+import { redactUrl } from './http-hardening.js';
 
 /** One error envelope for every failure; internals are logged, never leaked. */
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger('Exceptions');
+
+  constructor(@Inject(DB) private readonly db: Database) {}
 
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
@@ -30,9 +35,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       // A race lost to a unique constraint (two saves of the same slug, code, email…) is a conflict, not a crash.
       status = HttpStatus.CONFLICT;
       message = 'This already exists. Please refresh and try again.';
-      this.logger.warn({ url: req.url, reqId: req.id }, 'Unique constraint conflict');
+      this.logger.warn({ url: redactUrl(req.url), reqId: req.id }, 'Unique constraint conflict');
     } else {
-      this.logger.error({ err: exception, url: req.url, reqId: req.id }, 'Unhandled error');
+      this.logger.error({ err: exception, url: redactUrl(req.url), reqId: req.id }, 'Unhandled error');
+      const err = exception instanceof Error ? exception : new Error(String(exception));
+      // Path only: query strings can carry guest tokens and unlock keys.
+      void recordAppError(this.db, { source: 'api', message: err.message, stack: err.stack, url: `${req.method} ${req.url.split('?')[0]}` });
     }
 
     const body: ApiErrorBody = {

@@ -1,10 +1,10 @@
 import { clsx } from 'clsx';
-import { useId, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes, type TextareaHTMLAttributes } from 'react';
+import { useId, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from 'react';
 
-/** Shared look for every text control (studio theme): square, hairline border that carries hover/focus/error. */
-/** Colours/border/states only, no size or padding, so call sites can size it without class conflicts. */
-export const controlClass =
-  'rounded-[var(--radius-field)] border border-ink/15 bg-ink/[0.02] text-ink transition-colors duration-150 placeholder:text-ink-soft/60 hover:border-ink/30 focus:border-ink focus:bg-transparent focus:outline-none focus-visible:outline-none disabled:opacity-60 aria-[invalid=true]:border-sindoor';
+import { controlClass } from './control-class';
+
+export { controlClass };
+export { Select, type SelectProps } from './select';
 const control = `${controlClass} w-full px-3 text-[0.95rem]`;
 
 /** Small form label. */
@@ -41,19 +41,23 @@ export function Field({ label, hint, error, action, children }: FieldProps) {
 }
 
 export function Input({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={clsx(control, 'h-10', className)} {...props} />;
+  const file = props.type === 'file';
+  return (
+    <input
+      className={clsx(
+        control,
+        'h-10',
+        file &&
+          'cursor-pointer py-1 pl-1 text-sm text-ink-soft file:mr-3 file:h-full file:cursor-pointer file:rounded-[calc(var(--radius-field)-1px)] file:border-0 file:bg-ink/[0.06] file:px-3 file:text-sm file:font-medium file:text-ink hover:file:bg-ink/10',
+        className,
+      )}
+      {...props}
+    />
+  );
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea className={clsx(control, 'min-h-24 resize-y py-2 leading-relaxed', className)} {...props} />;
-}
-
-export function Select({ className, children, ...props }: SelectHTMLAttributes<HTMLSelectElement>) {
-  return (
-    <select className={clsx(control, 'select h-10 pr-9', className)} {...props}>
-      {children}
-    </select>
-  );
 }
 
 export function Chip({

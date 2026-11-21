@@ -122,6 +122,117 @@ export const TEMPLATES = {
       }),
   }),
 
+  'otp.delete': define<{ code: string; ttlMinutes: number }>({
+    label: 'Account deletion code',
+    group: 'Sign-in',
+    category: 'auth',
+    sample: { code: '615203', ttlMinutes: 10 },
+    render: (p, { t, layout, kicker, heading, para, codeBox, notice, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`${p.code} is your ${BRAND.name} account deletion code`, `${p.code} आपका ${BRAND.name} खाता हटाने का कोड है`),
+        preheader: t(`Enter this code to permanently delete your account. It expires in ${p.ttlMinutes} minutes.`, `खाता हमेशा के लिए हटाने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त होगा।`),
+        blocks: [
+          kicker(t('Delete account', 'खाता हटाएँ')),
+          heading(t('Confirm account deletion', 'खाता हटाने की पुष्टि करें')),
+          para(
+            t(
+              'Enter this code to permanently delete your account, invitations, guest lists and files. This cannot be undone.',
+              'अपना खाता, निमंत्रण, मेहमान सूची और फ़ाइलें हमेशा के लिए हटाने के लिए यह कोड डालें। इसे वापस नहीं किया जा सकता।',
+            ),
+          ),
+          codeBox(p.code),
+          notice(
+            t(
+              'If you did not ask to delete your account, ignore this email and change your password.',
+              'अगर आपने खाता हटाने को नहीं कहा, तो इस ईमेल को अनदेखा करें और अपना पासवर्ड बदलें।',
+            ),
+          ),
+        ],
+      }),
+  }),
+
+  'account.exists': define<Record<string, never>>({
+    label: 'Sign-up with an existing email',
+    group: 'Sign-in',
+    category: 'auth',
+    sample: {},
+    render: (_p, { t, layout, kicker, heading, para, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`You already have a ${BRAND.name} account`, `आपका ${BRAND.name} खाता पहले से है`),
+        preheader: t('Someone tried to sign up with this address. Log in or reset your password instead.', 'इस पते से साइन अप करने की कोशिश हुई। इसके बजाय लॉग इन करें या पासवर्ड रीसेट करें।'),
+        reason: t(
+          'You are receiving this because someone tried to sign up with this address. If it was not you, ignore this email.',
+          'यह ईमेल इसलिए आया क्योंकि इस पते से साइन अप करने की कोशिश हुई। अगर यह आप नहीं थे, तो इसे अनदेखा करें।',
+        ),
+        blocks: [
+          kicker(t('Already registered', 'पहले से पंजीकृत')),
+          heading(t('You already have an account', 'आपका खाता पहले से है')),
+          para(
+            t(
+              'This email address is already registered, so no new account was created. Log in with your password, or reset it if you have forgotten it.',
+              'यह ईमेल पता पहले से पंजीकृत है, इसलिए नया खाता नहीं बना। अपने पासवर्ड से लॉग इन करें, या भूल गए हों तो उसे रीसेट करें।',
+            ),
+          ),
+          button(t('Log in', 'लॉग इन करें'), url('/login')),
+        ],
+      }),
+  }),
+
+  'event.cohost': define<{ inviterName: string | null; eventTitle: string; role: string; eventId: string }>({
+    label: 'Co-host invitation',
+    group: 'Account',
+    category: 'transactional',
+    sample: { inviterName: 'Priya Sharma', eventTitle: 'Rahul weds Priya', role: 'Guests & RSVPs only', eventId: '00000000-0000-0000-0000-000000000000' },
+    render: (p, { t, layout, kicker, heading, para, details, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`${p.inviterName ?? 'Your family'} added you as a co-host of ${p.eventTitle}`, `${p.inviterName ?? 'आपके परिवार'} ने आपको ${p.eventTitle} का सह-मेज़बान बनाया`),
+        preheader: t('Help with guests, RSVPs and the invitation. Sign in with this email to start.', 'मेहमान, RSVP और निमंत्रण में मदद करें। शुरू करने के लिए इसी ईमेल से साइन इन करें।'),
+        reason: t('You are receiving this because a host added this address as a co-host.', 'यह ईमेल इसलिए आया क्योंकि एक मेज़बान ने इस पते को सह-मेज़बान के रूप में जोड़ा।'),
+        blocks: [
+          kicker(t('Co-host invitation', 'सह-मेज़बान निमंत्रण')),
+          heading(p.eventTitle),
+          para(
+            t(
+              `${p.inviterName ?? 'A host'} wants your help running this invitation on ${BRAND.name}.`,
+              `${p.inviterName ?? 'एक मेज़बान'} चाहते हैं कि आप ${BRAND.name} पर इस निमंत्रण को संभालने में मदद करें।`,
+            ),
+          ),
+          details([{ label: t('Your role', 'आपकी भूमिका'), value: p.role }]),
+          button(t('Open the invitation', 'निमंत्रण खोलें'), url(`/dashboard/events/${p.eventId}`)),
+          para(t('Sign in with this email address. The invitation then shows on your dashboard.', 'इसी ईमेल पते से साइन इन करें। फिर निमंत्रण आपके डैशबोर्ड पर दिखेगा।'), { muted: true, small: true }),
+        ],
+      }),
+  }),
+
+  'referral.reward': define<{ name: string | null; code: string; percent: number; validDays: number }>({
+    label: 'Referral thank-you coupon',
+    group: 'Account',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma', code: 'THANKS-K7QP2', percent: 20, validDays: 90 },
+    render: (p, { t, layout, kicker, heading, greeting, para, codeBox, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: t(`A thank-you from ${BRAND.name}: ${p.percent}% off your next invitation`, `${BRAND.name} की ओर से धन्यवाद: अगले निमंत्रण पर ${p.percent}% छूट`),
+        preheader: t('Someone who saw your invitation made one of their own.', 'आपका निमंत्रण देखकर किसी ने अपना निमंत्रण बनाया।'),
+        blocks: [
+          kicker(t('Thank you', 'धन्यवाद')),
+          heading(t('Your invitation inspired someone', 'आपके निमंत्रण से किसी को प्रेरणा मिली')),
+          greeting(p.name),
+          para(
+            t(
+              `A guest who opened your invitation made and paid for one of their own. Here is ${p.percent}% off your next one.`,
+              `आपका निमंत्रण खोलने वाले एक मेहमान ने अपना निमंत्रण बनाया। आपके अगले निमंत्रण पर ${p.percent}% की छूट।`,
+            ),
+          ),
+          codeBox(p.code, t(`Valid for ${p.validDays} days`, `${p.validDays} दिन तक मान्य`)),
+          button(t('Make an invitation', 'निमंत्रण बनाएँ'), url('/create')),
+        ],
+      }),
+  }),
+
   'account.welcome': define<{ name: string | null }>({
     label: 'Welcome',
     group: 'Account',

@@ -1,7 +1,7 @@
 import { createPrintOrderSchema, PRINT_ORDER_STATUSES, updatePrintOrderSchema, type CreatePrintOrderInput } from '@cardai/shared';
 import { Controller, Get, Patch, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
-import { CurrentUser, Public, Roles, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, Public, RateLimit, Roles, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
 import { PrintService } from './print.service.js';
@@ -18,6 +18,7 @@ export class PrintController {
   }
 
   @RequireFlag('print_orders', 'Print orders are paused for a short while.')
+  @RateLimit({ limit: 10, windowSec: 3600 })
   @Post('print/orders')
   create(@CurrentUser() user: AuthUser, @ZBody(createPrintOrderSchema) body: CreatePrintOrderInput) {
     return this.print.create(user, body);

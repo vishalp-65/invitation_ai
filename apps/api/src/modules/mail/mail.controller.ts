@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { z } from 'zod';
-import { CurrentUser, Public, RateLimit, type AuthedRequest, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, Public, RateLimit, SkipRateLimit, type AuthedRequest, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { ENV, type Env } from '../../config/env.js';
 import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
@@ -70,6 +70,7 @@ export class MailController {
    * stop mailing them, which protects the sending domain's reputation.
    */
   @Public()
+  @SkipRateLimit()
   @Post('webhooks/resend')
   @HttpCode(200)
   async resendWebhook(

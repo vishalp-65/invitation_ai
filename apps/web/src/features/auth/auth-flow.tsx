@@ -255,6 +255,7 @@ function CodeStep({
   resendPath,
   submitLabel,
   withPassword,
+  note,
   onSubmit,
   onBack,
 }: {
@@ -266,6 +267,8 @@ function CodeStep({
   submitLabel: string;
   /** Also ask for a new password (reset flow); the code then isn't auto-submitted. */
   withPassword?: boolean;
+  /** Small print under the heading. */
+  note?: string;
   onSubmit: (code: string, password: string) => Promise<void>;
   onBack: () => void;
 }) {
@@ -327,6 +330,7 @@ function CodeStep({
           <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{email}</strong>
         </p>
       )}
+      {note && <p className="-mt-2 mb-5 text-[0.8125rem] text-ink-soft">{note}</p>}
 
       <form
         onSubmit={(e) => {
@@ -570,6 +574,7 @@ export function AuthFlow({
             initialCooldown={pending.resendInSec}
             showHeading={heading}
             resendPath="/auth/signup/request"
+            note="Already have an account with this email? Then we've sent you a log-in link instead of a code."
             submitLabel="Verify and create account"
             onBack={back}
             onSubmit={async (code) => {

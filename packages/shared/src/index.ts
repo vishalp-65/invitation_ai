@@ -27,6 +27,7 @@ export * from './commerce/pricing.js';
 export * from './schemas/email.js';
 
 export * from './invite/build-invite-props.js';
+export * from './invite/messages.js';
 export * from './utils/index.js';
 export * from './invite/sample.js';
 export * from './design/index.js';

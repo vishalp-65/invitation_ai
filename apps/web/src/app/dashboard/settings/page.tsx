@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import { qk, useLogout, useMe } from '@/lib/hooks';
 import { ThemeSegmented } from '@/lib/theme';
 import { Toggle } from '@/features/admin/ui';
+import { DeleteAccountButton, DevicesSection, ExportButton } from '@/features/account/security-settings';
 
 /** Profile, language, theme and sign-out in one place (the phone tab bar's "Settings"). */
 export default function SettingsPage() {
@@ -111,6 +112,19 @@ export default function SettingsPage() {
         <Section title="Email" hint="Sign-in codes, receipts and security alerts are always sent.">
           <Row label="Offers and new designs" hint="Occasional sale and new-template emails. Unsubscribe any time.">
             <MarketingToggle me={me} />
+          </Row>
+        </Section>
+
+        <Section title="Devices" hint="Where your account is signed in right now.">
+          <DevicesSection row={(label, hint, control) => <Row label={label} hint={hint}>{control}</Row>} />
+        </Section>
+
+        <Section title="Your data" hint="A copy of everything Noyta holds about you, or the account removed for good.">
+          <Row label="Download my data" hint="Profile, invitations, guest lists, RSVPs, orders and files, as one JSON file.">
+            <ExportButton />
+          </Row>
+          <Row label="Delete account" hint="Erases your invitations and files. We email you a code to confirm.">
+            <DeleteAccountButton />
           </Row>
         </Section>
 

@@ -100,6 +100,23 @@ export class WhatsAppClient {
     });
   }
 
+  /** Business-initiated follow-up (reminder, day-before, thank-you): one variable holds the text. */
+  sendFollowUpTemplate(to: string, text: string, language = 'en') {
+    if (!this.env.WHATSAPP_FOLLOWUP_TEMPLATE) throw new Error('WHATSAPP_FOLLOWUP_TEMPLATE is not set');
+    return this.send(to, {
+      type: 'template',
+      template: {
+        name: this.env.WHATSAPP_FOLLOWUP_TEMPLATE,
+        language: { code: language },
+        components: [{ type: 'body', parameters: [{ type: 'text', text: text.slice(0, 1000) }] }],
+      },
+    });
+  }
+
+  get followUpsReady(): boolean {
+    return this.configured && Boolean(this.env.WHATSAPP_FOLLOWUP_TEMPLATE);
+  }
+
   /** Downloads inbound media (e.g. a voice note). */
   async downloadMedia(mediaId: string): Promise<{ buffer: Buffer; mimeType: string }> {
     const headers = { Authorization: `Bearer ${this.env.WHATSAPP_ACCESS_TOKEN}` };

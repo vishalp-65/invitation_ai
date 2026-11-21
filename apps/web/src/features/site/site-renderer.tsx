@@ -5,6 +5,7 @@ import { Ambient, Divider } from '@cardai/templates/scenes';
 import { CalendarHeart, Languages, MapPin, Music2, Pause, Share2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { safeHref, SiteProvider } from './context';
+import { EntryPass, SaveTheDateRibbon } from './interactive';
 import { MotionContext, Petals, useEffectiveMotion } from './motion';
 import { Opening } from './opening';
 import { SectionView } from './sections';
@@ -127,6 +128,7 @@ export function SiteRenderer({
           lang={lang.code}
           dir={RTL_LANGUAGES.has(lang.code as LanguageCode) ? 'rtl' : 'ltr'}
         >
+          <SaveTheDateRibbon />
           <Opening
             design={design}
             names={names}
@@ -173,9 +175,12 @@ export function SiteRenderer({
             });
           })()}
 
+          <EntryPass />
+
           {data.features.showBranding && (
             <footer className="pb-28 text-center text-sm opacity-75">
-              <a href="/" className="underline underline-offset-4">
+              {/* Word of mouth: tagged so the landing page and sign-up know which invitation sent them. */}
+              <a href={`/?utm_source=invite&utm_medium=badge&utm_campaign=${encodeURIComponent(data.event.slug)}`} className="underline underline-offset-4">
                 {BRAND.watermarkText} — make yours free
               </a>
             </footer>

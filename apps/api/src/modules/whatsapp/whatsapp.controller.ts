@@ -1,7 +1,7 @@
 import { BadRequestException, Controller, ForbiddenException, Get, Headers, HttpCode, Inject, Logger, Post, Query, Req, type RawBodyRequest } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
 import { ENV, type Env } from '../../config/env.js';
-import { Public } from '../../common/auth.decorators.js';
+import { Public, SkipRateLimit } from '../../common/auth.decorators.js';
 import { safeEqual } from '../../common/crypto.js';
 import { REDIS, type Redis } from '../../infra/infra.module.js';
 import { BotService, type InboundMessage } from './bot.service.js';
@@ -21,6 +21,7 @@ interface WebhookBody {
 }
 
 @Public()
+@SkipRateLimit()
 @Controller('webhooks/whatsapp')
 export class WhatsAppController {
   private readonly logger = new Logger(WhatsAppController.name);

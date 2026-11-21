@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { OpsModule } from '../ops/ops.module.js';
+import { AccountController } from './account.controller.js';
 import { AdminAccessModule } from './admin-access.js';
 import { AdminAnalyticsService } from './admin-analytics.service.js';
 import { AdminController } from './admin.controller.js';
@@ -11,7 +12,7 @@ import { AdminSystemService } from './admin-system.service.js';
 
 @Module({
   imports: [AdminAccessModule, OpsModule],
-  controllers: [AdminController, AdminManageController],
+  controllers: [AdminController, AdminManageController, AccountController],
   providers: [AdminService, AdminManageService, AdminAnalyticsService, AdminInsightsService, AdminSystemService],
 })
 export class AdminModule {}

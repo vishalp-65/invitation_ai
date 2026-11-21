@@ -1,6 +1,6 @@
 'use client';
 
-import { EVENT_TYPES } from '@cardai/shared';
+import { EVENT_TYPES, getLanguage, UI_LOCALES } from '@cardai/shared';
 import { clsx } from 'clsx';
 import {
   ArrowUpRight,
@@ -26,6 +26,7 @@ import { isLightOnly, ThemeSegmented, ThemeToggle } from '@/lib/theme';
 import { AnnouncementBar } from './announcement-bar';
 import { Logo } from './logo';
 import { occasionLabel } from './occasion-label';
+import { Select } from '@/components/ui/select';
 
 /*
  * Logo / LogoMark live in ./logo and SiteFooter in ./site-footer: both are server components, so
@@ -39,32 +40,41 @@ const OccasionsPanel = dynamic(loadOccasionsPanel);
 export function useSwitchLocale() {
   const locale = useLocale();
   const router = useRouter();
-  const next = locale === 'hi' ? 'en' : 'hi';
+  const next = locale === 'en' ? 'hi' : 'en';
+  const setLocale = (code: string) => {
+    document.cookie = `locale=${code}; path=/; max-age=31536000; samesite=lax`;
+    router.refresh();
+  };
   return {
+    locale,
     next,
     label: next === 'hi' ? 'हिन्दी' : 'English',
-    switchTo: () => {
-      document.cookie = `locale=${next}; path=/; max-age=31536000; samesite=lax`;
-      router.refresh();
-    },
+    switchTo: () => setLocale(next),
+    setLocale,
+    options: UI_LOCALES.map((code) => ({ code, label: getLanguage(code).nativeName })),
   };
 }
 
+/** All 12 app languages, in their own script. A native select: tiny, accessible, works everywhere. */
 export function LocaleSwitch({ tone = 'dark' }: { tone?: 'dark' | 'light'; compact?: boolean }) {
-  const { next, label, switchTo } = useSwitchLocale();
+  const { locale, setLocale, options } = useSwitchLocale();
   return (
-    <button
-      type="button"
-      onClick={switchTo}
+    <label
       className={clsx(
-        'inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors',
+        'relative inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-sm font-medium transition-colors',
         tone === 'light' ? 'text-white/80 hover:text-white' : 'text-ink-soft hover:text-ink',
       )}
-      aria-label={next === 'hi' ? 'हिन्दी में देखें' : 'View in English'}
     >
       <Languages className="size-4" aria-hidden />
-      {label}
-    </button>
+      <span className="sr-only">Language / भाषा</span>
+      <Select variant="bare" aria-label="Language / भाषा" value={locale} onChange={(e) => setLocale(e.target.value)} menuClassName="min-w-36">
+        {options.map((o) => (
+          <option key={o.code} value={o.code}>
+            {o.label}
+          </option>
+        ))}
+      </Select>
+    </label>
   );
 }
 

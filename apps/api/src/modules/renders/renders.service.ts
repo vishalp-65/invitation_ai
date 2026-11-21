@@ -28,7 +28,7 @@ export class RendersService {
    * The hash covers everything that changes pixels, so re-clicking "Download" is free.
    */
   async create(user: AuthUser, input: CreateRenderInput, notify?: { whatsapp?: string }): Promise<RenderDto> {
-    const event = await this.events.getOwned(user, input.eventId);
+    const event = await this.events.getOwned(user, input.eventId, 'guests');
     const { features } = await this.entitlements.forEvent(event.id);
 
     // `features` is already loaded: check it in memory instead of another round trip.
@@ -77,7 +77,9 @@ export class RendersService {
 
   async get(user: AuthUser, id: string): Promise<RenderDto> {
     const [row] = await this.db.select().from(renders).where(eq(renders.id, id));
-    if (!row || (row.userId !== user.id && user.role !== 'admin')) throw new NotFoundException('Render not found');
+    if (!row) throw new NotFoundException('Render not found');
+    // Co-hosts see each other's files; the event check also covers the admin read-only view.
+    if (row.userId !== user.id) await this.events.getOwned(user, row.eventId, 'view').catch(() => { throw new NotFoundException('Render not found'); });
     return this.toDto(row);
   }
 
@@ -88,7 +90,7 @@ export class RendersService {
 
   /** Latest render per format for the event dashboard. */
   async latestForEvent(user: AuthUser, eventId: string): Promise<{ items: RenderDto[] }> {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'view');
     const rows = await this.db.select().from(renders).where(eq(renders.eventId, eventId)).orderBy(desc(renders.createdAt)).limit(40);
     const seen = new Set<string>();
     const items = rows.filter((r) => (seen.has(r.format) ? false : (seen.add(r.format), true)));

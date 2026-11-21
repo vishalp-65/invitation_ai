@@ -28,6 +28,6 @@ export function getLanguage(code: string): Language {
   return LANGUAGES.find((l) => l.code === code) ?? LANGUAGES[0];
 }
 
-/** UI languages for the website chrome (content languages are wider). */
-export const UI_LOCALES = ['en', 'hi'] as const;
+/** UI languages for the app itself: all 12 (strings missing in a language fall back to English). */
+export const UI_LOCALES = ['en', 'hi', 'mr', 'gu', 'ta', 'te', 'kn', 'ml', 'bn', 'pa', 'or', 'ur'] as const;
 export type UiLocale = (typeof UI_LOCALES)[number];

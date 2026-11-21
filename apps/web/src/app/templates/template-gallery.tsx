@@ -11,8 +11,8 @@ import { TemplatePreview } from '@/components/invite/template-preview';
 import { COMMUNITY_LABEL, NoTemplates, useTemplateSearch, type TemplateSearchState } from '@/components/invite/template-search';
 import { designHref } from '@/lib/links';
 import { Dialog } from '@/components/ui/dialog';
-import { controlClass } from '@/components/ui/field';
 import { useTemplates } from '@/lib/template-hooks';
+import { Select } from '@/components/ui/select';
 
 const OCCASIONS: Array<EventTypeId | 'all'> = [
   'all', 'wedding', 'engagement', 'reception', 'birthday', 'griha-pravesh', 'puja', 'baby-shower',
@@ -207,16 +207,16 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
             <ActiveChips state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} onReset={resetAll} />
             <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
               <span className="hidden font-mono text-xs sm:inline">{hi ? 'क्रम' : 'Sort'}</span>
-              <select
+              <Select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as Sort)}
-                className={`${controlClass} select h-10 pl-3 pr-9 text-sm text-ink`}
+                className="h-10 w-auto min-w-40 text-sm"
                 aria-label={hi ? 'क्रम' : 'Sort designs'}
               >
                 {SORTS.map(([id, en, h]) => (
                   <option key={id} value={id}>{hi ? h : en}</option>
                 ))}
-              </select>
+              </Select>
             </label>
           </div>
 
@@ -366,10 +366,10 @@ function FilterPanel({
       </Section>
 
       <Section title={hi ? 'परंपरा' : 'Tradition'}>
-        <select
+        <Select
           value={state.community}
           onChange={(e) => onChange({ ...state, community: e.target.value })}
-          className={`${controlClass} select h-11 w-full pl-3 pr-9 text-sm`}
+          className="h-11 w-full text-sm"
           aria-label={hi ? 'परंपरा' : 'Tradition'}
         >
           <option value="">{hi ? 'कोई भी' : 'Any tradition'}</option>
@@ -378,7 +378,7 @@ function FilterPanel({
               {COMMUNITY_LABEL[c]?.[hi ? 1 : 0] ?? c}
             </option>
           ))}
-        </select>
+        </Select>
       </Section>
     </div>
   );

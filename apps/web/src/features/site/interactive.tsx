@@ -1,16 +1,47 @@
 'use client';
 
 import type { SiteSectionOf, SiteUpdateDto, SiteWishDto } from '@cardai/shared';
-import { Camera, Copy, Gift, Heart, Radio, Send, Wallet } from 'lucide-react';
+import { Camera, Check, Copy, Gift, Heart, Radio, Send, Wallet } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { safeHref, useSite } from './context';
 import { Reveal } from './motion';
 import { PhotoGrid, Shell, youtubeEmbed } from './sections';
 import { postJson as post } from './utils';
+import { Select } from '@/components/ui/select';
 
 const card = 'rounded-[22px] bg-[var(--inv-surface)] text-[var(--inv-on-surface)] shadow-[0_1px_2px_rgb(0_0_0/0.06),0_18px_40px_-28px_rgb(0_0_0/0.45)]';
 const field =
   'h-12 w-full rounded-[12px] border-2 inv-line bg-transparent px-3 text-inherit placeholder:opacity-60 focus:border-current focus:outline-none';
+
+// ---------------- Entry pass & save-the-date ----------------
+
+/** Personal links only: a QR the family scans at the gate (check-in). */
+export function EntryPass() {
+  const { data, t, preview, publicUrl } = useSite();
+  if (!data.guest || preview || data.event.settings.saveTheDate) return null;
+  return (
+    <section className="px-5 py-14">
+      <div className={`${card} mx-auto max-w-xs p-6 text-center`}>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] opacity-70">{t('Your entry pass', 'आपका प्रवेश पास')}</p>
+        <p className="mt-2 text-lg font-semibold">{data.guest.salutation || data.guest.name}</p>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={publicUrl('pass.svg')} alt={t('Entry pass QR code', 'प्रवेश पास क्यूआर कोड')} width={180} height={180} loading="lazy" className="mx-auto mt-4 rounded-xl bg-white p-2" />
+        <p className="mt-3 text-xs opacity-70">{t('Show this at the entrance. A screenshot works too.', 'प्रवेश द्वार पर यह दिखाएँ। स्क्रीनशॉट भी चलेगा।')}</p>
+      </div>
+    </section>
+  );
+}
+
+/** Shown while the family has only sent a save-the-date. */
+export function SaveTheDateRibbon() {
+  const { data, t } = useSite();
+  if (!data.event.settings.saveTheDate) return null;
+  return (
+    <div className="sticky top-0 z-30 bg-[var(--inv-primary)] px-4 py-2 text-center text-sm font-semibold text-[var(--inv-on-primary)]">
+      {t('Save the date! The full invitation will follow soon.', 'तारीख याद रखें! पूरा निमंत्रण जल्द आएगा।')}
+    </div>
+  );
+}
 
 // ---------------- Shagun & gifts ----------------
 
@@ -60,8 +91,82 @@ export function GiftsSection({ section }: { section: SiteSectionOf<'gifts'> }) {
             {t('See the gift list', 'उपहार सूची देखें')}
           </a>
         )}
+        {data.features.gifts && !preview && <ShagunNote />}
       </Reveal>
     </Shell>
+  );
+}
+
+/** "I sent shagun": lets the family keep a thank-you list. Self-reported; nothing is charged. */
+function ShagunNote() {
+  const { data, t, guestToken, accessKey } = useSite();
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [name, setName] = useState(data.guest?.salutation || data.guest?.name || '');
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState<'upi' | 'cash' | 'gift'>('upi');
+  const [note, setNote] = useState('');
+
+  if (done)
+    return (
+      <p className="mt-6 inline-flex items-center gap-2 font-semibold">
+        <Check className="size-4" aria-hidden /> {t('Thank you! The family will see your blessing.', 'धन्यवाद! परिवार को आपका आशीर्वाद दिखेगा।')}
+      </p>
+    );
+  if (!open)
+    return (
+      <button type="button" onClick={() => setOpen(true)} className="mt-6 block w-full text-sm font-semibold underline underline-offset-4">
+        {t('Sent shagun? Let the family know', 'शगुन भेजा? परिवार को बताएँ')}
+      </button>
+    );
+  return (
+    <form
+      className="mt-6 flex flex-col gap-3 text-left"
+      onSubmit={async (e) => {
+        e.preventDefault();
+        setBusy(true);
+        setError(null);
+        try {
+          await post(`/api/public/events/${data.event.slug}/gifts`, {
+            guestToken,
+            key: accessKey,
+            name,
+            amount: amount ? Number(amount) : undefined,
+            method,
+            note: note || undefined,
+          });
+          setDone(true);
+        } catch (err) {
+          setError((err as Error).message);
+        } finally {
+          setBusy(false);
+        }
+      }}
+    >
+      <input className={field} required maxLength={100} value={name} onChange={(e) => setName(e.target.value)} placeholder={t('Your name', 'आपका नाम')} aria-label={t('Your name', 'आपका नाम')} />
+      <div className="grid grid-cols-2 gap-2">
+        <input
+          className={field}
+          inputMode="numeric"
+          value={amount}
+          onChange={(e) => setAmount(e.target.value.replace(/\D/g, '').slice(0, 8))}
+          placeholder={t('Amount ₹ (optional)', 'राशि ₹ (वैकल्पिक)')}
+          aria-label={t('Amount in rupees, optional', 'राशि रुपये में, वैकल्पिक')}
+        />
+        <Select variant="plain" className={field} value={method} onChange={(e) => setMethod(e.target.value as typeof method)} aria-label={t('How', 'कैसे')}>
+          <option value="upi">UPI</option>
+          <option value="cash">{t('Cash', 'नकद')}</option>
+          <option value="gift">{t('Gift', 'उपहार')}</option>
+        </Select>
+      </div>
+      <input className={field} maxLength={300} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('A blessing or note (optional)', 'आशीर्वाद या संदेश (वैकल्पिक)')} aria-label={t('Note', 'संदेश')} />
+      {error && <p className="text-sm text-[var(--inv-primary)]">{error}</p>}
+      <button type="submit" disabled={busy} className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[var(--inv-primary)] px-5 font-semibold text-[var(--inv-on-primary)] disabled:opacity-60">
+        <Send className="size-4" aria-hidden /> {t('Send to the family', 'परिवार को भेजें')}
+      </button>
+    </form>
   );
 }
 

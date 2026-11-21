@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
-import { controlClass } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
 
 interface ReviewItem {
   t: { id: string; name: string; layout: string; theme: Theme };
@@ -101,15 +101,16 @@ export default function MarketplaceAdminPage() {
                 <span className="flex-1">
                   {o.quantity} cards, {o.paperType}, {o.shippingAddress.city} ({o.shippingAddress.phone})
                 </span>
-                <select
-                  className={`${controlClass} select h-10 pl-3 pr-9 text-sm`}
+                <Select
+                  aria-label="Print order status"
+                  className="h-10 w-auto min-w-36 text-sm capitalize"
                   value={o.status}
                   onChange={(e) => act(api(`/admin/print-orders/${o.id}`, { method: 'PATCH', json: { status: e.target.value } }))}
                 >
                   {['requested', 'quoted', 'confirmed', 'printing', 'shipped', 'delivered', 'cancelled'].map((s) => (
                     <option key={s}>{s}</option>
                   ))}
-                </select>
+                </Select>
               </li>
             ))}
             {prints.data?.length === 0 && <li className="py-3 text-ink-soft">No print orders.</li>}

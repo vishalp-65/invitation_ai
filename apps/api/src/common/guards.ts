@@ -13,11 +13,10 @@ import { Reflector } from '@nestjs/core';
 import { REDIS, type Redis } from '../infra/infra.module.js';
 import { TokenService } from '../modules/auth/token.service.js';
 import { bumpCounter } from './redis.js';
-import { IS_PUBLIC, RATE_LIMIT, ROLES, type AuthedRequest, type RateLimitOptions } from './auth.decorators.js';
+import { IS_PUBLIC, RATE_LIMIT, ROLES, SKIP_RATE_LIMIT, type AuthedRequest, type RateLimitOptions } from './auth.decorators.js';
 
 export const ACCESS_COOKIE = 'cai_at';
-/** Redis marker for accounts an admin disabled, so live access tokens stop working at once. */
-export const disabledKey = (userId: string) => `user:disabled:${userId}`;
+export { disabledKey } from '../modules/auth/token.service.js';
 
 /** Global guard: every route requires a valid access token unless marked @Public(). */
 @Injectable()
@@ -25,7 +24,6 @@ export class AuthGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
     private readonly tokens: TokenService,
-    @Inject(REDIS) private readonly redis: Redis,
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
@@ -38,8 +36,11 @@ export class AuthGuard implements CanActivate {
       (req.cookies as Record<string, string | undefined> | undefined)?.[ACCESS_COOKIE];
 
     if (token) {
-      const user = await this.tokens.verifyAccess(token).catch(() => null);
-      if (user && !(await this.redis.exists(disabledKey(user.id)))) req.user = user;
+      const claims = await this.tokens.verifyAccess(token).catch(() => null);
+      if (claims && !(await this.tokens.isRevoked(token, claims))) {
+        const { iat: _iat, ...user } = claims;
+        req.user = user;
+      }
     }
     // An admin viewing as a customer can look, never change anything on their behalf.
     if (req.user?.imp && !['GET', 'HEAD', 'OPTIONS'].includes(req.method) && !/^\/api\/(auth\/(refresh|logout)|track|flags)(\/|$)/.test(req.url)) {
@@ -66,7 +67,16 @@ export class RolesGuard implements CanActivate {
   }
 }
 
-/** Fixed-window rate limit in Redis, opt-in per route via @RateLimit(). Works across instances. */
+/**
+ * Applied to every state-changing route without its own @RateLimit (reads stay unlimited: guests on
+ * one venue Wi-Fi poll live pages). Generous: it only stops scripted floods.
+ */
+export const DEFAULT_WRITE_LIMIT: RateLimitOptions = { limit: 120, windowSec: 60 };
+
+/**
+ * Fixed-window rate limit in Redis, per route via @RateLimit(), with DEFAULT_WRITE_LIMIT for writes
+ * that set none (opt out with @SkipRateLimit for signed webhooks). Works across instances.
+ */
 @Injectable()
 export class RateLimitGuard implements CanActivate {
   constructor(
@@ -75,12 +85,16 @@ export class RateLimitGuard implements CanActivate {
   ) {}
 
   async canActivate(ctx: ExecutionContext): Promise<boolean> {
-    const opts = this.reflector.get<RateLimitOptions | undefined>(RATE_LIMIT, ctx.getHandler());
-    if (!opts) return true;
+    if (this.reflector.getAllAndOverride<boolean>(SKIP_RATE_LIMIT, [ctx.getHandler(), ctx.getClass()])) return true;
     const req = ctx.switchToHttp().getRequest<AuthedRequest>();
+    const own = this.reflector.get<RateLimitOptions | undefined>(RATE_LIMIT, ctx.getHandler());
+    const opts = own ?? (['GET', 'HEAD', 'OPTIONS'].includes(req.method) ? undefined : DEFAULT_WRITE_LIMIT);
+    if (!opts) return true;
     const who = opts.by !== 'ip' && req.user ? `u:${req.user.id}` : `ip:${req.clientIp ?? req.ip}`;
     const window = Math.floor(Date.now() / 1000 / opts.windowSec);
-    const key = `rl:${ctx.getClass().name}.${ctx.getHandler().name}:${who}:${window}`;
+    // The default is one shared bucket per caller, so it can't be multiplied by spreading over routes.
+    const scope = own ? `${ctx.getClass().name}.${ctx.getHandler().name}` : 'default-write';
+    const key = `rl:${scope}:${who}:${window}`;
     const hits = await bumpCounter(this.redis, key, opts.windowSec);
     if (hits > opts.limit) {
       throw new HttpException('Too many requests, please try again shortly', HttpStatus.TOO_MANY_REQUESTS);

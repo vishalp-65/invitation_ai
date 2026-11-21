@@ -15,7 +15,7 @@ import {
   type OpenRouterClient,
   type WordingOutput,
 } from '@cardai/ai';
-import { aiGenerations, eq, type Database } from '@cardai/db';
+import { aiGenerations, eq, sql, type Database } from '@cardai/db';
 import {
   AI_BACKGROUNDS_PER_EVENT,
   eventContentSchema,
@@ -211,8 +211,24 @@ export class AiService {
 
   // ---------------- Images ----------------
 
-  private bgKey(eventId: string) {
-    return `aibg:event:${eventId}`;
+  /** Backgrounds being generated right now on the allowance (reserved, not yet logged). */
+  private bgInflightKey(eventId: string) {
+    return `aibg:inflight:${eventId}`;
+  }
+
+  /**
+   * Allowance backgrounds already made, from the durable ai_generations log (a Redis flush must
+   * never hand out a fresh allowance). Rows logged before `paid` was recorded count as allowance.
+   */
+  private async allowanceUsed(eventId: string): Promise<number> {
+    const [row] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(aiGenerations)
+      .where(
+        sql`${aiGenerations.eventId} = ${eventId} and ${aiGenerations.kind} = 'image' and ${aiGenerations.status} = 'completed'
+            and ${aiGenerations.input}->>'kind' = 'background' and coalesce(${aiGenerations.input}->>'paid', 'allowance') = 'allowance'`,
+      );
+    return Number(row?.n ?? 0);
   }
 
   private async upgraded(eventId: string) {
@@ -226,9 +242,11 @@ export class AiService {
    */
   private async chargeBackground(eventId: string, upgraded: boolean): Promise<'allowance' | 'credit'> {
     const included = upgraded ? AI_BACKGROUNDS_PER_EVENT.paid : AI_BACKGROUNDS_PER_EVENT.free;
-    const used = await this.redis.incr(this.bgKey(eventId));
-    if (used <= included) return 'allowance';
-    await this.redis.decr(this.bgKey(eventId));
+    // Reserve first (atomic), so two parallel requests can't both take the last free one.
+    const key = this.bgInflightKey(eventId);
+    const [[, inflight]] = (await this.redis.multi().incr(key).expire(key, 600).exec()) as [[null, number], unknown];
+    if ((await this.allowanceUsed(eventId)) + inflight <= included) return 'allowance';
+    await this.redis.decr(key);
     try {
       await this.entitlements.consumeCredit(eventId, 'ai_background');
       return 'credit';
@@ -237,16 +255,21 @@ export class AiService {
     }
   }
 
+  /** Releases an allowance reservation (after it was logged, or when generation failed). */
+  private async releaseReservation(eventId: string) {
+    await this.redis.decr(this.bgInflightKey(eventId)).catch(() => undefined);
+  }
+
   private async refundBackground(eventId: string, how: 'allowance' | 'credit') {
-    if (how === 'allowance') await this.redis.decr(this.bgKey(eventId));
+    if (how === 'allowance') await this.releaseReservation(eventId);
     else await this.entitlements.refundCredit(eventId, 'ai_background');
   }
 
   /** AI background allowance + pack credits for one invitation (the editor shows "2 left"). */
   async imageQuota(user: AuthUser, eventId: string) {
-    const event = await this.events.getOwned(user, eventId);
+    const event = await this.events.getOwned(user, eventId, 'view');
     const { upgraded, credits } = await this.upgraded(event.id);
-    const used = Number((await this.redis.get(this.bgKey(event.id))) ?? 0);
+    const used = await this.allowanceUsed(event.id);
     const included = upgraded ? AI_BACKGROUNDS_PER_EVENT.paid : AI_BACKGROUNDS_PER_EVENT.free;
     return {
       background: { used: Math.min(used, included), included, credits, remaining: Math.max(0, included - used) + credits, upgraded },
@@ -303,7 +326,17 @@ export class AiService {
         contentType: result.mediaType,
         meta: { aiKind: input.kind, model },
       });
-      await this.log('image', user.id, { eventId: event.id, model, costUsd: result.usage.costUsd?.toString(), assetId: asset.id, input: { kind: input.kind } });
+      const logRow = { eventId: event.id, model, costUsd: result.usage.costUsd?.toString(), assetId: asset.id, input: { kind: input.kind, ...(charge ? { paid: charge } : {}) } };
+      if (charge === 'allowance') {
+        // This row is what counts the allowance, so it must be written before the reservation goes.
+        await this.db
+          .insert(aiGenerations)
+          .values({ kind: 'image', userId: user.id, status: 'completed', completedAt: new Date(), ...logRow })
+          .then(() => this.releaseReservation(event.id))
+          .catch((err: unknown) => this.logger.error({ err, eventId: event.id }, 'AI background made but not logged; reservation kept until it expires'));
+      } else {
+        await this.log('image', user.id, logRow);
+      }
       return this.media.toDto(asset);
     } catch (err) {
       // A failed generation shouldn't use up a credit.

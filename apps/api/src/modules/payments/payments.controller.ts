@@ -2,7 +2,7 @@ import { createOrderSchema, refundSchema, verifyPaymentSchema, type CreateOrderI
 import type { z } from 'zod';
 import { Controller, Get, Headers, HttpCode, Post, Req, UseGuards, type RawBodyRequest } from '@nestjs/common';
 import type { FastifyRequest } from 'fastify';
-import { CurrentUser, Public, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, Public, RateLimit, SkipRateLimit, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
 import { PaymentsService } from './payments.service.js';
@@ -27,11 +27,13 @@ export class PaymentsController {
 
   @Post('verify')
   @HttpCode(200)
+  @RateLimit({ limit: 30, windowSec: 600 })
   verify(@CurrentUser() user: AuthUser, @ZBody(verifyPaymentSchema) body: VerifyPaymentInput) {
     return this.payments.verify(user, body);
   }
 
   @Public()
+  @SkipRateLimit()
   @Post('webhook/razorpay')
   @HttpCode(200)
   webhook(@Req() req: RawBodyRequest<FastifyRequest>, @Headers('x-razorpay-signature') signature?: string) {

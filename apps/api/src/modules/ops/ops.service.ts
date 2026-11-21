@@ -10,7 +10,7 @@ import { MailService } from '../mail/mail.service.js';
 import { PaymentsService } from '../payments/payments.service.js';
 import { WhatsAppClient } from '../whatsapp/whatsapp.client.js';
 
-export type OpsJob = { type: 'check' } | { type: 'digest' } | { type: 'nightly' };
+export type OpsJob = { type: 'check' } | { type: 'digest' } | { type: 'nightly' } | { type: 'followups' };
 
 const TZ = sql.raw(`'Asia/Kolkata'`);
 const TODAY = sql`(now() at time zone ${TZ})::date`;
@@ -56,11 +56,13 @@ export class OpsService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     try {
       if (!this.env.OPS_JOBS) {
-        for (const id of ['ops-check', 'ops-digest', 'ops-nightly']) await this.queue.removeJobScheduler(id);
+        for (const id of ['ops-check', 'ops-digest', 'ops-nightly', 'ops-followups']) await this.queue.removeJobScheduler(id);
         return;
       }
       await this.queue.upsertJobScheduler('ops-check', { every: 10 * 60_000 }, { name: 'check', data: { type: 'check' }, opts: { attempts: 1 } });
       await this.queue.upsertJobScheduler('ops-digest', { pattern: '0 8 * * *', tz: 'Asia/Kolkata' }, { name: 'digest', data: { type: 'digest' }, opts: { attempts: 2 } });
+      // Guest follow-ups at a polite hour: on the hour, 9 am to 8 pm India time.
+      await this.queue.upsertJobScheduler('ops-followups', { pattern: '0 9-20 * * *', tz: 'Asia/Kolkata' }, { name: 'followups', data: { type: 'followups' }, opts: { attempts: 1 } });
       await this.queue.upsertJobScheduler('ops-nightly', { pattern: '30 0 * * *', tz: 'Asia/Kolkata' }, { name: 'nightly', data: { type: 'nightly' }, opts: { attempts: 2 } });
     } catch (err) {
       this.logger.warn(`Could not schedule ops jobs: ${(err as Error).message}`);
@@ -73,7 +75,20 @@ export class OpsService implements OnApplicationBootstrap {
 
   // ---------------- Health checks ----------------
 
+  /** Guest album uploads never confirmed within a day: rows and any partial objects go. */
+  private async purgeStaleAlbumUploads(): Promise<number> {
+    const rows = await this.rows<{ storage_key: string }>(sql`
+      delete from media_assets where id in (
+        select id from media_assets
+        where ready = false and meta->>'source' = 'guest_album' and created_at < now() - interval '1 day'
+        limit 500)
+      returning storage_key`);
+    await Promise.allSettled(rows.map((r) => this.storage.delete(r.storage_key)));
+    return rows.length;
+  }
+
   async check(): Promise<Alert[]> {
+    await this.purgeStaleAlbumUploads().catch((err: Error) => this.logger.warn(`album cleanup failed: ${err.message}`));
     const [renders, stuck, checkout, signups, ai] = await Promise.all([
       this.rows<{ total: string; failed: string; error: string | null }>(sql`
         select count(*) as total, count(*) filter (where status = 'failed') as failed,

@@ -16,6 +16,9 @@ const EXT: Record<string, string> = {
 
 export type AssetRow = typeof mediaAssets.$inferSelect;
 
+/** Total file storage per account (uploads + AI output), so one account can't fill the bucket. */
+export const USER_STORAGE_QUOTA_BYTES = 2 * 1024 ** 3;
+
 @Injectable()
 export class MediaService {
   constructor(
@@ -27,6 +30,13 @@ export class MediaService {
   /** Step 1: reserve an asset row and hand the browser a presigned PUT URL. */
   async presign(user: AuthUser, input: PresignUploadInput) {
     if (input.eventId) await this.events.getOwned(user, input.eventId);
+    const [usage] = await this.db
+      .select({ bytes: sql<number>`coalesce(sum(${mediaAssets.bytes}), 0)::bigint` })
+      .from(mediaAssets)
+      .where(eq(mediaAssets.userId, user.id));
+    if (Number(usage?.bytes ?? 0) + input.bytes > USER_STORAGE_QUOTA_BYTES) {
+      throw new BadRequestException('Your storage is full (2 GB). Delete some photos or music you no longer need, then try again.');
+    }
     const id = randomUUID();
     const key = `u/${user.id}/${id}.${EXT[input.contentType] ?? 'bin'}`;
     await this.db.insert(mediaAssets).values({
@@ -82,7 +92,7 @@ export class MediaService {
   }
 
   async listForEvent(user: AuthUser, eventId: string): Promise<{ items: MediaAssetDto[] }> {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'view');
     const rows = await this.db
       .select()
       .from(mediaAssets)
@@ -98,9 +108,14 @@ export class MediaService {
     await this.storage.delete(asset.storageKey).catch(() => undefined);
   }
 
-  async getOwnedAsset(user: AuthUser, assetId: string): Promise<AssetRow> {
+  /**
+   * The owner's asset. Admins may only look (`need: 'view'`), never change or reuse a customer's
+   * file: a plain admin JWT carries no MFA proof or scope, so it must not be a write key.
+   */
+  async getOwnedAsset(user: AuthUser, assetId: string, need: 'view' | 'edit' = 'edit'): Promise<AssetRow> {
     const [asset] = await this.db.select().from(mediaAssets).where(eq(mediaAssets.id, assetId));
-    if (!asset || (asset.userId !== user.id && user.role !== 'admin')) throw new NotFoundException('File not found');
+    const allowed = asset && (asset.userId === user.id || (need === 'view' && user.role === 'admin' && !user.imp));
+    if (!allowed) throw new NotFoundException('File not found');
     return asset;
   }
 

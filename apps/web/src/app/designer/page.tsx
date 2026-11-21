@@ -221,7 +221,8 @@ function ThemeEditor({ onSaved }: { onSaved: () => void }) {
               step={0.02}
               value={theme.ornamentOpacity}
               onChange={(e) => setTheme({ ...theme, ornamentOpacity: Number(e.target.value) })}
-              className="accent-[var(--color-sindoor)]"
+              className="range"
+              style={{ "--pct": `${(theme.ornamentOpacity / 0.5) * 100}%` } as React.CSSProperties}
             />
           )}
         </Field>

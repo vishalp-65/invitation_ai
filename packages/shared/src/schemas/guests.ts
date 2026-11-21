@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { MEAL_PREFERENCES, RSVP_STATUSES, type RsvpStatus } from '../constants/guests.js';
+import { GIFT_METHODS, MEAL_PREFERENCES, MEMBER_ROLES, RSVP_STATUSES, SEND_KINDS, type GiftMethod, type MemberRole, type RsvpStatus, type SendKind } from '../constants/guests.js';
 import { phoneSchema } from './common.js';
 import { guestStaySchema, type GuestStay } from '../site/schema.js';
 
@@ -68,6 +68,11 @@ export interface GuestDto {
   invitedAt: string | null;
   viewCount: number;
   firstViewedAt: string | null;
+  lastViewedAt: string | null;
+  nudges: string[];
+  checkedInAt: string | null;
+  checkedInPax: number | null;
+  thankedAt: string | null;
   rsvp: Record<string, { status: RsvpStatus; headcount: number }>;
 }
 
@@ -80,5 +85,89 @@ export interface RsvpSummaryDto {
     maybe: number;
     headcount: number;
   }>;
-  totals: { invited: number; viewed: number; responded: number };
+  totals: { invited: number; viewed: number; responded: number; sent: number; checkedIn: number; checkedInPax: number };
+  /** Caterer view: confirmed people per function by meal choice (unknown = no answer). */
+  meals: Array<{ functionId: string; veg: number; non_veg: number; jain: number; vegan: number; unknown: number }>;
+  needsStay: number;
+}
+
+// ---------------- Sending & follow-ups ----------------
+
+export const sendInviteSchema = z.object({
+  viaApi: z.boolean().default(false),
+  /** Which message; default picks invite / unopened reminder automatically. */
+  kind: z.enum(SEND_KINDS).optional(),
+});
+export type SendInviteInput = z.infer<typeof sendInviteSchema>;
+
+/** One item in the host's send queue (tap through, one wa.me link at a time). */
+export interface SendQueueItem {
+  guestId: string;
+  name: string;
+  phone: string | null;
+  kind: SendKind;
+  message: string;
+  shareUrl: string;
+  smsUrl: string | null;
+}
+
+// ---------------- Event day ----------------
+
+export const checkInSchema = z.object({
+  /** What the gate scanned: the pass QR (a full personal link), a short link, or a bare token. */
+  token: z.string().trim().min(6).max(400).optional(),
+  guestId: z.uuid().optional(),
+  pax: z.number().int().min(0).max(50).optional(),
+  undo: z.boolean().optional(),
+});
+export type CheckInInput = z.infer<typeof checkInSchema>;
+
+// ---------------- Co-hosts ----------------
+
+export const inviteMemberSchema = z.object({
+  email: z.email().max(200),
+  role: z.enum(MEMBER_ROLES),
+});
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+
+export const updateMemberSchema = z.object({ role: z.enum(MEMBER_ROLES) });
+
+export interface EventMemberDto {
+  id: string;
+  email: string;
+  name: string | null;
+  role: MemberRole;
+  accepted: boolean;
+  createdAt: string;
+}
+
+// ---------------- Shagun / gifts ----------------
+
+export const submitGiftSchema = z.object({
+  guestToken: z.string().max(40).optional(),
+  key: z.string().max(64).optional(),
+  name: z.string().trim().min(1).max(100),
+  phone: phoneSchema.optional(),
+  /** Rupees, optional and self-reported. */
+  amount: z.number().int().min(1).max(10_000_000).optional(),
+  method: z.enum(GIFT_METHODS).default('upi'),
+  note: z.string().trim().max(300).optional(),
+});
+export type SubmitGiftInput = z.infer<typeof submitGiftSchema>;
+
+/** Host writes down a gift received at the venue. */
+export const recordGiftSchema = submitGiftSchema.omit({ guestToken: true, key: true }).extend({ guestId: z.uuid().optional() });
+export type RecordGiftInput = z.infer<typeof recordGiftSchema>;
+
+export interface GiftDto {
+  id: string;
+  guestId: string | null;
+  name: string;
+  phone: string | null;
+  amount: number | null;
+  method: GiftMethod;
+  note: string | null;
+  source: 'guest' | 'host';
+  thankedAt: string | null;
+  createdAt: string;
 }

@@ -33,7 +33,7 @@ export class SiteAdminService {
   ) {}
 
   async settings(user: AuthUser, eventId: string): Promise<SiteSettingsDto> {
-    const event = await this.events.getOwned(user, eventId);
+    const event = await this.events.getOwned(user, eventId, 'view');
     const [plan, fns, alias] = await Promise.all([this.sites.planOf(event.id), this.events.functionsOf(event.id), this.links.aliasOf(event.id)]);
     const code = await this.links.eventCode(event.id, event.shortCode);
     return {
@@ -51,7 +51,8 @@ export class SiteAdminService {
 
   /** Builder autosave. Everything can be saved; the public page applies the plan. */
   async save(user: AuthUser, eventId: string, doc: SiteDoc): Promise<{ updatedAt: string }> {
-    await this.events.getOwned(user, eventId);
+    const owned = await this.events.getOwned(user, eventId, 'edit');
+    await this.sites.forgetSite(owned.slug);
     const ids = [...new Set(sectionAssetIds(doc))];
     if (ids.length) {
       const owned = await this.db
@@ -66,7 +67,7 @@ export class SiteAdminService {
 
   /** Owner preview payload (not published yet, all sections, no access checks). */
   async preview(user: AuthUser, eventId: string) {
-    const event = await this.events.getOwned(user, eventId);
+    const event = await this.events.getOwned(user, eventId, 'view');
     const dto = await this.sites.build(event, { guest: null, owner: true });
     // The builder may use any of the host's photos for this event, not only the ones already
     // used. Guest album uploads are left out of the picker.
@@ -85,7 +86,7 @@ export class SiteAdminService {
    * default) document without touching the host's layout choices.
    */
   async draft(user: AuthUser, eventId: string, input: SiteDraftInput): Promise<SiteDoc> {
-    const event = await this.events.getOwned(user, eventId);
+    const event = await this.events.getOwned(user, eventId, 'edit');
     const out = await this.ai.draftSite(user, eventId, input);
     const doc = structuredClone(this.sites.docOf(event));
     const ensure = <T extends SiteDoc['sections'][number]['type']>(type: T) => {
@@ -141,7 +142,7 @@ export class SiteAdminService {
   }
 
   async setPassword(user: AuthUser, eventId: string, password: string | null) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'edit');
     if (password) await this.entitlements.require(eventId, 'website_royale', 'Password-protected websites are part of Site Royale');
     await this.db
       .update(events)
@@ -151,7 +152,7 @@ export class SiteAdminService {
   }
 
   async setAlias(user: AuthUser, eventId: string, alias: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'edit');
     await this.entitlements.require(eventId, 'website_premium', 'Your own short link name is part of Site Premium');
     const previous = await this.links.aliasOf(eventId);
     await this.links.setAlias(eventId, alias);
@@ -160,7 +161,7 @@ export class SiteAdminService {
   }
 
   async removeAlias(user: AuthUser, eventId: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'edit');
     const previous = await this.links.aliasOf(eventId);
     await this.links.removeAlias(eventId);
     if (previous) await this.links.forgetCodes([previous]);
@@ -169,12 +170,13 @@ export class SiteAdminService {
   // ---------------- live updates ----------------
 
   async listUpdates(user: AuthUser, eventId: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'view');
     return { items: await this.sites.listUpdates(eventId) };
   }
 
   async addUpdate(user: AuthUser, eventId: string, input: SiteUpdateInput) {
-    await this.events.getOwned(user, eventId);
+    const owned = await this.events.getOwned(user, eventId, 'guests');
+    await this.sites.forgetSite(owned.slug);
     await this.entitlements.require(eventId, 'website_royale', 'Live updates are part of Site Royale');
     if (input.pinned) await this.db.update(siteUpdates).set({ pinned: false }).where(eq(siteUpdates.eventId, eventId));
     const [row] = await this.db.insert(siteUpdates).values({ eventId, text: input.text, pinned: input.pinned }).returning();
@@ -182,19 +184,21 @@ export class SiteAdminService {
   }
 
   async removeUpdate(user: AuthUser, eventId: string, updateId: string) {
-    await this.events.getOwned(user, eventId);
+    const owned = await this.events.getOwned(user, eventId, 'guests');
+    await this.sites.forgetSite(owned.slug);
     await this.db.delete(siteUpdates).where(and(eq(siteUpdates.id, updateId), eq(siteUpdates.eventId, eventId)));
   }
 
   // ---------------- wishes & album moderation ----------------
 
   async listWishes(user: AuthUser, eventId: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'view');
     return { items: await this.sites.listWishes(eventId, true) };
   }
 
   async setWishHidden(user: AuthUser, eventId: string, wishId: string, hidden: boolean) {
-    await this.events.getOwned(user, eventId);
+    const owned = await this.events.getOwned(user, eventId, 'guests');
+    await this.sites.forgetSite(owned.slug);
     const [row] = await this.db
       .update(siteWishes)
       .set({ hidden })
@@ -206,14 +210,14 @@ export class SiteAdminService {
 
   /** Removes a guest's album photo (host moderation). */
   async removeAlbumPhoto(user: AuthUser, eventId: string, assetId: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'guests');
     const [asset] = await this.db.select().from(mediaAssets).where(and(eq(mediaAssets.id, assetId), eq(mediaAssets.eventId, eventId)));
     if (!asset || asset.meta.source !== 'guest_album') throw new NotFoundException('Photo not found');
     await this.media.remove(user, assetId);
   }
 
   async album(user: AuthUser, eventId: string) {
-    await this.events.getOwned(user, eventId);
+    await this.events.getOwned(user, eventId, 'view');
     return { items: await this.sites.albumOf(eventId) };
   }
 }

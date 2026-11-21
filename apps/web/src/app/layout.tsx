@@ -43,7 +43,7 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
   return (
-    <html lang={locale} className={`${instrument.variable} ${deva.variable} ${mono.variable}`} data-theme="dark" suppressHydrationWarning>
+    <html lang={locale} dir={locale === 'ur' ? 'rtl' : 'ltr'} className={`${instrument.variable} ${deva.variable} ${mono.variable}`} data-theme="dark" suppressHydrationWarning>
       <head>
         {/* Sets data-theme before first paint (no flash of the wrong theme). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />

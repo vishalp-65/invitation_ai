@@ -6,9 +6,11 @@ import {
   guests,
   inArray,
   invitationDaily,
+  isNull,
   mediaAssets,
   renders,
   rsvps,
+  siteGifts,
   siteUpdates,
   siteWishes,
   sql,
@@ -28,10 +30,11 @@ import {
   type PublicSiteResponse,
   type SiteDoc,
   type SiteTier,
+  type SubmitGiftInput,
   type SubmitRsvpInput,
   type WishInput,
 } from '@cardai/shared';
-import { BadRequestException, ForbiddenException, GoneException, HttpException, HttpStatus, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, GoneException, HttpException, HttpStatus, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import QRCode from 'qrcode';
 import { hmacSha256Hex, safeEqual, verifyPassword } from '../../common/crypto.js';
@@ -149,11 +152,15 @@ export class SitesService {
     const group = guest?.groupLabel?.trim().toLowerCase() ?? null;
     // Guests invited to some functions only must not learn about the others (dress code, venue).
     const invited = (id: string | undefined) => !id || !guest?.functionIds || guest.functionIds.includes(id);
+    // Save-the-date: guests see only the teaser until the family releases the full invitation.
+    const teaser = event.settings.saveTheDate && !owner;
+    const TEASER = new Set(['hero', 'countdown', 'welcome', 'closing']);
     const site: SiteDoc = {
       ...planned,
       sections: planned.sections
         .filter((s) => {
           if (s.hidden) return false;
+          if (teaser && !TEASER.has(s.type)) return false;
           if (owner || !s.audience.length) return true;
           return group !== null && s.audience.some((a) => a.trim().toLowerCase() === group);
         })
@@ -199,6 +206,7 @@ export class SitesService {
           rsvpDeadline: s.rsvpDeadline,
           askMealPreference: s.askMealPreference,
           askAccommodation: s.askAccommodation,
+          saveTheDate: teaser,
         },
       },
       template: { id: template.id, layout: template.layout, theme: template.theme },
@@ -223,7 +231,7 @@ export class SitesService {
             stay: (royale || owner) && travel?.type === 'travel' && travel.showGuestStay ? (guest.stay ?? null) : null,
           }
         : null,
-      features: { rsvp: (plan.features.has('rsvp') || owner) && s.rsvpEnabled, showBranding: !premium },
+      features: { rsvp: (plan.features.has('rsvp') || owner) && s.rsvpEnabled && !teaser, showBranding: !premium, gifts: has('gifts') },
       site,
       tier: plan.tier,
       shortUrl,
@@ -276,7 +284,30 @@ export class SitesService {
     return guest ?? null;
   }
 
+  /** Built open pages (no guest link, no key), cached briefly: the hottest public read on wedding days. */
+  static cacheKey(slug: string) {
+    return `site:v1:${slug}`;
+  }
+
+  async forgetSite(slug: string) {
+    await this.redis.del(SitesService.cacheKey(slug)).catch(() => undefined);
+  }
+
   async getSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
+    const anonymous = !guestToken && !key;
+    if (anonymous) {
+      const hit = await this.redis.get(SitesService.cacheKey(slug)).catch(() => null);
+      if (hit) return JSON.parse(hit) as PublicSiteResponse;
+    }
+    const built = await this.buildSite(slug, guestToken, key);
+    // Only open pages are shared; locked screens and private modes are never cached here.
+    if (anonymous && !('locked' in built) && built.site.access.mode === 'link') {
+      await this.redis.set(SitesService.cacheKey(slug), JSON.stringify(built), 'EX', 30).catch(() => undefined);
+    }
+    return built;
+  }
+
+  private async buildSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
     const { event, doc, fns, plan } = await this.liveSite(slug);
     const guest = await this.guestByToken(event.id, guestToken);
 
@@ -374,6 +405,7 @@ export class SitesService {
       .insert(siteWishes)
       .values({ eventId: event.id, guestId: guest?.id ?? null, name: input.name, message: input.message })
       .returning();
+    await this.forgetSite(event.slug);
     return { id: row!.id, name: row!.name, message: row!.message, createdAt: row!.createdAt.toISOString() };
   }
 
@@ -381,7 +413,17 @@ export class SitesService {
   async albumUpload(slug: string, input: AlbumUploadInput) {
     const { event, doc, guest } = await this.openSite(slug, input);
     if (!doc.sections.some((s) => s.type === 'album' && !s.hidden)) throw new ForbiddenException('The guest album is not open');
-    const [n] = await this.db.select({ n: sql<number>`count(*)::int` }).from(mediaAssets).where(this.albumWhere(event.id));
+    // Unfinished uploads from the last hour count too, so presigned slots cannot pile up unbounded.
+    const [n] = await this.db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(mediaAssets)
+      .where(
+        and(
+          eq(mediaAssets.eventId, event.id),
+          sql`${mediaAssets.meta}->>'source' = ${ALBUM_SOURCE}`,
+          sql`(${mediaAssets.ready} or ${mediaAssets.createdAt} > now() - interval '1 hour')`,
+        ),
+      );
     if ((n?.n ?? 0) >= ALBUM_LIMIT) throw new ForbiddenException('The album is full');
     const id = randomUUID();
     const ext = input.contentType === 'image/png' ? 'png' : input.contentType === 'image/webp' ? 'webp' : 'jpg';
@@ -410,6 +452,30 @@ export class SitesService {
     if (asset.bytes && head.bytes > asset.bytes) throw new BadRequestException('Uploaded file is larger than declared');
     await this.db.update(mediaAssets).set({ ready: true, bytes: head.bytes }).where(eq(mediaAssets.id, assetId));
     return { url: this.storage.publicUrl(asset.storageKey) };
+  }
+
+  /** A guest tells the family what shagun they sent (self-reported; money never passes through us). */
+  async submitGift(slug: string, input: SubmitGiftInput) {
+    const { event, doc, guest } = await this.openSite(slug, input);
+    if (!doc.sections.some((x) => x.type === 'gifts' && !x.hidden)) throw new ForbiddenException('Gifts are not open on this invitation');
+    await this.db.insert(siteGifts).values({
+      eventId: event.id,
+      guestId: guest?.id ?? null,
+      name: input.name,
+      phone: input.phone ?? guest?.phone ?? null,
+      amountPaise: input.amount ? input.amount * 100 : null,
+      method: input.method,
+      note: input.note ?? null,
+      source: 'guest',
+    });
+    return { ok: true };
+  }
+
+  /** The guest's entry pass: a QR of their personal link, scanned at the gate (check-in). */
+  async passQr(slug: string, guestToken?: string): Promise<string> {
+    const { event, guest } = await this.openSite(slug, { guestToken });
+    if (!guest) throw new NotFoundException('Passes are for personal invitation links');
+    return QRCode.toString(`${this.env.APP_URL}/i/${event.slug}?g=${guest.token}`, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' });
   }
 
   /** Shagun QR: a standard UPI pay link for the host's own UPI id (we never touch the money). */
@@ -481,7 +547,15 @@ export class SitesService {
       if (guest) {
         await tx.delete(rsvps).where(and(eq(rsvps.guestId, guest.id), inArray(rsvps.functionId, fnIds)));
       } else {
-        await tx.delete(rsvps).where(and(eq(rsvps.eventId, event.id), eq(rsvps.phone, input.phone!), inArray(rsvps.functionId, fnIds)));
+        // Anonymous answers are keyed by phone, but only the same person may change them: a
+        // matching name is required, and answers made from a personal link are never touched here.
+        const mine = and(eq(rsvps.eventId, event.id), eq(rsvps.phone, input.phone!), isNull(rsvps.guestId), inArray(rsvps.functionId, fnIds));
+        const earlier = await tx.select({ name: rsvps.name }).from(rsvps).where(mine);
+        const norm = (v: string) => v.trim().toLowerCase();
+        if (earlier.some((r) => norm(r.name) !== norm(input.name))) {
+          throw new ConflictException('This number already replied under another name. Use your personal invite link to change it.');
+        }
+        await tx.delete(rsvps).where(mine);
       }
       await tx.insert(rsvps).values(
         input.responses.map((r) => ({

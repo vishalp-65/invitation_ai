@@ -33,6 +33,7 @@ const EVENT: EventDto = {
   features: [],
   credits: {},
   viewCount: 0,
+  access: 'owner',
   createdAt: '2026-11-01T00:00:00Z',
   updatedAt: '2026-11-01T00:00:00Z',
 } as EventDto;

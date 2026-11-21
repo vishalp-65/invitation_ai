@@ -45,6 +45,20 @@ export const eventFunctionInputSchema = z.object({
 });
 export type EventFunctionInput = z.infer<typeof eventFunctionInputSchema>;
 
+/** Automatic follow-ups. `auto` sends through WhatsApp Business (paid plan); otherwise they wait in the host's send queue. */
+export const followUpsSchema = z.object({
+  auto: z.boolean().default(false),
+  /** Remind guests who have not opened the invite this many days after it was sent (0 = off). */
+  unopenedDays: z.number().int().min(0).max(30).default(3),
+  /** Ask for an RSVP this many days before the first function (0 = off). */
+  rsvpDaysBefore: z.number().int().min(0).max(60).default(7),
+  /** Day-before message with venue and map. */
+  dayBefore: z.boolean().default(true),
+  /** Thank-you after the event, linking to the album. */
+  thanks: z.boolean().default(true),
+});
+export type FollowUps = z.infer<typeof followUpsSchema>;
+
 export const eventSettingsSchema = z.object({
   timezone: z.string().default('Asia/Kolkata'),
   rsvpEnabled: z.boolean().default(true),
@@ -57,6 +71,9 @@ export const eventSettingsSchema = z.object({
   galleryAssetIds: z.array(z.uuid()).max(30).default([]),
   backgroundAssetId: z.uuid().optional(),
   aiClipAssetId: z.uuid().optional(),
+  followUps: followUpsSchema.optional(),
+  /** Save-the-date mode: the site shows only names, date and city until the full invite is released. */
+  saveTheDate: z.boolean().default(false),
 });
 export type EventSettings = z.infer<typeof eventSettingsSchema>;
 
@@ -91,6 +108,8 @@ export const eventSettingsPatchSchema = z.object({
   galleryAssetIds: z.array(z.uuid()).max(30).optional(),
   backgroundAssetId: z.uuid().nullable().optional(),
   aiClipAssetId: z.uuid().nullable().optional(),
+  followUps: followUpsSchema.nullable().optional(),
+  saveTheDate: z.boolean().optional(),
 });
 export type EventSettingsPatch = z.infer<typeof eventSettingsPatchSchema>;
 
@@ -139,6 +158,8 @@ export interface EventDto {
   features: string[];
   credits: Record<string, number>;
   viewCount: number;
+  /** What the signed-in person may do: `owner` or a co-host role. */
+  access: 'owner' | 'editor' | 'guests' | 'viewer';
   createdAt: string;
   updatedAt: string;
 }

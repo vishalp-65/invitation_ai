@@ -1274,3 +1274,158 @@
   background-image: radial-gradient(color-mix(in srgb, var(--color-ink) 12%, transparent) 1px, transparent 1.2px);
   background-size: 24px 24px;
 }
+
+/* ================= Form primitives =================
+ * Replace the browser's default checkbox, radio, date/time, colour and number chrome with the
+ * flat studio look. Base layer, so `size-*` and other utilities still win at call sites.
+ * Guest invite sites set --inv-primary / --inv-on-primary; the app falls back to its own tokens. */
+@keyframes select-in {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@layer base {
+  input[type='checkbox']:not(.switch),
+  input[type='radio'] {
+    -webkit-appearance: none;
+    appearance: none;
+    display: inline-grid;
+    place-content: center;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+    flex-shrink: 0;
+    vertical-align: -0.175em;
+    border: 1.5px solid color-mix(in srgb, currentColor 38%, transparent);
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    transition:
+      background-color 0.12s,
+      border-color 0.12s;
+  }
+  input[type='radio'] {
+    border-radius: 999px;
+  }
+  input[type='checkbox']:not(.switch):hover:not(:disabled),
+  input[type='radio']:hover:not(:disabled) {
+    border-color: color-mix(in srgb, currentColor 65%, transparent);
+  }
+  input[type='checkbox']:not(.switch)::before {
+    content: '';
+    width: 0.7em;
+    height: 0.7em;
+    background: var(--inv-on-primary, var(--color-on-primary));
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 8.5l3.2 3.2L13 4.8'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    transform: scale(0);
+    transition: transform 0.14s var(--ease-out-quint);
+  }
+  input[type='checkbox']:not(.switch):indeterminate::before {
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2.6' stroke-linecap='round'%3E%3Cpath d='M4 8h8'/%3E%3C/svg%3E");
+  }
+  input[type='checkbox']:not(.switch):is(:checked, :indeterminate) {
+    background: var(--inv-primary, var(--color-primary));
+    border-color: var(--inv-primary, var(--color-primary));
+  }
+  input[type='checkbox']:not(.switch):is(:checked, :indeterminate)::before {
+    transform: scale(1);
+  }
+  input[type='radio']::before {
+    content: '';
+    width: 0.5em;
+    height: 0.5em;
+    border-radius: 999px;
+    background: var(--inv-primary, var(--color-primary));
+    transform: scale(0);
+    transition: transform 0.14s var(--ease-out-quint);
+  }
+  input[type='radio']:checked {
+    border-color: var(--inv-primary, var(--color-primary));
+  }
+  input[type='radio']:checked::before {
+    transform: scale(1);
+  }
+  input[type='checkbox']:not(.switch):disabled,
+  input[type='radio']:disabled,
+  .switch:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+
+  /* Date / time: quiet calendar + clock buttons that follow the theme. */
+  input:is([type='date'], [type='time'], [type='datetime-local'], [type='month'], [type='week']) {
+    font-variant-numeric: tabular-nums;
+    cursor: text;
+  }
+  input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    opacity: 0.5;
+    padding: 3px;
+    margin-left: 0.25rem;
+    border-radius: 4px;
+    transition:
+      opacity 0.12s,
+      background-color 0.12s;
+  }
+  input::-webkit-calendar-picker-indicator:hover {
+    opacity: 0.95;
+    background-color: color-mix(in srgb, currentColor 9%, transparent);
+  }
+  input::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+  input::-webkit-datetime-edit-text {
+    opacity: 0.5;
+    padding: 0 0.15em;
+  }
+
+  /* Number: no spinner arrows (typed values; steppers where they matter). */
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* Colour: the swatch fills the control, no grey bevelled frame. */
+  input[type='color'] {
+    -webkit-appearance: none;
+    appearance: none;
+    padding: 0;
+    background: transparent;
+    overflow: hidden;
+  }
+  input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 0;
+  }
+  input[type='color']::-webkit-color-swatch {
+    border: 0;
+    border-radius: inherit;
+  }
+  input[type='color']::-moz-color-swatch {
+    border: 0;
+    border-radius: inherit;
+  }
+
+  /* Bare file inputs (outside <Input>): a flat button instead of the grey OS one. */
+  input[type='file']::file-selector-button {
+    margin-right: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-control);
+    background: var(--color-mist);
+    color: var(--color-ink);
+    font: inherit;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+}

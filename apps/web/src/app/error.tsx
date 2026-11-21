@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { Button, ButtonLink } from '@/components/ui/button';
+import { reportError } from '@/lib/report-error';
 
 /**
  * Catches a page that crashed while rendering (the root layout, header and fonts keep working),
@@ -10,6 +11,7 @@ import { Button, ButtonLink } from '@/components/ui/button';
 export default function PageError({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
   useEffect(() => {
     console.error(error);
+    reportError(error, { digest: error.digest });
   }, [error]);
 
   return (

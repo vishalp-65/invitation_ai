@@ -4,7 +4,7 @@ import { COLOR_FILTERS, COMMUNITIES, searchTemplates, STYLE_FILTERS, type Templa
 import { clsx } from 'clsx';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
-import { controlClass } from '@/components/ui/field';
+import { Select } from '@/components/ui/select';
 
 export type TemplateSearchState = Required<Pick<TemplateFilters, 'q' | 'styles' | 'colors'>> & { community: string };
 
@@ -119,10 +119,10 @@ export function TemplateSearchBar({
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-2 text-sm text-ink-soft">
               {hi ? 'परंपरा' : 'Tradition'}
-              <select
+              <Select
                 value={state.community}
                 onChange={(e) => onChange({ ...state, community: e.target.value })}
-                className={`${controlClass} select h-9 pl-3 pr-9 text-sm`}
+                className="h-9 w-auto min-w-36 text-sm"
               >
                 <option value="">{hi ? 'सभी' : 'Any'}</option>
                 {COMMUNITIES.map((c) => (
@@ -130,7 +130,7 @@ export function TemplateSearchBar({
                     {COMMUNITY_LABEL[c]?.[hi ? 1 : 0] ?? c}
                   </option>
                 ))}
-              </select>
+              </Select>
             </label>
             {(nFilters > 0 || state.q) && (
               <button type="button" onClick={() => onChange(EMPTY)} className="text-sm font-medium underline underline-offset-4">

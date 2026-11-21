@@ -1,4 +1,4 @@
-import { createHash, createHmac, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from 'node:crypto';
+import { createHash, createHmac, hkdfSync, randomBytes, scrypt as scryptCb, timingSafeEqual, type BinaryLike } from 'node:crypto';
 
 /** Async scrypt: runs on the libuv thread pool, so a login burst never blocks the event loop. */
 const scrypt = (password: BinaryLike, salt: BinaryLike, keylen: number) =>
@@ -20,7 +20,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
 
 export const sha256 = (input: string) => createHash('sha256').update(input).digest('hex');
 
-export const hmacSha256Hex = (secret: string, payload: string | Buffer) =>
+export const hmacSha256Hex = (secret: string | Buffer, payload: string | Buffer) =>
   createHmac('sha256', secret).update(payload).digest('hex');
 
 export function safeEqual(a: string, b: string): boolean {
@@ -44,3 +44,10 @@ function stableStringify(value: unknown): string {
     .sort(([a], [b]) => a.localeCompare(b));
   return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${stableStringify(v)}`).join(',')}}`;
 }
+
+/**
+ * Sub-key for one purpose (HKDF-SHA256), so a master secret is never used directly by two
+ * features: OTP hashes, admin MFA cookies and JWTs can't be confused with each other.
+ */
+export const deriveKey = (secret: string, purpose: string): Buffer =>
+  Buffer.from(hkdfSync('sha256', secret, 'noyta', purpose, 32));

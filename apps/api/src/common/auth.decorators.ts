@@ -30,6 +30,10 @@ export interface RateLimitOptions {
 }
 export const RateLimit = (opts: RateLimitOptions) => SetMetadata(RATE_LIMIT, opts);
 
+export const SKIP_RATE_LIMIT = 'rate:skip';
+/** Signed provider webhooks only: they arrive in bursts from a few shared IPs and are verified by signature. */
+export const SkipRateLimit = () => SetMetadata(SKIP_RATE_LIMIT, true);
+
 export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionContext): AuthUser => {
   const req = ctx.switchToHttp().getRequest<AuthedRequest>();
   if (!req.user) throw new Error('CurrentUser used on a public route without a session');

@@ -12,12 +12,12 @@ import {
   type SignupInput,
   type UpdateProfileInput,
 } from '@cardai/shared';
-import { ConflictException, Controller, Get, HttpCode, Inject, Logger, Patch, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
+import { ConflictException, Controller, Delete, Get, HttpCode, Inject, Logger, NotFoundException, Patch, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ENV, type Env } from '../../config/env.js';
-import { CurrentUser, Public, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, Public, RateLimit, type AuthedRequest, type AuthUser } from '../../common/auth.decorators.js';
 import { ACCESS_COOKIE } from '../../common/guards.js';
-import { ZBody } from '../../common/zod.js';
+import { UuidParam, ZBody } from '../../common/zod.js';
 import { VISITOR_COOKIE } from '@cardai/shared';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { AuthService } from './auth.service.js';
@@ -82,7 +82,7 @@ export class AuthController {
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
   async login(@ZBody(loginSchema) body: LoginInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.login(body.email, body.password, req.headers['user-agent']);
+    const { tokens, user, isNew } = await this.auth.login(body.email, body.password, req.headers['user-agent'], (req as AuthedRequest).clientIp ?? req.ip);
     this.setCookies(reply, tokens);
     this.trackSignIn(req, user.id, isNew, 'email');
     return { user, isNew };
@@ -103,7 +103,7 @@ export class AuthController {
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
   async resetPassword(@ZBody(resetPasswordSchema) body: ResetPasswordInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.resetPassword(body.email, body.code, body.password, req.headers['user-agent']);
+    const { tokens, user, isNew } = await this.auth.resetPassword(body.email, body.code, body.password, req.headers['user-agent'], (req as AuthedRequest).clientIp ?? req.ip);
     this.setCookies(reply, tokens);
     this.trackSignIn(req, user.id, isNew, 'email');
     return { user, isNew };
@@ -216,9 +216,55 @@ export class AuthController {
   async logout(@Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
     const token = req.cookies[REFRESH_COOKIE];
     if (token) await this.tokens.revoke(token);
-    reply.clearCookie(ACCESS_COOKIE, { path: '/', domain: this.env.COOKIE_DOMAIN });
-    reply.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH, domain: this.env.COOKIE_DOMAIN });
+    // The access token would otherwise keep working until it expires (up to 15 minutes).
+    const access = req.cookies[ACCESS_COOKIE];
+    if (access) await this.tokens.revokeAccess(access);
+    this.clearSessionCookies(reply);
     return { ok: true };
+  }
+
+  /** Signs this account out on every device, this one included. */
+  @Post('logout-all')
+  @HttpCode(200)
+  @RateLimit({ limit: 10, windowSec: 600 })
+  async logoutAll(@CurrentUser() user: AuthUser, @Res({ passthrough: true }) reply: FastifyReply) {
+    await this.tokens.revokeAll(user.id);
+    this.clearSessionCookies(reply);
+    return { ok: true };
+  }
+
+  /** Devices signed in to this account. */
+  @Get('sessions')
+  sessions(@CurrentUser() user: AuthUser, @Req() req: FastifyRequest) {
+    return this.tokens.list(user.id, req.cookies[REFRESH_COOKIE]);
+  }
+
+  /** Signs one device out (it loses access within 15 minutes, when its access token lapses). */
+  @Delete('sessions/:id')
+  @HttpCode(200)
+  @RateLimit({ limit: 30, windowSec: 600 })
+  async endSession(@CurrentUser() user: AuthUser, @UuidParam('id') id: string) {
+    if (!(await this.tokens.revokeById(user.id, id))) throw new NotFoundException('That session has already ended.');
+    return { ok: true };
+  }
+
+  private clearSessionCookies(reply: FastifyReply) {
+    const domains = new Set([this.env.COOKIE_DOMAIN, this.legacyCookieDomain]);
+    for (const domain of domains) {
+      reply.clearCookie(ACCESS_COOKIE, { path: '/', domain });
+      reply.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH, domain });
+    }
+  }
+
+  /**
+   * Session cookies used to be set for the whole parent domain (`.noyta.in`), which also sends
+   * them to every subdomain. With COOKIE_DOMAIN unset they are host-only; this is the old domain,
+   * cleared on every sign-in and refresh so a browser never holds both copies.
+   */
+  private get legacyCookieDomain(): string | undefined {
+    if (this.env.COOKIE_DOMAIN || this.env.NODE_ENV !== 'production') return undefined;
+    const host = new URL(this.env.APP_URL).hostname;
+    return /^[\d.]+$/.test(host) || !host.includes('.') ? undefined : `.${host.replace(/^www\./, '')}`;
   }
 
   @Get('me')
@@ -247,6 +293,11 @@ export class AuthController {
       sameSite: 'lax' as const,
       domain: this.env.COOKIE_DOMAIN,
     };
+    const legacy = this.legacyCookieDomain;
+    if (legacy) {
+      reply.clearCookie(ACCESS_COOKIE, { path: '/', domain: legacy });
+      reply.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH, domain: legacy });
+    }
     reply.setCookie(ACCESS_COOKIE, tokens.accessToken, { ...base, path: '/', maxAge: ACCESS_TTL_SEC });
     reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_TTL_SEC });
   }

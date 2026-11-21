@@ -1,10 +1,11 @@
 'use client';
 
 import { getEventType } from '@cardai/shared';
-import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, ExternalLink, Eye, Globe, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
+import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, ExternalLink, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
 import { buttonClass } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
@@ -21,14 +22,19 @@ const GuestsPanel = dynamic(() => import('@/features/event/guests-panel').then((
 const RsvpPanel = dynamic(() => import('@/features/event/rsvp-panel').then((m) => m.RsvpPanel), { loading: panelLoading });
 const UpgradePanel = dynamic(() => import('@/features/event/upgrade-panel').then((m) => m.UpgradePanel), { loading: panelLoading });
 const PrintPanel = dynamic(() => import('@/features/event/print-panel').then((m) => m.PrintPanel), { loading: panelLoading });
+const GiftsPanel = dynamic(() => import('@/features/event/gifts-panel').then((m) => m.GiftsPanel), { loading: panelLoading });
+const FamilyPanel = dynamic(() => import('@/features/event/family-panel').then((m) => m.FamilyPanel), { loading: panelLoading });
 
+/** `edit`: hidden from co-hosts who may only manage guests or view. */
 const TABS = [
-  { id: 'share', label: 'Share & download', icon: Send },
-  { id: 'edit', label: 'Details', icon: Pencil },
-  { id: 'guests', label: 'Guests', icon: Users },
-  { id: 'rsvp', label: 'Replies', icon: MessageSquareReply },
-  { id: 'upgrade', label: 'Upgrade', icon: Crown },
-  { id: 'print', label: 'Print', icon: Printer },
+  { id: 'share', label: 'Share & download', icon: Send, edit: false },
+  { id: 'edit', label: 'Details', icon: Pencil, edit: true },
+  { id: 'guests', label: 'Guests', icon: Users, edit: false },
+  { id: 'rsvp', label: 'Replies', icon: MessageSquareReply, edit: false },
+  { id: 'gifts', label: 'Shagun', icon: Gift, edit: false },
+  { id: 'family', label: 'Co-hosts', icon: HeartHandshake, edit: false },
+  { id: 'upgrade', label: 'Upgrade', icon: Crown, edit: true },
+  { id: 'print', label: 'Print', icon: Printer, edit: true },
 ] as const;
 
 const dayMs = 86_400_000;
@@ -51,11 +57,17 @@ function EventWorkspace() {
   const justCreated = search.get('created') === '1';
   const [showPreview, setShowPreview] = useState(false);
   const isDesktop = useMediaQuery('(min-width: 1024px)');
+  const t = useTranslations('event');
 
   if (isLoading) return <PageSkeleton variant="workspace" />;
   if (error || !event) return <p className="text-sindoor">This invitation could not be found.</p>;
 
+  const canEdit = event.access === 'owner' || event.access === 'editor';
+  const tabs = TABS.filter((t) => canEdit || !t.edit);
+  const current = tabs.some((t) => t.id === tab) ? tab : 'share';
+
   const goUpgrade = () => {
+    if (!canEdit) return;
     setTab('upgrade');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -67,7 +79,7 @@ function EventWorkspace() {
         className="group inline-flex items-center gap-1.5 font-mono text-xs text-ink-soft transition-colors hover:text-ink"
       >
         <ChevronLeft className="size-3.5 transition-transform group-hover:-translate-x-0.5" aria-hidden />
-        My invitations
+        {t('back')}
       </Link>
 
       {justCreated && (
@@ -92,29 +104,31 @@ function EventWorkspace() {
           {/* Underline tabs on a solid strip: sticky under the header, no blur. */}
           <div className="sticky top-14 z-10 lg:top-16 -mx-4 mt-8 border-b border-ink/10 bg-ivory/90 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
             <div role="tablist" aria-label="Invitation tools" className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] sm:gap-7">
-              {TABS.map((t) => (
+              {tabs.map((tb) => (
                 <button
-                  key={t.id}
+                  key={tb.id}
                   type="button"
                   role="tab"
-                  aria-selected={tab === t.id}
-                  onClick={() => setTab(t.id)}
+                  aria-selected={current === tb.id}
+                  onClick={() => setTab(tb.id)}
                   className="inline-flex h-12 shrink-0 items-center gap-2 border-b border-transparent text-sm text-ink-soft transition-colors hover:text-ink aria-selected:border-ink aria-selected:text-ink"
                 >
-                  <t.icon className="size-[0.95rem]" strokeWidth={1.6} aria-hidden />
-                  {t.label}
+                  <tb.icon className="size-[0.95rem]" strokeWidth={1.6} aria-hidden />
+                  {t(`tabs.${tb.id}`)}
                 </button>
               ))}
             </div>
           </div>
 
-          <div key={tab} className="mt-6 animate-fade-up" role="tabpanel">
-            {tab === 'share' && <SharePanel event={event} onUpgrade={goUpgrade} />}
-            {tab === 'edit' && <EditPanel event={event} onUpgrade={goUpgrade} />}
-            {tab === 'guests' && <GuestsPanel event={event} onUpgrade={goUpgrade} />}
-            {tab === 'rsvp' && <RsvpPanel event={event} onUpgrade={goUpgrade} />}
-            {tab === 'upgrade' && <UpgradePanel event={event} />}
-            {tab === 'print' && <PrintPanel event={event} onUpgrade={goUpgrade} />}
+          <div key={current} className="mt-6 animate-fade-up" role="tabpanel">
+            {current === 'share' && <SharePanel event={event} onUpgrade={goUpgrade} />}
+            {current === 'edit' && <EditPanel event={event} onUpgrade={goUpgrade} />}
+            {current === 'guests' && <GuestsPanel event={event} onUpgrade={goUpgrade} />}
+            {current === 'rsvp' && <RsvpPanel event={event} onUpgrade={goUpgrade} />}
+            {current === 'gifts' && <GiftsPanel event={event} />}
+            {current === 'family' && <FamilyPanel event={event} />}
+            {current === 'upgrade' && <UpgradePanel event={event} />}
+            {current === 'print' && <PrintPanel event={event} onUpgrade={goUpgrade} />}
           </div>
         </div>
 
@@ -158,6 +172,7 @@ function EventWorkspace() {
 
 /** Summary of the invitation: what, when, where, and the main actions. */
 function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>['data']> }) {
+  const t = useTranslations('event');
   const type = getEventType(event.type);
   const live = event.status === 'published';
   const first = [...event.functions].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
@@ -174,11 +189,17 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
           <div className="flex flex-wrap items-center gap-2 text-sm">
             <span className={`inline-flex h-6 items-center gap-2 px-2 font-mono text-[0.6875rem] uppercase tracking-wider ${live ? 'bg-gold/10 text-gold' : 'bg-ink/10 text-ink-soft'}`}>
               <span className={`size-1.5 rounded-full ${live ? 'animate-pulse bg-gold' : 'bg-ink-soft/50'}`} aria-hidden />
-              {live ? 'Live' : 'Draft'}
+              {live ? t('live') : t('draft')}
             </span>
             <span className="font-mono text-xs text-ink-soft">
               <span aria-hidden>{type.emoji}</span> {type.label.split(' / ')[0]}
             </span>
+            {event.access !== 'owner' && (
+              <span className="inline-flex h-6 items-center bg-ink/10 px-2 font-mono text-[0.6875rem] uppercase tracking-wider text-ink-soft">{t('coHost')}</span>
+            )}
+            {event.settings.saveTheDate && (
+              <span className="inline-flex h-6 items-center bg-gold/10 px-2 font-mono text-[0.6875rem] uppercase tracking-wider text-gold">{t('saveTheDate')}</span>
+            )}
           </div>
           <h1 className="page-title mt-4" lang={event.language}>
             {event.title}
@@ -205,7 +226,7 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
             )}
             <li className="inline-flex items-center gap-1.5 tabular-nums">
               <Eye className="size-4" aria-hidden />
-              {event.viewCount.toLocaleString('en-IN')} views
+              {t('views', { count: event.viewCount.toLocaleString('en-IN') })}
             </li>
           </ul>
         </div>
@@ -220,21 +241,25 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
         {live && (
           <button type="button" onClick={share} className={buttonClass('primary', 'md', 'press col-span-2')}>
             <WhatsAppIcon className="size-4" />
-            Share on WhatsApp
+            {t('shareWhatsapp')}
           </button>
         )}
-        <Link href={`/editor/${event.id}`} className={buttonClass(live ? 'line' : 'primary', 'md', 'press')}>
-          <Brush className="size-4" aria-hidden />
-          Edit card
-        </Link>
-        <Link href={`/builder/${event.id}`} className={buttonClass('line', 'md', 'press')}>
-          <Globe className="size-4" aria-hidden />
-          Edit website
-        </Link>
+        {(event.access === 'owner' || event.access === 'editor') && (
+          <>
+            <Link href={`/editor/${event.id}`} className={buttonClass(live ? 'line' : 'primary', 'md', 'press')}>
+              <Brush className="size-4" aria-hidden />
+              {t('editCard')}
+            </Link>
+            <Link href={`/builder/${event.id}`} className={buttonClass('line', 'md', 'press')}>
+              <Globe className="size-4" aria-hidden />
+              {t('editSite')}
+            </Link>
+          </>
+        )}
         {live && (
           <a href={`/i/${event.slug}`} target="_blank" rel="noopener" className={buttonClass('quiet', 'md', 'col-span-2 text-ink-soft')}>
             <ExternalLink className="size-4" aria-hidden />
-            Open website
+            {t('openSite')}
           </a>
         )}
       </div>

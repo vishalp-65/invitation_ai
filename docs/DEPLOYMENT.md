@@ -176,6 +176,10 @@ and the API ignores any `X-Forwarded-For` a client sends. **Roll it out in this 
 2. Add the same value to `/opt/noyta/.env` and redeploy the API.
 
 If the API gets it first, every visitor shares Vercel's IP addresses, and so shares one rate limit.
+The API refuses to start in production without it.
+
+Session cookies are host-only: leave `COOKIE_DOMAIN` empty. Browsers that still hold the old
+`.noyta.in` cookies get them cleared on their next sign-in or refresh.
 
 4. Deploy, then **Settings → Domains**: add `noyta.in` as primary, and `www.noyta.in` redirecting to it. The DNS records Vercel shows should match step 1.
 5. Every push to `main` deploys production and every PR gets a preview URL. Preview URLs call the production API through the rewrite; point the Preview env `API_INTERNAL_URL` elsewhere if you don't want that.
@@ -305,4 +309,5 @@ Then in the browser:
 | Deploy fails at `migrate` | Check `DATABASE_URL_DIRECT` (Neon direct string). The old containers are still running |
 | WhatsApp webhook "could not be verified" | API not live yet, or the verify token differs from `WHATSAPP_VERIFY_TOKEN` |
 | WhatsApp send error `132001` | Template name/language mismatch, or the template isn't approved yet |
-| Login works on api.noyta.in but not noyta.in | `COOKIE_DOMAIN` must be `.noyta.in`, and `APP_URL` must be `https://noyta.in` |
+| Login doesn't stick on noyta.in | `APP_URL` must be `https://noyta.in` and browsers must reach the API through noyta.in/api (Vercel rewrite). Keep `COOKIE_DOMAIN` empty: host-only cookies are never sent to subdomains |
+| API exits with `CLIENT_IP_SECRET is required in production` | Set it on Vercel first (redeploy web), then in `/opt/noyta/.env` |

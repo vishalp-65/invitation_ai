@@ -78,5 +78,46 @@
     "close": "Close",
     "offer": "Offer",
     "dismiss": "Dismiss"
+  },
+  "event": {
+    "back": "My invitations",
+    "live": "Live",
+    "draft": "Draft",
+    "coHost": "Co-host",
+    "saveTheDate": "Save the date",
+    "views": "{count} views",
+    "editCard": "Edit card",
+    "editSite": "Edit website",
+    "openSite": "Open website",
+    "shareWhatsapp": "Share on WhatsApp",
+    "tabs": {
+      "share": "Share & download",
+      "edit": "Details",
+      "guests": "Guests",
+      "rsvp": "Replies",
+      "gifts": "Shagun",
+      "family": "Co-hosts",
+      "upgrade": "Upgrade",
+      "print": "Print"
+    }
+  },
+  "send": {
+    "title": "Send to a whole list, one tap each",
+    "body": "WhatsApp opens with each guest's message ready, written in {language}. Send, come back, tap the next. Free: it goes from your own WhatsApp.",
+    "invite": "Not sent yet",
+    "inviteHint": "Their invitation with a personal link",
+    "unopened": "Sent, not opened",
+    "unopenedHint": "A gentle reminder",
+    "rsvp": "No reply yet",
+    "rsvpHint": "Ask them to RSVP",
+    "dayBefore": "Day before",
+    "dayBeforeHint": "See you tomorrow, with venue and map",
+    "thanks": "Thank you",
+    "thanksHint": "After the event, with the photo album",
+    "saveTheDate": "Save the date",
+    "saveTheDateHint": "Before the full invitation is ready",
+    "checkin": "Event-day check-in",
+    "wall": "Photo wall for the venue TV",
+    "printList": "Printable guest list"
   }
 }

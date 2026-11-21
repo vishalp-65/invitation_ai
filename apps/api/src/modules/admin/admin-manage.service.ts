@@ -19,6 +19,7 @@ import { BadRequestException, ConflictException, ForbiddenException, Inject, Inj
 import type { Queue } from 'bullmq';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { disabledKey } from '../../common/guards.js';
+import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, STORAGE, type Redis, type S3Storage } from '../../infra/infra.module.js';
 import { ACCESS_TTL_SEC, TokenService } from '../auth/token.service.js';
 import { effectiveScopes } from './scopes.js';
@@ -40,6 +41,7 @@ export class AdminManageService {
     @Inject(STORAGE) private readonly storage: S3Storage,
     private readonly tokens: TokenService,
     @InjectQueue(QUEUES.render) private readonly renderQueue: Queue<RenderJobData>,
+    @Inject(ENV) private readonly env: Env,
   ) {}
 
   private q: Q = async <T>(s: ReturnType<typeof sql>) => (await this.db.execute(s)).rows as T[];
@@ -185,9 +187,13 @@ export class AdminManageService {
   /** Takes admin access away (back to a customer account). The last owner cannot be removed. */
   async removeAdmin(admin: AuthUser, id: string) {
     if (id === admin.id) throw new ForbiddenException('You cannot remove your own admin access.');
-    const admins = await this.db.select({ id: users.id, scopes: users.adminScopes, disabledAt: users.disabledAt }).from(users).where(eq(users.role, 'admin'));
+    const admins = await this.db.select({ id: users.id, email: users.email, scopes: users.adminScopes, disabledAt: users.disabledAt }).from(users).where(eq(users.role, 'admin'));
     const target = admins.find((a) => a.id === id);
     if (!target) throw new NotFoundException('That person is not an admin.');
+    // Sign-in grants the admin role to every ADMIN_EMAILS address, so removing one here would undo itself.
+    if (target.email && this.env.ADMIN_EMAILS.includes(target.email.toLowerCase())) {
+      throw new ConflictException('This admin is listed in ADMIN_EMAILS on the server. Remove the address there first, then remove them here.');
+    }
     if (!admins.some((a) => a.id !== id && !a.disabledAt && effectiveScopes(a.scopes).includes('owner'))) throw new ConflictException('Keep at least one owner.');
     await this.db.update(users).set({ role: 'user', adminScopes: [] }).where(eq(users.id, id));
     await this.tokens.revokeAll(id);

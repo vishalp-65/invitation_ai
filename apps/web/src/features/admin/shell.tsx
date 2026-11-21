@@ -2,7 +2,7 @@
 
 import { BRAND } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowLeft, BarChart3, Clapperboard, Gauge, IndianRupee, LayoutDashboard, LayoutTemplate, Mail, MailOpen, MapPin, ScrollText, Settings, Share2, ShieldAlert, ShoppingBag, Store, Tag, TrendingUp, Users, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, BarChart3, Clapperboard, Gauge, IndianRupee, LayoutDashboard, LayoutTemplate, Mail, MailOpen, MapPin, ScrollText, Settings, Share2, ShieldAlert, ShoppingBag, Store, Tag, TrendingUp, Users, type LucideIcon, Bug } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Suspense, type ReactNode } from 'react';
@@ -61,6 +61,7 @@ const GROUPS: Array<{ label: string; items: NavItem[] }> = [
     label: 'System',
     items: [
       { href: '/admin/operations', label: 'Operations', icon: Gauge },
+      { href: '/admin/errors', label: 'Errors', icon: Bug },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
       { href: '/admin/activity', label: 'Admin log', icon: ScrollText, scopes: ['owner'] },
     ],

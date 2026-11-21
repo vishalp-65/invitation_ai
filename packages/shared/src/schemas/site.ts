@@ -31,7 +31,7 @@ export interface PublicSiteDto {
     content: EventContent;
     settings: Pick<
       EventSettings,
-      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation'
+      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation' | 'saveTheDate'
     >;
   };
   template: { id: string; layout: LayoutId; theme: Theme };
@@ -56,7 +56,8 @@ export interface PublicSiteDto {
     groupLabel: string | null;
     stay: GuestStay | null;
   } | null;
-  features: { rsvp: boolean; showBranding: boolean };
+  /** `gifts`: guests can tell the family what shagun they sent (needs a gifts section). */
+  features: { rsvp: boolean; showBranding: boolean; gifts: boolean };
   /** The page document with the plan applied (locked sections removed). */
   site: SiteDoc;
   tier: SiteTier;

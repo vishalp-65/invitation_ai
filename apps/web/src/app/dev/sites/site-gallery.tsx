@@ -3,6 +3,7 @@
 import { applyDesign, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, type PublicSiteDto, type SiteDesignId } from '@cardai/shared';
 import { useMemo, useState } from 'react';
 import { SiteRenderer } from '@/features/site/site-renderer';
+import { Select } from '@/components/ui/select';
 
 const IN = (days: number, h: number) => {
   const d = new Date(Date.now() + days * 86_400_000);
@@ -33,7 +34,7 @@ function sampleData(): PublicSiteDto {
         closing: 'Hope to see you there!',
         hashtag: '#AbhiWedsKanika',
       },
-      settings: { timezone: 'Asia/Kolkata', showCountdown: true, rsvpEnabled: true, askMealPreference: false, askAccommodation: false },
+      settings: { timezone: 'Asia/Kolkata', showCountdown: true, rsvpEnabled: true, askMealPreference: false, askAccommodation: false, saveTheDate: false },
     },
     template: { id: template.id, layout: template.layout, theme: template.theme },
     functions: [
@@ -44,7 +45,7 @@ function sampleData(): PublicSiteDto {
     ],
     media: { photos: [], gallery: [], backgroundUrl: null, musicUrl: null, musicLibrary: {}, coverUrl: null, videoUrl: null, assets: {} },
     guest: null,
-    features: { rsvp: true, showBranding: false },
+    features: { rsvp: true, showBranding: false, gifts: true },
     site: {
       ...doc,
       sections: doc.sections.map((s) =>
@@ -82,21 +83,22 @@ export function SiteGallery({ initial, skipOpening = false }: { initial: string;
   return (
     <>
       <div hidden={skipOpening} className="fixed left-2 top-2 z-[80] flex gap-1 rounded-lg bg-black/70 p-1 text-xs text-white">
-        <select
+        <Select
+          variant="bare"
           aria-label="Design"
           value={id}
           onChange={(e) => {
             setId(e.target.value as SiteDesignId);
             setReplay((r) => r + 1);
           }}
-          className="rounded bg-transparent"
+          className="rounded px-2"
         >
           {SITE_DESIGNS.map((d) => (
-            <option key={d.id} value={d.id} className="text-black">
+            <option key={d.id} value={d.id}>
               {d.name}
             </option>
           ))}
-        </select>
+        </Select>
         <button type="button" onClick={() => setReplay((r) => r + 1)} className="rounded px-2 hover:bg-white/20">
           Replay
         </button>

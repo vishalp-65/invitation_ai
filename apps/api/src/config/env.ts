@@ -93,6 +93,14 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)),
 
+  /**
+   * Refuse new passwords found in known breaches (Have I Been Pwned range API: only the first 5
+   * hex chars of the password's SHA-1 leave the server). Fails open if the service is down.
+   */
+  PWNED_PASSWORD_CHECK: z
+    .string()
+    .optional()
+    .transform((v) => v !== 'false' && v !== '0'),
   /** Admins confirm a 6-digit email code once per device every 12 h. Default: on in production. */
   ADMIN_MFA: z
     .string()
@@ -131,6 +139,12 @@ const envSchema = z.object({
   WHATSAPP_APP_SECRET: z.string().optional(),
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   WHATSAPP_INVITE_TEMPLATE: z.string().default('invitation_link'),
+  /**
+   * Approved utility template with ONE body variable (the whole follow-up text). Needed for
+   * automatic reminders / day-before / thank-you messages; without it they wait in the host's
+   * tap-through send queue instead.
+   */
+  WHATSAPP_FOLLOWUP_TEMPLATE: optionalStr,
 });
 
 export type Env = z.infer<typeof envSchema>;
@@ -148,6 +162,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
     const missing = required.filter((k) => !env[k]);
     if (missing.length) throw new Error(`Missing production configuration: ${missing.join(', ')}`);
     if (env.EMAIL_PROVIDER === 'console') throw new Error('EMAIL_PROVIDER=console is not allowed in production');
+    // Without it every per-IP limit (sign-in, codes, site passwords) can be dodged with a fake X-Forwarded-For.
+    if (!env.CLIENT_IP_SECRET) throw new Error('CLIENT_IP_SECRET is required in production (set the same value on Vercel first, see docs/DEPLOYMENT.md)');
+    if (env.ADMIN_MFA === false) throw new Error('ADMIN_MFA=false is not allowed in production');
   }
   return env;
 }

@@ -110,6 +110,7 @@ export const users = pgTable(
   (t) => [
     uniqueIndex('users_email_verified_uq').on(sql`lower(${t.email})`).where(sql`${t.emailVerifiedAt} is not null`),
     index('users_created_idx').on(t.createdAt),
+    index('users_referred_event_idx').on(t.referredEventId).where(sql`${t.referredEventId} is not null`),
     check('users_has_contact', sql`${t.phone} is not null or ${t.email} is not null or ${t.googleSub} is not null`),
   ],
 );
@@ -364,6 +365,14 @@ export const guests = pgTable(
     firstViewedAt: timestamp({ withTimezone: true }),
     lastViewedAt: timestamp({ withTimezone: true }),
     invitedAt: timestamp({ withTimezone: true }),
+    /** Follow-ups already sent to this guest (see NUDGE_KINDS), so each goes out once. */
+    nudges: jsonb().$type<string[]>().notNull().default([]),
+    lastNudgeAt: timestamp({ withTimezone: true }),
+    /** Event-day check-in at the gate. */
+    checkedInAt: timestamp({ withTimezone: true }),
+    checkedInPax: integer(),
+    /** Host sent a thank-you (after the event / for a gift). */
+    thankedAt: timestamp({ withTimezone: true }),
     createdAt: createdAt(),
   },
   (t) => [uniqueIndex().on(t.token), uniqueIndex('guests_short_code_uq').on(t.shortCode), index().on(t.eventId)],
@@ -397,6 +406,51 @@ export const rsvps = pgTable(
       .on(t.guestId, t.functionId)
       .where(sql`${t.guestId} IS NOT NULL`),
   ],
+);
+
+/** Co-hosts: family members who help run an invitation. Invited by email, joined on sign-in. */
+export const eventMembers = pgTable(
+  'event_members',
+  {
+    id: id(),
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    /** Set once the invite is accepted. */
+    userId: uuid().references(() => users.id, { onDelete: 'cascade' }),
+    /** Lower-cased. */
+    email: text().notNull(),
+    /** editor | guests | viewer (see MEMBER_ROLES). */
+    role: text().notNull(),
+    invitedBy: uuid().references(() => users.id, { onDelete: 'set null' }),
+    acceptedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [uniqueIndex('event_members_email_uq').on(t.eventId, t.email), index('event_members_user_idx').on(t.userId)],
+);
+
+/** Shagun / gifts: guests say what they sent (UPI, cash, gift) and hosts keep a thank-you list. */
+export const siteGifts = pgTable(
+  'site_gifts',
+  {
+    id: id(),
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    guestId: uuid().references(() => guests.id, { onDelete: 'set null' }),
+    name: text().notNull(),
+    phone: text(),
+    /** Optional and self-reported; money never passes through us. */
+    amountPaise: integer(),
+    /** upi | cash | gift */
+    method: text().notNull().default('upi'),
+    note: text(),
+    /** guest (left on the site) | host (written down by the family) */
+    source: text().notNull().default('guest'),
+    thankedAt: timestamp({ withTimezone: true }),
+    createdAt: createdAt(),
+  },
+  (t) => [index('site_gifts_event_idx').on(t.eventId, t.createdAt)],
 );
 
 // ---------------- Print ----------------
@@ -834,6 +888,25 @@ export const adminAlerts = pgTable(
     createdAt: createdAt(),
   },
   (t) => [index('admin_alerts_time_idx').on(t.createdAt)],
+);
+
+/** Errors from the web app, API and worker, grouped by fingerprint (first-party error tracking). */
+export const appErrors = pgTable(
+  'app_errors',
+  {
+    id: id(),
+    fingerprint: text().notNull(),
+    /** web | api | worker */
+    source: text().notNull(),
+    message: text().notNull(),
+    stack: text(),
+    url: text(),
+    count: integer().notNull().default(1),
+    firstSeenAt: createdAt(),
+    lastSeenAt: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    resolvedAt: timestamp({ withTimezone: true }),
+  },
+  (t) => [uniqueIndex('app_errors_fingerprint_uq').on(t.fingerprint), index('app_errors_seen_idx').on(t.lastSeenAt)],
 );
 
 /** Finished days, computed nightly (India time). Long-range charts and the digest read this. */

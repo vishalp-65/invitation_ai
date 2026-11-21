@@ -1,7 +1,7 @@
 import { designerApplySchema, marketplaceTemplateSchema, reviewTemplateSchema, type MarketplaceTemplateInput } from '@cardai/shared';
 import { Controller, Get, HttpCode, Patch, Post, UseGuards } from '@nestjs/common';
 import { z } from 'zod';
-import { CurrentUser, Roles, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, RateLimit, Roles, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { AdminGuard, AdminScopes } from '../admin/admin-access.js';
 import { MarketplaceService } from './marketplace.service.js';
@@ -12,6 +12,7 @@ export class MarketplaceController {
   constructor(private readonly market: MarketplaceService) {}
 
   @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
+  @RateLimit({ limit: 5, windowSec: 86400 })
   @Post('designers/apply')
   apply(@CurrentUser() user: AuthUser, @ZBody(designerApplySchema) body: z.infer<typeof designerApplySchema>) {
     return this.market.apply(user, body);
@@ -28,6 +29,7 @@ export class MarketplaceController {
   }
 
   @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
+  @RateLimit({ limit: 30, windowSec: 3600 })
   @Post('designer/templates')
   create(@CurrentUser() user: AuthUser, @ZBody(marketplaceTemplateSchema) body: MarketplaceTemplateInput) {
     return this.market.createTemplate(user, body);
@@ -39,6 +41,7 @@ export class MarketplaceController {
   }
 
   @RequireFlag('marketplace', 'Designer submissions are paused for a short while.')
+  @RateLimit({ limit: 20, windowSec: 3600 })
   @Post('designer/templates/:id/submit')
   @HttpCode(200)
   submit(@CurrentUser() user: AuthUser, @UuidParam('id') id: string) {

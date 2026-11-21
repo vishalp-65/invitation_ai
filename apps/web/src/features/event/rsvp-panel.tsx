@@ -2,7 +2,8 @@
 
 import type { EventDto, RsvpSummaryDto } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
-import { Download, MessageSquareReply } from 'lucide-react';
+import { Download, MessageSquareReply, Printer, ScanLine } from 'lucide-react';
+import Link from 'next/link';
 import { buttonClass } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { qk } from '@/lib/hooks';
@@ -63,10 +64,16 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
         title="Replies"
         description="Updates on its own every 30 seconds."
         actions={
-          <a href={`/api/events/${event.id}/rsvps/export.csv`} className={buttonClass('line', 'sm')}>
-            <Download className="size-4" />
-            Download for Excel
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/host/${event.id}/print`} className={buttonClass('line', 'sm')}>
+              <Printer className="size-4" aria-hidden />
+              Print list
+            </Link>
+            <a href={`/api/events/${event.id}/rsvps/export.csv`} className={buttonClass('line', 'sm')}>
+              <Download className="size-4" />
+              Download for Excel
+            </a>
+          </div>
         }
       >
         {t && (
@@ -118,6 +125,7 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             })}
           </ul>
         )}
+        {summary && <CatererTotals event={event} summary={summary} />}
       </Panel>
 
       <section className="overflow-clip border border-ink/10 bg-ink/[0.015]">
@@ -176,6 +184,72 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           </>
         )}
       </section>
+    </div>
+  );
+}
+
+const MEALS = [
+  ['veg', 'Veg'],
+  ['jain', 'Jain'],
+  ['vegan', 'Vegan'],
+  ['non_veg', 'Non-veg'],
+  ['unknown', 'Not said'],
+] as const;
+
+/** What the caterer and the hotel need: people per function by meal, rooms, and who has arrived. */
+function CatererTotals({ event, summary }: { event: EventDto; summary: RsvpSummaryDto }) {
+  const askMeals = event.settings.askMealPreference;
+  const t = summary.totals;
+  return (
+    <div className="mt-6 border-t border-ink/10 pt-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h3 className="text-[0.95rem]">For the caterer</h3>
+        <Link href={`/dashboard/events/${event.id}/checkin`} className="inline-flex items-center gap-1.5 text-sm underline underline-offset-4">
+          <ScanLine className="size-4" aria-hidden /> Check guests in at the gate
+        </Link>
+      </div>
+      {askMeals ? (
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full min-w-[28rem] text-sm">
+            <thead className={tableHead}>
+              <tr>
+                <th className="px-3 py-2 font-medium">Function</th>
+                {MEALS.map(([, l]) => (
+                  <th key={l} className="px-3 py-2 text-right font-medium">
+                    {l}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-ink/10">
+              {summary.meals.map((m) => (
+                <tr key={m.functionId}>
+                  <td className="px-3 py-2" lang={event.language}>
+                    {summary.functions.find((f) => f.functionId === m.functionId)?.name}
+                  </td>
+                  {MEALS.map(([k]) => (
+                    <td key={k} className="px-3 py-2 text-right tabular-nums">
+                      {m[k]}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <p className="mt-2 text-sm text-ink-soft">Turn on &quot;Ask meal preference&quot; in Details to get veg / Jain / non-veg counts per function.</p>
+      )}
+      <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[0.6875rem] text-ink-soft">
+        {event.settings.askAccommodation && (
+          <span>
+            <b className="font-normal text-ink">{summary.needsStay}</b> families need a room
+          </span>
+        )}
+        <span>
+          <b className="font-normal text-ink">{t.checkedIn}</b> families arrived ({t.checkedInPax} people)
+        </span>
+      </p>
     </div>
   );
 }

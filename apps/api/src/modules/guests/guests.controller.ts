@@ -1,11 +1,23 @@
-import { guestInputSchema, importGuestsSchema, updateGuestSchema, type GuestInput, type UpdateGuestInput } from '@cardai/shared';
-import { Controller, Delete, Get, Header, HttpCode, Patch, Post } from '@nestjs/common';
+import {
+  checkInSchema,
+  guestInputSchema,
+  importGuestsSchema,
+  SEND_KINDS,
+  SEND_QUEUE_FILTERS,
+  sendInviteSchema,
+  updateGuestSchema,
+  type CheckInInput,
+  type GuestInput,
+  type SendInviteInput,
+  type UpdateGuestInput,
+} from '@cardai/shared';
+import { BadRequestException, Controller, Delete, Get, Header, HttpCode, Patch, Post, Query } from '@nestjs/common';
 import { z } from 'zod';
 import { CurrentUser, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { GuestsService } from './guests.service.js';
 
-const sendSchema = z.object({ viaApi: z.boolean().default(false) });
+const markSentSchema = z.object({ guestIds: z.array(z.uuid()).min(1).max(500), kind: z.enum(SEND_KINDS) });
 
 @Controller('events/:eventId')
 export class GuestsController {
@@ -50,9 +62,31 @@ export class GuestsController {
     @CurrentUser() user: AuthUser,
     @UuidParam('eventId') eventId: string,
     @UuidParam('guestId') guestId: string,
-    @ZBody(sendSchema) body: z.infer<typeof sendSchema>,
+    @ZBody(sendInviteSchema) body: SendInviteInput,
   ) {
-    return this.guests.sendInvite(user, eventId, guestId, body.viaApi);
+    return this.guests.sendInvite(user, eventId, guestId, body.viaApi, body.kind);
+  }
+
+  /** Prepared WhatsApp messages for a group of guests (unsent, not opened, no RSVP, day before...). */
+  @Get('send-queue')
+  queue(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @Query('filter') filter = 'unsent') {
+    if (!(SEND_QUEUE_FILTERS as readonly string[]).includes(filter)) throw new BadRequestException('Unknown filter');
+    return this.guests.sendQueue(user, eventId, filter as (typeof SEND_QUEUE_FILTERS)[number]);
+  }
+
+  @Post('send-queue/sent')
+  @HttpCode(200)
+  @RateLimit({ limit: 600, windowSec: 3600 })
+  markSent(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @ZBody(markSentSchema) body: z.infer<typeof markSentSchema>) {
+    return this.guests.markQueueSent(user, eventId, body.guestIds, body.kind);
+  }
+
+  /** Event-day gate: scan a guest's pass (personal link QR) or tap them in the list. */
+  @Post('checkin')
+  @HttpCode(200)
+  @RateLimit({ limit: 3000, windowSec: 3600 })
+  checkIn(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @ZBody(checkInSchema) body: CheckInInput) {
+    return this.guests.checkIn(user, eventId, body);
   }
 
   @Get('rsvps')

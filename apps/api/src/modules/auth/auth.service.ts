@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, sql, users, type Database } from '@cardai/db';
+import { adminAuditLog, and, desc, eq, inArray, isNotNull, sql, users, type Database } from '@cardai/db';
 import type { MeResponse, UpdateProfileInput, UserRole } from '@cardai/shared';
 import {
   BadRequestException,
@@ -20,11 +20,18 @@ import { FlagsService } from '../flags/flags.service.js';
 import { MailService } from '../mail/mail.service.js';
 import { toLocale } from '../mail/templates/index.js';
 import { GoogleService, type GoogleProfile } from './google.service.js';
-import { OtpService, OTP_TTL_SEC } from './otp.service.js';
+import { OtpService } from './otp.service.js';
+import { isPwnedPassword } from './pwned.js';
 import { TokenService, type IssuedTokens } from './token.service.js';
 
+/** Wrong passwords per address from one IP, and from all IPs together, per window. */
 const MAX_LOGIN_FAILS = 10;
+const MAX_LOGIN_FAILS_ALL_IPS = 100;
 const LOGIN_FAIL_WINDOW_SEC = 15 * 60;
+const LOCKED_MSG = 'Too many failed attempts. Try again in 15 minutes, or reset your password.';
+const PWNED_MSG = 'This password has appeared in a known data breach. Please choose a different one.';
+/** Audit action written when ADMIN_EMAILS (not a person) grants the admin role. */
+const ENV_GRANT = 'admin.env-grant';
 const EXISTS_MSG = 'An account with this email already exists. Log in instead, or use "Forgot password".';
 /** Hash of a throwaway password; verified against for unknown accounts to equalise response time. */
 /** Devices seen per user, for the new sign-in alert. */
@@ -54,10 +61,19 @@ export class AuthService {
     private readonly flags: FlagsService,
   ) {}
 
-  /** Sign-up step 1: refuse addresses that already have an account, otherwise email a code. */
+  /**
+   * Sign-up step 1. The answer is the same whether or not the address is registered, so the form
+   * can't be used to find out who has an account: an existing owner gets a "you already have an
+   * account" email instead of a code (same per-address send limits).
+   */
   async requestSignupOtp(email: string, locale: 'en' | 'hi' = 'en') {
-    if (await this.findVerifiedByEmail(email)) throw new ConflictException(EXISTS_MSG);
-    return this.otp.request(email, 'verification', locale);
+    const existing = await this.findVerifiedByEmail(email);
+    if (!existing) return this.otp.request(email, 'signup', locale);
+    await this.otp.throttle(email);
+    await this.mail
+      .sendNow('account.exists', email, {}, existing.locale === 'hi' ? 'hi' : locale)
+      .catch((err: Error) => this.logger.warn(`Account-exists mail failed: ${err.message}`));
+    return this.otp.receipt;
   }
 
   /** Sign-up step 2: the code proves the address, then the account is created with its password. */
@@ -66,8 +82,11 @@ export class AuthService {
     userAgent?: string,
     locale: 'en' | 'hi' = 'en',
   ): Promise<SignInResult> {
+    await this.assertNotPwned(password);
+    // The code comes first: only someone who received a sign-up code (never sent for registered
+    // addresses) learns anything from the answer.
+    await this.otp.verify(email, code, 'signup');
     if (await this.findVerifiedByEmail(email)) throw new ConflictException(EXISTS_MSG);
-    await this.otp.verify(email, code);
     const [created] = await this.db
       .insert(users)
       .values({ email, emailVerifiedAt: new Date(), name, passwordHash: await hashPassword(password), locale, marketingEmails: marketingOptIn === true })
@@ -81,19 +100,24 @@ export class AuthService {
    * Email + password. Failures are deliberately uniform (unknown email, Google-only account and
    * wrong password look the same) and capped per address to stop password guessing.
    */
-  async login(email: string, password: string, userAgent?: string): Promise<SignInResult> {
-    const failKey = `login:fail:${email}`;
-    if (Number((await this.redis.get(failKey)) ?? 0) >= MAX_LOGIN_FAILS) {
-      throw new HttpException('Too many failed attempts. Try again in 15 minutes, or reset your password.', HttpStatus.TOO_MANY_REQUESTS);
+  async login(email: string, password: string, userAgent?: string, ip = 'unknown'): Promise<SignInResult> {
+    // Counted before the check (atomic), so parallel guesses can't slip past the limit. The per-IP
+    // bucket stops guessing; the much larger all-IP bucket stops a botnet without letting one
+    // stranger lock the owner out.
+    const ipKey = `login:fail:${email}:${ip}`;
+    const allKey = `login:fail:${email}`;
+    const [fromIp, fromAll] = await Promise.all([
+      bumpCounter(this.redis, ipKey, LOGIN_FAIL_WINDOW_SEC),
+      bumpCounter(this.redis, allKey, LOGIN_FAIL_WINDOW_SEC),
+    ]);
+    if (fromIp > MAX_LOGIN_FAILS || fromAll > MAX_LOGIN_FAILS_ALL_IPS) {
+      throw new HttpException(LOCKED_MSG, HttpStatus.TOO_MANY_REQUESTS);
     }
     const row = await this.findVerifiedByEmail(email);
     // Always spend one scrypt run so response time doesn't reveal whether the account exists.
     const matches = await verifyPassword(password, row?.passwordHash ?? (await DUMMY_HASH));
-    if (!row || !row.passwordHash || !matches) {
-      await bumpCounter(this.redis, failKey, LOGIN_FAIL_WINDOW_SEC);
-      throw new UnauthorizedException('Incorrect email or password.');
-    }
-    await this.redis.del(failKey);
+    if (!row || !row.passwordHash || !matches) throw new UnauthorizedException('Incorrect email or password.');
+    await this.redis.multi().del(ipKey).decr(allKey).exec();
     return this.finish(toMe(row), false, userAgent, 'Email and password');
   }
 
@@ -104,23 +128,51 @@ export class AuthService {
       if (this.env.NODE_ENV === 'development') {
         this.logger.warn(`Password reset OTP not generated: no verified account found for ${email}`);
       }
-      return { expiresInSec: OTP_TTL_SEC, resendInSec: 30 };
+      // Same limits as a real send, so a 429 doesn't reveal that the account exists either.
+      await this.otp.throttle(email);
+      return this.otp.receipt;
     }
-    return this.otp.request(email, 'password reset', row.locale === 'hi' ? 'hi' : uiLocale);
+    return this.otp.request(email, 'reset', row.locale === 'hi' ? 'hi' : uiLocale);
   }
 
   /** Forgot password step 2: the emailed code authorises a new password; every old session is revoked. */
-  async resetPassword(email: string, code: string, password: string, userAgent?: string): Promise<SignInResult> {
-    await this.otp.verify(email, code);
+  async resetPassword(email: string, code: string, password: string, userAgent?: string, ip = 'unknown'): Promise<SignInResult> {
+    await this.assertNotPwned(password);
+    await this.otp.verify(email, code, 'reset');
     const row = await this.findVerifiedByEmail(email);
     if (!row) throw new BadRequestException('This code has expired. Please request a new one.');
     await this.db.update(users).set({ passwordHash: await hashPassword(password) }).where(eq(users.id, row.id));
     await this.tokens.revokeAll(row.id);
-    await this.redis.del(`login:fail:${email}`);
+    await this.redis.del(`login:fail:${email}`, `login:fail:${email}:${ip}`);
     const at = new Date().toISOString();
     void this.mail.toUser(row.id, 'security.password_changed', (u) => ({ name: u.name, at }));
     // The reset itself proves the address, so this device is trusted from now on (no extra alert).
     return this.finish(toMe(row), false, userAgent, null);
+  }
+
+  private async assertNotPwned(password: string) {
+    if (this.env.PWNED_PASSWORD_CHECK && this.env.NODE_ENV !== 'test' && (await isPwnedPassword(password))) {
+      throw new BadRequestException(PWNED_MSG);
+    }
+  }
+
+  // ---------------------------------------------------------------- self-service deletion
+
+  /** Emails a code that confirms "delete my account" (works for Google-only accounts too). */
+  async requestDeletionCode(userId: string) {
+    const row = await this.verifiedEmailOf(userId);
+    return this.otp.request(row.email, 'delete', row.locale === 'hi' ? 'hi' : 'en');
+  }
+
+  async verifyDeletionCode(userId: string, code: string): Promise<void> {
+    const row = await this.verifiedEmailOf(userId);
+    await this.otp.verify(row.email, code, 'delete');
+  }
+
+  private async verifiedEmailOf(userId: string): Promise<{ email: string; locale: string }> {
+    const [row] = await this.db.select({ email: users.email, verified: users.emailVerifiedAt, locale: users.locale }).from(users).where(eq(users.id, userId));
+    if (!row?.email || !row.verified) throw new BadRequestException('Your account has no verified email. Contact support to delete it.');
+    return { email: row.email.toLowerCase(), locale: row.locale };
   }
 
   private async findVerifiedByEmail(email: string): Promise<UserRow | undefined> {
@@ -231,11 +283,33 @@ export class AuthService {
       throw new ForbiddenException('This account has been disabled. Please contact support.');
     }
     const email = row.emailVerifiedAt ? row.email?.toLowerCase() : undefined;
-    if (email && this.env.ADMIN_EMAILS.includes(email) && row.role !== 'admin') {
+    const listed = Boolean(email && this.env.ADMIN_EMAILS.includes(email));
+    if (listed && row.role !== 'admin') {
       const [promoted] = await this.db.update(users).set({ role: 'admin' }).where(eq(users.id, row.id)).returning();
+      void this.db.insert(adminAuditLog).values({ adminId: null, action: ENV_GRANT, target: row.id, details: { email } }).catch(() => undefined);
       return toMe(promoted!);
     }
+    if (!listed && row.role === 'admin' && (await this.grantedOnlyByEnv(row.id))) {
+      const [demoted] = await this.db.update(users).set({ role: 'user', adminScopes: [] }).where(eq(users.id, row.id)).returning();
+      void this.db.insert(adminAuditLog).values({ adminId: null, action: 'admin.env-revoke', target: row.id, details: { email } }).catch(() => undefined);
+      this.logger.warn(`Admin role removed from ${row.id}: no longer listed in ADMIN_EMAILS`);
+      return toMe(demoted!);
+    }
     return toMe(row);
+  }
+
+  /**
+   * True when this admin's role came from ADMIN_EMAILS and no person has granted it since, so
+   * taking the address off the list takes the access away. Admins made by hand are left alone.
+   */
+  private async grantedOnlyByEnv(userId: string): Promise<boolean> {
+    const [last] = await this.db
+      .select({ action: adminAuditLog.action })
+      .from(adminAuditLog)
+      .where(and(eq(adminAuditLog.target, userId), inArray(adminAuditLog.action, [ENV_GRANT, 'user.role'])))
+      .orderBy(desc(adminAuditLog.createdAt))
+      .limit(1);
+    return last?.action === ENV_GRANT;
   }
 
   async me(userId: string): Promise<MeResponse> {

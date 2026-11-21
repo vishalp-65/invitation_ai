@@ -1,4 +1,5 @@
 import { QUEUES, type AiClipJobData, type RenderJobData } from '@cardai/shared';
+import { recordAppError } from '@cardai/db';
 import { Worker } from 'bullmq';
 import { createAiClipProcessor } from './ai-clip/ai-clip.processor.js';
 import { createContext } from './context.js';
@@ -34,7 +35,11 @@ const clipWorker = new Worker<AiClipJobData>(QUEUES.aiClip, createAiClipProcesso
 });
 
 for (const w of [renderWorker, clipWorker]) {
-  w.on('failed', (job, err) => ctx.log.warn({ jobId: job?.id, queue: w.name, err: err.message }, 'job failed'));
+  w.on('failed', (job, err) => {
+    ctx.log.warn({ jobId: job?.id, queue: w.name, err: err.message }, 'job failed');
+    // Only the final attempt is an error worth grouping; retries that later succeed are noise.
+    if (!job || job.attemptsMade >= (job.opts.attempts ?? 1)) void recordAppError(ctx.db, { source: 'worker', message: err.message, stack: err.stack, url: `queue:${w.name}` });
+  });
   w.on('error', (err) => ctx.log.error({ err, queue: w.name }, 'worker error'));
 }
 ctx.log.info({ concurrency: ctx.env.RENDER_CONCURRENCY, tabsPerVideo: ctx.env.REMOTION_CONCURRENCY }, 'workers started');

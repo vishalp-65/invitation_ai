@@ -14,6 +14,7 @@ import { TemplateThumb } from '@/features/admin/template-thumb';
 import { BarList } from '@/features/admin/charts';
 import { Badge, BulkBar, Card, compactINR, Empty, num, PageHeader, RangePicker, Segmented, Skeleton, useRange } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { Select } from '@/components/ui/select';
 
 type Tab = 'all' | 'trending' | 'popular' | 'catalog' | 'featured' | 'hidden';
 type Sort = 'uses' | 'views' | 'revenue' | 'trend' | 'name';
@@ -160,13 +161,13 @@ export default function AdminTemplatesPage() {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, tag, family…" className={`${controlClass} h-10 w-full pl-9 pr-3 text-sm`} />
           </label>
           {tab !== 'trending' && tab !== 'popular' && (
-            <select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort by" className={`${controlClass} select h-10 pl-3 pr-9 text-sm font-medium`}>
+            <Select value={sort} onChange={(e) => setSort(e.target.value as Sort)} aria-label="Sort by" className="h-10 w-auto min-w-40 text-sm font-medium">
               <option value="uses">Most used</option>
               <option value="views">Most viewed</option>
               <option value="revenue">Most revenue</option>
               <option value="trend">Trending</option>
               <option value="name">Name</option>
-            </select>
+            </Select>
           )}
         </div>
       </div>

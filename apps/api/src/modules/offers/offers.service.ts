@@ -15,6 +15,8 @@ import { DB, STORAGE, type S3Storage } from '../../infra/infra.module.js';
 import { FlagsService } from '../flags/flags.service.js';
 
 const CACHE_MS = 30_000;
+/** How long an unpaid checkout keeps its coupon use (Razorpay Checkout sessions are short). */
+export const COUPON_HOLD_SEC = 30 * 60;
 
 type SaleRow = typeof sales.$inferSelect;
 
@@ -111,11 +113,17 @@ export class OffersService {
     if (!c || !c.active) throw new BadRequestException('This coupon code is not valid.');
     if (c.startsAt && c.startsAt > now) throw new BadRequestException('This coupon is not active yet.');
     if (c.endsAt && c.endsAt < now) throw new BadRequestException('This coupon has expired.');
-    if (c.maxUses != null && c.usedCount >= c.maxUses) throw new BadRequestException('This coupon has been fully used.');
     const codes = c.productCodes as ProductCode[];
     if (codes.length && !codes.includes(productCode)) throw new BadRequestException('This coupon does not apply to this product.');
-    const used = await this.db.$count(orders, and(eq(orders.userId, userId), eq(orders.couponCode, code), eq(orders.status, 'paid')));
-    if (used >= c.perUserLimit) throw new BadRequestException('You have already used this coupon.');
+    // `usedCount` only moves when a payment lands, so checkouts still open hold a use too: otherwise
+    // many checkouts started together could all pay with a one-time coupon.
+    const held = sql`${orders.status} = 'created' and ${orders.createdAt} > now() - make_interval(secs => ${COUPON_HOLD_SEC})`;
+    const [heldAll, mine] = await Promise.all([
+      c.maxUses != null ? this.db.$count(orders, and(eq(orders.couponCode, code), held)) : 0,
+      this.db.$count(orders, and(eq(orders.userId, userId), eq(orders.couponCode, code), or(eq(orders.status, 'paid'), held))),
+    ]);
+    if (c.maxUses != null && c.usedCount + heldAll >= c.maxUses) throw new BadRequestException('This coupon has been fully used.');
+    if (mine >= c.perUserLimit) throw new BadRequestException('You have already used this coupon.');
 
     const price = (await this.product(productCode)).pricePaise;
     const discountPaise = couponDiscount({ kind: c.kind, value: c.value }, price);
@@ -126,5 +134,21 @@ export class OffersService {
   /** Pass the open transaction so a rolled-back payment never counts as a coupon use. */
   async markUsed(code: string, tx: DbExecutor = this.db) {
     await tx.update(coupons).set({ usedCount: sql`${coupons.usedCount} + 1` }).where(eq(coupons.code, code));
+  }
+
+  /** A fully refunded order gives its coupon use back. */
+  async releaseUse(code: string, tx: DbExecutor = this.db) {
+    await tx.update(coupons).set({ usedCount: sql`greatest(${coupons.usedCount} - 1, 0)` }).where(eq(coupons.code, code));
+  }
+
+  /**
+   * The user's own earlier unpaid checkouts with this coupon stop holding a use when they start a
+   * new one (closing the Razorpay window and trying again must keep working).
+   */
+  async releaseOwnHolds(userId: string, code: string) {
+    await this.db
+      .update(orders)
+      .set({ status: 'failed' })
+      .where(and(eq(orders.userId, userId), eq(orders.couponCode, code.trim().toUpperCase()), eq(orders.status, 'created')));
   }
 }

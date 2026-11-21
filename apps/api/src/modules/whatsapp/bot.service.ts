@@ -1,7 +1,11 @@
 import { BUILTIN_TEMPLATES, EVENT_TYPES, faithOf, getEventType, LANGUAGES, templateFaithClash, templateSupportsEvent, type EventTypeId, type LanguageCode } from '@cardai/shared';
+import { and, desc, eq, events, ne, users, type Database } from '@cardai/db';
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { ENV, type Env } from '../../config/env.js';
-import { REDIS, type Redis } from '../../infra/infra.module.js';
+import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
+import { EntitlementsService } from '../entitlements/entitlements.service.js';
+import { GuestsService } from '../guests/guests.service.js';
+import { ShortLinksService } from '../short-links/short-links.service.js';
 import { AiService } from '../ai/ai.service.js';
 import { AuthService } from '../auth/auth.service.js';
 import { EventsService } from '../events/events.service.js';
@@ -26,6 +30,21 @@ export interface InboundMessage {
 }
 
 const QUICK_TYPES: EventTypeId[] = ['wedding', 'birthday', 'griha-pravesh', 'engagement', 'puja', 'anniversary', 'baby-shower', 'mundan', 'shop-opening', 'other'];
+/** Host commands, typed or tapped. Anything else falls through to the card-making flow. */
+const HOST_WORDS: Record<'status' | 'remind' | 'host', string[]> = {
+  status: ['status', 'rsvp', 'rsvps', 'count', 'guests', 'स्थिति', 'मेहमान', 'गिनती'],
+  remind: ['remind', 'reminder', 'reminders', 'याद', 'रिमाइंडर'],
+  host: ['menu', 'help', 'मेनू', 'मदद'],
+};
+export function hostCommand(text: string, replyId?: string): 'status' | 'remind' | 'host' | 'new' | null {
+  if (replyId === 'host:status') return 'status';
+  if (replyId === 'host:remind') return 'remind';
+  if (replyId === 'host:new') return 'new';
+  const t = text.trim().toLowerCase();
+  for (const [cmd, words] of Object.entries(HOST_WORDS)) if (words.includes(t)) return cmd as 'status' | 'remind' | 'host';
+  return null;
+}
+
 const QUICK_LANGS: LanguageCode[] = ['hi', 'en', 'mr', 'gu', 'ta', 'te', 'bn', 'kn', 'pa', 'ml'];
 
 /**
@@ -39,11 +58,15 @@ export class BotService {
   constructor(
     @Inject(ENV) private readonly env: Env,
     @Inject(REDIS) private readonly redis: Redis,
+    @Inject(DB) private readonly db: Database,
     private readonly wa: WhatsAppClient,
     private readonly auth: AuthService,
     private readonly ai: AiService,
     private readonly events: EventsService,
     private readonly renders: RendersService,
+    private readonly guests: GuestsService,
+    private readonly entitlements: EntitlementsService,
+    private readonly links: ShortLinksService,
   ) {}
 
   private key(phone: string) {
@@ -69,6 +92,14 @@ export class BotService {
       }
       const state = await this.load(phone);
       const lower = text.toLowerCase();
+
+      // Hosts who already have invitations can check RSVPs and send reminders right here.
+      const cmd = hostCommand(text, msg.replyId);
+      if (cmd === 'new') return this.askType(phone);
+      if (cmd && (!state || state.step === 'done' || state.step === 'confirm' || state.step === 'type')) {
+        const host = await this.hostEvent(phone);
+        if (host) return this.onHost(phone, cmd, host);
+      }
 
       if (!state || ['hi', 'hello', 'namaste', 'start', 'menu', 'नमस्ते'].includes(lower) || msg.replyId === 'restart') {
         return this.askType(phone);
@@ -202,6 +233,63 @@ export class BotService {
       return;
     }
     await this.sendPostRenderMenu(phone);
+  }
+
+  /** The host's most recent live invitation (by this WhatsApp number), if any. */
+  private async hostEvent(phone: string) {
+    const [u] = await this.db.select({ id: users.id, role: users.role }).from(users).where(eq(users.phone, phone));
+    if (!u) return null;
+    const [ev] = await this.db
+      .select({ id: events.id, title: events.title })
+      .from(events)
+      .where(and(eq(events.userId, u.id), ne(events.status, 'archived')))
+      .orderBy(desc(events.updatedAt))
+      .limit(1);
+    return ev ? { user: { id: u.id, role: u.role }, event: ev } : null;
+  }
+
+  private async onHost(phone: string, cmd: 'status' | 'remind' | 'host', host: NonNullable<Awaited<ReturnType<BotService['hostEvent']>>>) {
+    const dash = `${this.env.APP_URL}/dashboard/events/${host.event.id}`;
+    if (cmd === 'host') {
+      await this.wa.sendButtons(phone, `🙏 ${host.event.title}\nWhat would you like to do?`, [
+        { id: 'host:status', title: '📊 RSVP status' },
+        { id: 'host:remind', title: '🔔 Send reminders' },
+        { id: 'host:new', title: '➕ New invitation' },
+      ]);
+      return;
+    }
+    if (cmd === 'status') {
+      const s = await this.guests.rsvpSummary(host.user, host.event.id);
+      const lines = [
+        `📊 *${host.event.title}*`,
+        `Guests: ${s.totals.invited} · sent ${s.totals.sent} · opened ${s.totals.viewed} · replied ${s.totals.responded}`,
+        '',
+        ...s.functions.map((f) => `• ${f.name}: ✅ ${f.yes}  ❔ ${f.maybe}  ❌ ${f.no}  — ${f.headcount} people`),
+      ];
+      if (s.totals.checkedIn) lines.push('', `🎟️ Arrived: ${s.totals.checkedIn} families, ${s.totals.checkedInPax} people`);
+      lines.push('', `Full list: ${dash}?tab=rsvp`, 'Type *remind* to nudge guests who have not opened it.');
+      await this.wa.sendText(phone, lines.join('\n'));
+      return;
+    }
+    // remind: send now through WhatsApp Business when the plan and template allow, else hand over the queue.
+    const queueUrl = `${dash}?tab=guests&queue=unopened`;
+    if (!this.wa.followUpsReady || !(await this.entitlements.has(host.event.id, 'personalized_links'))) {
+      await this.wa.sendText(phone, `🔔 Open your send list and tap through each guest who has not opened the invite yet:\n${queueUrl}`);
+      return;
+    }
+    const { items } = await this.guests.sendQueue(host.user, host.event.id, 'unopened');
+    let sent = 0;
+    for (const it of items.slice(0, 200)) {
+      if (!it.phone) continue;
+      try {
+        await this.wa.sendFollowUpTemplate(it.phone, it.message);
+        await this.guests.markSent(it.guestId, 'unopened');
+        sent++;
+      } catch (err) {
+        this.logger.warn(`bot reminder to ${it.guestId} failed: ${(err as Error).message}`);
+      }
+    }
+    await this.wa.sendText(phone, sent ? `✅ Sent a gentle reminder to ${sent} guests who had not opened the invitation.` : `Everyone with a mobile number has opened it already, or has had a reminder. 🎉\n${dash}?tab=guests`);
   }
 
   /** Shown after a card arrives. */
