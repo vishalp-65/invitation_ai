@@ -3,6 +3,7 @@
 import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
@@ -12,12 +13,13 @@ import { qk, useCreateRender, useRenders } from '@/lib/hooks';
 import { track } from '@/lib/track';
 import { IconTile, Panel, StatusPill } from './panel-ui';
 
-const FORMATS: Array<{ format: RenderDto['format']; label: string; icon: typeof ImageIcon; help: string; feature?: string }> = [
-  { format: 'image', label: 'Image card', icon: ImageIcon, help: 'JPG pages for WhatsApp status and chats.' },
-  { format: 'video', label: 'Video invite', icon: Film, help: 'MP4 with music, sized for WhatsApp. Takes 1–3 minutes.' },
-  { format: 'site_video', label: 'Cinematic video', icon: Sparkles, help: 'Your website design as a film: cinematic, 15-second save-the-date reel or storybook (choose in Website → Look).' },
-  { format: 'pdf', label: 'PDF', icon: FileText, help: 'All pages in one file, with a QR code to your website.' },
-  { format: 'print_pdf', label: 'Print-ready PDF', icon: Printer, help: '5×7 inch, 300 DPI, bleed and crop marks.', feature: 'print_pdf' },
+/** Labels: `share.f_<format>` and `share.f_<format>Help`. */
+const FORMATS: Array<{ format: RenderDto['format']; icon: typeof ImageIcon; feature?: string }> = [
+  { format: 'image', icon: ImageIcon },
+  { format: 'video', icon: Film },
+  { format: 'site_video', icon: Sparkles },
+  { format: 'pdf', icon: FileText },
+  { format: 'print_pdf', icon: Printer, feature: 'print_pdf' },
 ];
 
 /** Shares the actual file (not a link) — on Android this opens WhatsApp with the image attached. */
@@ -38,6 +40,7 @@ async function shareFile(url: string, name: string, contentType: string, eventId
 
 export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();
+  const t = useTranslations('share');
   const { data: renders } = useRenders(event.id);
   const create = useCreateRender(event.id);
   const site = useQuery({ queryKey: ['site', event.id], queryFn: () => api<SiteSettingsDto>(`/events/${event.id}/site`) });
@@ -51,7 +54,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
       await create.mutateAsync(format);
     } catch (err) {
       if (err instanceof ApiError && err.requiredFeature) onUpgrade();
-      else toast.error(err instanceof ApiError ? err.message : 'Could not start. Try again.');
+      else toast.error(err instanceof ApiError ? err.message : t('startFailed'));
     }
   }
 
@@ -66,9 +69,9 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
     try {
       const e = await api<EventDto>(`/events/${event.id}/publish`, { method: 'POST' });
       qc.setQueryData(qk.event(event.id), e);
-      toast.success('Published. Your link is ready to share.');
+      toast.success(t('published'));
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Could not publish. Try again.');
+      toast.error(err instanceof ApiError ? err.message : t('publishFailed'));
     } finally {
       setPublishing(false);
     }
@@ -78,8 +81,8 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
     <div className="flex flex-col gap-6">
       {/* ---------------- The link ---------------- */}
       <Panel
-        title="Invitation website"
-        description={live ? 'One link with every function, the map and RSVP. Send it to groups, or add guests for personal links.' : 'Publish to get a link you can send. You can keep editing after.'}
+        title={t('siteTitle')}
+        description={live ? t('siteLive') : t('siteDraft')}
       >
         {live ? (
           <div className="flex flex-col gap-4">
@@ -88,46 +91,48 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
               <span className="min-w-0 flex-1 truncate text-[0.9375rem] font-medium" title={siteUrl}>
                 {siteUrl.replace(/^https?:\/\//, '')}
               </span>
-              <Button size="sm" variant="line" onClick={copy} aria-label="Copy link">
+              <Button size="sm" variant="line" onClick={copy} aria-label={t('copyLink')}>
                 {copied ? <Check className="size-4 text-leaf" /> : <Copy className="size-4" />}
-                <span className="max-sm:hidden">{copied ? 'Copied' : 'Copy'}</span>
+                <span className="max-sm:hidden">{copied ? t('copied') : t('copy')}</span>
               </Button>
             </div>
             <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
               <ButtonLink
-                href={whatsappShareUrl(`${event.title} — you are invited! ${siteUrl}`)}
+                href={whatsappShareUrl(t('invited', { title: event.title, url: siteUrl }))}
                 target="_blank"
                 rel="noopener"
                 className="col-span-2"
                 onClick={() => track('share', { props: { kind: 'link', eventId: event.id } })}
               >
                 <WhatsAppIcon className="size-4" />
-                Share on WhatsApp
+                {t('shareWhatsapp')}
               </ButtonLink>
               <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="line">
                 <ExternalLink className="size-4" aria-hidden />
-                Open
+                {t('open')}
               </ButtonLink>
               <ButtonLink href={`/builder/${event.id}`} variant="line">
                 <Globe className="size-4" aria-hidden />
-                Design it
+                {t('design')}
               </ButtonLink>
             </div>
           </div>
         ) : (
           <div className="flex flex-col gap-3 rounded-xl border border-dashed border-ink/20 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <StatusPill tone="muted">Not published</StatusPill>
+            <StatusPill tone="muted">{t('notPublished')}</StatusPill>
             <Button onClick={() => void publish()} loading={publishing}>
-              Publish website
+              {t('publish')}
             </Button>
           </div>
         )}
       </Panel>
 
       {/* ---------------- Files ---------------- */}
-      <Panel title="Files to download and share" description="Each file is made from your latest details. Make it again after you change something." bodyClassName="!px-0 !pb-0">
+      <Panel title={t('filesTitle')} description={t('filesBody')} bodyClassName="!px-0 !pb-0">
         <ul className="divide-y divide-ink/10 border-t border-ink/10">
-          {FORMATS.map(({ format, label, icon, help, feature }) => {
+          {FORMATS.map(({ format, icon, feature }) => {
+            const label = t(`f_${format}`);
+            const help = t(`f_${format}Help`);
             const r = renders?.find((x) => x.format === format);
             const locked = feature && !event.features.includes(feature);
             const busy = r && (r.status === 'queued' || r.status === 'processing');
@@ -139,9 +144,9 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h3 className="text-[1.0625rem]">{label}</h3>
-                      {done && <StatusPill tone="leaf">Ready</StatusPill>}
-                      {r?.watermark && done && <StatusPill tone="muted">Watermark</StatusPill>}
-                      {locked && <StatusPill tone="gold">Paid</StatusPill>}
+                      {done && <StatusPill tone="leaf">{t('ready')}</StatusPill>}
+                      {r?.watermark && done && <StatusPill tone="muted">{t('watermark')}</StatusPill>}
+                      {locked && <StatusPill tone="gold">{t('paid')}</StatusPill>}
                     </div>
                     <p className="mt-0.5 text-sm text-ink-soft">{help}</p>
                   </div>
@@ -155,10 +160,10 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                     <div className="h-px overflow-hidden bg-ink/10">
                       <div className="h-full rounded-full bg-primary transition-[width] duration-500" style={{ width: `${Math.max(r.progress, 5)}%` }} />
                     </div>
-                    <p className="mt-1 text-xs text-ink-soft">{r.status === 'queued' ? 'Waiting to start…' : `Making it… ${r.progress}%`}</p>
+                    <p className="mt-1 text-xs text-ink-soft">{r.status === 'queued' ? t('waiting') : t('making', { progress: r.progress })}</p>
                   </div>
                 )}
-                {r?.status === 'failed' && <p className="text-sm text-sindoor sm:pl-[3.375rem]">{r.error ?? 'It failed. Make it again.'}</p>}
+                {r?.status === 'failed' && <p className="text-sm text-sindoor sm:pl-[3.375rem]">{r.error ?? t('failed')}</p>}
 
                 {done && (
                   <div className="flex flex-wrap items-center gap-2 sm:pl-[3.375rem]">
@@ -169,9 +174,9 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                         <span key={o.url} className="inline-flex overflow-hidden rounded-lg border border-ink/10">
                           <button type="button" onClick={() => void shareFile(o.url, name, o.contentType, event.id)} className="inline-flex h-8 items-center gap-1.5 px-3 text-[0.8125rem] font-medium hover:bg-ink/[0.04]">
                             <Share2 className="size-3.5" aria-hidden />
-                            {r.outputs.length > 1 ? `Page ${i + 1}` : 'Share'}
+                            {r.outputs.length > 1 ? t('page', { n: i + 1 }) : t('share')}
                           </button>
-                          <a href={o.url} download={name} className="grid w-8 place-items-center border-l border-ink/10 hover:bg-ink/[0.04]" aria-label={`Download ${name}`}>
+                          <a href={o.url} download={name} className="grid w-8 place-items-center border-l border-ink/10 hover:bg-ink/[0.04]" aria-label={t('download', { name })}>
                             <Download className="size-3.5" />
                           </a>
                         </span>
@@ -179,7 +184,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                     })}
                     {r.watermark && (
                       <button type="button" onClick={onUpgrade} className="text-[0.8125rem] font-medium text-primary underline-offset-4 hover:underline">
-                        Remove watermark
+                        {t('removeWatermark')}
                       </button>
                     )}
                   </div>
@@ -216,17 +221,18 @@ function Action({
   onMake: () => void;
   full?: boolean;
 }) {
+  const t = useTranslations('share');
   if (locked)
     return (
       <Button size="sm" variant="line" onClick={onUpgrade} className={full ? 'w-full' : undefined}>
         <Crown className="size-4 text-gold" aria-hidden />
-        Unlock
+        {t('unlock')}
       </Button>
     );
   return (
-    <Button size="sm" variant="line" onClick={onMake} loading={pending} disabled={busy} className={full ? 'w-full' : undefined} aria-label={`${done ? 'Make again' : 'Make'}: ${label}`}>
+    <Button size="sm" variant="line" onClick={onMake} loading={pending} disabled={busy} className={full ? 'w-full' : undefined} aria-label={`${done ? t('makeAgain') : t('make')}: ${label}`}>
       {done ? <RefreshCw className="size-4" aria-hidden /> : null}
-      {done ? 'Make again' : 'Make'}
+      {done ? t('makeAgain') : t('make')}
     </Button>
   );
 }

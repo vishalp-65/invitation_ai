@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { Select } from '@/components/ui/select';
+import { promptDialog } from '@/components/ui/confirm';
 
 interface ReviewItem {
   t: { id: string; name: string; layout: string; theme: Theme };
@@ -80,8 +81,10 @@ export default function MarketplaceAdminPage() {
                 <Button
                   size="sm"
                   variant="danger"
-                  onClick={() => {
-                    const note = prompt('Reason for the designer') ?? undefined;
+                  onClick={async () => {
+                    const reply = await promptDialog({ title: 'Reject this design?', body: 'The designer sees your note and can fix and resubmit.', label: 'Reason for the designer', placeholder: 'Optional', multiline: true, confirmLabel: 'Reject', danger: true });
+                    if (reply === null) return;
+                    const note = reply.trim() || undefined;
                     void act(api(`/admin/templates/${t.id}/review`, { method: 'POST', json: { decision: 'rejected', note } }));
                   }}
                 >

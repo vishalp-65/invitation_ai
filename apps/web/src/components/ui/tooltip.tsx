@@ -5,7 +5,7 @@ import { cloneElement, isValidElement, useEffect, type ReactElement } from 'reac
 /**
  * Global tooltips.
  *
- * Any element with `data-tip="Label"` gets a tooltip — no wrappers, no per-button state.
+ * Any element with `data-tip="Label"` (or a plain `title="…"`) gets a tooltip — no wrappers, no per-button state.
  * Optional: `data-tip-kbd="Ctrl+Z"` (shortcut hint), `data-tip-side="top|bottom|left|right"`,
  * `data-tip-delay="150"` (ms). Side and delay are inherited from the nearest ancestor that sets
  * them, so a whole rail can opt in once (e.g. the dashboard sidebar sets side="right").
@@ -86,6 +86,9 @@ export function TooltipLayer() {
         k.textContent = kbd;
         el.appendChild(k);
       }
+      // Native modal dialogs sit in the top layer: the bubble must live inside them to be seen.
+      const host = t.closest('dialog[open]') ?? document.body;
+      if (el.parentElement !== host) host.appendChild(el);
       el.dataset.open = '';
       position(t);
       t.setAttribute('aria-describedby', 'app-tooltip');
@@ -109,7 +112,29 @@ export function TooltipLayer() {
       timer = setTimeout(() => target === t && t.isConnected && show(t), warm ? 0 : delay);
     };
 
-    const find = (n: EventTarget | null) => (n instanceof Element ? (n.closest('[data-tip]') as HTMLElement | null) : null);
+    /**
+     * Plain `title="…"` attributes join the same layer: on first hover the title moves to
+     * data-tip (so the browser's own yellow/grey tooltip never shows). If React later changes the
+     * title, it is re-added and picked up again here. Iframes keep theirs (it is their a11y name).
+     */
+    const adopt = (t: HTMLElement) => {
+      const title = t.getAttribute('title');
+      if (title === null || t instanceof HTMLIFrameElement) return;
+      t.removeAttribute('title');
+      if (!title.trim()) return;
+      t.dataset.tip = title;
+      // A title on a disabled control usually explains why it is disabled: keep showing it.
+      t.dataset.tipDisabled = '1';
+      // An icon-only control named only by its title keeps that name for screen readers.
+      if (!t.hasAttribute('aria-label') && !t.hasAttribute('aria-labelledby') && !t.textContent?.trim()) t.setAttribute('aria-label', title);
+    };
+    const find = (n: EventTarget | null) => {
+      if (!(n instanceof Element)) return null;
+      const t = n.closest('[data-tip], [title]:not(iframe)') as HTMLElement | null;
+      if (t && !(t instanceof HTMLElement)) return null; // SVG <title> parents etc.
+      if (t) adopt(t);
+      return t?.dataset.tip ? t : null;
+    };
 
     const onOver = (e: PointerEvent) => {
       if (e.pointerType === 'touch') return;

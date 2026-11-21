@@ -20,7 +20,8 @@ api + worker ──► Neon Postgres · Upstash Redis · DigitalOcean Spaces (me
 | `infra/deploy/bootstrap.sh` | One-time droplet setup (deploy user, `/opt/noyta`, SSH key, swap, nginx, HTTPS). Safe to re-run. |
 | `infra/deploy/nginx-api.noyta.in.conf` | nginx site for `api.noyta.in` |
 | `infra/storage/cors.prod.json` | CORS for the Spaces bucket |
-| `.github/workflows/backend.yml` | CI/CD |
+| `.github/workflows/backend.yml` | Backend CI/CD: verify → build images → deploy to the droplet |
+| `.github/workflows/web.yml` | Web checks only (typecheck, lint, test). Vercel does the web build and deploy. |
 | `.env.production` (local, git-ignored) | Production env with generated JWT and verify-token secrets. Fill it, copy it to the droplet, keep it out of the repo. |
 
 ### Memory budget (2 GB droplet)
@@ -106,9 +107,10 @@ ssh root@<droplet-ip> bash /root/noyta-deploy/bootstrap.sh
 
 - `DATABASE_URL`: Neon's **pooled** string. `DATABASE_URL_DIRECT`: the direct one, used for migrations.
 - `REDIS_URL`: Upstash's `rediss://` URL.
-- `RESEND_API_KEY`, plus the Spaces, Razorpay, OpenRouter, Google and WhatsApp values.
+- `RESEND_API_KEY` with `EMAIL_PROVIDER=resend`, plus the Spaces, Razorpay, OpenRouter, Google and WhatsApp values.
+- Leave `COOKIE_DOMAIN` empty (session cookies are host-only) and leave `ADMIN_MFA` on.
 
-The JWT secrets and the WhatsApp verify token are already generated. Worker/API limits come from the compose file; leave them commented unless you need to override. Then:
+The JWT secrets, `CLIENT_IP_SECRET` and the WhatsApp verify token are already generated. `CLIENT_IP_SECRET` must also go into Vercel (step 5). Worker/API limits come from the compose file; leave them commented unless you need to override. Then:
 
 ```bash
 scp .env.production root@<droplet-ip>:/opt/noyta/.env
@@ -137,6 +139,7 @@ New secret later: `node -e "console.log(require('crypto').randomBytes(48).toStri
    - `verify`: typecheck, lint and test.
    - `build`: builds `ghcr.io/vishalp-65/noyta-api:<sha>` and `noyta-worker:<sha>` with a layer cache, so a code-only change rebuilds only the last layers and the droplet pulls only those.
    - `deploy`: copies the compose file and `deploy.sh`, then runs `deploy.sh`: pull, migrate Neon with the new image (before anything is swapped), recreate the containers, wait for `/api/health/ready`, roll back to the previous images if it fails, and delete Noyta images older than the previous tag.
+   - Web changes run the separate `web` workflow (checks only), so a web failure never blocks an API deploy.
 
 The API restarts in a few seconds during a deploy (there is no room for two copies on 2 GB). The worker gets up to 2 minutes to finish an in-flight render; anything cut off is retried by BullMQ.
 
@@ -161,26 +164,17 @@ docker compose -f docker-compose.prod.yml --env-file .env --env-file .deploy.env
    - Node.js: **24.x**
 3. **Environment Variables** (Production):
 
-```
-API_INTERNAL_URL=https://api.noyta.in
-NEXT_PUBLIC_APP_URL=https://noyta.in
-STORAGE_PUBLIC_URL=https://noyta-media.blr1.cdn.digitaloceanspaces.com
-NEXT_PUBLIC_RAZORPAY_KEY_ID=<rzp_live_... same as backend RAZORPAY_KEY_ID>
-NEXT_PUBLIC_SHORT_HOST=            # only once you have a short domain
-CLIENT_IP_SECRET=<same value as the API's CLIENT_IP_SECRET>
-```
+   ```
+   API_INTERNAL_URL=https://api.noyta.in
+   NEXT_PUBLIC_APP_URL=https://noyta.in
+   STORAGE_PUBLIC_URL=https://noyta-media.blr1.cdn.digitaloceanspaces.com
+   NEXT_PUBLIC_RAZORPAY_KEY_ID=<rzp_live_... same as backend RAZORPAY_KEY_ID>
+   NEXT_PUBLIC_SHORT_HOST=            # only once you have a short domain
+   CLIENT_IP_SECRET=<same value as the API's CLIENT_IP_SECRET>
+   ```
 
-`CLIENT_IP_SECRET` lets the API trust each visitor's real IP for rate limits. The web proxy signs it,
-and the API ignores any `X-Forwarded-For` a client sends. **Roll it out in this order:**
-1. Add it in Vercel and redeploy the web app.
-2. Add the same value to `/opt/noyta/.env` and redeploy the API.
-
-If the API gets it first, every visitor shares Vercel's IP addresses, and so shares one rate limit.
-The API refuses to start in production without it.
-
-Session cookies are host-only: leave `COOKIE_DOMAIN` empty. Browsers that still hold the old
-`.noyta.in` cookies get them cleared on their next sign-in or refresh.
-
+   - `CLIENT_IP_SECRET` lets the API trust each visitor's real IP for rate limits: the web proxy signs it, and the API ignores any `X-Forwarded-For` a client sends. The API refuses to start in production without it. For the first launch, put the same value from `.env.production` in both places before the first deploy. **To rotate it later**, change both and redeploy them back to back: while the two values differ, the API can't verify the signed IP, so every visitor counts as Vercel's IP and shares one rate limit.
+   - Session cookies are host-only: `COOKIE_DOMAIN` stays empty on both sides. Browsers that still hold old `.noyta.in` cookies get them cleared on their next sign-in or refresh.
 4. Deploy, then **Settings → Domains**: add `noyta.in` as primary, and `www.noyta.in` redirecting to it. The DNS records Vercel shows should match step 1.
 5. Every push to `main` deploys production and every PR gets a preview URL. Preview URLs call the production API through the rewrite; point the Preview env `API_INTERNAL_URL` elsewhere if you don't want that.
 
@@ -211,7 +205,7 @@ The WhatsApp code is already in the app (`apps/api/src/modules/whatsapp`). It co
 - the chat bot,
 - the webhook at **`https://api.noyta.in/api/webhooks/whatsapp`**.
 
-It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (already generated) and `WHATSAPP_INVITE_TEMPLATE`.
+It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (already generated) and `WHATSAPP_INVITE_TEMPLATE`. A sixth, `WHATSAPP_FOLLOWUP_TEMPLATE`, is optional: without it, host follow-ups (reminders, day-before, thank-you) stay manual (see 8b below).
 
 1. **Business portfolio.** Go to business.facebook.com and create a Business portfolio named "Noyta".
    - Later, do Business settings → Security Centre → **Business verification** (GST/Udyam/PAN documents, website noyta.in).
@@ -248,6 +242,7 @@ It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHAT
      ```
    - Sample values: `Priya`, `Aarav & Diya's Wedding`, `https://noyta.in/s/k7Qp2`. Submit; approval takes minutes to a few hours.
    - If Meta reclassifies it as Marketing, that's fine; it just costs more per message.
+   - **8b. Follow-up template (optional).** Create a second Utility template, e.g. `event_followup`, with a body of exactly one variable: `{{1}}` (the API fills it with the whole follow-up text). Follow-ups are sent in the event's language (`en`, `hi`, `mr`, `gu`, `ta`, `te`, `kn`, `ml`, `bn`, `pa`, `or`, `ur`), so add a translation of the template for each language your hosts use; a missing language fails with `132001`. Then set `WHATSAPP_FOLLOWUP_TEMPLATE=event_followup` and restart.
 9. **Billing.** WhatsApp Manager → **Payment settings → Add payment method**.
    - Business-initiated template messages are billed per message. Replies inside the 24 h customer window are free.
 10. **Go live.** Switch the app to **Live** mode (App → Publish). Meta requires a **Privacy Policy URL**, e.g. `https://noyta.in/privacy`.
@@ -276,7 +271,7 @@ docker stats --no-stream                           # memory next to interviewpil
 
 Then in the browser:
 
-1. Sign up with email OTP. This checks Resend.
+1. Sign up with email and password, and confirm the emailed code. This checks Resend.
 2. Upload a photo. This checks the Spaces upload, CORS and ACL; the image URL should open in a private window.
 3. Render a card or video. This checks the worker (the first render after an idle spell starts Chrome, about a second).
 4. Pay with Razorpay. This checks the webhook.
@@ -301,6 +296,7 @@ Then in the browser:
 | --- | --- |
 | API exits at boot with `Invalid environment configuration` | A required key is missing in `/opt/noyta/.env` (the log lists which) |
 | `Missing production configuration: ...` | OpenRouter/Razorpay keys are required in production |
+| `EMAIL_PROVIDER=console is not allowed` / `ADMIN_MFA=false is not allowed` | Set `EMAIL_PROVIDER=resend`; leave `ADMIN_MFA` empty or `true` |
 | Upload fails with 403 `SignatureDoesNotMatch` | Wrong Spaces region/endpoint, or the bucket name is included in `S3_ENDPOINT` (it must be just `https://blr1.digitaloceanspaces.com`) |
 | Upload blocked by CORS | Bucket CORS is missing `https://noyta.in` |
 | Uploaded image gives 403 when opened | `S3_PUBLIC_READ_ACL` is not `true` |
@@ -310,4 +306,4 @@ Then in the browser:
 | WhatsApp webhook "could not be verified" | API not live yet, or the verify token differs from `WHATSAPP_VERIFY_TOKEN` |
 | WhatsApp send error `132001` | Template name/language mismatch, or the template isn't approved yet |
 | Login doesn't stick on noyta.in | `APP_URL` must be `https://noyta.in` and browsers must reach the API through noyta.in/api (Vercel rewrite). Keep `COOKIE_DOMAIN` empty: host-only cookies are never sent to subdomains |
-| API exits with `CLIENT_IP_SECRET is required in production` | Set it on Vercel first (redeploy web), then in `/opt/noyta/.env` |
+| API exits with `CLIENT_IP_SECRET is required in production` | Put the same value in `/opt/noyta/.env` and in Vercel, then redeploy both |

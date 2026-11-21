@@ -16,6 +16,7 @@ import { useMe } from '@/lib/hooks';
 import { useQueryClient } from '@tanstack/react-query';
 import { Badge, dateTime, downloadCsv, Empty, inr, num, PageHeader, Pager, Segmented, Skeleton, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface OrderRow {
   id: string;
@@ -188,7 +189,7 @@ function RefundButton({ order }: { order: OrderRow }) {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
-    if (!confirm(`Refund ${inr(paise)} to ${order.userEmail ?? 'the customer'}? This sends real money back and cannot be undone.`)) return;
+    if (!(await confirmDialog(`Refund ${inr(paise)} to ${order.userEmail ?? 'the customer'}? This sends real money back and cannot be undone.`))) return;
     setBusy(true);
     try {
       const r = await api<{ refundId: string }>(`/admin/orders/${order.id}/refund`, { method: 'POST', json: { amountPaise: paise, reason, revokeAccess: full && revoke } });
@@ -255,7 +256,7 @@ function CancelOrder({ id }: { id: string }) {
       className="h-8 px-3"
       loading={busy}
       onClick={async () => {
-        if (!confirm('Close this unpaid checkout? The customer can always start a new one.')) return;
+        if (!(await confirmDialog('Close this unpaid checkout? The customer can always start a new one.'))) return;
         setBusy(true);
         try {
           await api(`/admin/orders/${id}/cancel`, { method: 'POST' });

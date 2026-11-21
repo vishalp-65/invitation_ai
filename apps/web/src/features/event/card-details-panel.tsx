@@ -3,6 +3,7 @@
 import { functionIcon, type EventContent, type EventDto, type EventFunctionInput, type UpdateEventInput } from '@cardai/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,7 @@ function fromEvent(e: EventDto): FnDraft[] {
  */
 export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();
+  const t = useTranslations('pages');
   const [fns, setFns] = useState<FnDraft[]>(() => fromEvent(event));
   const [c, setC] = useState<EventContent>(event.content);
   const [welcome, setWelcome] = useState((event.content.welcomeLines ?? []).join('\n'));
@@ -78,7 +80,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
     mutationFn: (patch: UpdateEventInput) => api<EventDto>(`/events/${event.id}`, { method: 'PATCH', json: patch }),
     onSuccess: (updated) => {
       qc.setQueryData(qk.event(event.id), updated);
-      toast.success('Saved. Your card pages are updated.');
+      toast.success(t('saved'));
     },
     onError: (err) => (err instanceof ApiError && err.requiredFeature ? onUpgrade() : toast.error((err as Error).message)),
   });
@@ -95,7 +97,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
 
   function submit() {
     const bad = fns.find((f) => !f.name.trim() || !f.venueName.trim() || !f.date);
-    if (bad) return toast.error('Every function needs a name, date and venue.');
+    if (bad) return toast.error(t('needFields'));
     const functions: Array<EventFunctionInput> = fns.map((f) => ({
       ...(f.id ? { id: f.id } : {}),
       name: f.name.trim(),
@@ -122,46 +124,46 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
   return (
     <section className="flex flex-col gap-6">
       <div>
-        <h2 className="text-base font-medium">Card pages</h2>
+        <h2 className="text-base font-medium">{t('title')}</h2>
         <p className="mt-1 text-[0.95rem] text-ink-soft">
-          These fill the extra pages of your invitation: a page for your ceremonies, a family &amp; RSVP page and a save-the-date page. Leave anything blank to skip it. You can also delete any page in the editor.
+          {t('body')}
         </p>
       </div>
 
       {/* Functions */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-[1.0625rem]">Functions &amp; ceremonies</h3>
+        <h3 className="text-[1.0625rem]">{t('functions')}</h3>
         <ol className="flex flex-col gap-3">
           {fns.map((f, i) => (
             <li key={f.key} className="rounded-xl border border-ink/10 bg-ink/[0.02] p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2 font-medium">
                   <span aria-hidden>{ICON_EMOJI[functionIcon(f.name)] ?? '🌸'}</span>
-                  {f.name || `Function ${i + 1}`}
+                  {f.name || t('functionN', { n: i + 1 })}
                 </span>
                 <span className="flex text-ink-soft">
-                  <button type="button" aria-label="Move earlier" className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}>
+                  <button type="button" aria-label={t('moveUp')} className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}>
                     <ArrowUp className="size-4" />
                   </button>
-                  <button type="button" aria-label="Move later" className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === fns.length - 1} onClick={() => move(i, 1)}>
+                  <button type="button" aria-label={t('moveDown')} className="grid size-8 place-items-center rounded hover:bg-ink/[0.04] disabled:opacity-30" disabled={i === fns.length - 1} onClick={() => move(i, 1)}>
                     <ArrowDown className="size-4" />
                   </button>
-                  <button type="button" aria-label="Remove function" className="grid size-8 place-items-center rounded text-sindoor hover:bg-sindoor/10 disabled:opacity-30" disabled={fns.length <= 1} onClick={() => setFns((l) => l.filter((x) => x.key !== f.key))}>
+                  <button type="button" aria-label={t('removeFn')} className="grid size-8 place-items-center rounded text-sindoor hover:bg-sindoor/10 disabled:opacity-30" disabled={fns.length <= 1} onClick={() => setFns((l) => l.filter((x) => x.key !== f.key))}>
                     <Trash2 className="size-4" />
                   </button>
                 </span>
               </div>
               <div className="grid gap-3 sm:grid-cols-2" lang={event.language}>
-                <Field label="Name">{(id) => <Input id={id} value={f.name} placeholder="Haldi, Mehendi, Sangeet…" onChange={(e) => upFn(f.key, { name: e.target.value })} />}</Field>
+                <Field label={t('name')}>{(id) => <Input id={id} value={f.name} placeholder={t('namePh')} onChange={(e) => upFn(f.key, { name: e.target.value })} />}</Field>
                 <div className="grid grid-cols-[1.35fr_1fr] gap-3">
-                  <Field label="Date">{(id) => <Input id={id} type="date" value={f.date} onChange={(e) => upFn(f.key, { date: e.target.value })} />}</Field>
-                  <Field label="Time">{(id) => <Input id={id} type="time" value={f.time} onChange={(e) => upFn(f.key, { time: e.target.value })} />}</Field>
+                  <Field label={t('date')}>{(id) => <Input id={id} type="date" value={f.date} onChange={(e) => upFn(f.key, { date: e.target.value })} />}</Field>
+                  <Field label={t('time')}>{(id) => <Input id={id} type="time" value={f.time} onChange={(e) => upFn(f.key, { time: e.target.value })} />}</Field>
                 </div>
-                <Field label="Venue">{(id) => <Input id={id} value={f.venueName} onChange={(e) => upFn(f.key, { venueName: e.target.value })} />}</Field>
-                <Field label="Address">{(id) => <Input id={id} value={f.venueAddress} onChange={(e) => upFn(f.key, { venueAddress: e.target.value })} />}</Field>
-                <Field label="Dress code (optional)">{(id) => <Input id={id} value={f.dressCode} placeholder="e.g. Yellow / Pastels" onChange={(e) => upFn(f.key, { dressCode: e.target.value })} />}</Field>
-                <Field label="Short description (optional)">
-                  {(id) => <Input id={id} value={f.notes} maxLength={300} placeholder="e.g. Followed by lunch" onChange={(e) => upFn(f.key, { notes: e.target.value })} />}
+                <Field label={t('venue')}>{(id) => <Input id={id} value={f.venueName} onChange={(e) => upFn(f.key, { venueName: e.target.value })} />}</Field>
+                <Field label={t('address')}>{(id) => <Input id={id} value={f.venueAddress} onChange={(e) => upFn(f.key, { venueAddress: e.target.value })} />}</Field>
+                <Field label={t('dress')}>{(id) => <Input id={id} value={f.dressCode} placeholder={t('dressPh')} onChange={(e) => upFn(f.key, { dressCode: e.target.value })} />}</Field>
+                <Field label={t('desc')}>
+                  {(id) => <Input id={id} value={f.notes} maxLength={300} placeholder={t('descPh')} onChange={(e) => upFn(f.key, { notes: e.target.value })} />}
                 </Field>
               </div>
             </li>
@@ -177,54 +179,54 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
             setFns((l) => [...l, { key: `new-${Date.now()}`, name: '', date: last?.date ?? '', time: '18:00', venueName: last?.venueName ?? '', venueAddress: last?.venueAddress ?? '', dressCode: '', notes: '' }]);
           }}
         >
-          <Plus className="size-4" /> Add function
+          <Plus className="size-4" /> {t('addFn')}
         </Button>
       </div>
 
       {/* Welcome & compliments */}
       <div className="grid gap-4 md:grid-cols-2" lang={event.language}>
         <div className="flex flex-col gap-3">
-          <h3 className="text-[1.0625rem]">Welcome (Swagatotsuk)</h3>
-          <Field label="Heading" hint="e.g. Swagatotsuk, Darshanabhilashi, Eagerly awaiting you">
+          <h3 className="text-[1.0625rem]">{t('welcome')}</h3>
+          <Field label={t('heading')} hint={t('welcomeHint')}>
             {(id, desc) => <Input id={id} aria-describedby={desc} value={c.welcomeTitle ?? ''} onChange={(e) => setC({ ...c, welcomeTitle: e.target.value })} />}
           </Field>
-          <Field label="Names (one per line)">{(id) => <Textarea id={id} rows={4} value={welcome} onChange={(e) => setWelcome(e.target.value)} />}</Field>
+          <Field label={t('names')}>{(id) => <Textarea id={id} rows={4} value={welcome} onChange={(e) => setWelcome(e.target.value)} />}</Field>
         </div>
         <div className="flex flex-col gap-3">
-          <h3 className="text-[1.0625rem]">Compliments</h3>
-          <Field label="Heading" hint="e.g. With best compliments from, सौजन्य से">
+          <h3 className="text-[1.0625rem]">{t('compliments')}</h3>
+          <Field label={t('heading')} hint={t('complimentsHint')}>
             {(id, desc) => <Input id={id} aria-describedby={desc} value={c.complimentsTitle ?? ''} onChange={(e) => setC({ ...c, complimentsTitle: e.target.value })} />}
           </Field>
-          <Field label="Names (one per line)">{(id) => <Textarea id={id} rows={4} value={compliments} onChange={(e) => setCompliments(e.target.value)} />}</Field>
+          <Field label={t('names')}>{(id) => <Textarea id={id} rows={4} value={compliments} onChange={(e) => setCompliments(e.target.value)} />}</Field>
         </div>
       </div>
 
       {/* RSVP */}
       <div className="flex flex-col gap-3">
-        <h3 className="text-[1.0625rem]">RSVP on the card</h3>
+        <h3 className="text-[1.0625rem]">{t('rsvp')}</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           {contacts.map((r, i) => (
             <div key={i} className="contents">
-              <Field label={`Contact ${i + 1} name`}>{(id) => <Input id={id} value={r.name} onChange={(e) => setContacts(contacts.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />}</Field>
-              <Field label="Phone">{(id) => <Input id={id} type="tel" inputMode="tel" value={r.phone} onChange={(e) => setContacts(contacts.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)))} />}</Field>
+              <Field label={t('contactN', { n: i + 1 })}>{(id) => <Input id={id} value={r.name} onChange={(e) => setContacts(contacts.map((x, j) => (j === i ? { ...x, name: e.target.value } : x)))} />}</Field>
+              <Field label={t('phone')}>{(id) => <Input id={id} type="tel" inputMode="tel" value={r.phone} onChange={(e) => setContacts(contacts.map((x, j) => (j === i ? { ...x, phone: e.target.value } : x)))} />}</Field>
             </div>
           ))}
         </div>
-        <Field label="Kindly RSVP by (optional)" hint="Shown on the card and used by the website's RSVP form.">
+        <Field label={t('rsvpBy')} hint={t('rsvpByHint')}>
           {(id, desc) => <Input id={id} aria-describedby={desc} type="date" className="max-w-56" value={rsvpBy} onChange={(e) => setRsvpBy(e.target.value)} />}
         </Field>
       </div>
 
       {/* Note & hashtag */}
       <div className="grid gap-4 sm:grid-cols-[2fr_1fr]" lang={event.language}>
-        <Field label="Note" hint="e.g. Your blessings are our gift. Kindly no boxed gifts.">
+        <Field label={t('note')} hint={t('noteHint')}>
           {(id, desc) => <Input id={id} aria-describedby={desc} maxLength={240} value={c.note ?? ''} onChange={(e) => setC({ ...c, note: e.target.value })} />}
         </Field>
-        <Field label="Hashtag">{(id) => <Input id={id} maxLength={40} placeholder="#PriyaWedsRahul" value={c.hashtag ?? ''} onChange={(e) => setC({ ...c, hashtag: e.target.value })} />}</Field>
+        <Field label={t('hashtag')}>{(id) => <Input id={id} maxLength={40} placeholder="#PriyaWedsRahul" value={c.hashtag ?? ''} onChange={(e) => setC({ ...c, hashtag: e.target.value })} />}</Field>
       </div>
 
       <Button onClick={submit} loading={save.isPending} className="self-start">
-        Save card pages
+        {t('save')}
       </Button>
     </section>
   );

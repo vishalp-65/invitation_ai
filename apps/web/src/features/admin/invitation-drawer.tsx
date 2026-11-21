@@ -13,6 +13,7 @@ import { useMe } from '@/lib/hooks';
 import { TrendChart } from './charts';
 import { Drawer, Facts, Section } from './drawer';
 import { ago, Badge, dateTime, inr, num } from './ui';
+import { confirmDialog, promptDialog } from '@/components/ui/confirm';
 
 interface InvitationDetail {
   id: string;
@@ -172,7 +173,7 @@ export function InvitationDrawer({ id, onClose }: { id: string; onClose: () => v
                       type="button"
                       aria-label={`Remove ${FEATURE_LABEL[e.feature] ?? e.feature}`}
                       className="grid size-5 place-items-center text-ink-soft hover:text-sindoor"
-                      onClick={() => confirm(`Remove “${FEATURE_LABEL[e.feature] ?? e.feature}” from this invitation? Payments are not refunded.`) && void run(api(`/admin/invitations/${id}/features/${e.feature}`, { method: 'DELETE' }), 'Feature removed')}
+                      onClick={async () => (await confirmDialog(`Remove “${FEATURE_LABEL[e.feature] ?? e.feature}” from this invitation? Payments are not refunded.`)) && void run(api(`/admin/invitations/${id}/features/${e.feature}`, { method: 'DELETE' }), 'Feature removed')}
                     >
                       <X className="size-3" />
                     </button>
@@ -225,7 +226,7 @@ export function InvitationDrawer({ id, onClose }: { id: string; onClose: () => v
                           <RefreshCw className="size-3.5" />
                         </IconBtn>
                       )}
-                      <IconBtn label="Delete file" danger onClick={() => confirm('Delete this file? The customer can make it again.') && void run(api(`/admin/renders/${r.id}`, { method: 'DELETE' }), 'File deleted')}>
+                      <IconBtn label="Delete file" danger onClick={async () => (await confirmDialog('Delete this file? The customer can make it again.')) && void run(api(`/admin/renders/${r.id}`, { method: 'DELETE' }), 'File deleted')}>
                         <Trash2 className="size-3.5" />
                       </IconBtn>
                     </span>
@@ -250,7 +251,7 @@ export function InvitationDrawer({ id, onClose }: { id: string; onClose: () => v
                       <IconBtn label={w.hidden ? 'Show on the website' : 'Hide from the website'} onClick={() => void run(api(`/admin/invitations/${id}/wishes/${w.id}`, { method: 'POST', json: { action: w.hidden ? 'show' : 'hide' } }), w.hidden ? 'Message shown' : 'Message hidden')}>
                         {w.hidden ? <Eye className="size-3.5" /> : <EyeOff className="size-3.5" />}
                       </IconBtn>
-                      <IconBtn label="Delete message" danger onClick={() => confirm('Delete this message for good?') && void run(api(`/admin/invitations/${id}/wishes/${w.id}`, { method: 'POST', json: { action: 'delete' } }), 'Message deleted')}>
+                      <IconBtn label="Delete message" danger onClick={async () => (await confirmDialog('Delete this message for good?')) && void run(api(`/admin/invitations/${id}/wishes/${w.id}`, { method: 'POST', json: { action: 'delete' } }), 'Message deleted')}>
                         <Trash2 className="size-3.5" />
                       </IconBtn>
                     </span>
@@ -273,8 +274,8 @@ export function InvitationDrawer({ id, onClose }: { id: string; onClose: () => v
                   size="sm"
                   variant="line"
                   loading={busy}
-                  onClick={() => {
-                    const reason = prompt('Reason for taking it down (kept in the admin log):');
+                  onClick={async () => {
+                    const reason = await promptDialog({ title: 'Take this invitation down?', body: 'Its website and links stop working until you restore it.', label: 'Reason (kept in the admin log)', placeholder: 'Optional', multiline: true, confirmLabel: 'Take down', danger: true });
                     if (reason !== null) void run(api(`/admin/invitations/${id}`, { method: 'PATCH', json: { suspended: true, reason: reason || null } }), 'Taken down');
                   }}
                 >
@@ -289,7 +290,7 @@ export function InvitationDrawer({ id, onClose }: { id: string; onClose: () => v
                   disabled={data.orders.length > 0 || data.counts.printOrders > 0}
                   title={data.orders.length || data.counts.printOrders ? 'Has orders: archive or take down instead' : undefined}
                   onClick={async () => {
-                    if (prompt(`Delete “${data.title}” for good? Guests, RSVPs, photos and files go too. Type DELETE to confirm.`) !== 'DELETE') return;
+                    if ((await promptDialog({ title: `Delete “${data.title}” for good?`, body: 'Guests, RSVPs, photos and files go too. This cannot be undone.', match: 'DELETE', confirmLabel: 'Delete', danger: true })) !== 'DELETE') return;
                     const r = await run(api(`/admin/invitations/${id}`, { method: 'DELETE' }), 'Invitation deleted');
                     if (r) onClose();
                   }}

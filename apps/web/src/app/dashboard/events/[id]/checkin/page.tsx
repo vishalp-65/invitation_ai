@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Camera, CameraOff, ChevronLeft, Minus, Plus, Search, Undo2 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -34,6 +35,7 @@ interface Detector {
 export default function CheckInPage() {
   const { id } = useParams<{ id: string }>();
   const qc = useQueryClient();
+  const t = useTranslations('day');
   const { data: event } = useEvent(id);
   const { data: guests } = useQuery({
     queryKey: qk.guests(id),
@@ -55,8 +57,8 @@ export default function CheckInPage() {
       const r = await api<CheckInResult>(`/events/${id}/checkin`, { method: 'POST', json: body });
       setLast(r);
       if (!body.undo && body.pax === undefined) {
-        if (r.alreadyCheckedIn) toast.message(`${r.name} was already checked in`);
-        else toast.success(`Welcome, ${r.name}`);
+        if (r.alreadyCheckedIn) toast.message(t('already', { name: r.name }));
+        else toast.success(t('welcome', { name: r.name }));
         navigator.vibrate?.(80);
       }
       void qc.invalidateQueries({ queryKey: qk.guests(id) });
@@ -88,7 +90,7 @@ export default function CheckInPage() {
           await new Promise((r) => setTimeout(r, 250));
         }
       } catch {
-        toast.error('Could not open the camera. Allow camera access, or search by name.');
+        toast.error(t('noCamera'));
         setScanning(false);
       }
     })();
@@ -107,10 +109,10 @@ export default function CheckInPage() {
   return (
     <div className="mx-auto flex max-w-xl flex-col gap-5">
       <Link href={`/dashboard/events/${id}?tab=guests`} className="inline-flex items-center gap-1.5 font-mono text-xs text-ink-soft hover:text-ink">
-        <ChevronLeft className="size-3.5" aria-hidden /> Back to guests
+        <ChevronLeft className="size-3.5" aria-hidden /> {t('back')}
       </Link>
       <div>
-        <h1 className="page-title">Check-in</h1>
+        <h1 className="page-title">{t('title')}</h1>
         <p className="mt-1 text-ink-soft" lang={event?.language}>
           {event?.title}
         </p>
@@ -119,9 +121,9 @@ export default function CheckInPage() {
       <dl className="grid grid-cols-3 border-l border-t border-ink/10">
         {(
           [
-            ['Families', `${arrived.length} / ${guests?.length ?? 0}`],
-            ['People', people],
-            ['Expected', (guests ?? []).reduce((s, g) => s + Math.max(0, ...Object.values(g.rsvp).filter((r) => r.status !== 'no').map((r) => r.headcount)), 0)],
+            [t('families'), `${arrived.length} / ${guests?.length ?? 0}`],
+            [t('people'), people],
+            [t('expected'), (guests ?? []).reduce((s, g) => s + Math.max(0, ...Object.values(g.rsvp).filter((r) => r.status !== 'no').map((r) => r.headcount)), 0)],
           ] as const
         ).map(([label, value]) => (
           <div key={label} className="border-b border-r border-ink/10 px-4 py-3">
@@ -135,7 +137,7 @@ export default function CheckInPage() {
         <div className="flex flex-col gap-3">
           <Button size="lg" variant={scanning ? 'line' : 'primary'} onClick={() => setScanning((s) => !s)}>
             {scanning ? <CameraOff className="size-5" /> : <Camera className="size-5" />}
-            {scanning ? 'Stop scanning' : 'Scan entry pass'}
+            {scanning ? t('stopScan') : t('scan')}
           </Button>
           {scanning && <video ref={video} muted playsInline className="aspect-square w-full bg-black object-cover" />}
         </div>
@@ -146,24 +148,24 @@ export default function CheckInPage() {
           <p className="text-xl">{last.name}</p>
           <p className="text-sm text-ink-soft">
             {last.groupLabel ? `${last.groupLabel} · ` : ''}
-            {last.confirmedPax ? `${last.confirmedPax} said they are coming` : 'No RSVP'} · up to {last.maxPax}
+            {last.confirmedPax ? t('said', { n: last.confirmedPax }) : t('noRsvp')} · {t('upTo', { n: last.maxPax })}
           </p>
           {last.checkedInAt ? (
             <div className="mt-3 flex items-center gap-2">
-              <span className="text-sm">People with them:</span>
-              <Button size="icon" variant="line" aria-label="One fewer" onClick={() => void checkIn({ guestId: last.guestId, pax: Math.max(0, (last.checkedInPax ?? 1) - 1) })}>
+              <span className="text-sm">{t('with')}</span>
+              <Button size="icon" variant="line" aria-label={t('fewer')} onClick={() => void checkIn({ guestId: last.guestId, pax: Math.max(0, (last.checkedInPax ?? 1) - 1) })}>
                 <Minus className="size-4" />
               </Button>
               <span className="w-8 text-center font-display text-2xl tabular-nums">{last.checkedInPax}</span>
-              <Button size="icon" variant="line" aria-label="One more" onClick={() => void checkIn({ guestId: last.guestId, pax: (last.checkedInPax ?? 0) + 1 })}>
+              <Button size="icon" variant="line" aria-label={t('more')} onClick={() => void checkIn({ guestId: last.guestId, pax: (last.checkedInPax ?? 0) + 1 })}>
                 <Plus className="size-4" />
               </Button>
               <Button size="sm" variant="quiet" className="ml-auto" onClick={() => void checkIn({ guestId: last.guestId, undo: true })}>
-                <Undo2 className="size-4" /> Undo
+                <Undo2 className="size-4" /> {t('undo')}
               </Button>
             </div>
           ) : (
-            <p className="mt-2 text-sm text-ink-soft">Check-in undone.</p>
+            <p className="mt-2 text-sm text-ink-soft">{t('undone')}</p>
           )}
         </section>
       )}
@@ -172,10 +174,10 @@ export default function CheckInPage() {
         <Search className="size-4 text-ink-soft" aria-hidden />
         <input
           className="h-12 flex-1 bg-transparent outline-none"
-          placeholder="Search guest by name or mobile"
+          placeholder={t('search')}
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          aria-label="Search guests"
+          aria-label={t('searchAria')}
         />
       </label>
       {matches.length > 0 && (
@@ -187,7 +189,7 @@ export default function CheckInPage() {
                 <p className="truncate text-sm text-ink-soft">{g.groupLabel ?? g.phone ?? ''}</p>
               </div>
               {g.checkedInAt ? (
-                <span className="font-mono text-xs text-leaf">Arrived · {g.checkedInPax}</span>
+                <span className="font-mono text-xs text-leaf">{t('arrivedN', { n: g.checkedInPax ?? 0 })}</span>
               ) : (
                 <Button
                   size="sm"
@@ -196,14 +198,14 @@ export default function CheckInPage() {
                     void checkIn({ guestId: g.id });
                   }}
                 >
-                  Check in
+                  {t('checkIn')}
                 </Button>
               )}
             </li>
           ))}
         </ul>
       )}
-      {!canScan && <p className="text-sm text-ink-soft">Scanning works in Chrome on Android. On this device, search by name instead.</p>}
+      {!canScan && <p className="text-sm text-ink-soft">{t('noScan')}</p>}
     </div>
   );
 }

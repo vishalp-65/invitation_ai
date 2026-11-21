@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { Chip, Field, Input, Select, Textarea } from '@/components/ui/field';
 import { ago, Badge, BulkBar, compactINR, Empty, fromLocalInput, inr, num, PageHeader, Segmented, shortDate, Skeleton, Table, toDate, toLocalInput, Toggle } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface Coupon {
   id: string;
@@ -162,7 +163,7 @@ function Coupons() {
 
   async function bulkAction(action: 'pause' | 'activate' | 'delete') {
     const ids = [...picked];
-    if (action === 'delete' && !confirm(`Delete ${ids.length} coupon(s)? Paid orders keep their discount.`)) return;
+    if (action === 'delete' && !(await confirmDialog(`Delete ${ids.length} coupon(s)? Paid orders keep their discount.`))) return;
     await call(api('/admin/coupons/bulk-action', { method: 'POST', json: { ids, action } }), `${ids.length} coupon(s) ${action === 'delete' ? 'deleted' : action === 'pause' ? 'paused' : 'activated'}`).catch(() => undefined);
     setPicked(new Set());
     void refresh();
@@ -254,7 +255,7 @@ function Coupons() {
                     active={c.active}
                     onToggle={(active) => void call(api(`/admin/coupons/${c.id}`, { method: 'PUT', json: couponBody({ ...c, active }) }), active ? 'Coupon activated' : 'Coupon paused').then(refresh)}
                     onEdit={() => setEditing(c)}
-                    onDelete={() => confirm(`Delete coupon ${c.code}?`) && void call(api(`/admin/coupons/${c.id}`, { method: 'DELETE' }), 'Coupon deleted').then(refresh)}
+                    onDelete={async () => (await confirmDialog(`Delete coupon ${c.code}?`)) && void call(api(`/admin/coupons/${c.id}`, { method: 'DELETE' }), 'Coupon deleted').then(refresh)}
                     emailHref={c.active ? `/admin/emails?coupon=${encodeURIComponent(c.code)}` : undefined}
                   />
                 </td>
@@ -535,7 +536,7 @@ function Sales() {
                     active={s.active}
                     onToggle={(active) => void call(api(`/admin/sales/${s.id}`, { method: 'PUT', json: body({ ...s, active }) }), active ? 'Sale activated' : 'Sale paused').then(refresh)}
                     onEdit={() => setEditing(s)}
-                    onDelete={() => confirm(`Delete “${s.name}”?`) && void call(api(`/admin/sales/${s.id}`, { method: 'DELETE' }), 'Sale deleted').then(refresh)}
+                    onDelete={async () => (await confirmDialog(`Delete “${s.name}”?`)) && void call(api(`/admin/sales/${s.id}`, { method: 'DELETE' }), 'Sale deleted').then(refresh)}
                     emailHref={s.active ? `/admin/emails?sale=${s.id}` : undefined}
                   />
                 </td>
@@ -650,7 +651,7 @@ function Banners() {
                     active={b.active}
                     onToggle={(active) => void call(api(`/admin/announcements/${b.id}`, { method: 'PUT', json: body({ ...b, active }) }), active ? 'Banner on' : 'Banner off').then(refresh)}
                     onEdit={() => setEditing(b)}
-                    onDelete={() => confirm('Delete this banner?') && void call(api(`/admin/announcements/${b.id}`, { method: 'DELETE' }), 'Banner deleted').then(refresh)}
+                    onDelete={async () => (await confirmDialog('Delete this banner?')) && void call(api(`/admin/announcements/${b.id}`, { method: 'DELETE' }), 'Banner deleted').then(refresh)}
                   />
                 </div>
               </li>
@@ -761,7 +762,7 @@ function Plans() {
   };
 
   async function setOnSale(p: PriceRow, onSale: boolean) {
-    if (!onSale && !confirm(`Take ${p.name} off sale? It disappears from pricing and checkout. People who already bought it keep it.`)) return;
+    if (!onSale && !(await confirmDialog(`Take ${p.name} off sale? It disappears from pricing and checkout. People who already bought it keep it.`))) return;
     const rows = await call(api<PriceRow[]>(`/admin/prices/${p.code}`, { method: 'PUT', json: { ...planBody(p), disabled: !onSale } }), onSale ? `${p.name} is on sale again` : `${p.name} taken off sale`).catch(() => null);
     if (rows) saved(rows);
   }

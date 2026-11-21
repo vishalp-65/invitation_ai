@@ -4,6 +4,7 @@ import { formatINR, type CouponQuoteDto, type EventDto, type ProductCode } from 
 import { useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { Check, ShieldCheck, Tag, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -29,6 +30,7 @@ function visible(code: ProductCode, features: string[]) {
 
 export function UpgradePanel({ event }: { event: EventDto }) {
   const qc = useQueryClient();
+  const t = useTranslations('upgrade');
   const [busy, setBusy] = useState<ProductCode | null>(null);
   const { data: offers } = useOffers();
   const products = offers!.products;
@@ -48,12 +50,12 @@ export function UpgradePanel({ event }: { event: EventDto }) {
     const quotes = Object.fromEntries(results.flatMap((r) => (r.status === 'fulfilled' ? [r.value] : [])));
     if (!Object.keys(quotes).length) {
       const first = results.find((r) => r.status === 'rejected') as PromiseRejectedResult | undefined;
-      toast.error(first?.reason instanceof ApiError ? first.reason.message : 'This coupon code is not valid.');
+      toast.error(first?.reason instanceof ApiError ? first.reason.message : t('badCoupon'));
       return;
     }
     setCoupon({ code, quotes });
     track('coupon_applied', { props: { code } });
-    toast.success(`Coupon ${code} applied`);
+    toast.success(t('couponApplied', { code }));
   }
 
   async function purchase(code: ProductCode) {
@@ -61,7 +63,7 @@ export function UpgradePanel({ event }: { event: EventDto }) {
     try {
       const paid = await buy(event.id, code, coupon?.quotes[code] ? coupon.code : undefined);
       if (paid) {
-        toast.success('Payment received. Unlocked!');
+        toast.success(t('paid'));
         await qc.invalidateQueries({ queryKey: qk.event(event.id) });
         await qc.invalidateQueries({ queryKey: qk.renders(event.id) });
       }
@@ -75,19 +77,19 @@ export function UpgradePanel({ event }: { event: EventDto }) {
   return (
     <div className="flex flex-col gap-6">
       <Panel
-        title="Upgrade this invitation"
-        description="One-time payment for this event only. No subscription."
+        title={t('title')}
+        description={t('body')}
         footer={
           <p className="flex items-center gap-2 text-sm text-ink-soft">
             <ShieldCheck className="size-4 text-leaf" aria-hidden />
-            Secure payment by UPI, card or wallet. Unlocks instantly.
+            {t('secure')}
           </p>
         }
       >
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           {offers?.sale ? (
             <StatusPill tone="gold">
-              <Tag className="size-3.5" aria-hidden /> {offers.sale.name}: {offers.sale.percentOff}% off
+              <Tag className="size-3.5" aria-hidden /> {t('saleOff', { name: offers.sale.name, percent: offers.sale.percentOff })}
             </StatusPill>
           ) : (
             <span />
@@ -95,26 +97,26 @@ export function UpgradePanel({ event }: { event: EventDto }) {
           <form onSubmit={(e) => void applyCoupon(e)} className="flex w-full items-center gap-2 sm:max-w-sm">
             {coupon ? (
               <p className="flex h-10 flex-1 items-center gap-2 rounded-lg border border-leaf/40 bg-leaf/10 px-3 text-sm font-medium text-leaf">
-                <Check className="size-4" /> {coupon.code} applied
-                <button type="button" onClick={() => setCoupon(null)} aria-label="Remove coupon" className="ml-auto rounded-md p-1 hover:bg-leaf/15">
+                <Check className="size-4" /> {t('applied', { code: coupon.code })}
+                <button type="button" onClick={() => setCoupon(null)} aria-label={t('removeCoupon')} className="ml-auto rounded-md p-1 hover:bg-leaf/15">
                   <X className="size-4" />
                 </button>
               </p>
             ) : (
               <>
                 <label className="sr-only" htmlFor="coupon">
-                  Coupon code
+                  {t('couponCode')}
                 </label>
                 <input
                   id="coupon"
                   value={couponInput}
                   onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
-                  placeholder="Coupon code"
+                  placeholder={t('couponCode')}
                   maxLength={24}
                   className={`${controlClass} h-10 min-w-0 flex-1 px-3 text-sm uppercase tracking-wide`}
                 />
                 <Button type="submit" variant="line" loading={checking} disabled={!couponInput.trim()}>
-                  Apply
+                  {t('apply')}
                 </Button>
               </>
             )}
@@ -143,11 +145,11 @@ export function UpgradePanel({ event }: { event: EventDto }) {
               <div className="flex items-start justify-between gap-2">
                 <h3 className="text-base font-medium">{p.name}</h3>
                 {owned ? (
-                  <StatusPill tone="leaf">Unlocked</StatusPill>
+                  <StatusPill tone="leaf">{t('unlocked')}</StatusPill>
                 ) : hl ? (
-                  <span className="whitespace-nowrap bg-ink px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-widest text-ivory">Best value</span>
+                  <span className="whitespace-nowrap bg-ink px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-widest text-ivory">{t('bestValue')}</span>
                 ) : (
-                  save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-medium text-leaf">Save {save}%</span>
+                  save > 0 && <span className="rounded-md bg-leaf/10 px-2 py-0.5 text-xs font-medium text-leaf">{t('saveN', { n: save })}</span>
                 )}
               </div>
               <p className="mt-3 flex flex-wrap items-baseline gap-2">
@@ -159,7 +161,7 @@ export function UpgradePanel({ event }: { event: EventDto }) {
               <div className="mt-auto pt-5">
                 {owned ? (
                   <p className="flex items-center gap-2 text-sm font-medium text-leaf">
-                    <Check className="size-4" /> Already on this invitation
+                    <Check className="size-4" /> {t('already')}
                   </p>
                 ) : (
                   <Button
@@ -168,16 +170,16 @@ export function UpgradePanel({ event }: { event: EventDto }) {
                     onClick={() => purchase(code)}
                     loading={busy === code}
                   >
-                    Pay {formatINR(pay)}
+                    {t('pay', { amount: formatINR(pay) })}
                   </Button>
                 )}
-                {code === 'ai_clip' && event.credits.ai_clip ? <p className="mt-2 text-sm">{event.credits.ai_clip} credit available</p> : null}
+                {code === 'ai_clip' && event.credits.ai_clip ? <p className="mt-2 text-sm">{t('clipCredits', { n: event.credits.ai_clip })}</p> : null}
                 {code === 'site_year' && event.credits.site_extra_year ? (
                   <p className="mt-2 text-sm">
-                    {event.credits.site_extra_year} extra year{event.credits.site_extra_year > 1 ? 's' : ''} added
+                    {t('extraYears', { n: event.credits.site_extra_year })}
                   </p>
                 ) : null}
-                {code === 'ai_backgrounds' && event.credits.ai_background ? <p className="mt-2 text-sm">{event.credits.ai_background} AI backgrounds available</p> : null}
+                {code === 'ai_backgrounds' && event.credits.ai_background ? <p className="mt-2 text-sm">{t('bgCredits', { n: event.credits.ai_background })}</p> : null}
               </div>
             </li>
           );

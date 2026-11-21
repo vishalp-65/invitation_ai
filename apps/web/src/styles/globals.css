@@ -817,9 +817,10 @@
   transition: width 0.25s var(--ease-out-quint);
 }
 @media (min-width: 1024px) {
+  /* Logical side: the sidebar sits on the right in Urdu (dir="rtl"). */
   .app-main {
-    margin-left: var(--sb);
-    transition: margin-left 0.25s var(--ease-out-quint);
+    margin-inline-start: var(--sb);
+    transition: margin-inline-start 0.25s var(--ease-out-quint);
   }
 }
 /* Collapsed layout is pure CSS off <html data-sidebar>, so a reload in collapsed mode paints
@@ -1427,5 +1428,56 @@
     font-size: 0.8125rem;
     font-weight: 500;
     cursor: pointer;
+  }
+}
+
+/* ================= Browser chrome, round two ================= */
+/* In-app validation bubble (ValidationLayer): the tooltip shape in the error colour. */
+.tip-layer.tip-error,
+[data-theme='dark'] .tip-layer.tip-error {
+  background: var(--color-sindoor);
+  color: #fff;
+  max-width: 300px;
+}
+@layer base {
+  /* Themed scrollbars everywhere (colour inherits; width stays native for easy grabbing). */
+  html {
+    scrollbar-color: color-mix(in srgb, var(--color-ink) 24%, transparent) transparent;
+  }
+  /* Autofill: keep our field colours instead of Chrome's pale blue/yellow wash. */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  textarea:-webkit-autofill,
+  select:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-ink);
+    caret-color: var(--color-ink);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-surface) inset;
+    transition: background-color 9999s ease-out 0s;
+  }
+  /* Search fields: a quiet × in the ink colour instead of the blue OS clear button. */
+  input[type='search']::-webkit-search-decoration {
+    -webkit-appearance: none;
+  }
+  input[type='search']::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    margin-left: 0.4rem;
+    cursor: pointer;
+    background: currentColor;
+    opacity: 0.45;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M4 4l8 8M12 4l-8 8'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+  }
+  input[type='search']::-webkit-search-cancel-button:hover {
+    opacity: 0.9;
+  }
+  /* Fallback for any <details> without its own styles: our chevron instead of the ▸ triangle. */
+  summary {
+    cursor: pointer;
+  }
+  summary::-webkit-details-marker {
+    display: none;
   }
 }

@@ -2,6 +2,7 @@
 
 import type { GuestInput } from '@cardai/shared';
 import { FileUp } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -10,15 +11,9 @@ import { Select } from '@/components/ui/select';
 
 export { cleanPhone } from './guest-parse';
 
-const FIELDS = [
-  ['name', 'Name'],
-  ['phone', 'Mobile'],
-  ['groupLabel', 'Group'],
-  ['salutation', 'Greeting'],
-  ['maxPax', 'People'],
-  ['skip', 'Skip'],
-] as const;
-type Target = (typeof FIELDS)[number][0];
+/** Column labels: `import.c_<field>`. */
+const FIELDS = ['name', 'phone', 'groupLabel', 'salutation', 'maxPax', 'skip'] as const;
+type Target = (typeof FIELDS)[number];
 
 /** Best guess of what a header means (English and Hindi column names). */
 function guess(header: string, i: number): Target {
@@ -51,21 +46,22 @@ function toGuests(rows: string[][], map: Target[]): GuestInput[] {
 
 /** Upload a .csv or .vcf; CSV columns are matched (and can be changed) before importing. */
 export function GuestFileImport({ onImport, busy }: { onImport: (list: GuestInput[]) => void; busy: boolean }) {
+  const t = useTranslations('import');
   const input = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<string[][] | null>(null);
   const [hasHeader, setHasHeader] = useState(true);
   const [map, setMap] = useState<Target[]>([]);
 
   async function read(file: File) {
-    if (file.size > 2_000_000) return toast.error('That file is too big. Up to 2 MB, about 20,000 guests.');
+    if (file.size > 2_000_000) return toast.error(t('tooBig'));
     const text = (await file.text()).replace(/^\uFEFF/, '');
     if (/\.vcf$/i.test(file.name) || /BEGIN:VCARD/i.test(text.slice(0, 200))) {
       const list = parseVcf(text);
-      return list.length ? onImport(list) : toast.error('No contacts found in that file.');
+      return list.length ? onImport(list) : toast.error(t('noContacts'));
     }
-    if (/\.xlsx?$/i.test(file.name)) return toast.error('In Excel, choose File → Save As → CSV, then upload that file. Or copy the rows and paste them.');
+    if (/\.xlsx?$/i.test(file.name)) return toast.error(t('excel'));
     const parsed = parseCsv(text);
-    if (!parsed.length) return toast.error('That file looks empty.');
+    if (!parsed.length) return toast.error(t('empty'));
     const header = parsed[0]!;
     const looksLikeHeader = header.some((h) => /\p{L}/u.test(h)) && !header.some((h) => cleanPhone(h));
     setHasHeader(looksLikeHeader);
@@ -84,7 +80,7 @@ export function GuestFileImport({ onImport, busy }: { onImport: (list: GuestInpu
         type="file"
         accept=".csv,.vcf,.txt,text/csv,text/vcard,text/x-vcard"
         className="sr-only"
-        aria-label="Upload a CSV or contacts (.vcf) file"
+        aria-label={t('uploadAria')}
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) void read(f);
@@ -93,30 +89,30 @@ export function GuestFileImport({ onImport, busy }: { onImport: (list: GuestInpu
       />
       {!rows && (
         <Button variant="line" onClick={() => input.current?.click()}>
-          <FileUp className="size-4" /> Upload CSV or contacts file (.vcf)
+          <FileUp className="size-4" /> {t('upload')}
         </Button>
       )}
       {rows && (
         <div className="flex flex-col gap-3 border border-ink/10 p-3">
-          <p className="text-sm">Match the columns</p>
+          <p className="text-sm">{t('match')}</p>
           <label className="flex items-center gap-2 text-sm text-ink-soft">
-            <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} /> First row is column names
+            <input type="checkbox" checked={hasHeader} onChange={(e) => setHasHeader(e.target.checked)} /> {t('header')}
           </label>
           <div className="overflow-x-auto">
             <table className="text-sm">
               <thead>
                 <tr>
-                  {map.map((t, i) => (
+                  {map.map((target, i) => (
                     <th key={i} className="p-1 text-left font-normal">
                       <Select
-                        aria-label={`Column ${i + 1}`}
+                        aria-label={t('columnN', { n: i + 1 })}
                         className="h-8 w-auto min-w-28 text-sm"
-                        value={t}
+                        value={target}
                         onChange={(e) => setMap(map.map((m, j) => (j === i ? (e.target.value as Target) : m)))}
                       >
-                        {FIELDS.map(([v, l]) => (
+                        {FIELDS.map((v) => (
                           <option key={v} value={v}>
-                            {l}
+                            {t(`c_${v}`)}
                           </option>
                         ))}
                       </Select>
@@ -138,14 +134,14 @@ export function GuestFileImport({ onImport, busy }: { onImport: (list: GuestInpu
             </table>
           </div>
           <p className="text-sm text-ink-soft">
-            {ready.length} guests ready{noPhone ? `, ${noPhone} without a valid mobile number` : ''}.
+            {noPhone ? t('readyNoPhone', { n: ready.length, bad: noPhone }) : t('ready', { n: ready.length })}
           </p>
           <div className="flex gap-2">
             <Button disabled={!ready.length || !map.includes('name')} loading={busy} onClick={() => onImport(ready)}>
-              Add {ready.length} guests
+              {t('addN', { n: ready.length })}
             </Button>
             <Button variant="quiet" onClick={() => setRows(null)}>
-              Cancel
+              {t('cancel')}
             </Button>
           </div>
         </div>

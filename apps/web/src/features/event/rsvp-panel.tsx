@@ -4,6 +4,7 @@ import type { EventDto, RsvpSummaryDto } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
 import { Download, MessageSquareReply, Printer, ScanLine } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { buttonClass } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { qk } from '@/lib/hooks';
@@ -20,9 +21,11 @@ interface RsvpRow {
   note: string | null;
 }
 
-const STATUS: Record<RsvpRow['status'], [string, Tone]> = { yes: ['Coming', 'leaf'], no: ['Not coming', 'sindoor'], maybe: ['Maybe', 'gold'] };
+/** Labels: `replies.yes|no|maybe`. */
+const TONE: Record<RsvpRow['status'], Tone> = { yes: 'leaf', no: 'sindoor', maybe: 'gold' };
 
 export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
+  const tr = useTranslations('replies');
   const enabled = event.features.includes('rsvp');
   const { data: summary } = useQuery({
     queryKey: qk.rsvpSummary(event.id),
@@ -40,10 +43,10 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
     return (
       <LockedPanel
         icon={MessageSquareReply}
-        title="Know exactly who is coming"
-        body="Guests reply for each function, with how many people are coming and their meal choice. You get a live headcount for the caterer."
-        points={['Replies per function: Haldi yes, Reception no', 'Headcount and meal choice', 'Live list, updates every 30 seconds', 'Download for Excel']}
-        cta="Unlock RSVP"
+        title={tr('lockTitle')}
+        body={tr('lockBody')}
+        points={[tr('p1'), tr('p2'), tr('p3'), tr('p4')]}
+        cta={tr('lockCta')}
         onClick={onUpgrade}
       />
     );
@@ -52,26 +55,26 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
   const t = summary?.totals;
   const funnel: Array<[string, number]> = t
     ? [
-        ['Invited', t.invited],
-        ['Opened', t.viewed],
-        ['Replied', t.responded],
+        [tr('invited'), t.invited],
+        [tr('opened'), t.viewed],
+        [tr('replied'), t.responded],
       ]
     : [];
 
   return (
     <div className="flex flex-col gap-6">
       <Panel
-        title="Replies"
-        description="Updates on its own every 30 seconds."
+        title={tr('title')}
+        description={tr('body')}
         actions={
           <div className="flex flex-wrap gap-2">
             <Link href={`/host/${event.id}/print`} className={buttonClass('line', 'sm')}>
               <Printer className="size-4" aria-hidden />
-              Print list
+              {tr('printList')}
             </Link>
             <a href={`/api/events/${event.id}/rsvps/export.csv`} className={buttonClass('line', 'sm')}>
               <Download className="size-4" />
-              Download for Excel
+              {tr('download')}
             </a>
           </div>
         }
@@ -102,7 +105,7 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                   </h3>
                   <p className="mt-2 flex items-baseline gap-1.5">
                     <span className="font-display text-3xl tabular-nums">{f.headcount}</span>
-                    <span className="font-mono text-[0.6875rem] text-ink-soft">people expected</span>
+                    <span className="font-mono text-[0.6875rem] text-ink-soft">{tr('expected')}</span>
                   </p>
                   <div className="mt-4 flex h-1 overflow-hidden bg-ink/10" aria-hidden>
                     <span className="bg-ink" style={{ width: pct(f.yes) }} />
@@ -111,13 +114,13 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                   </div>
                   <p className="mt-2.5 flex flex-wrap gap-x-3 font-mono text-[0.6875rem] text-ink-soft">
                     <span>
-                      <b className="font-normal text-ink">{f.yes}</b> coming
+                      <b className="font-normal text-ink">{f.yes}</b> {tr('coming')}
                     </span>
                     <span>
-                      <b className="font-normal text-ink">{f.maybe}</b> maybe
+                      <b className="font-normal text-ink">{f.maybe}</b> {tr('maybeN')}
                     </span>
                     <span>
-                      <b className="font-normal text-ink">{f.no}</b> not coming
+                      <b className="font-normal text-ink">{f.no}</b> {tr('notComing')}
                     </span>
                   </p>
                 </li>
@@ -134,8 +137,8 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             <span className="grid size-11 place-items-center border border-ink/15">
               <MessageSquareReply className="size-5" strokeWidth={1.6} aria-hidden />
             </span>
-            <p className="mt-4 text-lg">No replies yet</p>
-            <p className="mt-1 max-w-sm text-sm text-ink-soft">Replies appear here as guests answer on the website. Send personal links from the Guests tab to get answers faster.</p>
+            <p className="mt-4 text-lg">{tr('emptyTitle')}</p>
+            <p className="mt-1 max-w-sm text-sm text-ink-soft">{tr('emptyBody')}</p>
           </div>
         )}
 
@@ -148,21 +151,21 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                     <p className="truncate">{r.name}</p>
                     <p className="truncate text-sm text-ink-soft" lang={event.language}>
                       {r.function}
-                      {r.status !== 'no' ? `, ${r.headcount} ${r.headcount === 1 ? 'person' : 'people'}` : ''}
+                      {r.status !== 'no' ? `, ${r.headcount === 1 ? tr('person') : tr('people', { n: r.headcount })}` : ''}
                     </p>
                   </div>
-                  <StatusPill tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusPill>
+                  <StatusPill tone={TONE[r.status]}>{tr(r.status)}</StatusPill>
                 </li>
               ))}
             </ul>
             <table className="hidden w-full text-[0.9375rem] md:table">
               <thead className={tableHead}>
                 <tr>
-                  <th className="px-6 py-3 font-medium">Name</th>
-                  <th className="px-3 py-3 font-medium">Function</th>
-                  <th className="px-3 py-3 font-medium">Reply</th>
-                  <th className="px-3 py-3 text-right font-medium">People</th>
-                  <th className="px-6 py-3 font-medium">Meal and note</th>
+                  <th className="px-6 py-3 font-medium">{tr('colName')}</th>
+                  <th className="px-3 py-3 font-medium">{tr('colFunction')}</th>
+                  <th className="px-3 py-3 font-medium">{tr('colReply')}</th>
+                  <th className="px-3 py-3 text-right font-medium">{tr('colPeople')}</th>
+                  <th className="px-6 py-3 font-medium">{tr('colMeal')}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-ink/10">
@@ -173,10 +176,10 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                       {r.function}
                     </td>
                     <td className="px-3 py-3">
-                      <StatusPill tone={STATUS[r.status][1]}>{STATUS[r.status][0]}</StatusPill>
+                      <StatusPill tone={TONE[r.status]}>{tr(r.status)}</StatusPill>
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{r.headcount}</td>
-                    <td className="px-6 py-3 text-sm text-ink-soft">{[r.mealPreference, r.note].filter(Boolean).join(', ') || '–'}</td>
+                    <td className="px-6 py-3 text-sm text-ink-soft">{[r.mealPreference ? tr(`m_${r.mealPreference}`) : null, r.note].filter(Boolean).join(', ') || '–'}</td>
                   </tr>
                 ))}
               </tbody>
@@ -188,24 +191,19 @@ export function RsvpPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
   );
 }
 
-const MEALS = [
-  ['veg', 'Veg'],
-  ['jain', 'Jain'],
-  ['vegan', 'Vegan'],
-  ['non_veg', 'Non-veg'],
-  ['unknown', 'Not said'],
-] as const;
+const MEALS = ['veg', 'jain', 'vegan', 'non_veg', 'unknown'] as const;
 
 /** What the caterer and the hotel need: people per function by meal, rooms, and who has arrived. */
 function CatererTotals({ event, summary }: { event: EventDto; summary: RsvpSummaryDto }) {
+  const tr = useTranslations('replies');
   const askMeals = event.settings.askMealPreference;
   const t = summary.totals;
   return (
     <div className="mt-6 border-t border-ink/10 pt-5">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-[0.95rem]">For the caterer</h3>
+        <h3 className="text-[0.95rem]">{tr('caterer')}</h3>
         <Link href={`/dashboard/events/${event.id}/checkin`} className="inline-flex items-center gap-1.5 text-sm underline underline-offset-4">
-          <ScanLine className="size-4" aria-hidden /> Check guests in at the gate
+          <ScanLine className="size-4" aria-hidden /> {tr('checkIn')}
         </Link>
       </div>
       {askMeals ? (
@@ -213,10 +211,10 @@ function CatererTotals({ event, summary }: { event: EventDto; summary: RsvpSumma
           <table className="w-full min-w-[28rem] text-sm">
             <thead className={tableHead}>
               <tr>
-                <th className="px-3 py-2 font-medium">Function</th>
-                {MEALS.map(([, l]) => (
-                  <th key={l} className="px-3 py-2 text-right font-medium">
-                    {l}
+                <th className="px-3 py-2 font-medium">{tr('colFunction')}</th>
+                {MEALS.map((k) => (
+                  <th key={k} className="px-3 py-2 text-right font-medium">
+                    {tr(`m_${k}`)}
                   </th>
                 ))}
               </tr>
@@ -227,7 +225,7 @@ function CatererTotals({ event, summary }: { event: EventDto; summary: RsvpSumma
                   <td className="px-3 py-2" lang={event.language}>
                     {summary.functions.find((f) => f.functionId === m.functionId)?.name}
                   </td>
-                  {MEALS.map(([k]) => (
+                  {MEALS.map((k) => (
                     <td key={k} className="px-3 py-2 text-right tabular-nums">
                       {m[k]}
                     </td>
@@ -238,17 +236,13 @@ function CatererTotals({ event, summary }: { event: EventDto; summary: RsvpSumma
           </table>
         </div>
       ) : (
-        <p className="mt-2 text-sm text-ink-soft">Turn on &quot;Ask meal preference&quot; in Details to get veg / Jain / non-veg counts per function.</p>
+        <p className="mt-2 text-sm text-ink-soft">{tr('mealsOff')}</p>
       )}
       <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1 font-mono text-[0.6875rem] text-ink-soft">
         {event.settings.askAccommodation && (
-          <span>
-            <b className="font-normal text-ink">{summary.needsStay}</b> families need a room
-          </span>
+          <span>{tr('needRoom', { n: summary.needsStay })}</span>
         )}
-        <span>
-          <b className="font-normal text-ink">{t.checkedIn}</b> families arrived ({t.checkedInPax} people)
-        </span>
+        <span>{tr('arrived', { n: t.checkedIn, pax: t.checkedInPax })}</span>
       </p>
     </div>
   );

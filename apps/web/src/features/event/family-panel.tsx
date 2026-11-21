@@ -1,8 +1,9 @@
 'use client';
 
-import { MEMBER_ROLE_LABELS, MEMBER_ROLES, type EventDto, type EventMemberDto, type MemberRole } from '@cardai/shared';
+import { MEMBER_ROLES, type EventDto, type EventMemberDto, type MemberRole } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { CalendarHeart, HeartHandshake, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -15,6 +16,7 @@ import { Select } from '@/components/ui/select';
 /** Co-hosts (family members who help) and how the invitation is released. */
 export function FamilyPanel({ event }: { event: EventDto }) {
   const qc = useQueryClient();
+  const t = useTranslations('family');
   const { data: me } = useMe();
   const owner = event.access === 'owner';
   const key = ['events', event.id, 'members'] as const;
@@ -27,7 +29,7 @@ export function FamilyPanel({ event }: { event: EventDto }) {
   const invite = useMutation({
     mutationFn: () => api<EventMemberDto>(`/events/${event.id}/members`, { method: 'POST', json: { email, role } }),
     onSuccess: (m) => {
-      toast.success(m.accepted ? `${m.email} can now help with this invitation` : `Invitation sent to ${m.email}`);
+      toast.success(m.accepted ? t('joinedToast', { email: m.email }) : t('sentToast', { email: m.email }));
       setEmail('');
       refresh();
     },
@@ -41,19 +43,19 @@ export function FamilyPanel({ event }: { event: EventDto }) {
     mutationFn: (on: boolean) => api<EventDto>(`/events/${event.id}`, { method: 'PATCH', json: { settings: { saveTheDate: on } } }),
     onSuccess: (updated) => {
       qc.setQueryData(qk.event(event.id), updated);
-      toast.success(updated.settings.saveTheDate ? 'Guests now see the save-the-date' : 'The full invitation is open to guests');
+      toast.success(updated.settings.saveTheDate ? t('stdOn') : t('stdOff'));
     },
     onError: fail,
   });
 
   return (
     <div className="flex flex-col gap-6">
-      <Panel title="Co-hosts" description="Let family members help: add guests, send WhatsApp messages, check people in at the gate. They sign in with their own email.">
+      <Panel title={t('title')} description={t('body')}>
         {isLoading && <div className="skeleton h-14" />}
         {members && members.length === 0 && (
           <div className="flex items-center gap-3 border border-dashed border-ink/20 px-5 py-6 text-sm text-ink-soft">
             <HeartHandshake className="size-5 shrink-0" strokeWidth={1.6} aria-hidden />
-            No co-hosts yet. {owner ? 'Add a sibling, parent or friend below.' : ''}
+            {t('none')} {owner ? t('noneOwner') : ''}
           </div>
         )}
         {members && members.length > 0 && (
@@ -64,25 +66,25 @@ export function FamilyPanel({ event }: { event: EventDto }) {
                   <p className="truncate">{m.name ?? m.email}</p>
                   {m.name && <p className="truncate text-sm text-ink-soft">{m.email}</p>}
                 </div>
-                <StatusPill tone={m.accepted ? 'leaf' : 'gold'}>{m.accepted ? 'Joined' : 'Invited'}</StatusPill>
+                <StatusPill tone={m.accepted ? 'leaf' : 'gold'}>{m.accepted ? t('joined') : t('invited')}</StatusPill>
                 {owner ? (
                   <Select
-                    aria-label={`Role for ${m.email}`}
+                    aria-label={t('roleFor', { email: m.email })}
                     className="h-9 w-auto min-w-32 text-sm"
                     value={m.role}
                     onChange={(e) => void setMemberRole(m, e.target.value as MemberRole)}
                   >
                     {MEMBER_ROLES.map((r) => (
                       <option key={r} value={r}>
-                        {MEMBER_ROLE_LABELS[r]}
+                        {t(`role_${r}`)}
                       </option>
                     ))}
                   </Select>
                 ) : (
-                  <span className="text-sm text-ink-soft">{MEMBER_ROLE_LABELS[m.role]}</span>
+                  <span className="text-sm text-ink-soft">{t(`role_${m.role}`)}</span>
                 )}
                 {(owner || m.email === me?.email?.toLowerCase()) && (
-                  <Button size="icon" variant="danger" aria-label={owner ? `Remove ${m.email}` : 'Leave this invitation'} onClick={() => void remove(m)}>
+                  <Button size="icon" variant="danger" aria-label={owner ? t('removeEmail', { email: m.email }) : t('leave')} onClick={() => void remove(m)}>
                     <Trash2 className="size-4" />
                   </Button>
                 )}
@@ -98,25 +100,25 @@ export function FamilyPanel({ event }: { event: EventDto }) {
               invite.mutate();
             }}
           >
-            <Field label="Their email">
+            <Field label={t('email')}>
               {(id) => <Input id={id} type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="cousin@example.com" />}
             </Field>
             <label className="flex flex-col gap-1.5 text-sm">
-              <span>Can</span>
+              <span>{t('can')}</span>
               <Select className="h-11 w-auto min-w-36" value={role} onChange={(e) => setRole(e.target.value as MemberRole)}>
                 {MEMBER_ROLES.map((r) => (
                   <option key={r} value={r}>
-                    {MEMBER_ROLE_LABELS[r]}
+                    {t(`role_${r}`)}
                   </option>
                 ))}
               </Select>
             </label>
             <Button type="submit" loading={invite.isPending}>
-              Add co-host
+              {t('add')}
             </Button>
           </form>
         )}
-        {!owner && <p className="mt-4 text-sm text-ink-soft">Only the person who created this invitation can add co-hosts or pay for upgrades.</p>}
+        {!owner && <p className="mt-4 text-sm text-ink-soft">{t('onlyOwner')}</p>}
       </Panel>
 
       {(event.access === 'owner' || event.access === 'editor') && (
@@ -125,15 +127,15 @@ export function FamilyPanel({ event }: { event: EventDto }) {
             <CalendarHeart className="size-5" strokeWidth={1.6} aria-hidden />
           </span>
           <div className="flex-1">
-            <p>Save the date first</p>
+            <p>{t('stdTitle')}</p>
             <p className="text-sm text-ink-soft">
               {event.settings.saveTheDate
-                ? 'Guests see only the names, date and a countdown. Release the full invitation when the details are final.'
-                : 'Send an early save-the-date before the venue and schedule are final. The website shows a short teaser until you release it.'}
+                ? t('stdOnBody')
+                : t('stdOffBody')}
             </p>
           </div>
           <Button variant={event.settings.saveTheDate ? 'primary' : 'line'} loading={std.isPending} onClick={() => std.mutate(!event.settings.saveTheDate)}>
-            {event.settings.saveTheDate ? 'Release full invitation' : 'Switch to save-the-date'}
+            {event.settings.saveTheDate ? t('release') : t('switch')}
           </Button>
         </section>
       )}

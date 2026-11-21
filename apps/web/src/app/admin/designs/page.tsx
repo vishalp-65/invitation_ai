@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { googleFontsHref } from '@/features/site/theme';
 import { Badge, BulkBar, Empty, num, PageHeader, Segmented, Skeleton, StatCard, Toggle } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface DesignRow {
   id: string;
@@ -206,7 +207,7 @@ export default function AdminDesignsPage() {
             size="sm"
             variant="solid"
             disabled={busy}
-            onClick={() => confirm(`Hide ${ids.length} design pack(s) from customers and the landing page? Invitations already using them keep working.`) && void update(ids, { hidden: true }, `${ids.length} hidden`)}
+            onClick={async () => (await confirmDialog(`Hide ${ids.length} design pack(s) from customers and the landing page? Invitations already using them keep working.`)) && void update(ids, { hidden: true }, `${ids.length} hidden`)}
           >
             Hide
           </Button>

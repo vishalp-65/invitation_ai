@@ -3,6 +3,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { Maximize } from 'lucide-react';
 import { useParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { api } from '@/lib/api';
 import { useEvent } from '@/lib/hooks';
@@ -27,6 +28,7 @@ const SLIDE_MS = 6000;
  */
 export default function PhotoWallPage() {
   const { id } = useParams<{ id: string }>();
+  const t = useTranslations('day');
   const { data: event } = useEvent(id);
   const { data: photos = [] } = useQuery({
     queryKey: ['events', id, 'wall-album'],
@@ -63,14 +65,14 @@ export default function PhotoWallPage() {
     <main className="fixed inset-0 overflow-hidden bg-black text-white">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img key={photo.id} src={photo.url} alt={photo.uploader ? `Photo by ${photo.uploader}` : 'Guest photo'} className="absolute inset-0 size-full animate-fade-up object-contain" />
+        <img key={photo.id} src={photo.url} alt={photo.uploader ? t('photoBy', { name: photo.uploader }) : t('guestPhoto')} className="absolute inset-0 size-full animate-fade-up object-contain" />
       ) : (
         <div className="grid h-full place-items-center px-8 text-center">
           <div>
             <p className="text-4xl" lang={event?.language}>
               {event?.title}
             </p>
-            <p className="mt-4 text-xl text-white/70">Guests&apos; photos will appear here as they add them.</p>
+            <p className="mt-4 text-xl text-white/70">{t('wallEmpty')}</p>
           </div>
         </div>
       )}
@@ -80,17 +82,17 @@ export default function PhotoWallPage() {
           <p className="text-2xl" lang={event?.language}>
             {event?.title}
           </p>
-          {photo?.uploader && <p className="mt-1 text-white/75">Photo by {photo.uploader}</p>}
+          {photo?.uploader && <p className="mt-1 text-white/75">{t('photoBy', { name: photo.uploader })}</p>}
         </div>
         <div className="text-right">
-          <p className="text-sm text-white/70">Add your photos</p>
+          <p className="text-sm text-white/70">{t('addPhotos')}</p>
           <p className="font-mono text-lg">{link}</p>
           <button
             type="button"
             onClick={() => void document.documentElement.requestFullscreen?.()}
             className="mt-2 inline-flex items-center gap-1.5 border border-white/30 px-3 py-1.5 text-xs text-white/80 hover:bg-white/10"
           >
-            <Maximize className="size-3.5" aria-hidden /> Full screen
+            <Maximize className="size-3.5" aria-hidden /> {t('fullscreen')}
           </button>
         </div>
       </div>

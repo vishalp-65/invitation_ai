@@ -9,6 +9,7 @@ import { AlertTriangle, Bot, Clock, Database, HardDrive, Hourglass, MailOpen, Vi
 import { BarList } from '@/features/admin/charts';
 import { ago, Badge, Card, Empty, num, PageHeader, pct, RangePicker, Skeleton, StatCard, Table, useRange } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface Ops {
   renders: Array<{ format: string; status: string; count: number; avgSeconds: number | null }>;
@@ -34,7 +35,7 @@ export default function AdminOperationsPage() {
   const [range] = useRange();
   const qcOps = useQueryClient();
   async function renderAction(id: string, action: 'retry' | 'delete') {
-    if (action === 'delete' && !confirm('Delete this failed render? The customer can start it again.')) return;
+    if (action === 'delete' && !(await confirmDialog('Delete this failed render? The customer can start it again.'))) return;
     try {
       await api(`/admin/renders/${id}${action === 'retry' ? '/retry' : ''}`, { method: action === 'retry' ? 'POST' : 'DELETE' });
       toast.success(action === 'retry' ? 'Back in the queue' : 'Deleted');

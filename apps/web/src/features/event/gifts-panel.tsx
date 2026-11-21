@@ -3,6 +3,7 @@
 import { GIFT_METHODS, type EventDto, type GiftDto, type GiftMethod } from '@cardai/shared';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Download, Gift, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, buttonClass } from '@/components/ui/button';
@@ -12,12 +13,13 @@ import { api } from '@/lib/api';
 import { Panel, StatusPill, tableHead } from './panel-ui';
 import { Select } from '@/components/ui/select';
 
-const METHOD: Record<GiftMethod, string> = { upi: 'UPI', cash: 'Cash', gift: 'Gift' };
+/** Method labels: `gifts.upi|cash|gift`. */
 const rupees = (n: number) => `₹${n.toLocaleString('en-IN')}`;
 
 /** Shagun list: what guests said they sent, what the family wrote down, and thank-yous. */
 export function GiftsPanel({ event }: { event: EventDto }) {
   const qc = useQueryClient();
+  const t = useTranslations('gifts');
   const key = ['events', event.id, 'gifts'] as const;
   const canManage = event.access !== 'viewer';
   const { data, isLoading } = useQuery({ queryKey: key, queryFn: () => api<{ items: GiftDto[]; totalAmount: number; thanked: number }>(`/events/${event.id}/gifts`) });
@@ -57,12 +59,12 @@ export function GiftsPanel({ event }: { event: EventDto }) {
   return (
     <div className="flex flex-col gap-6">
       <Panel
-        title="Shagun & gifts"
-        description="Guests can tell you on the website what they sent (UPI, cash or a gift). Write down envelopes from the venue too, then thank everyone on WhatsApp. The money always goes straight to you."
+        title={t('title')}
+        description={t('body')}
         actions={
           items.length > 0 ? (
             <a href={`/api/events/${event.id}/gifts/export.csv`} className={buttonClass('line', 'md')}>
-              <Download className="size-4" aria-hidden /> Download
+              <Download className="size-4" aria-hidden /> {t('download')}
             </a>
           ) : undefined
         }
@@ -71,9 +73,9 @@ export function GiftsPanel({ event }: { event: EventDto }) {
           <dl className="grid grid-cols-3 border-l border-t border-ink/10">
             {(
               [
-                ['Entries', items.length],
-                ['Total noted', rupees(data.totalAmount)],
-                ['Thanked', `${data.thanked} / ${items.length}`],
+                [t('entries'), items.length],
+                [t('total'), rupees(data.totalAmount)],
+                [t('thanked'), `${data.thanked} / ${items.length}`],
               ] as const
             ).map(([label, value]) => (
               <div key={label} className="border-b border-r border-ink/10 px-4 py-3.5">
@@ -83,7 +85,7 @@ export function GiftsPanel({ event }: { event: EventDto }) {
             ))}
           </dl>
         )}
-        <p className="mt-4 text-sm text-ink-soft">Tip: add the Gifts section with your UPI id in the website builder so guests can scan and pay, then tell you here.</p>
+        <p className="mt-4 text-sm text-ink-soft">{t('tip')}</p>
       </Panel>
 
       {canManage && (
@@ -94,23 +96,23 @@ export function GiftsPanel({ event }: { event: EventDto }) {
             record.mutate();
           }}
         >
-          <Field label="From">{(id) => <Input id={id} required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Gupta family" />}</Field>
-          <Field label="Amount ₹">
+          <Field label={t('from')}>{(id) => <Input id={id} required maxLength={100} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={t('fromPh')} />}</Field>
+          <Field label={t('amount')}>
             {(id) => <Input id={id} inputMode="numeric" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder="1100" />}
           </Field>
           <label className="flex flex-col gap-1.5 text-sm">
-            <span>How</span>
+            <span>{t('how')}</span>
             <Select aria-label="Gift type" className="h-11 w-auto min-w-36" value={form.method} onChange={(e) => setForm({ ...form, method: e.target.value as GiftMethod })}>
               {GIFT_METHODS.map((m) => (
                 <option key={m} value={m}>
-                  {METHOD[m]}
+                  {t(m)}
                 </option>
               ))}
             </Select>
           </label>
-          <Field label="Note">{(id) => <Input id={id} maxLength={300} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Silver coin" />}</Field>
+          <Field label={t('note')}>{(id) => <Input id={id} maxLength={300} value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={t('notePh')} />}</Field>
           <Button type="submit" loading={record.isPending}>
-            Add
+            {t('add')}
           </Button>
         </form>
       )}
@@ -120,17 +122,17 @@ export function GiftsPanel({ event }: { event: EventDto }) {
         {data && items.length === 0 && (
           <div className="flex flex-col items-center px-6 py-12 text-center">
             <Gift className="size-6 text-ink-soft" strokeWidth={1.6} aria-hidden />
-            <p className="mt-3">Nothing noted yet</p>
-            <p className="mt-1 max-w-md text-sm text-ink-soft">Entries from guests and the family appear here, newest first.</p>
+            <p className="mt-3">{t('emptyTitle')}</p>
+            <p className="mt-1 max-w-md text-sm text-ink-soft">{t('emptyBody')}</p>
           </div>
         )}
         {items.length > 0 && (
           <table className="w-full text-[0.9375rem]">
             <thead className={tableHead}>
               <tr>
-                <th className="px-4 py-3 font-medium sm:px-6">From</th>
-                <th className="px-3 py-3 font-medium">Amount</th>
-                <th className="hidden px-3 py-3 font-medium sm:table-cell">Note</th>
+                <th className="px-4 py-3 font-medium sm:px-6">{t('colFrom')}</th>
+                <th className="px-3 py-3 font-medium">{t('colAmount')}</th>
+                <th className="hidden px-3 py-3 font-medium sm:table-cell">{t('colNote')}</th>
                 <th className="px-4 py-3 sm:px-6">
                   <span className="sr-only">Actions</span>
                 </th>
@@ -142,7 +144,7 @@ export function GiftsPanel({ event }: { event: EventDto }) {
                   <td className="px-4 py-3 sm:px-6">
                     <p>{g.name}</p>
                     <p className="font-mono text-[0.6875rem] text-ink-soft">
-                      {METHOD[g.method]} · {g.source === 'guest' ? 'told us on the website' : 'noted by family'}
+                      {t(g.method)} · {g.source === 'guest' ? t('byGuest') : t('byFamily')}
                     </p>
                   </td>
                   <td className="px-3 py-3 tabular-nums">{g.amount ? rupees(g.amount) : '–'}</td>
@@ -151,17 +153,17 @@ export function GiftsPanel({ event }: { event: EventDto }) {
                     <div className="flex justify-end gap-1">
                       {g.thankedAt ? (
                         <StatusPill tone="leaf">
-                          <Check className="size-3" aria-hidden /> Thanked
+                          <Check className="size-3" aria-hidden /> {t('thanked')}
                         </StatusPill>
                       ) : (
                         canManage && (
                           <Button size="sm" variant="line" onClick={() => void thank(g)}>
-                            <WhatsAppIcon className="size-4 text-[#1fa855]" /> Thank
+                            <WhatsAppIcon className="size-4 text-[#1fa855]" /> {t('thank')}
                           </Button>
                         )
                       )}
                       {canManage && (
-                        <Button size="icon" variant="danger" aria-label={`Remove ${g.name}`} onClick={() => void remove(g)}>
+                        <Button size="icon" variant="danger" aria-label={t('removeName', { name: g.name })} onClick={() => void remove(g)}>
                           <Trash2 className="size-4" />
                         </Button>
                       )}

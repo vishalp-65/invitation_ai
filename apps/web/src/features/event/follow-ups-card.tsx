@@ -3,6 +3,7 @@
 import type { EventDto, FollowUps, UpdateEventInput } from '@cardai/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { BellRing } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -17,6 +18,7 @@ const DEFAULTS: FollowUps = { auto: false, unopenedDays: 3, rsvpDaysBefore: 7, d
  */
 export function FollowUpsCard({ event }: { event: EventDto }) {
   const qc = useQueryClient();
+  const t = useTranslations('followUps');
   const [open, setOpen] = useState(false);
   const [rules, setRules] = useState<FollowUps>({ ...DEFAULTS, ...event.settings.followUps });
   const paid = event.features.includes('personalized_links');
@@ -25,7 +27,7 @@ export function FollowUpsCard({ event }: { event: EventDto }) {
       api<EventDto>(`/events/${event.id}`, { method: 'PATCH', json: { settings: { followUps } } satisfies UpdateEventInput }),
     onSuccess: (updated) => {
       qc.setQueryData(qk.event(event.id), updated);
-      toast.success('Follow-ups saved');
+      toast.success(t('saved'));
     },
     onError: (err) => toast.error((err as Error).message),
   });
@@ -58,30 +60,30 @@ export function FollowUpsCard({ event }: { event: EventDto }) {
           <BellRing className="size-5" strokeWidth={1.6} aria-hidden />
         </span>
         <span className="flex-1">
-          <span className="block">Follow-ups</span>
+          <span className="block">{t('title')}</span>
           <span className="block text-sm text-ink-soft">
-            {event.settings.followUps?.auto && paid ? 'Sending automatically on WhatsApp, 9 am to 8 pm.' : 'Reminders, a day-before message and a thank-you. Choose when.'}
+            {event.settings.followUps?.auto && paid ? t('autoOn') : t('autoOff')}
           </span>
         </span>
-        <span className="text-sm underline underline-offset-4">{open ? 'Close' : 'Set up'}</span>
+        <span className="text-sm underline underline-offset-4">{open ? t('close') : t('setUp')}</span>
       </button>
       {open && (
         <div className="mt-5 flex flex-col gap-3 border-t border-ink/10 pt-5">
-          {num('Remind if not opened after', 'unopenedDays', 30, 'days (0 = off)')}
-          {num('Ask for RSVP', 'rsvpDaysBefore', 60, 'days before (0 = off)')}
-          {box('Day-before message with venue and map', 'dayBefore')}
-          {box('Thank-you after the event, with the photo album', 'thanks')}
+          {num(t('unopened'), 'unopenedDays', 30, t('days'))}
+          {num(t('rsvp'), 'rsvpDaysBefore', 60, t('daysBefore'))}
+          {box(t('dayBefore'), 'dayBefore')}
+          {box(t('thanks'), 'thanks')}
           <label className="mt-2 flex items-start gap-2 text-sm">
             <input type="checkbox" disabled={!paid} checked={rules.auto && paid} onChange={(e) => set({ auto: e.target.checked })} className="mt-1" />
             <span>
-              Send these automatically from the {`Noyta`} WhatsApp number
+              {t('auto')}
               <span className="block text-ink-soft">
-                {paid ? 'Only to guests with a mobile number, each message once.' : 'Part of the Website plan. Without it, due guests wait in the lists above for you to tap through.'}
+                {paid ? t('autoPaid') : t('autoFree')}
               </span>
             </span>
           </label>
           <Button className="self-start" loading={save.isPending} onClick={() => save.mutate(rules)}>
-            Save
+            {t('save')}
           </Button>
         </div>
       )}

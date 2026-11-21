@@ -12,6 +12,7 @@ import {
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ImagePlus, Languages, Sparkles, Trash2 } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { Panel, StatusPill, ToggleRow } from './panel-ui';
 
 export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: () => void }) {
   const qc = useQueryClient();
+  const t = useTranslations('edit');
   const [content, setContent] = useState<EventContent>(event.content);
   const [title, setTitle] = useState(event.title);
   const { data: templates } = useTemplates(event.type);
@@ -47,7 +49,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
     mutationFn: (patch: UpdateEventInput) => api<EventDto>(`/events/${event.id}`, { method: 'PATCH', json: patch }),
     onSuccess: (updated) => {
       qc.setQueryData(qk.event(event.id), updated);
-      toast.success('Saved');
+      toast.success(t('saved'));
     },
     onError: (err) => (err instanceof ApiError && err.requiredFeature ? onUpgrade() : toast.error((err as Error).message)),
   });
@@ -76,7 +78,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           : { settings: { photoAssetIds: [asset.id, ...event.settings.photoAssetIds].slice(0, 6) } },
       );
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'AI is busy. Try again.');
+      toast.error(err instanceof ApiError ? err.message : t('aiBusy'));
     } finally {
       setAiBusy(null);
     }
@@ -87,10 +89,10 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
     setAiBusy('clip');
     try {
       await api('/ai/clips', { method: 'POST', json: { eventId: event.id, firstFrameAssetId: event.settings.backgroundAssetId } });
-      toast.success('Your cinematic intro is being made. It is added to the video automatically in a few minutes.');
+      toast.success(t('clipStarted'));
       await qc.invalidateQueries({ queryKey: qk.event(event.id) });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Could not start.');
+      toast.error(err instanceof ApiError ? err.message : t('startFailed'));
     } finally {
       setAiBusy(null);
     }
@@ -102,7 +104,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
       const translated = await api<EventContent>('/ai/translate', { method: 'POST', json: { eventId: event.id, targetLanguage: target } });
       save.mutate({ content: translated, language: target });
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Could not translate.');
+      toast.error(err instanceof ApiError ? err.message : t('translateFailed'));
     } finally {
       setAiBusy(null);
     }
@@ -118,8 +120,8 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
     <div className="flex flex-col gap-6">
       {/* ---------------- Words ---------------- */}
       <Panel
-        title="Words on the card"
-        description="What your guests read. Changes show on the card, the video and the website."
+        title={t('wordsTitle')}
+        description={t('wordsBody')}
         footer={
           <>
             <Button
@@ -127,22 +129,22 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
               loading={save.isPending}
               disabled={!dirty}
             >
-              Save changes
+              {t('save')}
             </Button>
             <span className="text-sm text-ink-soft" role="status">
-              {dirty ? 'You have unsaved changes' : 'All changes saved'}
+              {dirty ? t('unsaved') : t('allSaved')}
             </span>
             <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
               <Languages className="size-4" aria-hidden />
-              <span className="max-sm:sr-only">Translate to</span>
+              <span className="max-sm:sr-only">{t('translateTo')}</span>
               <Select
                 className="h-9 w-auto text-sm"
                 value=""
                 disabled={aiBusy === 'translate'}
                 onChange={(e) => e.target.value && translate(e.target.value as LanguageCode)}
-                aria-label="Translate the wording to"
+                aria-label={t('translateAria')}
               >
-                <option value="">{aiBusy === 'translate' ? 'Translating…' : 'choose…'}</option>
+                <option value="">{aiBusy === 'translate' ? t('translating') : t('choose')}</option>
                 {LANGUAGES.filter((l) => l.code !== event.language).map((l) => (
                   <option key={l.code} value={l.code}>
                     {l.nativeName}
@@ -154,14 +156,14 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
         }
       >
         <div className="flex flex-col gap-4">
-          <Field label="Title" hint="Shown on your dashboard and in link previews.">
+          <Field label={t('title')} hint={t('titleHint')}>
             {(id, d) => <Input id={id} aria-describedby={d} value={title} onChange={(e) => setTitle(e.target.value)} />}
           </Field>
           <div className="grid gap-4 sm:grid-cols-2" lang={event.language}>
-            <Field label="Blessing line">{(id) => <Input id={id} value={content.invocation ?? ''} onChange={(e) => set({ invocation: e.target.value })} />}</Field>
-            <Field label="Heading">{(id) => <Input id={id} value={content.headline} onChange={(e) => set({ headline: e.target.value })} />}</Field>
+            <Field label={t('blessing')}>{(id) => <Input id={id} value={content.invocation ?? ''} onChange={(e) => set({ invocation: e.target.value })} />}</Field>
+            <Field label={t('heading')}>{(id) => <Input id={id} value={content.headline} onChange={(e) => set({ headline: e.target.value })} />}</Field>
             {content.primaryNames.map((n, i) => (
-              <Field key={i} label={content.primaryNames.length > 1 ? `Name ${i + 1}` : 'Name'}>
+              <Field key={i} label={content.primaryNames.length > 1 ? t('nameN', { n: i + 1 }) : t('name')}>
                 {(id) => (
                   <Input id={id} value={n} onChange={(e) => set({ primaryNames: content.primaryNames.map((x, j) => (j === i ? e.target.value : x)) })} />
                 )}
@@ -169,15 +171,15 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
             ))}
           </div>
           <div className="flex flex-col gap-4" lang={event.language}>
-            <Field label="Invitation line">{(id) => <Textarea id={id} rows={2} value={content.hostLine ?? ''} onChange={(e) => set({ hostLine: e.target.value })} />}</Field>
-            <Field label="Message">{(id) => <Textarea id={id} rows={3} value={content.message ?? ''} onChange={(e) => set({ message: e.target.value })} />}</Field>
+            <Field label={t('hostLine')}>{(id) => <Textarea id={id} rows={2} value={content.hostLine ?? ''} onChange={(e) => set({ hostLine: e.target.value })} />}</Field>
+            <Field label={t('message')}>{(id) => <Textarea id={id} rows={3} value={content.message ?? ''} onChange={(e) => set({ message: e.target.value })} />}</Field>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Family" hint="One name per line.">
+              <Field label={t('family')} hint={t('familyHint')}>
                 {(id, d) => (
                   <Textarea id={id} aria-describedby={d} rows={4} value={content.familyLines.join('\n')} onChange={(e) => set({ familyLines: e.target.value.split('\n').slice(0, 16) })} />
                 )}
               </Field>
-              <Field label="Closing line">{(id) => <Textarea id={id} rows={4} value={content.closing ?? ''} onChange={(e) => set({ closing: e.target.value })} />}</Field>
+              <Field label={t('closing')}>{(id) => <Textarea id={id} rows={4} value={content.closing ?? ''} onChange={(e) => set({ closing: e.target.value })} />}</Field>
             </div>
           </div>
         </div>
@@ -189,26 +191,26 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
       </Panel>
 
       {/* ---------------- Design ---------------- */}
-      <Panel title="Design" description="Switch any time. Your words stay the same." bodyClassName="!px-0">
+      <Panel title={t('designTitle')} description={t('designBody')} bodyClassName="!px-0">
         <ul className="flex snap-x gap-3 overflow-x-auto px-5 pb-1 [scrollbar-width:thin] sm:px-6">
           {templates
-            ?.filter((t) => templateSupportsEvent(t, event.type))
-            .map((t) => {
-              const on = t.id === event.templateId;
+            ?.filter((tpl) => templateSupportsEvent(tpl, event.type))
+            .map((tpl) => {
+              const on = tpl.id === event.templateId;
               return (
-                <li key={t.id} className="w-28 shrink-0 snap-start">
-                  <button type="button" aria-pressed={on} onClick={() => save.mutate({ templateId: t.id })} className="group block w-full text-left">
+                <li key={tpl.id} className="w-28 shrink-0 snap-start">
+                  <button type="button" aria-pressed={on} onClick={() => save.mutate({ templateId: tpl.id })} className="group block w-full text-left">
                     <span
                       className={`relative block aspect-[9/16] overflow-hidden rounded-lg border transition-[border-color,box-shadow] ${on ? 'border-gold ring-2 ring-gold ring-offset-2 ring-offset-surface' : 'border-ink/10 group-hover:border-ink/30'}`}
                     >
-                      <DesignThumb id={t.id} fallback={t.theme.palette.background} />
+                      <DesignThumb id={tpl.id} fallback={tpl.theme.palette.background} />
                       {on && (
                         <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-ink text-ivory">
                           <Check className="size-3.5" strokeWidth={3} aria-hidden />
                         </span>
                       )}
                     </span>
-                    <span className="mt-1.5 block truncate text-[0.8125rem] font-medium">{t.name}</span>
+                    <span className="mt-1.5 block truncate text-[0.8125rem] font-medium">{tpl.name}</span>
                   </button>
                 </li>
               );
@@ -217,7 +219,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
       </Panel>
 
       {/* ---------------- Photos & AI ---------------- */}
-      <Panel title="Photos and AI art" description="Up to 6 photos. Turn one into a hand-drawn caricature, or paint a background in your design's colours.">
+      <Panel title={t('photosTitle')} description={t('photosBody')}>
         <div className="flex flex-wrap gap-3">
           {photos.map((p) => (
             <div key={p.id} className="flex w-24 flex-col gap-1.5">
@@ -229,7 +231,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                 onClick={() => aiImage('caricature', p.id)}
                 disabled={Boolean(aiBusy)}
               >
-                {aiBusy === 'caricature' ? 'Drawing…' : 'Make caricature'}
+                {aiBusy === 'caricature' ? t('drawing') : t('caricature')}
               </button>
             </div>
           ))}
@@ -240,7 +242,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
               className="flex size-24 flex-col items-center justify-center gap-1 rounded-lg border border-dashed border-ink/25 text-xs font-medium text-ink-soft transition-colors hover:border-primary hover:bg-ink/[0.04] hover:text-primary"
             >
               <ImagePlus className="size-5" aria-hidden />
-              Add photos
+              {t('addPhotos')}
             </button>
           )}
           <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={(e) => onPhotos(e.target.files)} />
@@ -249,37 +251,37 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           <div className="flex flex-col rounded-xl border border-ink/10 p-4">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[1.0625rem]">AI background art</h3>
-              {background && <StatusPill tone="leaf">In use</StatusPill>}
+              <h3 className="text-[1.0625rem]">{t('bgTitle')}</h3>
+              {background && <StatusPill tone="leaf">{t('inUse')}</StatusPill>}
             </div>
-            <p className="mt-1 text-sm text-ink-soft">A one-of-a-kind painted background in your design&apos;s colours.</p>
+            <p className="mt-1 text-sm text-ink-soft">{t('bgBody')}</p>
             {background && (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={background.url} alt="Current AI background" className="mt-3 h-32 w-full rounded-lg object-cover" />
+              <img src={background.url} alt={t('bgAlt')} className="mt-3 h-32 w-full rounded-lg object-cover" />
             )}
             <div className="mt-auto flex gap-2 pt-4">
               <Button size="sm" variant="line" onClick={() => aiImage('background')} loading={aiBusy === 'background'}>
                 <Sparkles className="size-4 text-gold" aria-hidden />
-                {background ? 'Paint another' : 'Paint background'}
+                {background ? t('paintAnother') : t('paint')}
               </Button>
               {background && (
                 <Button size="sm" variant="quiet" onClick={() => save.mutate({ settings: { backgroundAssetId: null } })}>
                   <Trash2 className="size-4" aria-hidden />
-                  Remove
+                  {t('remove')}
                 </Button>
               )}
             </div>
           </div>
           <div className="flex flex-col rounded-xl border border-ink/10 p-4">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-[1.0625rem]">AI cinematic intro</h3>
-              {event.settings.aiClipAssetId ? <StatusPill tone="leaf">Added</StatusPill> : !event.credits.ai_clip && <StatusPill tone="gold">Paid</StatusPill>}
+              <h3 className="text-[1.0625rem]">{t('clipTitle')}</h3>
+              {event.settings.aiClipAssetId ? <StatusPill tone="leaf">{t('added')}</StatusPill> : !event.credits.ai_clip && <StatusPill tone="gold">{t('paid')}</StatusPill>}
             </div>
-            <p className="mt-1 text-sm text-ink-soft">A 6-second film-style opening for your video invite.</p>
+            <p className="mt-1 text-sm text-ink-soft">{t('clipBody')}</p>
             <div className="mt-auto pt-4">
               <Button size="sm" variant="line" onClick={aiClip} loading={aiBusy === 'clip'}>
                 <Sparkles className="size-4 text-gold" aria-hidden />
-                {event.credits.ai_clip ? `Create intro (${event.credits.ai_clip} credit)` : 'Unlock AI intro'}
+                {event.credits.ai_clip ? t('createIntro', { credits: event.credits.ai_clip }) : t('unlockIntro')}
               </Button>
             </div>
           </div>
@@ -288,13 +290,13 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
 
       {/* ---------------- Music & website ---------------- */}
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Music" description="Plays in the video, and on the website with a website plan.">
+        <Panel title={t('musicTitle')} description={t('musicBody')}>
           <Select
-            aria-label="Background music"
+            aria-label={t('musicAria')}
             value={event.settings.musicTrackId ?? ''}
             onChange={(e) => save.mutate({ settings: { musicTrackId: e.target.value || null } })}
           >
-            <option value="">No music</option>
+            <option value="">{t('noMusic')}</option>
             {music?.map((m) => (
               <option key={m.id} value={m.id}>
                 {m.title} ({m.mood})
@@ -303,11 +305,11 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           </Select>
         </Panel>
         <Panel
-          title="Website and replies"
+          title={t('siteTitle')}
           bodyClassName="!pt-1"
           footer={
             <>
-              <StatusPill tone={live ? 'leaf' : 'muted'}>{live ? 'Live' : 'Not published'}</StatusPill>
+              <StatusPill tone={live ? 'leaf' : 'muted'}>{live ? t('live') : t('notPublished')}</StatusPill>
               <Button
                 variant={live ? 'line' : 'primary'}
                 size="sm"
@@ -316,15 +318,15 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
                   api<EventDto>(`/events/${event.id}/${live ? 'unpublish' : 'publish'}`, { method: 'POST' }).then((e) => qc.setQueryData(qk.event(event.id), e))
                 }
               >
-                {live ? 'Unpublish website' : 'Publish website'}
+                {live ? t('unpublish') : t('publish')}
               </Button>
             </>
           }
         >
           <div className="divide-y divide-ink/10">
-            <ToggleRow label="Ask guests to RSVP" hint="Guests reply for each function." checked={event.settings.rsvpEnabled} onChange={(v) => save.mutate({ settings: { rsvpEnabled: v } })} />
-            <ToggleRow label="Ask meal preference" checked={event.settings.askMealPreference} onChange={(v) => save.mutate({ settings: { askMealPreference: v } })} />
-            <ToggleRow label="Ask if they need a stay" checked={event.settings.askAccommodation} onChange={(v) => save.mutate({ settings: { askAccommodation: v } })} />
+            <ToggleRow label={t('askRsvp')} hint={t('askRsvpHint')} checked={event.settings.rsvpEnabled} onChange={(v) => save.mutate({ settings: { rsvpEnabled: v } })} />
+            <ToggleRow label={t('askMeal')} checked={event.settings.askMealPreference} onChange={(v) => save.mutate({ settings: { askMealPreference: v } })} />
+            <ToggleRow label={t('askStay')} checked={event.settings.askAccommodation} onChange={(v) => save.mutate({ settings: { askAccommodation: v } })} />
           </div>
         </Panel>
       </div>

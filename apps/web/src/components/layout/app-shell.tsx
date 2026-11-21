@@ -4,7 +4,7 @@ import { clsx } from 'clsx';
 import { LayoutGrid, Package, Palette, PanelLeftClose, PanelLeftOpen, Plus, Settings, ShieldCheck, Store, Users, type LucideIcon } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { useMe } from '@/lib/hooks';
 import { ThemeToggle } from '@/lib/theme';
@@ -79,6 +79,7 @@ function useSidebar() {
  */
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useTranslations('nav');
+  const rtl = useLocale() === 'ur';
   const pathname = usePathname();
   const { data: me } = useMe();
   const { collapsed, toggle, kbd } = useSidebar();
@@ -91,9 +92,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* ---------------- Sidebar (desktop) ---------------- */}
       <aside
         aria-label={t('dashboard')}
-        data-tip-side="right"
+        data-tip-side={rtl ? 'left' : 'right'}
         data-tip-delay="150"
-        className="app-sidebar fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-ink/10 bg-ivory lg:flex"
+        className="app-sidebar fixed inset-y-0 start-0 z-40 hidden flex-col border-e border-ink/10 bg-ivory lg:flex"
       >
         <div className="sb-head flex h-16 shrink-0 items-center gap-2 border-b border-ink/10 px-5">
           <Logo className="sb-label" />
@@ -134,8 +135,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             data-tip-kbd={kbd.label}
             className="sb-item flex h-9 items-center gap-3 rounded-[var(--radius-control)] px-3 text-sm text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
           >
-            <PanelLeftOpen className="sb-mark size-[1.1rem] shrink-0" aria-hidden />
-            <PanelLeftClose className="sb-label size-[1.1rem] shrink-0" aria-hidden />
+            <PanelLeftOpen className="sb-mark size-[1.1rem] shrink-0 rtl:-scale-x-100" aria-hidden />
+            <PanelLeftClose className="sb-label size-[1.1rem] shrink-0 rtl:-scale-x-100" aria-hidden />
             <span className="sb-label">{t('collapse')}</span>
           </button>
         </div>
@@ -147,13 +148,13 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex h-14 items-center gap-2 px-4 sm:px-6 lg:h-16 lg:px-8">
             <Logo className="lg:hidden" />
             <p className="sr-only">{current ? t(current.key) : t('dashboard')}</p>
-            <div className="ml-auto flex items-center gap-0.5">
+            <div className="ms-auto flex items-center gap-0.5">
               <span className="max-sm:hidden">
                 <LocaleSwitch />
               </span>
               <ThemeToggle compact />
-              <AccountMenu className="ml-1.5 hidden lg:block" />
-              <Link href="/dashboard/settings" aria-label={t('settings')} className="ml-1.5 rounded-full lg:hidden">
+              <AccountMenu className="ms-1.5 hidden lg:block" />
+              <Link href="/dashboard/settings" aria-label={t('settings')} className="ms-1.5 rounded-full lg:hidden">
                 <Avatar size="size-8" />
               </Link>
             </div>
@@ -205,7 +206,7 @@ function SideLink({ item, label, active, collapsed }: { item: NavItem; label: st
       <span
         aria-hidden
         className={clsx(
-          'absolute -left-3 top-2 bottom-2 w-[2px] bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]',
+          'absolute -start-3 top-2 bottom-2 w-[2px] bg-gold transition-transform duration-300 ease-[var(--ease-out-quint)]',
           active ? 'scale-y-100' : 'scale-y-0',
         )}
       />

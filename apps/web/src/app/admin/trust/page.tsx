@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { ago, Badge, Card, Empty, inr, num, PageHeader, Skeleton, StatCard, Table } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface Trust {
   invitations: Array<{ id: string; title: string; slug: string; status: string; userId: string; email: string | null; createdAt: string; viewCount: number; signals: string[] }>;
@@ -22,7 +23,7 @@ export default function AdminTrustPage() {
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'trust'], queryFn: () => api<Trust>('/admin/trust') });
 
   async function takeDown(id: string, title: string, reason: string) {
-    if (!confirm(`Take down “${title}”? Its website and links stop working until restored.`)) return;
+    if (!(await confirmDialog(`Take down “${title}”? Its website and links stop working until restored.`))) return;
     try {
       await api(`/admin/invitations/${id}`, { method: 'PATCH', json: { suspended: true, reason } });
       toast.success('Taken down');

@@ -16,6 +16,7 @@ import { ago, Badge, BulkBar, dateTime, downloadCsv, duration, Empty, EVENT_LABE
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/hooks';
 import { controlClass } from '@/components/ui/field';
+import { confirmDialog } from '@/components/ui/confirm';
 
 interface UserRow {
   id: string;
@@ -66,7 +67,7 @@ export default function AdminUsersPage() {
   async function bulk(action: 'disable' | 'enable' | 'sign-out') {
     const ids = [...picked];
     const words = { disable: 'Disable', enable: 'Enable', 'sign-out': 'Sign out' }[action];
-    if (action !== 'enable' && !confirm(`${words} ${ids.length} account(s)? Admins and your own account are skipped.`)) return;
+    if (action !== 'enable' && !(await confirmDialog(`${words} ${ids.length} account(s)? Admins and your own account are skipped.`))) return;
     try {
       const r = await api<{ updated: number; skipped: number }>('/admin/users/bulk', { method: 'POST', json: { ids, action } });
       toast.success(`${r.updated} updated${r.skipped ? `, ${r.skipped} skipped` : ''}`);
@@ -300,7 +301,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const [openInvite, setOpenInvite] = useState<string | null>(null);
 
   async function signOutEverywhere() {
-    if (!confirm('Sign this person out on every device? Open tabs stop working within 15 minutes.')) return;
+    if (!(await confirmDialog('Sign this person out on every device? Open tabs stop working within 15 minutes.'))) return;
     try {
       await api(`/admin/users/${id}/sign-out`, { method: 'POST' });
       toast.success('Signed out everywhere');
@@ -334,7 +335,7 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
   const owner = !me?.adminScopes?.length || me.adminScopes.includes('owner');
 
   async function viewAs() {
-    if (!confirm('View the app as this customer? It is read-only and ends after 15 minutes or when you exit.')) return;
+    if (!(await confirmDialog('View the app as this customer? It is read-only and ends after 15 minutes or when you exit.'))) return;
     try {
       const r = await api<{ redirect: string }>(`/admin/users/${id}/impersonate`, { method: 'POST' });
       location.href = r.redirect;
@@ -434,8 +435,8 @@ function UserDrawer({ id, onClose }: { id: string; onClose: () => void }) {
                   variant="danger"
                   loading={busy}
                   disabled={self}
-                  onClick={() => {
-                    if (confirm(`Disable ${u.name ?? u.email}? They will be signed out everywhere and cannot sign in until you enable them again.`)) void update({ disabled: true }, 'Account disabled');
+                  onClick={async () => {
+                    if ((await confirmDialog(`Disable ${u.name ?? u.email}? They will be signed out everywhere and cannot sign in until you enable them again.`))) void update({ disabled: true }, 'Account disabled');
                   }}
                 >
                   <Ban className="size-4" /> Disable account

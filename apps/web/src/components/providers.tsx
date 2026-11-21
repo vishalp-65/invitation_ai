@@ -6,7 +6,9 @@ import { Toaster } from 'sonner';
 import { ErrorReporter } from '@/components/error-reporter';
 import { SystemBars } from '@/components/layout/system-bars';
 import { Tracker } from '@/components/tracker';
+import { ConfirmLayer } from '@/components/ui/confirm';
 import { TooltipLayer } from '@/components/ui/tooltip';
+import { ValidationLayer } from '@/components/ui/validation-layer';
 import { ApiError } from '@/lib/api';
 import { ThemeSync } from '@/lib/theme';
 
@@ -28,6 +30,8 @@ export function Providers({ children }: { children: ReactNode }) {
       <ThemeSync />
       <ErrorReporter />
       <TooltipLayer />
+      <ConfirmLayer />
+      <ValidationLayer />
       <Tracker />
       <SystemBars />
       {children}

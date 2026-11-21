@@ -4,6 +4,7 @@ import { buildDesign, type EventDto } from '@cardai/shared';
 import { Brush } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
 import { useDesignData } from '@/features/editor/use-event-data';
@@ -17,6 +18,7 @@ const DesignPlayer = dynamic(() => import('@/components/design/design-player').t
 
 /** The event's card exactly as the editor saved it (or the template's layout), plus its video. */
 export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'card' | 'video' }) {
+  const t = useTranslations('event');
   const { data: template } = useTemplate(event.design ? undefined : event.templateId);
   const { data: media } = useEventMedia(event.id);
   const photos = useMemo(
@@ -37,10 +39,10 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
       {mode === 'video' ? (
         <DesignPlayer design={doc} data={data} language={event.language} />
       ) : (
-        <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-xl" aria-label="Edit the card">
+        <Link href={`/editor/${event.id}`} className="group relative block overflow-hidden rounded-xl" aria-label={t('editTheCard')}>
           <DesignView page={doc.pages[current]!} data={data} language={event.language} />
           <span className="absolute inset-x-3 bottom-3 flex h-11 items-center justify-center gap-2 rounded-lg bg-surface/95 font-medium text-ink opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-            <Brush className="size-4" /> Edit the card
+            <Brush className="size-4" /> {t('editTheCard')}
           </span>
         </Link>
       )}

@@ -116,6 +116,8 @@ export function Select({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState<CSSProperties>({});
+  /** Portal target: <body>, or the open modal <dialog> around the trigger (top layer). */
+  const [host, setHost] = useState<Element | null>(null);
   const typed = useRef({ text: '', at: 0 });
   const listId = useId();
   const optId = (i: number) => `${listId}-o${i}`;
@@ -144,6 +146,7 @@ export function Select({
   const show = () => {
     if (disabled) return;
     setActive(selectedIndex >= 0 && enabled(selectedIndex) ? selectedIndex : first());
+    setHost(triggerRef.current?.closest('dialog[open]') ?? document.body);
     setOpen(true);
   };
   const hide = (refocus = true) => {
@@ -320,7 +323,7 @@ export function Select({
 
   const list =
     open &&
-    typeof document !== 'undefined' &&
+    host &&
     createPortal(
       <div
         ref={listRef}
@@ -378,7 +381,7 @@ export function Select({
           });
         })()}
       </div>,
-      document.body,
+      host,
     );
 
   return (

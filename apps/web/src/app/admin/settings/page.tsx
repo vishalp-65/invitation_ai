@@ -12,6 +12,7 @@ import { ago, Badge, Card, Empty, PageHeader, Segmented, shortDate, Skeleton, Ta
 import { api, ApiError } from '@/lib/api';
 import { useMe } from '@/lib/hooks';
 import { Select } from '@/components/ui/select';
+import { confirmDialog } from '@/components/ui/confirm';
 
 type Tab = 'switches' | 'admins' | 'media' | 'music' | 'privacy';
 
@@ -146,9 +147,9 @@ function Switches({ owner }: { owner: boolean }) {
                       checked={f.enabled}
                       disabled={!owner}
                       label={f.key}
-                      onChange={(v) => {
+                      onChange={async (v) => {
                         const warn = f.key === 'maintenance' ? (v ? 'Turn on maintenance mode? Customers cannot save anything until you turn it off.' : null) : !v ? `Switch off “${labelFor(f.key)}” for all customers?` : null;
-                        if (warn && !confirm(warn)) return;
+                        if (warn && !(await confirmDialog(warn))) return;
                         void save(f.key, { enabled: v, rolloutPct: f.rolloutPct, description: f.builtin ? null : f.description, message: f.message }, v ? 'Switched on' : 'Switched off');
                       }}
                     />
@@ -214,7 +215,7 @@ function FlagDialog({ flag, onClose, onSaved }: { flag: FlagDto | null; onClose:
   }
 
   async function remove() {
-    if (!flag || !confirm(`Delete switch ${flag.key}? Code checking it falls back to its default.`)) return;
+    if (!flag || !(await confirmDialog(`Delete switch ${flag.key}? Code checking it falls back to its default.`))) return;
     const rows = await call(api<FlagDto[]>(`/admin/flags/${flag.key}`, { method: 'DELETE' }), 'Deleted');
     onSaved(rows);
     onClose();
@@ -316,7 +317,7 @@ function Admins({ owner, meId }: { owner: boolean; meId?: string }) {
                     variant="quiet"
                     className="h-8 px-3"
                     onClick={async () => {
-                      if (!confirm(`Remove admin access for ${a.name ?? a.email}? They keep their customer account.`)) return;
+                      if (!(await confirmDialog(`Remove admin access for ${a.name ?? a.email}? They keep their customer account.`))) return;
                       try {
                         await api(`/admin/admins/${a.id}`, { method: 'DELETE' });
                         toast.success('Admin access removed');
@@ -363,7 +364,7 @@ function Media() {
   }
 
   async function reset(m: MediaRow) {
-    if (!confirm(`Go back to the original ${m.label.toLowerCase()}?`)) return;
+    if (!(await confirmDialog(`Go back to the original ${m.label.toLowerCase()}?`))) return;
     qc.setQueryData(['admin', 'media'], await call(api<MediaRow[]>(`/admin/media/${m.slot}`, { method: 'DELETE' }), 'Back to the original'));
     void qc.invalidateQueries({ queryKey: ['offers'] });
   }
@@ -460,7 +461,7 @@ function MusicLibrary() {
                     className="h-8 px-2"
                     aria-label={`Delete ${t.title}`}
                     onClick={async () => {
-                      if (!confirm(`Delete “${t.title}” and its file?`)) return;
+                      if (!(await confirmDialog(`Delete “${t.title}” and its file?`))) return;
                       try {
                         await api(`/admin/music/${t.id}`, { method: 'DELETE' });
                         toast.success('Song deleted');
@@ -544,7 +545,7 @@ function Privacy() {
   const qc = useQueryClient();
   const { data, isLoading } = useQuery({ queryKey: ['admin', 'data-requests'], queryFn: () => api<DataReq[]>('/admin/data-requests') });
   async function act(id: string, action: 'done' | 'rejected' | 'open' | 'delete') {
-    if (action === 'delete' && !confirm('Delete this record? Keep it if you may need to show the request was handled.')) return;
+    if (action === 'delete' && !(await confirmDialog('Delete this record? Keep it if you may need to show the request was handled.'))) return;
     try {
       await (action === 'delete' ? api(`/admin/data-requests/${id}`, { method: 'DELETE' }) : api(`/admin/data-requests/${id}`, { method: 'PATCH', json: { status: action } }));
       void qc.invalidateQueries({ queryKey: ['admin', 'data-requests'] });

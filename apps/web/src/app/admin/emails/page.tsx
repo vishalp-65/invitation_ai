@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/field';
 import { Badge, dateTime, Empty, fromLocalInput, num, PageHeader, pct, Segmented, shortDate, Skeleton, Table, toLocalInput } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
+import { confirmDialog } from '@/components/ui/confirm';
 
 type Tab = 'campaigns' | 'templates' | 'suppressions';
 type Locale = 'en' | 'hi';
@@ -267,8 +268,8 @@ function Suppressions() {
                 <Button
                   size="xs"
                   variant="line"
-                  onClick={() =>
-                    confirm(`Allow email to ${s.email} again? Only do this if the mailbox works now.`) &&
+                  onClick={async () =>
+                    (await confirmDialog(`Allow email to ${s.email} again? Only do this if the mailbox works now.`)) &&
                     void call(api(`/admin/emails/suppressions/${encodeURIComponent(s.email)}`, { method: 'DELETE' }), 'Address unblocked').then(refresh)
                   }
                 >
@@ -529,7 +530,7 @@ function Composer({
     const question = scheduledAt
       ? `Schedule “${c.subject}” for ${dateTime(scheduledAt)}? It goes to whoever is in the audience at that time (about ${num(n)} now).`
       : `Send “${c.subject}” to ${num(n)} ${n === 1 ? 'person' : 'people'} now? This cannot be undone.`;
-    if (!confirm(question)) return;
+    if (!(await confirmDialog(question))) return;
     const r = await run('send', () =>
       call(api<EmailCampaignDto>(`/admin/emails/campaigns/${c.id}/send`, { method: 'POST', json: scheduledAt ? { scheduledAt } : {} }), scheduledAt ? 'Campaign scheduled' : 'Campaign is sending'),
     );
@@ -548,7 +549,7 @@ function Composer({
   }
 
   async function remove() {
-    if (!saved || !confirm('Delete this draft?')) return;
+    if (!saved || !(await confirmDialog('Delete this draft?'))) return;
     const ok = await run('delete', () => call(api(`/admin/emails/campaigns/${saved.id}`, { method: 'DELETE' }), 'Draft deleted'));
     if (ok !== null) {
       onChanged();

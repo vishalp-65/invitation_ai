@@ -15,6 +15,7 @@ import { BarList } from '@/features/admin/charts';
 import { Badge, BulkBar, Card, compactINR, Empty, num, PageHeader, RangePicker, Segmented, Skeleton, useRange } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { Select } from '@/components/ui/select';
+import { confirmDialog } from '@/components/ui/confirm';
 
 type Tab = 'all' | 'trending' | 'popular' | 'catalog' | 'featured' | 'hidden';
 type Sort = 'uses' | 'views' | 'revenue' | 'trend' | 'name';
@@ -89,7 +90,7 @@ export default function AdminTemplatesPage() {
 
   async function bulk(body: { hidden?: boolean; featured?: boolean }, ok: string) {
     const ids = [...picked];
-    if (body.hidden && !confirm(`Hide ${ids.length} template(s) from customers and the landing page? Invitations already made with them keep working.`)) return;
+    if (body.hidden && !(await confirmDialog(`Hide ${ids.length} template(s) from customers and the landing page? Invitations already made with them keep working.`))) return;
     setBulkBusy(true);
     try {
       await api('/admin/catalog/bulk', { method: 'POST', json: { ids, ...body } });

@@ -1,11 +1,11 @@
 'use client';
 
-import { getEventType } from '@cardai/shared';
+import { getEventType, getLanguage } from '@cardai/shared';
 import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, ExternalLink, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { Suspense, useState } from 'react';
 import { buttonClass } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
@@ -141,12 +141,12 @@ function EventWorkspace() {
             aria-expanded={showPreview}
             className="panel flex w-full items-center justify-between px-4 py-3 text-sm lg:hidden"
           >
-            {showPreview ? 'Hide preview' : 'Show preview'}
+            {showPreview ? t('hidePreview') : t('showPreview')}
             <ChevronDown className={`size-5 transition-transform ${showPreview ? 'rotate-180' : ''}`} />
           </button>
           <div className={`${showPreview ? 'mt-4 block' : 'hidden'} sticky top-24 mx-auto max-w-[280px] lg:mt-0 lg:block lg:max-w-none`}>
             <div className="mb-3 flex items-center justify-between gap-3">
-              <span className="kicker max-lg:!hidden">Preview</span>
+              <span className="kicker max-lg:!hidden">{t('preview')}</span>
               <div className="grid grid-cols-2 border border-ink/15" role="radiogroup" aria-label="Preview type">
                 {(['card', 'video'] as const).map((m) => (
                   <button
@@ -157,7 +157,7 @@ function EventWorkspace() {
                     onClick={() => setMode(m)}
                     className="h-8 px-4 text-xs capitalize text-ink-soft transition-colors hover:text-ink aria-checked:bg-ink aria-checked:text-ivory"
                   >
-                    {m}
+                    {t(m)}
                   </button>
                 ))}
               </div>
@@ -173,6 +173,7 @@ function EventWorkspace() {
 /** Summary of the invitation: what, when, where, and the main actions. */
 function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>['data']> }) {
   const t = useTranslations('event');
+  const dateLocale = getLanguage(useLocale()).locale;
   const type = getEventType(event.type);
   const live = event.status === 'published';
   const first = [...event.functions].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
@@ -208,8 +209,8 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
             {first && (
               <li className="inline-flex items-center gap-1.5">
                 <CalendarDays className="size-4" aria-hidden />
-                {new Date(first.startsAt).toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'long' })}
-                {event.functions.length > 1 && `, ${first.name} (1 of ${event.functions.length} functions)`}
+                {new Date(first.startsAt).toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'long' })}
+                {event.functions.length > 1 && `, ${t('firstOf', { name: first.name, n: event.functions.length })}`}
               </li>
             )}
             {first?.venueName && (
@@ -221,7 +222,7 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
             {days !== null && days >= 0 && (
               <li className="inline-flex items-center gap-1.5 font-mono text-xs text-ink sm:hidden">
                 <span className="size-1.5 rounded-full bg-gold" aria-hidden />
-                {days === 0 ? 'Today' : days === 1 ? '1 day to go' : days + ' days to go'}
+                {days === 0 ? t('today') : days === 1 ? t('dayToGoN1') : t('daysToGoN', { n: days })}
               </li>
             )}
             <li className="inline-flex items-center gap-1.5 tabular-nums">
@@ -232,8 +233,8 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
         </div>
         {days !== null && days >= 0 && (
           <div className="border-l border-ink/10 pl-6 max-sm:hidden">
-            <p className="font-display text-4xl leading-none tabular-nums">{days === 0 ? 'Today' : days}</p>
-            {days > 0 && <p className="mt-2 font-mono text-[0.6875rem] text-ink-soft">{days === 1 ? 'day to go' : 'days to go'}</p>}
+            <p className="font-display text-4xl leading-none tabular-nums">{days === 0 ? t('today') : days}</p>
+            {days > 0 && <p className="mt-2 font-mono text-[0.6875rem] text-ink-soft">{days === 1 ? t('dayToGo') : t('daysToGo')}</p>}
           </div>
         )}
       </div>
