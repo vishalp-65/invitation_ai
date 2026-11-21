@@ -42,8 +42,8 @@ export interface Recipient {
  * The single entry point for email. Callers name a template and pass typed props:
  *
  *   mail.send('payment.receipt', email, props, { key: `receipt-${orderId}` })   // queued
- *   mail.toUser(userId, 'security.password_changed', (u) => ({ name: u.name, at }))
- *   mail.sendNow('otp.signup', email, { code, ttlMinutes }, 'hi')                // immediate
+ *   mail.toUser(userId, 'security.new_login', (u) => ({ name: u.name, device, method, at }))
+ *   mail.sendNow('otp.signin', email, { code, ttlMinutes }, 'hi')                // immediate
  *
  * Queued mail is retried with backoff by MailProcessor and never blocks or fails the caller.
  */

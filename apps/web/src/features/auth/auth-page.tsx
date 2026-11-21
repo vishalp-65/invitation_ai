@@ -100,7 +100,6 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
               mode={mode}
               next={target}
               initialError={search.get('error')}
-              initialView={mode === 'login' && search.get('view') === 'forgot' ? 'forgot' : undefined}
               onDone={() => router.replace(target)}
             />
           </div>

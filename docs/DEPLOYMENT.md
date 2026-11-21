@@ -202,10 +202,14 @@ cd /opt/noyta && docker compose -f docker-compose.prod.yml --env-file .env --env
 The WhatsApp code is already in the app (`apps/api/src/modules/whatsapp`). It covers:
 
 - sending invite templates to guests,
+- sign-in codes on WhatsApp (passwordless sign-in, beside email codes and Google),
 - the chat bot,
 - the webhook at **`https://api.noyta.in/api/webhooks/whatsapp`**.
 
-It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (already generated) and `WHATSAPP_INVITE_TEMPLATE`. A sixth, `WHATSAPP_FOLLOWUP_TEMPLATE`, is optional: without it, host follow-ups (reminders, day-before, thank-you) stay manual (see 8b below).
+It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHATSAPP_APP_SECRET`, `WHATSAPP_VERIFY_TOKEN` (already generated) and `WHATSAPP_INVITE_TEMPLATE`. Two more are optional:
+
+- `WHATSAPP_FOLLOWUP_TEMPLATE`: without it, host follow-ups (reminders, day-before, thank-you) stay manual (see 8b below).
+- `WHATSAPP_OTP_TEMPLATE` (+ `WHATSAPP_OTP_LANGUAGE`, default `en`): without it, the sign-in form hides the WhatsApp option and offers email codes and Google only (see 8c below). Email sign-in never depends on WhatsApp.
 
 1. **Business portfolio.** Go to business.facebook.com and create a Business portfolio named "Noyta".
    - Later, do Business settings → Security Centre → **Business verification** (GST/Udyam/PAN documents, website noyta.in).
@@ -243,12 +247,22 @@ It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHAT
    - Sample values: `Priya`, `Aarav & Diya's Wedding`, `https://noyta.in/s/k7Qp2`. Submit; approval takes minutes to a few hours.
    - If Meta reclassifies it as Marketing, that's fine; it just costs more per message.
    - **8b. Follow-up template (optional).** Create a second Utility template, e.g. `event_followup`, with a body of exactly one variable: `{{1}}` (the API fills it with the whole follow-up text). Follow-ups are sent in the event's language (`en`, `hi`, `mr`, `gu`, `ta`, `te`, `kn`, `ml`, `bn`, `pa`, `or`, `ur`), so add a translation of the template for each language your hosts use; a missing language fails with `132001`. Then set `WHATSAPP_FOLLOWUP_TEMPLATE=event_followup` and restart.
+   - **8c. Sign-in code template (optional, for WhatsApp sign-in).** Message templates → **Create** → Category **Authentication**.
+     - Name **`noyta_login_code`**, language **English (`en`)**. If you pick "English (US)", set `WHATSAPP_OTP_LANGUAGE=en_US`.
+     - Code delivery: **Copy code** (one-tap autofill needs an Android app, which Noyta doesn't have). Button text: "Copy code".
+     - Content: tick **Add security recommendation** and **Add expiry time for the code**, and set the expiry to **10 minutes** (codes expire after 10 minutes).
+     - Meta writes the body text itself ("*123456* is your verification code…"); there is nothing to type and no sample needed. Submit; authentication templates are usually approved within minutes.
+     - Then set `WHATSAPP_OTP_TEMPLATE=noyta_login_code` and restart the API. `GET https://api.noyta.in/api/auth/providers` should now say `"whatsapp": true`.
+     - The API sends the code in the body and in the copy-code button, as Meta requires. Error `132000` (parameter count) means the template was created without the copy-code button; `132001` means the name or language doesn't match.
+     - While the Meta app is still in development mode, WhatsApp only delivers to numbers added under API Setup → "To". Add your own number there to test before going Live.
+     - Limits: 30 s between codes, 5 per number per hour and 10 per day, 10 code requests per IP per hour, 5 wrong tries per code. Each code is a billed authentication message, so watch the spend in WhatsApp Manager → Insights after launch.
 9. **Billing.** WhatsApp Manager → **Payment settings → Add payment method**.
    - Business-initiated template messages are billed per message. Replies inside the 24 h customer window are free.
 10. **Go live.** Switch the app to **Live** mode (App → Publish). Meta requires a **Privacy Policy URL**, e.g. `https://noyta.in/privacy`.
     - The site has no `/privacy` page yet. Add one before this step.
 11. **Test.**
     - Message "hi" to the business number from your phone: the bot should reply.
+    - If 8c is done: open `https://noyta.in/login` in a private window, enter your mobile number (e.g. `98765 43210`), and check that a WhatsApp message with the code and a "Copy code" button arrives. Enter it: you should land on the dashboard. A number that already talked to the bot signs in to that same account.
     - Logs: `docker compose -f /opt/noyta/docker-compose.prod.yml --env-file /opt/noyta/.env --env-file /opt/noyta/.deploy.env logs -f api | grep -i whatsapp`.
 
 ---
@@ -271,7 +285,9 @@ docker stats --no-stream                           # memory next to interviewpil
 
 Then in the browser:
 
-1. Sign up with email and password, and confirm the emailed code. This checks Resend.
+1. Sign in at `/login` with your email: the 6-digit code should arrive by email within a few seconds, and entering it signs you in (a new address gets the "What should we call you?" step). This checks Resend. Sign-in is passwordless: there is no password to set.
+   - If WhatsApp sign-in is set up (step 7, 8c), repeat with your mobile number: the code arrives on WhatsApp.
+   - If the form shows only "Email address", WhatsApp sign-in is off: check `curl -s https://api.noyta.in/api/auth/providers` for `"whatsapp": false` and the `WHATSAPP_OTP_TEMPLATE` value.
 2. Upload a photo. This checks the Spaces upload, CORS and ACL; the image URL should open in a private window.
 3. Render a card or video. This checks the worker (the first render after an idle spell starts Chrome, about a second).
 4. Pay with Razorpay. This checks the webhook.

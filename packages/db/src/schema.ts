@@ -72,13 +72,16 @@ export const users = pgTable(
   'users',
   {
   id: id(),
-  /** E.164, set only after the number was proven by OTP (or arrived via WhatsApp). */
+  /** E.164, set only after the number was proven by a WhatsApp code (or a message to the bot). */
   phone: text().unique(),
   name: text(),
   /** Lower-cased; set only once verified (email OTP or Google), see emailVerifiedAt. */
   email: text(),
   emailVerifiedAt: timestamp({ withTimezone: true }),
-  /** scrypt hash; null for accounts that only ever used Google (they can set one via password reset). */
+  /**
+   * Unused since 2026-11-22: sign-in is passwordless (email or WhatsApp code, or Google). Kept so
+   * a rollback still finds its column; drop it in a later migration once that is no longer needed.
+   */
   passwordHash: text(),
   /** Google account subject (stable id), never the email. */
   googleSub: text().unique(),

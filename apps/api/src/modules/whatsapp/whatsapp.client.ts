@@ -117,6 +117,31 @@ export class WhatsAppClient {
     return this.configured && Boolean(this.env.WHATSAPP_FOLLOWUP_TEMPLATE);
   }
 
+  /** Sign-in codes on WhatsApp need the Cloud API plus an approved Authentication template. */
+  get otpReady(): boolean {
+    return this.configured && Boolean(this.env.WHATSAPP_OTP_TEMPLATE);
+  }
+
+  /**
+   * A one-time code through an Authentication-category template (Meta writes the body text:
+   * "<code> is your verification code…"). The code fills the body variable and the template's
+   * copy-code button, which Meta requires on every authentication template.
+   */
+  sendOtpTemplate(to: string, code: string) {
+    if (!this.env.WHATSAPP_OTP_TEMPLATE) throw new Error('WHATSAPP_OTP_TEMPLATE is not set');
+    return this.send(to, {
+      type: 'template',
+      template: {
+        name: this.env.WHATSAPP_OTP_TEMPLATE,
+        language: { code: this.env.WHATSAPP_OTP_LANGUAGE },
+        components: [
+          { type: 'body', parameters: [{ type: 'text', text: code }] },
+          { type: 'button', sub_type: 'url', index: '0', parameters: [{ type: 'text', text: code }] },
+        ],
+      },
+    });
+  }
+
   /** Downloads inbound media (e.g. a voice note). */
   async downloadMedia(mediaId: string): Promise<{ buffer: Buffer; mimeType: string }> {
     const headers = { Authorization: `Bearer ${this.env.WHATSAPP_ACCESS_TOKEN}` };

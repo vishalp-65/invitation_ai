@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { controlClass } from '@/components/ui/field';
 import { api, apiFetch, ApiError } from '@/lib/api';
-import { qk } from '@/lib/hooks';
+import { qk, useMe } from '@/lib/hooks';
 
 interface SessionRow {
   id: string;
@@ -93,7 +93,7 @@ export function DevicesSection({ row }: { row: (label: string, hint: string, con
       </ul>
       {row(
         'Sign out everywhere',
-        'Every device, this one included. Use it if you think someone else knows your password.',
+        'Every device, this one included. Use it if a device was lost, or you think someone else got in.',
         <Button variant="line" size="sm" className="press hover:!border-sindoor/40 hover:!text-sindoor" loading={busy === 'all'} onClick={() => void everywhere()}>
           Sign out everywhere
         </Button>,
@@ -135,19 +135,21 @@ export function ExportButton() {
   );
 }
 
-/** Two steps: email a code, then enter it to erase the account. */
+/** Two steps: send a code (email, or WhatsApp for accounts without one), then enter it to erase the account. */
 export function DeleteAccountButton() {
   const qc = useQueryClient();
   const router = useRouter();
+  const { data: me } = useMe();
+  const byWhatsApp = Boolean(me && !me.email && me.phone);
   const [open, setOpen] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState<{ channel: 'email' | 'whatsapp'; to: string }>();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
   const close = () => {
     setOpen(false);
-    setSent(false);
+    setSent(undefined);
     setCode('');
     setError(undefined);
   };
@@ -156,8 +158,7 @@ export function DeleteAccountButton() {
     setBusy(true);
     setError(undefined);
     try {
-      await api('/account/delete/request', { method: 'POST' });
-      setSent(true);
+      setSent(await api<{ channel: 'email' | 'whatsapp'; to: string }>('/account/delete/request', { method: 'POST' }));
     } catch (e) {
       setError(errText(e, 'Could not send the code.'));
     } finally {
@@ -192,7 +193,7 @@ export function DeleteAccountButton() {
           </p>
           {!sent ? (
             <Button variant="brand" size="sm" className="press self-start" loading={busy} onClick={() => void sendCode()}>
-              Email me a confirmation code
+              {byWhatsApp ? 'Send me a code on WhatsApp' : 'Email me a confirmation code'}
             </Button>
           ) : (
             <form
@@ -203,7 +204,9 @@ export function DeleteAccountButton() {
               }}
             >
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft">Code from the email</span>
+                <span className="font-mono text-[0.6875rem] uppercase tracking-[0.06em] text-ink-soft">
+                  {sent.channel === 'whatsapp' ? 'Code from WhatsApp' : 'Code from the email'} ({sent.to})
+                </span>
                 <input
                   value={code}
                   onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}

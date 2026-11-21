@@ -123,7 +123,7 @@ export default function SettingsPage() {
           <Row label="Download my data" hint="Profile, invitations, guest lists, RSVPs, orders and files, as one JSON file.">
             <ExportButton />
           </Row>
-          <Row label="Delete account" hint="Erases your invitations and files. We email you a code to confirm.">
+          <Row label="Delete account" hint="Erases your invitations and files. We send you a code to confirm.">
             <DeleteAccountButton />
           </Row>
         </Section>

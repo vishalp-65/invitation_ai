@@ -1,30 +1,27 @@
 import {
   googleSignInSchema,
-  loginSchema,
-  requestOtpSchema,
-  resetPasswordSchema,
-  signupSchema,
+  otpRequestSchema,
+  otpVerifySchema,
   updateProfileSchema,
   type GoogleSignInInput,
-  type LoginInput,
-  type RequestOtpInput,
-  type ResetPasswordInput,
-  type SignupInput,
+  type OtpChannel,
+  type OtpRequestInput,
+  type OtpVerifyInput,
   type UpdateProfileInput,
 } from '@cardai/shared';
 import { ConflictException, Controller, Delete, Get, HttpCode, Inject, Logger, NotFoundException, Patch, Post, Query, Req, Res, UnauthorizedException } from '@nestjs/common';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { ENV, type Env } from '../../config/env.js';
-import { CurrentUser, Public, RateLimit, type AuthedRequest, type AuthUser } from '../../common/auth.decorators.js';
+import { CurrentUser, Public, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
 import { ACCESS_COOKIE } from '../../common/guards.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { VISITOR_COOKIE } from '@cardai/shared';
 import { AnalyticsService } from '../analytics/analytics.service.js';
 import { AuthService } from './auth.service.js';
+import type { OtpTarget } from './otp.service.js';
 import { safeEqual } from '../../common/crypto.js';
 import { GoogleService, safeNext } from './google.service.js';
 import { ACCESS_TTL_SEC, REFRESH_TTL_SEC, TokenService, type IssuedTokens } from './token.service.js';
-import { RequireFlag } from '../flags/flags.module.js';
 
 const REFRESH_COOKIE = 'cai_rt';
 const REFRESH_PATH = '/api/auth';
@@ -51,61 +48,31 @@ export class AuthController {
     return {
       google: this.google.clientId ? { clientId: this.google.clientId, redirect: this.google.redirectEnabled } : null,
       email: true,
+      whatsapp: this.auth.whatsappAvailable,
     };
   }
 
-  /** Sign-up step 1: email a verification code (rejects addresses that already have an account). */
+  /**
+   * Sign in or sign up, step 1: send a 6-digit code by email or WhatsApp. Same answer whether or
+   * not an account exists; the per-address limits live in OtpService.
+   */
   @Public()
-  @RequireFlag('signups', 'New sign-ups are paused for a short while. Please try again later.')
-  @Post('signup/request')
+  @Post('otp/request')
   @HttpCode(200)
   @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
-  requestSignup(@ZBody(requestOtpSchema) body: RequestOtpInput, @Req() req: FastifyRequest) {
-    return this.auth.requestSignupOtp(body.email, uiLocale(req));
+  requestCode(@ZBody(otpRequestSchema) body: OtpRequestInput, @Req() req: FastifyRequest) {
+    return this.auth.requestSignInCode(targetOf(body), uiLocale(req));
   }
 
-  /** Sign-up step 2: verify the code and create the account with its password. */
+  /** Step 2: the code signs the person in, creating the account on first use. */
   @Public()
-  @RequireFlag('signups', 'New sign-ups are paused for a short while. Please try again later.')
-  @Post('signup')
+  @Post('otp/verify')
   @HttpCode(200)
   @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
-  async signup(@ZBody(signupSchema) body: SignupInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.signup(body, req.headers['user-agent'], uiLocale(req));
+  async verifyCode(@ZBody(otpVerifySchema) body: OtpVerifyInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
+    const { tokens, user, isNew } = await this.auth.verifySignInCode(targetOf(body), body.code, req.headers['user-agent'], uiLocale(req));
     this.setCookies(reply, tokens);
-    this.trackSignIn(req, user.id, isNew, 'email');
-    return { user, isNew };
-  }
-
-  @Public()
-  @Post('login')
-  @HttpCode(200)
-  @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
-  async login(@ZBody(loginSchema) body: LoginInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.login(body.email, body.password, req.headers['user-agent'], (req as AuthedRequest).clientIp ?? req.ip);
-    this.setCookies(reply, tokens);
-    this.trackSignIn(req, user.id, isNew, 'email');
-    return { user, isNew };
-  }
-
-  /** Forgot password step 1: the only login-side use of an emailed code. */
-  @Public()
-  @Post('password/forgot')
-  @HttpCode(200)
-  @RateLimit({ limit: 10, windowSec: 3600, by: 'ip' })
-  forgotPassword(@ZBody(requestOtpSchema) body: RequestOtpInput, @Req() req: FastifyRequest) {
-    return this.auth.requestPasswordReset(body.email, uiLocale(req));
-  }
-
-  /** Forgot password step 2: code + new password, then signed in. */
-  @Public()
-  @Post('password/reset')
-  @HttpCode(200)
-  @RateLimit({ limit: 30, windowSec: 600, by: 'ip' })
-  async resetPassword(@ZBody(resetPasswordSchema) body: ResetPasswordInput, @Req() req: FastifyRequest, @Res({ passthrough: true }) reply: FastifyReply) {
-    const { tokens, user, isNew } = await this.auth.resetPassword(body.email, body.code, body.password, req.headers['user-agent'], (req as AuthedRequest).clientIp ?? req.ip);
-    this.setCookies(reply, tokens);
-    this.trackSignIn(req, user.id, isNew, 'email');
+    this.trackSignIn(req, user.id, isNew, body.channel);
     return { user, isNew };
   }
 
@@ -278,7 +245,7 @@ export class AuthController {
     return this.auth.updateProfile(user.id, body);
   }
 
-  private trackSignIn(req: FastifyRequest, userId: string, isNew: boolean, method: 'email' | 'google') {
+  private trackSignIn(req: FastifyRequest, userId: string, isNew: boolean, method: OtpChannel | 'google') {
     const visitorId = req.cookies[VISITOR_COOKIE];
     this.analytics.identify(visitorId, userId);
     const ref = req.cookies.cai_ref;
@@ -301,6 +268,10 @@ export class AuthController {
     reply.setCookie(ACCESS_COOKIE, tokens.accessToken, { ...base, path: '/', maxAge: ACCESS_TTL_SEC });
     reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_TTL_SEC });
   }
+}
+
+function targetOf(body: OtpRequestInput | OtpVerifyInput): OtpTarget {
+  return body.channel === 'email' ? { channel: 'email', to: body.email } : { channel: 'whatsapp', to: body.phone };
 }
 
 /** The web app's language cookie (same origin through the /api proxy); used for emails sent before an account exists. */
