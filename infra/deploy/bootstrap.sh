@@ -75,7 +75,13 @@ command -v nginx >/dev/null || { apt-get update -qq && apt-get install -y -qq ng
 site="/etc/nginx/sites-available/$DOMAIN"
 if [ -f "$site" ]; then echo "$site exists, left as is"; else sed "s/api\.noyta\.in/$DOMAIN/g" "$HERE/nginx-api.noyta.in.conf" > "$site"; fi
 ln -sfn "/etc/nginx/sites-available/$DOMAIN" "/etc/nginx/sites-enabled/$DOMAIN"
-nginx -t && systemctl reload nginx
+# nginx is shared with interviewpilot: never leave a site enabled that breaks its config test
+if ! nginx -t; then
+  rm -f "/etc/nginx/sites-enabled/$DOMAIN"
+  echo "nginx config test failed; $DOMAIN was disabled again and nginx was not reloaded"
+  exit 1
+fi
+systemctl reload nginx
 
 step "HTTPS"
 if [ -d "/etc/letsencrypt/live/$DOMAIN" ]; then

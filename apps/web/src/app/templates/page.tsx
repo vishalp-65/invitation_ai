@@ -5,7 +5,7 @@ import { Suspense } from 'react';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { VideoDesignCoverflow } from '@/components/marketing/design-coverflow';
-import { serverApi } from '@/lib/api';
+import { serverApi } from '@/lib/server-api';
 import { TemplateGallery, type InitialTemplates } from './template-gallery';
 
 export const metadata: Metadata = {

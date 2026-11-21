@@ -2,7 +2,8 @@ import { isLockedSite, type PublicSiteResponse } from '@cardai/shared';
 import type { Metadata } from 'next';
 import { cookies } from 'next/headers';
 import { notFound } from 'next/navigation';
-import { ApiError, serverApi } from '@/lib/api';
+import { ApiError } from '@/lib/api';
+import { serverApi } from '@/lib/server-api';
 import { SiteRenderer } from '@/features/site/site-renderer';
 import { ExpiredSite, LockedSite } from './gates';
 
