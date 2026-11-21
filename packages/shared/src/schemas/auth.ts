@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { PASSWORD_MIN } from '../constants/auth.js';
+import { toE164 } from '../constants/auth.js';
 import { UI_LOCALES } from '../constants/languages.js';
 import { emailSchema } from './common.js';
 
@@ -7,34 +7,35 @@ const codeSchema = z.string().trim().regex(/^\d{6}$/, 'Enter the 6-digit code');
 
 const nameSchema = z.string().trim().min(1, 'Enter your name').max(80);
 
-export const passwordSchema = z
+/** A mobile number for a WhatsApp sign-in code, normalised to E.164 (Indian by default). */
+export const mobileSchema = z
   .string()
-  .min(PASSWORD_MIN, `Use at least ${PASSWORD_MIN} characters`)
-  .max(128, 'Use at most 128 characters')
-  .refine((v) => /[A-Za-z]/.test(v) && /\d/.test(v), 'Include at least one letter and one number');
+  .max(32, 'Enter a valid mobile number')
+  .transform((v, ctx) => {
+    const e164 = toE164(v);
+    if (!e164) {
+      ctx.addIssue({ code: 'custom', message: 'Enter a valid mobile number' });
+      return z.NEVER;
+    }
+    return e164;
+  });
 
-/** Sends a one-time code to this address (sign-up verification, or password reset). */
-export const requestOtpSchema = z.object({ email: emailSchema });
-export type RequestOtpInput = z.infer<typeof requestOtpSchema>;
+/**
+ * Sign in or sign up, step 1: send a 6-digit code to ONE address of the person's choice. The
+ * answer is the same whether or not an account exists for it.
+ */
+export const otpRequestSchema = z.discriminatedUnion('channel', [
+  z.object({ channel: z.literal('email'), email: emailSchema }),
+  z.object({ channel: z.literal('whatsapp'), phone: mobileSchema }),
+]);
+export type OtpRequestInput = z.infer<typeof otpRequestSchema>;
 
-/** Sign up: the emailed code proves the address, then the account is created with a password. */
-export const signupSchema = z.object({
-  email: emailSchema,
-  code: codeSchema,
-  name: nameSchema,
-  password: passwordSchema,
-  /** Unticked by default: offers need explicit consent. */
-  marketingOptIn: z.boolean().optional().default(false),
-});
-export type SignupInput = z.infer<typeof signupSchema>;
-
-/** Sign in. The password is only length-checked here so old/odd passwords never leak rule details. */
-export const loginSchema = z.object({ email: emailSchema, password: z.string().min(1, 'Enter your password').max(128) });
-export type LoginInput = z.infer<typeof loginSchema>;
-
-/** Forgot password: the emailed code authorises choosing a new one. */
-export const resetPasswordSchema = z.object({ email: emailSchema, code: codeSchema, password: passwordSchema });
-export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+/** Step 2: the code proves the address; the account is found, or created on first use. */
+export const otpVerifySchema = z.discriminatedUnion('channel', [
+  z.object({ channel: z.literal('email'), email: emailSchema, code: codeSchema }),
+  z.object({ channel: z.literal('whatsapp'), phone: mobileSchema, code: codeSchema }),
+]);
+export type OtpVerifyInput = z.infer<typeof otpVerifySchema>;
 
 /** Google Identity Services ID token (a JWT). */
 export const googleSignInSchema = z.object({
@@ -65,4 +66,10 @@ export interface MeResponse {
   adminScopes?: string[];
   /** Set while an admin is viewing the product as this user (read-only). */
   impersonatedBy?: string;
+}
+
+/** What every code request answers (sign-in or account deletion). */
+export interface OtpReceipt {
+  expiresInSec: number;
+  resendInSec: number;
 }

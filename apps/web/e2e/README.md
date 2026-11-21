@@ -9,11 +9,11 @@ Uses the locally installed Chrome (`channel: 'chrome'`), no browser download.
 
 ## Local test account (dev database only)
 
-Used to check host flows against a local dev server (sign-up code comes from the API log
-while `EMAIL_PROVIDER=console`):
+Used to check host flows against a local dev server. Sign-in is passwordless: enter the email,
+then the 6-digit code from the API log (`Development signin OTP for …` while
+`EMAIL_PROVIDER=console`):
 
 - email: `host.e2e@noyta.test`
-- password: `E2e-host-2026!`
 
 Save a signed-in session for the host specs:
 

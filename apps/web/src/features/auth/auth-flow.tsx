@@ -1,9 +1,9 @@
 'use client';
 
-import { PASSWORD_MIN, type MeResponse } from '@cardai/shared';
+import { formatPhone, toE164, type MeResponse, type OtpReceipt } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { ArrowLeft, Check, Eye, EyeOff, KeyRound, Lock, Mail, MailCheck, User } from 'lucide-react';
+import { ArrowLeft, AtSign, Lock, Mail, MailCheck, MessageCircle, User } from 'lucide-react';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Button } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
@@ -13,37 +13,45 @@ import { OtpInput } from './otp-input';
 import { track } from '@/lib/track';
 
 type Mode = 'login' | 'signup';
-export type View = Mode | 'forgot';
 
 interface Providers {
   google: { clientId: string; redirect: boolean } | null;
+  /** False when the WhatsApp Cloud API or its OTP template is not set up: email only. */
+  whatsapp?: boolean;
 }
+
+/** Where the code goes: exactly one address, of the person's choice. */
+type Contact = { channel: 'email'; email: string } | { channel: 'whatsapp'; phone: string };
 
 /** Messages for `?error=google_*`, set by the API's OAuth callback. */
 const GOOGLE_ERRORS: Record<string, string> = {
   google_cancelled: 'Google sign-in was cancelled.',
   google_expired: 'Google sign-in took too long. Please try again.',
   google_conflict: 'This email is already linked to a different Google account.',
-  google_unavailable: 'Google sign-in is not available right now. Continue with your email instead.',
+  google_unavailable: 'Google sign-in is not available right now. Continue with a code instead.',
   google_failed: 'Google sign-in could not be completed. Please try again.',
 };
 
 const errMsg = (e: unknown, fallback: string) => (e instanceof ApiError ? e.message : fallback);
 
+/** Looks like a phone number (digits and separators only), as opposed to an email being typed. */
+const looksLikePhone = (v: string) => /^[+\d][\d\s().-]*$/.test(v.trim());
+
 /** Instant feedback only; the API re-validates everything. */
-function parseEmail(raw: string): { email: string } | { error: string } {
-  const v = raw.trim().toLowerCase();
-  if (!v) return { error: 'Enter your email address' };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v) || v.length > 254) return { error: 'Enter a valid email address' };
-  return { email: v };
+function parseContact(raw: string, whatsapp: boolean): Contact | { error: string } {
+  const v = raw.trim();
+  if (!v) return { error: whatsapp ? 'Enter your email or mobile number' : 'Enter your email address' };
+  if (whatsapp && looksLikePhone(v)) {
+    const phone = toE164(v);
+    return phone ? { channel: 'whatsapp', phone } : { error: 'Enter a valid mobile number, like 98765 43210 (add +code outside India)' };
+  }
+  if (!whatsapp && looksLikePhone(v)) return { error: 'Codes on WhatsApp aren’t available right now. Enter your email address instead.' };
+  const email = v.toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) return { error: 'Enter a valid email address' };
+  return { channel: 'email', email };
 }
 
-/** Same rules as the API; returns an error message or undefined. */
-function parsePassword(v: string): string | undefined {
-  if (v.length < PASSWORD_MIN) return `Use at least ${PASSWORD_MIN} characters`;
-  if (!/[A-Za-z]/.test(v) || !/\d/.test(v)) return 'Include at least one letter and one number';
-  return undefined;
-}
+const shown = (c: Contact) => (c.channel === 'email' ? c.email : formatPhone(c.phone));
 
 /** Gmail / Outlook / Yahoo shortcut on the "check your email" step. */
 function inboxLink(email: string): { href: string; label: string } | null {
@@ -120,17 +128,19 @@ function IconInput({
   );
 }
 
-function FieldBlock({ id, label, error, children }: { id: string; label: string; error?: string; children: ReactNode }) {
+function FieldBlock({ id, label, error, hint, children }: { id: string; label: string; error?: string; hint?: ReactNode; children: ReactNode }) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor={id} className="text-sm font-medium text-ink">
         {label}
       </label>
       {children}
-      {error && (
+      {error ? (
         <p id={`${id}-err`} className="animate-fade-up text-sm text-sindoor">
           {error}
         </p>
+      ) : (
+        hint && <p className="text-[0.8125rem] text-ink-soft">{hint}</p>
       )}
     </div>
   );
@@ -164,145 +174,52 @@ function Divider() {
   );
 }
 
-
-/** Password field with a show/hide toggle. */
-function PasswordInput({
-  id,
-  invalid,
-  describedBy,
-  autoComplete,
-  value,
-  onChange,
-  placeholder = 'Your password',
-  autoFocus,
-}: {
-  id: string;
-  invalid?: boolean;
-  describedBy?: string;
-  autoComplete: 'current-password' | 'new-password';
-  value: string;
-  onChange: (v: string) => void;
-  placeholder?: string;
-  autoFocus?: boolean;
-}) {
-  const [shown, setShown] = useState(false);
-  return (
-    <div className="group relative">
-      <span className="pointer-events-none absolute inset-y-0 left-3.5 grid place-items-center text-ink-soft/70 transition-colors group-focus-within:text-primary">
-        <KeyRound className="size-[18px]" aria-hidden />
-      </span>
-      <input
-        id={id}
-        type={shown ? 'text' : 'password'}
-        aria-invalid={invalid || undefined}
-        aria-describedby={describedBy}
-        autoComplete={autoComplete}
-        autoCapitalize="none"
-        spellCheck={false}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        maxLength={128}
-        autoFocus={autoFocus}
-        className={clsx(
-          'h-11 w-full rounded-lg border bg-surface pl-10 pr-12 text-[0.95rem] text-ink transition-[border-color,box-shadow] duration-150 placeholder:text-ink-soft/60 hover:border-ink/25 focus:border-primary focus:outline-none focus:ring-3 focus:ring-primary/10',
-          invalid ? 'border-sindoor' : 'border-ink/10',
-        )}
-      />
-      <button
-        type="button"
-        onClick={() => setShown((s) => !s)}
-        aria-label={shown ? 'Hide password' : 'Show password'}
-        aria-pressed={shown}
-        className="absolute inset-y-0 right-1.5 my-auto grid size-9 place-items-center rounded-md text-ink-soft transition-colors hover:bg-ink/[0.04] hover:text-ink"
-      >
-        {shown ? <EyeOff className="size-[18px]" aria-hidden /> : <Eye className="size-[18px]" aria-hidden />}
-      </button>
-    </div>
-  );
-}
-
-/** Shown under "create a password" fields; turns green as each rule is met. */
-function PasswordRules({ value }: { value: string }) {
-  const rules = [
-    { ok: value.length >= PASSWORD_MIN, label: `${PASSWORD_MIN}+ characters` },
-    { ok: /[A-Za-z]/.test(value), label: 'A letter' },
-    { ok: /\d/.test(value), label: 'A number' },
-  ];
-  return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs" aria-label="Password requirements">
-      {rules.map((r) => (
-        <li key={r.label} className={clsx('inline-flex items-center gap-1.5 transition-colors', r.ok ? 'text-leaf' : 'text-ink-soft')}>
-          <Check className={clsx('size-3.5', !r.ok && 'opacity-30')} strokeWidth={3} aria-hidden />
-          {r.label}
-        </li>
-      ))}
-    </ul>
-  );
-}
-
 /* ------------------------------------------------------------------------------------------ */
 
-/**
- * Enter the 6-digit code that was emailed. Used by sign-up (verifies the address, submits as soon as
- * the sixth digit lands) and by "forgot password" (also collects the new password).
- */
+/** Enter the 6-digit code sent by email or WhatsApp; submits as soon as the sixth digit lands. */
 function CodeStep({
-  email,
+  contact,
   initialCooldown,
   showHeading,
-  title = 'Check your email',
-  resendPath,
-  submitLabel,
-  withPassword,
-  note,
   onSubmit,
   onBack,
 }: {
-  email: string;
+  contact: Contact;
   initialCooldown: number;
   showHeading: boolean;
-  title?: string;
-  resendPath: string;
-  submitLabel: string;
-  /** Also ask for a new password (reset flow); the code then isn't auto-submitted. */
-  withPassword?: boolean;
-  /** Small print under the heading. */
-  note?: string;
-  onSubmit: (code: string, password: string) => Promise<void>;
+  onSubmit: (code: string) => Promise<void>;
   onBack: () => void;
 }) {
   const [code, setCode] = useState('');
-  const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
   const [info, setInfo] = useState<string>();
   const [cooldown, setCooldown] = useCountdown(initialCooldown);
-  const inbox = inboxLink(email);
-  const passwordError = withPassword ? parsePassword(password) : undefined;
+  const email = contact.channel === 'email';
+  const inbox = email ? inboxLink(contact.email) : null;
 
   const submit = useCallback(
     async (value: string) => {
-      if (busy || value.length !== 6 || passwordError) return;
+      if (busy || value.length !== 6) return;
       setBusy(true);
       setError(undefined);
       setInfo(undefined);
       try {
-        await onSubmit(value, password);
+        await onSubmit(value);
       } catch (e) {
         setError(errMsg(e, 'Could not verify the code. Check your connection and try again.'));
         setCode('');
         setBusy(false);
       }
     },
-    [busy, onSubmit, password, passwordError],
+    [busy, onSubmit],
   );
 
   async function resend() {
     setError(undefined);
     setInfo(undefined);
     try {
-      const r = await api<{ resendInSec: number }>(resendPath, { method: 'POST', json: { email } });
+      const r = await api<OtpReceipt>('/auth/otp/request', { method: 'POST', json: contact });
       setCooldown(r.resendInSec);
       setCode('');
       setInfo('A new code is on its way.');
@@ -311,26 +228,24 @@ function CodeStep({
     }
   }
 
+  const sentTo = (
+    <>
+      {email ? 'Enter the 6-digit code we emailed to' : 'Enter the 6-digit code we sent on WhatsApp to'}
+      <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{shown(contact)}</strong>
+    </>
+  );
+
   return (
     <>
       {showHeading ? (
         <Heading
-          icon={<MailCheck className="size-6" aria-hidden />}
-          title={title}
-          subtitle={
-            <>
-              Enter the 6-digit code we sent to
-              <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{email}</strong>
-            </>
-          }
+          icon={email ? <MailCheck className="size-6" aria-hidden /> : <MessageCircle className="size-6" aria-hidden />}
+          title={email ? 'Check your email' : 'Check WhatsApp'}
+          subtitle={sentTo}
         />
       ) : (
-        <p className="mb-5 text-ink-soft">
-          Enter the 6-digit code we sent to
-          <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{email}</strong>
-        </p>
+        <p className="mb-5 text-ink-soft">{sentTo}</p>
       )}
-      {note && <p className="-mt-2 mb-5 text-[0.8125rem] text-ink-soft">{note}</p>}
 
       <form
         onSubmit={(e) => {
@@ -340,30 +255,14 @@ function CodeStep({
         className="flex flex-col gap-5"
       >
         <div className="flex flex-col gap-2.5">
-          <OtpInput
-            value={code}
-            onChange={setCode}
-            onComplete={withPassword ? undefined : (v) => void submit(v)}
-            invalid={Boolean(error)}
-            disabled={busy}
-          />
+          <OtpInput value={code} onChange={setCode} onComplete={(v) => void submit(v)} invalid={Boolean(error)} disabled={busy} />
           <p role={error ? 'alert' : 'status'} aria-live="polite" className={clsx('min-h-5 text-sm', error ? 'text-sindoor' : 'text-leaf')}>
             {error ?? info}
           </p>
         </div>
 
-        {withPassword && (
-          <div className="flex flex-col gap-2">
-            <label htmlFor="auth-new-password" className="text-sm font-medium text-ink">
-              New password
-            </label>
-            <PasswordInput id="auth-new-password" autoComplete="new-password" placeholder="Choose a new password" value={password} onChange={setPassword} />
-            <PasswordRules value={password} />
-          </div>
-        )}
-
-        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6 || Boolean(passwordError)} className="h-11 w-full text-[0.95rem]">
-          {busy ? 'Please wait…' : submitLabel}
+        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6} className="h-11 w-full text-[0.95rem]">
+          {busy ? 'Please wait…' : 'Continue'}
         </Button>
 
         {inbox && (
@@ -382,7 +281,7 @@ function CodeStep({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 whitespace-nowrap text-sm">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-medium text-ink-soft transition-colors hover:text-ink">
           <ArrowLeft className="size-4" aria-hidden />
-          Use a different email
+          {email ? 'Use a different email' : 'Use a different number'}
         </button>
         {cooldown > 0 ? (
           <span className="tabular-nums text-ink-soft">Resend in {cooldown}s</span>
@@ -392,25 +291,29 @@ function CodeStep({
           </button>
         )}
       </div>
-      <p className="mt-5 text-xs leading-relaxed text-ink-soft/80">Can&apos;t find it? Check your spam or promotions folder. The code is valid for 10 minutes.</p>
+      <p className="mt-5 text-xs leading-relaxed text-ink-soft/80">
+        {email
+          ? 'Can’t find it? Check your spam or promotions folder. The code is valid for 10 minutes.'
+          : 'The code arrives as a WhatsApp message and is valid for 10 minutes. Not there? Check the number, or use your email instead.'}
+      </p>
     </>
   );
 }
 
-/** Only for a brand-new account that signed in without giving a name (e.g. from the login page). */
-function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
+/** Only for a brand-new account: a name, and (for email accounts) the offers opt-in. Skippable. */
+function NameStep({ user, onDone }: { user: MeResponse; onDone: (u?: MeResponse) => void }) {
   const qc = useQueryClient();
   const [name, setName] = useState('');
+  /** Offers need explicit consent, so this starts unticked. */
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    if (!name.trim()) return setError('Enter your name');
+  async function save(body: { name?: string; marketingEmails?: boolean }) {
     setBusy(true);
     setError(undefined);
     try {
-      const u = await api<MeResponse>('/auth/me', { method: 'PATCH', json: { name: name.trim() } });
+      const u = await api<MeResponse>('/auth/me', { method: 'PATCH', json: body });
       qc.setQueryData(qk.me, u);
       onDone(u);
     } catch (err) {
@@ -422,7 +325,15 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
   return (
     <>
       <Heading icon={<User className="size-6" aria-hidden />} title="Welcome aboard" subtitle="Your account is ready. What should we call you?" />
-      <form onSubmit={save} className="flex flex-col gap-4" noValidate>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (!name.trim()) return setError('Enter your name');
+          void save({ name: name.trim(), ...(marketingOptIn ? { marketingEmails: true } : {}) });
+        }}
+        className="flex flex-col gap-4"
+        noValidate
+      >
         <FieldBlock id="auth-name" label="Full name" error={error}>
           <IconInput
             id="auth-name"
@@ -437,10 +348,26 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
             autoFocus
           />
         </FieldBlock>
+        {user.email && (
+          <label className="flex cursor-pointer items-start gap-2.5 text-[0.8125rem] leading-relaxed text-ink-soft">
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={(e) => setMarketingOptIn(e.target.checked)}
+              className="mt-[3px] size-4 shrink-0 cursor-pointer accent-[var(--color-ink)]"
+            />
+            <span>Email me occasional offers and new designs. You can unsubscribe any time.</span>
+          </label>
+        )}
         <Button type="submit" variant="solid" size="lg" loading={busy} className="h-11 w-full text-[0.95rem]">
           Get started
         </Button>
-        <button type="button" onClick={() => onDone()} className="text-center text-sm font-medium text-ink-soft hover:text-ink">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => (marketingOptIn ? void save({ marketingEmails: true }) : onDone())}
+          className="text-center text-sm font-medium text-ink-soft hover:text-ink"
+        >
           Skip for now
         </button>
       </form>
@@ -448,22 +375,20 @@ function NameStep({ onDone }: { onDone: (u?: MeResponse) => void }) {
   );
 }
 
-
 /**
- * The whole sign-in journey. Log in = email + password. Sign up = name, email, password, then a
- * code emailed to verify the address. A code is otherwise only used by "Forgot password".
+ * The whole sign-in journey, passwordless: an email address or a mobile number, then a 6-digit
+ * code on that one channel (email or WhatsApp). New accounts are created by the same code and
+ * then get a skippable name step. Google is the other way in.
  */
 export function AuthFlow({
   mode = 'login',
   heading = true,
   next,
   initialError,
-  initialView,
   onDone,
 }: {
+  /** Only changes the wording: sign-in and sign-up are the same flow. */
   mode?: Mode;
-  /** Open straight on "Forgot password" (links in security emails use `?view=forgot`). */
-  initialView?: View;
   heading?: boolean;
   /** Where the Google redirect flow returns to. Defaults to the current page. */
   next?: string;
@@ -477,32 +402,19 @@ export function AuthFlow({
     queryFn: () => api<Providers>('/auth/providers'),
     staleTime: 60 * 60_000,
   });
+  const whatsapp = Boolean(providers?.whatsapp);
+  const signup = mode === 'signup';
 
-  const [view, setView] = useState<View>(initialView ?? mode);
-  const signup = view === 'signup';
-  const forgot = view === 'forgot';
   useEffect(() => track('signup_start', { props: { mode } }), [mode]);
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  /** Offers need explicit consent, so this starts unticked. */
-  const [marketingOptIn, setMarketingOptIn] = useState(false);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string; password?: string }>({});
+  const [value, setValue] = useState('');
+  const [fieldError, setFieldError] = useState<string>();
   const [error, setError] = useState<string | undefined>(initialError ? GOOGLE_ERRORS[initialError] : undefined);
   const [busy, setBusy] = useState(false);
-  const [pending, setPending] = useState<{ email: string; resendInSec: number }>();
+  const [pending, setPending] = useState<{ contact: Contact; resendInSec: number }>();
   const [askName, setAskName] = useState<MeResponse>();
   /** True once the user has come back from the code step, so the form slides in from the left. */
   const [returned, setReturned] = useState(false);
   const returnTo = next ?? (typeof window === 'undefined' ? '/dashboard' : window.location.pathname + window.location.search);
-
-  function go(v: View) {
-    setView(v);
-    setError(undefined);
-    setFieldErrors({});
-    setPassword('');
-    setReturned(true);
-  }
 
   function signedIn(user: MeResponse, isNew: boolean) {
     qc.setQueryData(qk.me, user);
@@ -513,28 +425,17 @@ export function AuthFlow({
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(undefined);
-    const errs: typeof fieldErrors = {};
-    const parsed = parseEmail(email);
-    if ('error' in parsed) errs.email = parsed.error;
-    if (signup && !name.trim()) errs.name = 'Enter your name';
-    if (signup) errs.password = parsePassword(password);
-    if (view === 'login' && !password) errs.password = 'Enter your password';
-    setFieldErrors(errs);
-    if ('error' in parsed || errs.name || errs.password) return;
+    const parsed = parseContact(value, whatsapp);
+    if ('error' in parsed) return setFieldError(parsed.error);
+    setFieldError(undefined);
 
     setBusy(true);
     try {
-      if (view === 'login') {
-        const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/login', { method: 'POST', json: { email: parsed.email, password } });
-        signedIn(r.user, r.isNew);
-        return;
-      }
-      const path = signup ? '/auth/signup/request' : '/auth/password/forgot';
-      const r = await api<{ resendInSec: number }>(path, { method: 'POST', json: { email: parsed.email } });
-      track('otp_requested', { props: { signup: Boolean(signup) } });
-      setPending({ email: parsed.email, resendInSec: r.resendInSec });
+      const r = await api<OtpReceipt>('/auth/otp/request', { method: 'POST', json: parsed });
+      track('otp_requested', { props: { channel: parsed.channel, mode } });
+      setPending({ contact: parsed, resendInSec: r.resendInSec });
     } catch (err) {
-      setError(errMsg(err, view === 'login' ? 'Could not log in. Check your connection and try again.' : 'Could not send the code. Check your connection and try again.'));
+      setError(errMsg(err, 'Could not send the code. Check your connection and try again.'));
     } finally {
       setBusy(false);
     }
@@ -557,198 +458,96 @@ export function AuthFlow({
   if (askName)
     return (
       <div key="name" className="animate-step-in">
-        <NameStep onDone={(u) => onDone(u ?? askName)} />
+        <NameStep user={askName} onDone={(u) => onDone(u ?? askName)} />
       </div>
     );
 
   if (pending) {
-    const back = () => {
-      setReturned(true);
-      setPending(undefined);
-    };
+    const { contact } = pending;
     return (
       <div key="code" className="animate-step-in">
-        {signup ? (
-          <CodeStep
-            email={pending.email}
-            initialCooldown={pending.resendInSec}
-            showHeading={heading}
-            resendPath="/auth/signup/request"
-            note="Already have an account with this email? Then we've sent you a log-in link instead of a code."
-            submitLabel="Verify and create account"
-            onBack={back}
-            onSubmit={async (code) => {
-              const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/signup', {
-                method: 'POST',
-                json: { email: pending.email, code, name: name.trim(), password, marketingOptIn },
-              });
-              signedIn(r.user, r.isNew);
-            }}
-          />
-        ) : (
-          <CodeStep
-            email={pending.email}
-            initialCooldown={pending.resendInSec}
-            showHeading={heading}
-            title="Reset your password"
-            resendPath="/auth/password/forgot"
-            submitLabel="Set password and log in"
-            withPassword
-            onBack={back}
-            onSubmit={async (code, newPassword) => {
-              const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/password/reset', {
-                method: 'POST',
-                json: { email: pending.email, code, password: newPassword },
-              });
-              signedIn(r.user, r.isNew);
-            }}
-          />
-        )}
+        <CodeStep
+          contact={contact}
+          initialCooldown={pending.resendInSec}
+          showHeading={heading}
+          onBack={() => {
+            setReturned(true);
+            setPending(undefined);
+          }}
+          onSubmit={async (code) => {
+            const r = await api<{ user: MeResponse; isNew: boolean }>('/auth/otp/verify', { method: 'POST', json: { ...contact, code } });
+            signedIn(r.user, r.isNew);
+          }}
+        />
       </div>
     );
   }
 
-  const title = signup ? 'Create your account' : forgot ? 'Forgot your password?' : 'Welcome back';
+  const phoneTyped = whatsapp && value.trim().length > 0 && looksLikePhone(value);
+  const title = signup ? 'Create your account' : 'Welcome back';
   const subtitle = signup
-    ? 'Design your first invitation in minutes. We’ll verify your email with a quick code.'
-    : forgot
-      ? 'Enter your email and we’ll send a code so you can choose a new password.'
-      : 'Log in with your email and password to continue to your invitations.';
-  const submitLabel = signup ? 'Continue' : forgot ? 'Send reset code' : 'Log in';
-  const busyLabel = signup || forgot ? 'Sending code…' : 'Logging in…';
+    ? 'Design your first invitation in minutes. We’ll send a code to confirm it’s you.'
+    : whatsapp
+      ? 'Sign in with a one-time code on email or WhatsApp. No password needed.'
+      : 'Sign in with a one-time code sent to your email. No password needed.';
 
   return (
-    <div key={view} className={returned ? 'animate-step-back' : undefined}>
+    <div key="form" className={returned ? 'animate-step-back' : undefined}>
       {heading && <Heading title={title} subtitle={subtitle} />}
-      {!heading && forgot && <p className="mb-5 text-ink-soft">{subtitle}</p>}
 
-      {!forgot &&
-        (providersLoading ? (
+      {providersLoading ? (
+        <>
+          <div className="skeleton h-11 w-full rounded-lg" aria-hidden />
+          <Divider />
+        </>
+      ) : (
+        providers?.google && (
           <>
-            <div className="skeleton h-11 w-full rounded-lg" aria-hidden />
+            {providers.google.redirect ? (
+              <GoogleRedirectButton mode={mode} next={returnTo} />
+            ) : (
+              <GoogleButton clientId={providers.google.clientId} mode={mode} onCredential={onGoogle} onError={setError} />
+            )}
             <Divider />
           </>
-        ) : (
-          providers?.google && (
-            <>
-              {providers.google.redirect ? (
-                <GoogleRedirectButton mode={signup ? 'signup' : 'login'} next={returnTo} />
-              ) : (
-                <GoogleButton clientId={providers.google.clientId} mode={signup ? 'signup' : 'login'} onCredential={onGoogle} onError={setError} />
-              )}
-              <Divider />
-            </>
-          )
-        ))}
+        )
+      )}
 
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
-        {signup && (
-          <FieldBlock id="auth-signup-name" label="Full name" error={fieldErrors.name}>
-            <IconInput
-              id="auth-signup-name"
-              icon={<User className="size-[18px]" aria-hidden />}
-              invalid={Boolean(fieldErrors.name)}
-              describedBy={fieldErrors.name ? 'auth-signup-name-err' : undefined}
-              autoComplete="name"
-              placeholder="Your full name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={80}
-            />
-          </FieldBlock>
-        )}
-        <FieldBlock id="auth-email" label="Email address" error={fieldErrors.email}>
+        <FieldBlock
+          id="auth-contact"
+          label={whatsapp ? 'Email or WhatsApp number' : 'Email address'}
+          error={fieldError}
+          hint={phoneTyped ? 'We’ll send the code on WhatsApp.' : undefined}
+        >
           <IconInput
-            id="auth-email"
-            icon={<Mail className="size-[18px]" aria-hidden />}
-            invalid={Boolean(fieldErrors.email)}
-            describedBy={fieldErrors.email ? 'auth-email-err' : undefined}
-            type="email"
+            id="auth-contact"
+            icon={phoneTyped ? <MessageCircle className="size-[18px]" aria-hidden /> : whatsapp ? <AtSign className="size-[18px]" aria-hidden /> : <Mail className="size-[18px]" aria-hidden />}
+            invalid={Boolean(fieldError)}
+            describedBy={fieldError ? 'auth-contact-err' : undefined}
+            type={whatsapp ? 'text' : 'email'}
             inputMode="email"
-            autoComplete="email"
+            autoComplete={whatsapp ? 'username' : 'email'}
             autoCapitalize="none"
             spellCheck={false}
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            placeholder={whatsapp ? 'you@example.com or 98765 43210' : 'you@example.com'}
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
             maxLength={254}
           />
         </FieldBlock>
 
-        {!forgot && (
-          <div className="flex flex-col gap-1.5">
-            <div className="flex items-baseline justify-between gap-3">
-              <label htmlFor="auth-password" className="text-sm font-medium text-ink">
-                Password
-              </label>
-              {!signup && (
-                <button type="button" onClick={() => go('forgot')} className="text-sm font-medium text-ink-soft hover:text-ink">
-                  Forgot password?
-                </button>
-              )}
-            </div>
-            <PasswordInput
-              id="auth-password"
-              autoComplete={signup ? 'new-password' : 'current-password'}
-              placeholder={signup ? 'Create a password' : 'Your password'}
-              invalid={Boolean(fieldErrors.password)}
-              describedBy={fieldErrors.password ? 'auth-password-err' : undefined}
-              value={password}
-              onChange={setPassword}
-            />
-            {fieldErrors.password && (
-              <p id="auth-password-err" className="animate-fade-up text-sm text-sindoor">
-                {fieldErrors.password}
-              </p>
-            )}
-            {signup && <PasswordRules value={password} />}
-          </div>
-        )}
-
-        {signup && (
-          <label className="flex cursor-pointer items-start gap-2.5 text-[0.8125rem] leading-relaxed text-ink-soft">
-            <input
-              type="checkbox"
-              checked={marketingOptIn}
-              onChange={(e) => setMarketingOptIn(e.target.checked)}
-              className="mt-[3px] size-4 shrink-0 cursor-pointer accent-[var(--color-ink)]"
-            />
-            <span>Email me occasional offers and new designs. You can unsubscribe any time.</span>
-          </label>
-        )}
-
         {error && <Alert>{error}</Alert>}
 
-        <Button type="submit" variant="solid" size="lg" loading={busy} className="mt-1 h-11 w-full text-[0.95rem]">
-          {busy ? busyLabel : submitLabel}
-                  </Button>
+        <Button type="submit" variant="solid" size="lg" loading={busy} disabled={providersLoading} className="mt-1 h-11 w-full text-[0.95rem]">
+          {busy ? 'Sending code…' : 'Send code'}
+        </Button>
       </form>
 
-      {forgot ? (
-        <button type="button" onClick={() => go('login')} className="mt-6 inline-flex items-center gap-1.5 text-sm font-medium text-ink-soft transition-colors hover:text-ink">
-          <ArrowLeft className="size-4" aria-hidden />
-          Back to log in
-        </button>
-      ) : (
-        <p className="mt-6 flex items-start gap-2 text-[0.8125rem] leading-relaxed text-ink-soft">
-          <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          <span>
-            {signup
-              ? 'Your password is stored securely and never shared. You’ll only need a code to reset it.'
-              : 'Signed up with Google, or no password yet? Use “Forgot password?” to set one.'}
-          </span>
-        </p>
-      )}
-
-      {/* The page header has its own switch link; the sign-in dialog has none, so offer it here. */}
-      {!heading && !forgot && (
-        <p className="mt-4 text-sm text-ink-soft">
-          {signup ? 'Already have an account?' : 'New here?'}{' '}
-          <button type="button" onClick={() => go(signup ? 'login' : 'signup')} className="font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
-            {signup ? 'Log in' : 'Create an account'}
-          </button>
-        </p>
-      )}
+      <p className="mt-6 flex items-start gap-2 text-[0.8125rem] leading-relaxed text-ink-soft">
+        <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+        <span>No password to remember. Each time you sign in, we send a fresh code that works once, for 10 minutes.</span>
+      </p>
     </div>
   );
 }

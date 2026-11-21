@@ -67,24 +67,29 @@ const OFFER_REASON = {
 };
 
 export const TEMPLATES = {
-  'otp.signup': define<{ code: string; ttlMinutes: number }>({
-    label: 'Sign-up verification code',
+  'otp.signin': define<{ code: string; ttlMinutes: number }>({
+    label: 'Sign-in code',
     group: 'Sign-in',
     category: 'auth',
     sample: { code: '482915', ttlMinutes: 10 },
     render: (p, { t, layout, kicker, heading, para, codeBox, ctx }) =>
       layout({
         appUrl: ctx.appUrl,
-        subject: t(`${p.code} is your ${BRAND.name} verification code`, `${p.code} आपका ${BRAND.name} सत्यापन कोड है`),
-        preheader: t(`Enter this code to finish creating your account. It expires in ${p.ttlMinutes} minutes.`, `खाता बनाने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त हो जाएगा।`),
+        subject: t(`${p.code} is your ${BRAND.name} sign-in code`, `${p.code} आपका ${BRAND.name} साइन-इन कोड है`),
+        preheader: t(`Enter this code to sign in. It expires in ${p.ttlMinutes} minutes.`, `साइन इन करने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त हो जाएगा।`),
         reason: t(
-          'You are receiving this because someone used this address to sign up. If it was not you, ignore this email.',
-          'यह ईमेल इसलिए आया क्योंकि इस पते से साइन अप किया गया। अगर यह आप नहीं थे, तो इसे अनदेखा करें।',
+          `You are receiving this because someone asked to sign in to ${BRAND.name} with this address. If it was not you, ignore this email.`,
+          `यह ईमेल इसलिए आया क्योंकि किसी ने इस पते से ${BRAND.name} में साइन इन करना चाहा। अगर यह आप नहीं थे, तो इसे अनदेखा करें।`,
         ),
         blocks: [
-          kicker(t('01 — Verify your email', '01 — ईमेल सत्यापित करें')),
-          heading(t('Your verification code', 'आपका सत्यापन कोड')),
-          para(t('Enter this code on the sign-up screen to finish creating your account.', 'खाता बनाना पूरा करने के लिए साइन-अप स्क्रीन पर यह कोड डालें।')),
+          kicker(t('Sign in', 'साइन इन')),
+          heading(t('Your sign-in code', 'आपका साइन-इन कोड')),
+          para(
+            t(
+              'Enter this code on the sign-in screen. New here? The same code creates your account.',
+              'साइन-इन स्क्रीन पर यह कोड डालें। नए हैं? यही कोड आपका खाता बना देगा।',
+            ),
+          ),
           codeBox(p.code),
           para(
             t(
@@ -92,31 +97,6 @@ export const TEMPLATES = {
               `यह ${p.ttlMinutes} मिनट में समाप्त हो जाएगा। यह कोड किसी के साथ साझा न करें, ${BRAND.name} टीम के साथ भी नहीं।`,
             ),
             { muted: true, small: true },
-          ),
-        ],
-      }),
-  }),
-
-  'otp.reset': define<{ code: string; ttlMinutes: number }>({
-    label: 'Password reset code',
-    group: 'Sign-in',
-    category: 'auth',
-    sample: { code: '730164', ttlMinutes: 10 },
-    render: (p, { t, layout, kicker, heading, para, codeBox, notice, ctx }) =>
-      layout({
-        appUrl: ctx.appUrl,
-        subject: t(`${p.code} is your ${BRAND.name} password reset code`, `${p.code} आपका ${BRAND.name} पासवर्ड रीसेट कोड है`),
-        preheader: t(`Use this code to set a new password. It expires in ${p.ttlMinutes} minutes.`, `नया पासवर्ड सेट करने के लिए यह कोड डालें। यह ${p.ttlMinutes} मिनट में समाप्त होगा।`),
-        blocks: [
-          kicker(t('Password reset', 'पासवर्ड रीसेट')),
-          heading(t('Reset your password', 'अपना पासवर्ड रीसेट करें')),
-          para(t('Enter this code to choose a new password. All other devices will be signed out.', 'नया पासवर्ड चुनने के लिए यह कोड डालें। बाकी सभी डिवाइस से लॉग आउट हो जाएगा।')),
-          codeBox(p.code),
-          notice(
-            t(
-              `If you did not ask to reset your password, you can ignore this email. Your password stays the same. The code expires in ${p.ttlMinutes} minutes.`,
-              `अगर आपने पासवर्ड रीसेट नहीं माँगा, तो इस ईमेल को अनदेखा करें। आपका पासवर्ड नहीं बदलेगा। कोड ${p.ttlMinutes} मिनट में समाप्त होगा।`,
-            ),
           ),
         ],
       }),
@@ -144,38 +124,10 @@ export const TEMPLATES = {
           codeBox(p.code),
           notice(
             t(
-              'If you did not ask to delete your account, ignore this email and change your password.',
-              'अगर आपने खाता हटाने को नहीं कहा, तो इस ईमेल को अनदेखा करें और अपना पासवर्ड बदलें।',
+              'If you did not ask to delete your account, ignore this email: nothing is deleted without this code. Then sign out every device from Settings.',
+              'अगर आपने खाता हटाने को नहीं कहा, तो इस ईमेल को अनदेखा करें: इस कोड के बिना कुछ नहीं हटेगा। फिर सेटिंग्स से सभी डिवाइस से लॉग आउट करें।',
             ),
           ),
-        ],
-      }),
-  }),
-
-  'account.exists': define<Record<string, never>>({
-    label: 'Sign-up with an existing email',
-    group: 'Sign-in',
-    category: 'auth',
-    sample: {},
-    render: (_p, { t, layout, kicker, heading, para, button, url, ctx }) =>
-      layout({
-        appUrl: ctx.appUrl,
-        subject: t(`You already have a ${BRAND.name} account`, `आपका ${BRAND.name} खाता पहले से है`),
-        preheader: t('Someone tried to sign up with this address. Log in or reset your password instead.', 'इस पते से साइन अप करने की कोशिश हुई। इसके बजाय लॉग इन करें या पासवर्ड रीसेट करें।'),
-        reason: t(
-          'You are receiving this because someone tried to sign up with this address. If it was not you, ignore this email.',
-          'यह ईमेल इसलिए आया क्योंकि इस पते से साइन अप करने की कोशिश हुई। अगर यह आप नहीं थे, तो इसे अनदेखा करें।',
-        ),
-        blocks: [
-          kicker(t('Already registered', 'पहले से पंजीकृत')),
-          heading(t('You already have an account', 'आपका खाता पहले से है')),
-          para(
-            t(
-              'This email address is already registered, so no new account was created. Log in with your password, or reset it if you have forgotten it.',
-              'यह ईमेल पता पहले से पंजीकृत है, इसलिए नया खाता नहीं बना। अपने पासवर्ड से लॉग इन करें, या भूल गए हों तो उसे रीसेट करें।',
-            ),
-          ),
-          button(t('Log in', 'लॉग इन करें'), url('/login')),
         ],
       }),
   }),
@@ -260,43 +212,11 @@ export const TEMPLATES = {
       }),
   }),
 
-  'security.password_changed': define<{ name: string | null; at: string }>({
-    label: 'Password changed',
-    group: 'Account',
-    category: 'transactional',
-    sample: { name: 'Priya Sharma', at: '2026-11-18T10:12:00.000Z' },
-    render: (p, { t, layout, kicker, heading, greeting, para, notice, button, url, date, ctx }) =>
-      layout({
-        appUrl: ctx.appUrl,
-        subject: t(`Your ${BRAND.name} password was changed`, `आपका ${BRAND.name} पासवर्ड बदल दिया गया`),
-        preheader: t(`Your password was changed on ${date(p.at)}.`, `आपका पासवर्ड ${date(p.at)} को बदला गया।`),
-        blocks: [
-          kicker(t('Security', 'सुरक्षा')),
-          heading(t('Your password was changed', 'आपका पासवर्ड बदल दिया गया')),
-          greeting(p.name),
-          para(
-            t(
-              `The password for your ${BRAND.name} account was changed on ${date(p.at)}. Every other device was signed out.`,
-              `आपके ${BRAND.name} खाते का पासवर्ड ${date(p.at)} को बदला गया। बाकी सभी डिवाइस से लॉग आउट कर दिया गया।`,
-            ),
-          ),
-          notice(
-            t(
-              'If you did not do this, reset your password straight away and reply to this email so we can secure your account.',
-              'अगर यह आपने नहीं किया, तो तुरंत पासवर्ड रीसेट करें और इस ईमेल का जवाब दें ताकि हम आपका खाता सुरक्षित कर सकें।',
-            ),
-            t('Was this not you?', 'यह आप नहीं थे?'),
-          ),
-          button(t('Reset password', 'पासवर्ड रीसेट करें'), url('/login?view=forgot')),
-        ],
-      }),
-  }),
-
   'security.new_login': define<{ name: string | null; device: string; method: string; at: string }>({
     label: 'New sign-in alert',
     group: 'Account',
     category: 'transactional',
-    sample: { name: 'Priya Sharma', device: 'Chrome on Windows', method: 'Email and password', at: '2026-11-18T10:12:00.000Z' },
+    sample: { name: 'Priya Sharma', device: 'Chrome on Windows', method: 'Email code', at: '2026-11-18T10:12:00.000Z' },
     render: (p, { t, layout, kicker, heading, greeting, para, details, notice, button, url, date, ctx }) =>
       layout({
         appUrl: ctx.appUrl,
@@ -314,12 +234,12 @@ export const TEMPLATES = {
           ]),
           notice(
             t(
-              'If this was you, there is nothing to do. If not, reset your password now: it signs out every device.',
-              'अगर यह आप थे, तो कुछ करने की ज़रूरत नहीं। अगर नहीं, तो अभी पासवर्ड रीसेट करें: इससे सभी डिवाइस से लॉग आउट हो जाएगा।',
+              'If this was you, there is nothing to do. If not, sign out every device from Settings now, and secure the email or WhatsApp account that receives your sign-in codes.',
+              'अगर यह आप थे, तो कुछ करने की ज़रूरत नहीं। अगर नहीं, तो अभी सेटिंग्स से सभी डिवाइस से लॉग आउट करें, और जिस ईमेल या WhatsApp पर साइन-इन कोड आते हैं उसे सुरक्षित करें।',
             ),
             t('Not you?', 'यह आप नहीं थे?'),
           ),
-          button(t('Reset password', 'पासवर्ड रीसेट करें'), url('/login?view=forgot')),
+          button(t('Review signed-in devices', 'लॉग-इन डिवाइस देखें'), url('/dashboard/settings')),
         ],
       }),
   }),
@@ -640,7 +560,7 @@ export const TEMPLATES = {
           heading('Confirm it is you'),
           para(`Enter this code to open the admin console on ${p.device}. You will not be asked again on this device for 12 hours.`),
           codeBox(p.code),
-          notice('If you did not just try to open the admin console, someone may have your password. Change it now and tell the other admins.', 'Not you?'),
+          notice('If you did not just try to open the admin console, someone else is signed in to your account. Sign out every device from Settings, secure your email and tell the other admins.', 'Not you?'),
         ],
       }),
   }),

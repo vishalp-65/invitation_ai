@@ -28,7 +28,7 @@ describe('isForeignOrigin', () => {
 
 describe('bodyLimitFor', () => {
   it('keeps the small default for public and auth routes', () => {
-    expect(bodyLimitFor('/api/auth/login')).toBe(BODY_LIMIT);
+    expect(bodyLimitFor('/api/auth/otp/verify')).toBe(BODY_LIMIT);
     expect(bodyLimitFor('/api/public/events/:slug/rsvp')).toBe(BODY_LIMIT);
     expect(bodyLimitFor('/api/eventsx')).toBe(BODY_LIMIT);
   });

@@ -93,14 +93,6 @@ const envSchema = z.object({
     .optional()
     .transform((v) => (v ?? '').split(',').map((s) => s.trim().toLowerCase()).filter(Boolean)),
 
-  /**
-   * Refuse new passwords found in known breaches (Have I Been Pwned range API: only the first 5
-   * hex chars of the password's SHA-1 leave the server). Fails open if the service is down.
-   */
-  PWNED_PASSWORD_CHECK: z
-    .string()
-    .optional()
-    .transform((v) => v !== 'false' && v !== '0'),
   /** Admins confirm a 6-digit email code once per device every 12 h. Default: on in production. */
   ADMIN_MFA: z
     .string()
@@ -145,6 +137,13 @@ const envSchema = z.object({
    * tap-through send queue instead.
    */
   WHATSAPP_FOLLOWUP_TEMPLATE: optionalStr,
+  /**
+   * Approved Authentication-category template with a copy-code button, for sign-in codes on
+   * WhatsApp. Unset (or the Cloud API unset) = the sign-in form offers email and Google only.
+   */
+  WHATSAPP_OTP_TEMPLATE: optionalStr,
+  /** Language code the OTP template was approved in, exactly as in WhatsApp Manager (en, en_US, hi…). */
+  WHATSAPP_OTP_LANGUAGE: z.string().trim().min(2).default('en'),
 });
 
 export type Env = z.infer<typeof envSchema>;
