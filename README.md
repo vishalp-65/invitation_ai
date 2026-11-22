@@ -37,10 +37,10 @@ infra/       Dockerfiles, storage bootstrap
 
 ## Run locally
 
-Requirements: Node 24, a Neon Postgres database, an Upstash Redis database and an S3-compatible bucket (no Docker).
+Requirements: Node 24, a Neon Postgres database, Redis (`docker compose -f infra/docker/docker-compose.dev.yml up -d`) and an S3-compatible bucket.
 
 ```bash
-cp .env.example .env              # set DATABASE_URL (Neon), REDIS_URL (Upstash), S3_* and OPENROUTER_API_KEY
+cp .env.example .env              # set DATABASE_URL (Neon), REDIS_URL (local Redis), S3_* and OPENROUTER_API_KEY
 npm install
 npm run build                     # builds shared packages
 npm run db:migrate && npm run db:seed

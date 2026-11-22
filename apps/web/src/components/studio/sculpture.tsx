@@ -51,10 +51,6 @@ export function StudioSculpture({ hi }: { hi: boolean }) {
         id="atelier"
         ariaLabel={hi ? 'नोयटा एटेलियर' : 'The Noyta atelier'}
         headingAs="h2"
-        src="/sculpture/light.webp"
-        darkSrc="/sculpture/dark.webp"
-        mobileSrc="/sculpture/light-mobile.webp"
-        mobileDarkSrc="/sculpture/dark-mobile.webp"
         showNav={false}
         themeToggle={false}
         loadFonts={false}

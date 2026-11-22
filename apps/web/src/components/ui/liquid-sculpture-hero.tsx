@@ -327,11 +327,6 @@ void main(){
   disp += ambientField(uv, uTime)*10.0*uAmbient;
   vec2 suv = uv + disp/size;
   vec4 tx = texture(uImg, suv);
-  // unsharp mask: the source is ~2000px wide and is often shown larger, so bilinear scaling would look soft
-  vec2 ts = 1.0/vec2(textureSize(uImg, 0));
-  vec3 bl = (texture(uImg, suv+vec2(ts.x,0.0)).rgb + texture(uImg, suv-vec2(ts.x,0.0)).rgb
-           + texture(uImg, suv+vec2(0.0,ts.y)).rgb + texture(uImg, suv-vec2(0.0,ts.y)).rgb)*0.25;
-  tx.rgb = clamp(tx.rgb + (tx.rgb-bl)*0.8, 0.0, 1.0);
   vec3 col = tx.rgb;
   vec2 e = smoothstep(vec2(0.0), vec2(0.004,0.01), suv) * smoothstep(vec2(1.0), vec2(0.996,0.99), suv);
   // cut-out images carry their own alpha; flat-background images are keyed by colour

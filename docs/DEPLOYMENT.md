@@ -3,7 +3,7 @@
 ```
 Browser ──► noyta.in (Vercel, Next.js) ──/api/* rewrite──► api.noyta.in (nginx on droplet) ──► 127.0.0.1:4100  noyta-api container
                                                                                                noyta-worker container (Remotion renders)
-api + worker ──► Neon Postgres · Upstash Redis · DigitalOcean Spaces (media) · Resend · OpenRouter · Razorpay · WhatsApp Cloud API
+api + worker ──► Neon Postgres · Redis (container on the droplet) · DigitalOcean Spaces (media) · Resend · OpenRouter · Razorpay · WhatsApp Cloud API
 ```
 
 - The backend runs on the shared droplet (`ubuntu-s-1vcpu-2gb-blr1`: 1 vCPU, 2 GB RAM, 50 GB disk) as its own compose project (`noyta`) in `/opt/noyta`. It never touches `/opt/interviewpilot`.
@@ -106,7 +106,7 @@ ssh root@<droplet-ip> bash /root/noyta-deploy/bootstrap.sh
 **Env file.** Fill every `<...>` in `.env.production`:
 
 - `DATABASE_URL`: Neon's **pooled** string. `DATABASE_URL_DIRECT`: the direct one, used for migrations.
-- `REDIS_URL`: Upstash's `rediss://` URL.
+- `REDIS_PASSWORD`: a long random value (`openssl rand -hex 24`). Redis runs as a container beside the API and worker, and the compose file builds `REDIS_URL` from this password, so any `REDIS_URL` in `.env` is ignored. It uses AOF persistence on the `redis-data` volume, `noeviction`, and a 256 MB cap (`REDIS_MAXMEMORY`). Back up the volume nightly if you want queued jobs to survive a lost droplet.
 - `RESEND_API_KEY` with `EMAIL_PROVIDER=resend`, plus the Spaces, Razorpay, OpenRouter, Google and WhatsApp values.
 - Leave `COOKIE_DOMAIN` empty (session cookies are host-only) and leave `ADMIN_MFA` on.
 
@@ -270,7 +270,7 @@ It needs five values: `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_ACCESS_TOKEN`, `WHAT
 ## Step 8: Verify
 
 ```bash
-curl -s https://api.noyta.in/api/health/ready      # {"status":"ready"} = Neon + Upstash reachable
+curl -s https://api.noyta.in/api/health/ready      # {"status":"ready"} = Neon + Redis reachable
 curl -s https://noyta.in/api/health                # through the Vercel rewrite
 ```
 

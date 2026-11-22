@@ -1,0 +1,15 @@
+# Local Redis for development, so dev never shares (or burns the quota of) the production Redis.
+#   docker compose -f infra/docker/docker-compose.dev.yml up -d
+# Then set REDIS_URL=redis://localhost:6379 in .env
+name: noyta-dev
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--appendonly', 'yes', '--maxmemory-policy', 'noeviction']
+    ports: ['127.0.0.1:6379:6379']
+    volumes: ['redis-dev-data:/data']
+
+volumes:
+  redis-dev-data:
