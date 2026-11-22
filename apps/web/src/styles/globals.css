@@ -1481,3 +1481,63 @@
     display: none;
   }
 }
+
+/* ---------------------------------------------------------------------------------------------
+ * Low-end devices (<html data-perf="lite">, set before first paint by lib/perf-boot): no film
+ * grain, scroll-linked parallax, blur filters or backdrop blur. Layout and content are unchanged.
+ * ------------------------------------------------------------------------------------------- */
+html[data-perf='lite'] .grain::after {
+  display: none;
+}
+html[data-perf='lite'] .parallax,
+html[data-perf='lite'] .parallax-slow,
+html[data-perf='lite'] .scroll-grow,
+html[data-perf='lite'] .hero-scroll .hero-copy,
+html[data-perf='lite'] .hero-scroll .hero-media {
+  animation: none !important;
+}
+html[data-perf='lite'] .word-gradient {
+  animation: none;
+  background-position: 50% 50%;
+}
+html[data-perf='lite'] .letter-in {
+  animation-name: letter-in-lite;
+}
+@keyframes letter-in-lite {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+html[data-perf='lite'] .gc-dock,
+html[data-perf='lite'] .gc-watch,
+html[data-perf='lite'] .gc-dialog::backdrop {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+html[data-perf='lite'] .gc-floor {
+  filter: none;
+  opacity: 0.5;
+}
+html[data-perf='lite'] .gc-card {
+  box-shadow: none;
+}
+html[data-perf='lite'] #main .animate-pulse {
+  animation: none;
+}
+html[data-perf='lite'] [style*='dot-pulse'] {
+  animation: none !important;
+}
+/* Server markup is the full tier; collapse the heavy scroll stages from first paint so lite devices
+ * never lay out several extra screens before hydration swaps in the static versions. */
+html[data-perf='lite'] [data-pinned-deck] {
+  display: none !important;
+}
+html[data-perf='lite'] [data-sticky-stack] {
+  display: flex !important;
+}
+html[data-perf='lite'] [data-tunnel-stage] {
+  height: 100svh !important;
+}

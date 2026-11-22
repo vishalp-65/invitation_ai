@@ -26,6 +26,7 @@ import {
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { useLite } from '@/lib/perf';
 
 const loadFeatures = () => import('./motion-features').then((r) => r.default);
 
@@ -55,10 +56,12 @@ function arrived(j: number, v: number, count: number) {
 }
 
 export function StackingDeck({ cards, className }: { cards: DeckCard[]; className?: string }) {
+  // Low-end devices get the CSS-only stack at every width: no pinned 3D stage, no scroll JS.
+  const lite = useLite();
   return (
     <div className={className}>
-      <PinnedDeck cards={cards} />
-      <StickyStack cards={cards} />
+      {!lite && <PinnedDeck cards={cards} />}
+      <StickyStack cards={cards} always={lite} />
     </div>
   );
 }
@@ -135,6 +138,7 @@ function PinnedDeck({ cards }: { cards: DeckCard[] }) {
     <LazyMotion features={loadFeatures} strict>
       <div
         ref={deck}
+        data-pinned-deck=""
         className="relative hidden w-full sm:block"
         style={{ height: `${Math.max(1, cards.length) * 100}svh` }}
       >
@@ -209,9 +213,9 @@ function PinnedCard({
 }
 
 /** Phones: CSS-only sticky stack, each card pinning a little lower than the one before. */
-function StickyStack({ cards }: { cards: DeckCard[] }) {
+function StickyStack({ cards, always }: { cards: DeckCard[]; always?: boolean }) {
   return (
-    <ol className="flex flex-col gap-6 px-5 sm:hidden">
+    <ol data-sticky-stack="" className={clsx('flex flex-col gap-6 px-5', !always && 'sm:hidden', always && 'mx-auto max-w-5xl')}>
       {cards.map((c, i) => (
         <li
           key={c.id}
@@ -219,7 +223,8 @@ function StickyStack({ cards }: { cards: DeckCard[] }) {
           className="sticky"
           style={{ top: `calc(5rem + ${i * 14}px)` }}
         >
-          <div className="relative aspect-[4/5] overflow-hidden rounded-3xl bg-ivory">
+          {/* Wide screens (lite devices only) get the 16:9 card the face is laid out for at sm+. */}
+          <div className={clsx('relative aspect-[4/5] overflow-hidden rounded-3xl bg-ivory', always && 'sm:aspect-[16/9]')}>
             {c.face}
             <Visit card={c} />
           </div>

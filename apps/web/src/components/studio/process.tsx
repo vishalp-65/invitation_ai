@@ -32,7 +32,7 @@ export function StudioProcess({ hi }: { hi: boolean }) {
 
   return (
     <section id="how-it-works" ref={ref} className="relative overflow-clip bg-sand py-20 sm:py-24 lg:py-32">
-      <div aria-hidden className="pointer-events-none absolute bottom-0 left-0 size-[400px] rounded-full bg-ink/[0.03] blur-[100px]" />
+      <div aria-hidden className="pointer-events-none absolute bottom-0 left-0 size-[400px] rounded-full [background:radial-gradient(closest-side,color-mix(in_srgb,var(--color-ink)_4%,transparent),transparent)]" />
       <Frame>
         <div className="grid items-end gap-4 lg:grid-cols-2 lg:gap-12">
           <div className="pb-0 lg:pb-32">

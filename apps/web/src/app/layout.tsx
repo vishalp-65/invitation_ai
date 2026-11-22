@@ -7,6 +7,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Instrument_Sans, JetBrains_Mono, Noto_Sans_Devanagari } from 'next/font/google';
 import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers';
+import { LITE_BOOT_SCRIPT } from '@/lib/perf-boot';
 import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 import '@/styles/globals.css';
 
@@ -49,6 +50,8 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         {/* Sets data-theme before first paint (no flash of the wrong theme). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
+        {/* Marks low-end devices (data-perf="lite") so heavy effects can be skipped from first paint. */}
+        <script dangerouslySetInnerHTML={{ __html: LITE_BOOT_SCRIPT }} />
       </head>
       <body className="min-h-dvh antialiased">
         <a

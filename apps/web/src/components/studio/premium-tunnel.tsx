@@ -5,29 +5,28 @@ import { PerspectiveTunnel, type TunnelItem } from '@/components/ui/perspective-
 import { designHref } from '@/lib/links';
 import { Kicker } from './primitives';
 
-/** Colourways per family shown in the corridor (modern collections only). */
-const PER_FAMILY = 2;
+/** The corridor never shows more than this many cards at once (see perspective-tunnel), so send no more. */
+const MAX_CARDS = 14;
 
 /**
- * The premium collection as a scroll-driven 3D corridor. Only the newest (heritage) design families
- * flagged premium, two colourways each, interleaved so neighbouring cards are different designs.
+ * The premium collection as a scroll-driven 3D corridor: the newest (heritage) design families,
+ * one card each, alternating between a family's first and second colourway so the row still shows
+ * variety without loading dozens of images.
  */
 function premiumItems(hidden: readonly string[]): TunnelItem[] {
   const off = new Set(hidden);
-  const families = MODERN_FAMILY_IDS;
-  const byFamily = families.map((id) => BUILTIN_TEMPLATES.filter((t) => t.design === id && !off.has(t.id)).slice(0, PER_FAMILY));
   const items: TunnelItem[] = [];
-  for (let k = 0; k < PER_FAMILY; k++) {
-    for (const list of byFamily) {
-      const t = list[k];
-      if (!t) continue;
-      items.push({
-        src: `/showcase/${t.id}.jpg`,
-        title: t.family?.name ?? t.name,
-        caption: t.family?.variant,
-        href: designHref(t),
-      });
-    }
+  for (const id of MODERN_FAMILY_IDS) {
+    const list = BUILTIN_TEMPLATES.filter((t) => t.design === id && !off.has(t.id));
+    const t = list[items.length % 2] ?? list[0];
+    if (!t) continue;
+    items.push({
+      src: `/showcase/${t.id}.jpg`,
+      title: t.family?.name ?? t.name,
+      caption: t.family?.variant,
+      href: designHref(t),
+    });
+    if (items.length >= MAX_CARDS) break;
   }
   return items;
 }

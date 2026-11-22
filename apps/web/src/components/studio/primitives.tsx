@@ -4,6 +4,7 @@ import { clsx } from 'clsx';
 import Image from 'next/image';
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
 import { observe } from '@/lib/observe';
+import { isLite } from '@/lib/perf';
 
 // ---------------------------------------------------------------- visibility
 // Shared, pooled IntersectionObservers: see lib/observe.
@@ -74,24 +75,32 @@ const reducedMotion = () => typeof window !== 'undefined' && window.matchMedia('
  * Runs `frame(dt)` on requestAnimationFrame only while the canvas is on screen and the tab is
  * visible. Returns a cleanup. Draws a single frame when the user prefers reduced motion.
  */
-function animateWhileVisible(el: Element, frame: () => void) {
+function animateWhileVisible(el: Element, frame: (steps: number) => void) {
   let raf = 0;
   let running = false;
-  const loop = () => {
-    frame();
+  // ~30fps is plenty for slowly drifting dots and halves the main-thread cost. `frame` gets the
+  // elapsed time in 60fps frames, so speed stays the same whatever the draw rhythm or refresh rate.
+  let last = 0;
+  const loop = (now: number) => {
     raf = requestAnimationFrame(loop);
+    if (now - last < 28) return;
+    const steps = last ? Math.min((now - last) / (1000 / 60), 4) : 1;
+    last = now;
+    frame(steps);
   };
   const start = () => {
     if (running || document.visibilityState !== 'visible') return;
     running = true;
+    last = 0;
     raf = requestAnimationFrame(loop);
   };
   const stop = () => {
     running = false;
     cancelAnimationFrame(raf);
   };
-  frame();
-  if (reducedMotion()) return () => {};
+  frame(1);
+  // Reduced motion and low-end devices keep the single drawn frame.
+  if (reducedMotion() || isLite()) return () => {};
   let inter = false;
   const unobserve = observe(
     el,
@@ -163,8 +172,9 @@ export function ArtImage({ name, className, imgClassName, alt = '', collapse }: 
     >
       {failed ? (
         <div className="absolute inset-0">
-          <div className="absolute left-[20%] top-[25%] size-[55%] rounded-full bg-rose/25 blur-[80px]" />
-          <div className="absolute bottom-[15%] right-[15%] size-[45%] rounded-full bg-violet/20 blur-[90px]" />
+          {/* Radial gradients, not blurred circles: same soft glow without a big filter to rasterise. */}
+          <div className="absolute left-[10%] top-[10%] size-[75%] rounded-full [background:radial-gradient(closest-side,color-mix(in_srgb,var(--color-rose)_28%,transparent),transparent)]" />
+          <div className="absolute bottom-[5%] right-[5%] size-[65%] rounded-full [background:radial-gradient(closest-side,color-mix(in_srgb,var(--color-violet)_22%,transparent),transparent)]" />
         </div>
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
@@ -252,7 +262,7 @@ export function ParticleField({ className, count = 70 }: { className?: string; c
       return { bx: (s * 127.1) % 1, by: (s * 311.7) % 1, ph: s * Math.PI * 2, sp: 0.4 + (s % 0.4), r: 1.2 + (s % 2.2) };
     });
     let t = 0;
-    const stop = animateWhileVisible(canvas, () => {
+    const stop = animateWhileVisible(canvas, (steps) => {
       ctx.clearRect(0, 0, w, h);
       for (const p of ps) {
         const dx = p.bx - mouse.x;
@@ -266,7 +276,7 @@ export function ParticleField({ className, count = 70 }: { className?: string; c
         ctx.fillStyle = `rgba(${rgb},${0.08 + pulse * 0.18 + inf * 0.3})`;
         ctx.fill();
       }
-      t += 0.016;
+      t += 0.016 * steps;
     });
     return () => {
       stop();
@@ -301,7 +311,7 @@ export function DotWave({ height = 32, accent = false, seed = 0 }: { height?: nu
     const f1 = 0.22 + seed * 0.08;
     const f2 = 0.07 + seed * 0.04;
     let t = seed * 13;
-    const stop = animateWhileVisible(canvas, () => {
+    const stop = animateWhileVisible(canvas, (steps) => {
       if (++frame % 60 === 0) rgb = cssRgb(getComputedStyle(canvas).color);
       ctx.clearRect(0, 0, W, height);
       const cols = Math.floor(W / 8);
@@ -312,7 +322,7 @@ export function DotWave({ height = 32, accent = false, seed = 0 }: { height?: nu
         ctx.fillStyle = `rgba(${rgb},${0.15 + v * 0.55})`;
         ctx.fill();
       }
-      t += 0.02;
+      t += 0.02 * steps;
     });
     return () => {
       stop();

@@ -5,6 +5,7 @@ import { useOffers } from '@/lib/offers';
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
+import { isLite } from '@/lib/perf';
 import { useOnScreen, useTicker } from './primitives';
 
 const STOPS = ['#eca8d6', '#a78bfa', '#67e8f9', '#fbbf24', '#eca8d6'];
@@ -77,7 +78,7 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
     const v = videoRef.current;
     if (!v) return;
     const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || saveData) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || saveData || isLite()) return;
     if (onScreen) {
       if (v.preload === 'none') {
         v.preload = 'auto';
