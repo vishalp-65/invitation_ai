@@ -1,5 +1,5 @@
-import { and, entitlements, eq, gt, sql, type Database } from '@cardai/db';
-import { PRODUCTS, type Feature, type ProductCode } from '@cardai/shared';
+import { and, entitlements, eq, events, gt, sql, users, type Database } from '@cardai/db';
+import { FEATURES, PRODUCTS, type Feature, type ProductCode } from '@cardai/shared';
 import { ForbiddenException, Inject, Injectable } from '@nestjs/common';
 import type { DbExecutor } from '../../common/db.js';
 import { DB } from '../../infra/infra.module.js';
@@ -9,7 +9,22 @@ import { DB } from '../../infra/infra.module.js';
 export class EntitlementsService {
   constructor(@Inject(DB) private readonly db: Database) {}
 
+  /** Admins own their events outright: every feature is unlocked and no credit is ever spent. */
+  async isAdminOwned(eventId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ role: users.role })
+      .from(events)
+      .innerJoin(users, eq(users.id, events.userId))
+      .where(eq(events.id, eventId));
+    return row?.role === 'admin';
+  }
+
   async forEvent(eventId: string): Promise<{ features: Set<Feature>; credits: Partial<Record<Feature, number>> }> {
+    if (await this.isAdminOwned(eventId)) {
+      // `site_extra_year` credits are years bought, so they stay 0 (royale already gives the longest base life).
+      const credits = Object.fromEntries(FEATURES.filter((f) => f !== 'site_extra_year').map((f) => [f, 9999]));
+      return { features: new Set<Feature>(FEATURES), credits };
+    }
     const rows = await this.db.select().from(entitlements).where(eq(entitlements.eventId, eventId));
     return {
       features: new Set(rows.map((r) => r.feature)),
@@ -18,6 +33,7 @@ export class EntitlementsService {
   }
 
   async has(eventId: string, feature: Feature): Promise<boolean> {
+    if (await this.isAdminOwned(eventId)) return true;
     const [row] = await this.db
       .select({ f: entitlements.feature })
       .from(entitlements)
@@ -48,6 +64,7 @@ export class EntitlementsService {
 
   /** Atomically spends one credit; throws if none left. */
   async consumeCredit(eventId: string, feature: Feature): Promise<void> {
+    if (await this.isAdminOwned(eventId)) return;
     const [row] = await this.db
       .update(entitlements)
       .set({ credits: sql`${entitlements.credits} - 1` })
@@ -57,6 +74,7 @@ export class EntitlementsService {
   }
 
   async refundCredit(eventId: string, feature: Feature): Promise<void> {
+    if (await this.isAdminOwned(eventId)) return;
     await this.db
       .update(entitlements)
       .set({ credits: sql`${entitlements.credits} + 1` })

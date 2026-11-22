@@ -74,8 +74,10 @@ export class FollowUpsService {
     const list = await this.db
       .select({ e: events })
       .from(events)
-      .innerJoin(entitlements, and(eq(entitlements.eventId, events.id), eq(entitlements.feature, 'personalized_links')))
-      .where(and(eq(events.status, 'published'), sql`(${events.settings} -> 'followUps' ->> 'auto')::boolean is true`, sql`${events.suspendedAt} is null`));
+      .where(and(
+        sql`(exists (select 1 from ${entitlements} where ${entitlements.eventId} = ${events.id} and ${entitlements.feature} = 'personalized_links')
+          or exists (select 1 from users where users.id = ${events.userId} and users.role = 'admin'))`,
+        eq(events.status, 'published'), sql`(${events.settings} -> 'followUps' ->> 'auto')::boolean is true`, sql`${events.suspendedAt} is null`));
     let sent = 0;
     let failed = 0;
     for (const { e } of list) {
