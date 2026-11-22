@@ -32,6 +32,15 @@ async function toApi(req: NextRequest): Promise<NextResponse> {
   }
   return NextResponse.rewrite(new URL(`${API_URL}${req.nextUrl.pathname}${req.nextUrl.search}`), { request: { headers } });
 }
+const CANONICAL_HOST = (() => {
+  try {
+    return process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL).hostname.toLowerCase() : null;
+  } catch {
+    return null;
+  }
+})();
+const twinOf = (h: string) => (h.startsWith('www.') ? h.slice(4) : `www.${h}`);
+
 /** Separate short domain (e.g. inv.to). Unset = short links live under /s on the main domain. */
 const SHORT_HOST = process.env.NEXT_PUBLIC_SHORT_HOST?.toLowerCase() || null;
 
@@ -63,6 +72,17 @@ function withGeo(req: NextRequest, res: NextResponse): NextResponse {
 export function proxy(req: NextRequest) {
   const host = req.headers.get('host')?.split(':')[0]?.toLowerCase();
   const path = req.nextUrl.pathname;
+
+  // One canonical host. Cookies are host-only and Google sign-in returns to APP_URL, so a visitor
+  // on the other of noyta.in / www.noyta.in would lose their login state mid-flow. Navigations
+  // (GET/HEAD) are redirected; writes pass through (the API accepts both origins).
+  if (CANONICAL_HOST && host && host !== CANONICAL_HOST && host === twinOf(CANONICAL_HOST) && (req.method === 'GET' || req.method === 'HEAD')) {
+    const url = req.nextUrl.clone();
+    url.hostname = CANONICAL_HOST;
+    url.port = '';
+    return NextResponse.redirect(url, 308);
+  }
+
   if (path.startsWith('/api/')) return toApi(req);
 
   if (SHORT_HOST && host === SHORT_HOST) {

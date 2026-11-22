@@ -6,7 +6,7 @@
  *   npm run showcase -w @cardai/worker
  *   npm run showcase -w @cardai/worker -- id1,id2 --out=DIR --lang=hi   (review renders)
  */
-import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, type DesignData, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, templateSampleLanguage, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -17,10 +17,8 @@ import { RemotionRuntime } from '../remotion.js';
 const outDir = fileURLToPath(new URL('../../../web/public/showcase/', import.meta.url));
 const log = pino({ transport: { target: 'pino-pretty', options: { singleLine: true } } });
 
-/** Traditional families are shown in Hindi, modern ones in English. */
-const lang = (t: TemplateDefinition): 'en' | 'hi' =>
-  t.sampleLanguage ??
-  (t.communities.includes('modern') || ['christian-wedding', 'corporate'].some((e) => (t.eventTypes as string[]).includes(e)) ? 'en' : 'hi');
+/** Traditional families are shown in Hindi, modern ones in English (the wizard reads the same rule). */
+const lang = (t: TemplateDefinition): 'en' | 'hi' => templateSampleLanguage(t);
 
 const only = process.argv[2]?.split(','); // optional comma-separated id filter
 const missingOnly = process.argv.includes('--missing'); // skip thumbnails that already exist

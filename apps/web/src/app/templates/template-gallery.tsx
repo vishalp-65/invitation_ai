@@ -1,5 +1,6 @@
 'use client';
 
+import { GallerySkeleton } from '@/components/ui/skeletons';
 import { COLOR_FILTERS, COMMUNITIES, EVENT_TYPES, groupByFamily, STYLE_FILTERS, type EventTypeId, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { Check, Search, SlidersHorizontal, X } from 'lucide-react';
@@ -221,14 +222,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
           </div>
 
           {isLoading ? (
-            <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
-              {Array.from({ length: 8 }, (_, i) => (
-                <li key={i}>
-                  <div className="skeleton aspect-[9/16] w-full" />
-                  <div className="skeleton mt-3 h-4 w-2/3" />
-                </li>
-              ))}
-            </ul>
+            <GallerySkeleton />
           ) : families.length === 0 ? (
             <div className="mt-5"><NoTemplates hi={hi} onReset={resetAll} /></div>
           ) : (

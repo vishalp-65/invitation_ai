@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { BIG_BODY_LIMIT, BODY_LIMIT, bodyLimitFor, isForeignOrigin, redactQuery, redactUrl } from './http-hardening.js';
+import { allowedOriginsFor, BIG_BODY_LIMIT, BODY_LIMIT, bodyLimitFor, isForeignOrigin, redactQuery, redactUrl } from './http-hardening.js';
 
 const allowed = new Set(['https://noyta.in']);
 
@@ -23,6 +23,23 @@ describe('isForeignOrigin', () => {
   it('accepts any localhost origin only outside production', () => {
     expect(isForeignOrigin('POST', { origin: 'http://a.localhost:3100' }, allowed, true)).toBe(false);
     expect(isForeignOrigin('POST', { origin: 'http://a.localhost:3100' }, allowed, false)).toBe(true);
+  });
+});
+
+describe('allowedOriginsFor', () => {
+  it('accepts both the apex and www host, whichever APP_URL names', () => {
+    for (const url of ['https://noyta.in', 'https://www.noyta.in']) {
+      const set = allowedOriginsFor(url);
+      expect(isForeignOrigin('POST', { origin: 'https://noyta.in' }, set, false)).toBe(false);
+      expect(isForeignOrigin('POST', { origin: 'https://www.noyta.in' }, set, false)).toBe(false);
+      expect(isForeignOrigin('POST', { origin: 'https://user.noyta.in' }, set, false)).toBe(true);
+    }
+  });
+
+  it('adds the short domain and leaves localhost and IPs alone', () => {
+    expect(allowedOriginsFor('https://noyta.in', 'https://inv.to').has('https://www.inv.to')).toBe(true);
+    expect([...allowedOriginsFor('http://localhost:3000')]).toEqual(['http://localhost:3000']);
+    expect([...allowedOriginsFor('http://127.0.0.1:3000', undefined)]).toEqual(['http://127.0.0.1:3000']);
   });
 });
 

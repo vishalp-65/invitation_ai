@@ -8,7 +8,7 @@ import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module.js';
 import { resolveClientIp } from './common/client-ip.js';
-import { BODY_LIMIT, bodyLimitFor, isForeignOrigin } from './common/http-hardening.js';
+import { BODY_LIMIT, allowedOriginsFor, bodyLimitFor, isForeignOrigin } from './common/http-hardening.js';
 import { loadEnv } from './config/env.js';
 
 async function bootstrap() {
@@ -35,16 +35,8 @@ async function bootstrap() {
     route.bodyLimit ??= bodyLimitFor(route.url);
   });
 
-  // The site is served on both noyta.in and www.noyta.in, so browsers send either as Origin
-  // regardless of which one APP_URL names. Accept both (and likewise for the short-link domain).
-  const withWwwVariant = (url: string): string[] => {
-    const u = new URL(url);
-    if (u.hostname === 'localhost' || /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) return [u.origin];
-    const alt = new URL(u.origin);
-    alt.hostname = u.hostname.startsWith('www.') ? u.hostname.slice(4) : `www.${u.hostname}`;
-    return [u.origin, alt.origin];
-  };
-  const allowedOrigins = new Set([...withWwwVariant(env.APP_URL), ...(env.SHORT_LINK_BASE ? withWwwVariant(env.SHORT_LINK_BASE) : [])]);
+  // Includes the www/apex twin of each, so it doesn't matter which host the visitor used.
+  const allowedOrigins = allowedOriginsFor(env.APP_URL, env.SHORT_LINK_BASE);
   fastify.addHook(
     'onRequest',
     async (

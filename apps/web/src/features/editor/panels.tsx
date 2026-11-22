@@ -162,7 +162,7 @@ function TemplateTile({ name, variants, current, onPick }: { name: string; varia
   return (
     <li>
       <button type="button" onClick={() => onPick(t)} className={clsx('block w-full overflow-hidden rounded-lg bg-mist ring-offset-2', t.id === current && 'ring-2 ring-ink')}>
-        {t.doc ? <TemplateCover id={t.id} name={t.name} coverPage={coverOf(t.doc)} /> : <Image src={`/showcase/${t.id}.jpg`} alt={t.name} width={216} height={384} sizes="160px" className="aspect-[9/16] w-full object-cover" />}
+        {t.doc ? <TemplateCover id={t.id} name={t.name} coverPage={coverOf(t.doc)} /> : <Image src={`/showcase/${t.id}.jpg`} alt={t.name} width={216} height={384} sizes="160px" className="skeleton aspect-[9/16] w-full object-cover" />}
       </button>
       <p className="mt-1.5 truncate text-sm font-medium">{name}</p>
       {variants.length > 1 && (
@@ -362,7 +362,7 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
             <li key={m.id}>
               <button type="button" onClick={() => addPhoto(m.url)} className="block aspect-square w-full overflow-hidden rounded-lg bg-mist">
                 {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our storage */}
-                <img src={m.url} alt="" loading="lazy" className="size-full object-cover" />
+                <img src={m.url} alt="" loading="lazy" className="skeleton size-full object-cover" />
               </button>
             </li>
           ))}

@@ -60,7 +60,7 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
           width={432}
           height={768}
           sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 240px"
-          className="aspect-[9/16] w-full object-cover transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]"
+          className="skeleton aspect-[9/16] w-full object-cover transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]"
           priority={priority}
         />
       )}

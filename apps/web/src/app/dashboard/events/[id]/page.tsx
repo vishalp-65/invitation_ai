@@ -270,7 +270,7 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
 
 export default function EventPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageSkeleton variant="workspace" />}>
       <EventWorkspace />
     </Suspense>
   );

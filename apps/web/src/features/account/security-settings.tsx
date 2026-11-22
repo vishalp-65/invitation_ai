@@ -68,7 +68,12 @@ export function DevicesSection({ row }: { row: (label: string, hint: string, con
   return (
     <>
       <ul className="flex flex-col divide-y divide-ink/10 pb-4">
-        {sessions.isLoading && <li className="py-3 text-[0.8125rem] text-ink-soft">Loading devices…</li>}
+        {sessions.isLoading &&
+          [0, 1].map((i) => (
+            <li key={i} className="py-3" aria-hidden>
+              <div className="skeleton h-10" />
+            </li>
+          ))}
         {sessions.data?.map((s) => {
           const name = describe(s.userAgent);
           const Icon = /Android|iOS/.test(name) ? Smartphone : Monitor;

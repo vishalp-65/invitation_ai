@@ -1,16 +1,20 @@
 'use client';
 
-import { coverPageIndex } from '@cardai/shared';
+import { coverPageIndex, type LanguageCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
-import { useDraft } from './draft-store';
+import { inLanguage, useDraft } from './draft-store';
 import { useDraftDesign } from './use-draft-design';
 
-/** The draft rendered on a template (the chosen one by default), with page arrows + dots. */
-export function DraftPreview({ templateId, className }: { templateId?: string; className?: string }) {
-  const d = useDraft();
+/**
+ * The draft rendered on a template (the chosen one by default), with page arrows + dots.
+ * `language` previews it in another language (a design is shown in the language it will start in).
+ */
+export function DraftPreview({ templateId, language, className }: { templateId?: string; language?: LanguageCode; className?: string }) {
+  const store = useDraft();
+  const d = useMemo(() => (language && language !== store.language ? { ...store, language, ...inLanguage(store, language) } : store), [store, language]);
   const { doc, data } = useDraftDesign(d, templateId ?? d.templateId);
   // Open on the cover (names + date), not the blessing page.
   const [page, setPage] = useState<number | null>(null);

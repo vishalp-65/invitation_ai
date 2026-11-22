@@ -2,6 +2,7 @@ import { EVENT_TYPE_IDS, type TemplateDefinition } from '@cardai/shared';
 import type { Metadata } from 'next';
 import { getLocale } from 'next-intl/server';
 import { Suspense } from 'react';
+import { GallerySkeleton } from '@/components/ui/skeletons';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
 import { VideoDesignCoverflow } from '@/components/marketing/design-coverflow';
@@ -53,7 +54,7 @@ export default async function TemplatesPage({ searchParams }: Props) {
             Every design works as an image card, a video invite and a website. Pick one now and switch any time — your words stay the same.
           </p>
         </div>
-        <Suspense>
+        <Suspense fallback={<GallerySkeleton />}>
           <TemplateGallery initial={initial} />
         </Suspense>
 

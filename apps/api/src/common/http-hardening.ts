@@ -18,6 +18,26 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  * a state-changing request that a browser marks as coming from another origin is refused.
  * Server-to-server callers (webhooks, curl) send no Origin and no Sec-Fetch-Site, so they pass.
  */
+/**
+ * Origins the web app may call us from: the configured public URL(s) plus their www/apex twin,
+ * because the site is served on both and browsers send whichever the visitor used. Forgetting one
+ * blocks every write on that host (403 "came from another site").
+ */
+export function allowedOriginsFor(...urls: Array<string | undefined>): Set<string> {
+  const out = new Set<string>();
+  for (const raw of urls) {
+    if (!raw) continue;
+    const u = new URL(raw);
+    out.add(u.origin);
+    const isNamed = u.hostname.includes('.') && !/^[\d.]+$/.test(u.hostname) && !u.hostname.endsWith('.localhost');
+    if (!isNamed) continue;
+    const twin = new URL(u.origin);
+    twin.hostname = u.hostname.startsWith('www.') ? u.hostname.slice(4) : `www.${u.hostname}`;
+    out.add(twin.origin);
+  }
+  return out;
+}
+
 export function isForeignOrigin(
   method: string,
   headers: Record<string, string | string[] | undefined>,

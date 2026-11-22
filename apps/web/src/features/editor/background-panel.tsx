@@ -178,7 +178,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
                   className="relative block aspect-[9/16] w-full overflow-hidden rounded-lg bg-mist ring-offset-2 ring-offset-surface aria-pressed:ring-2 aria-pressed:ring-primary"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- our storage */}
-                  <img src={m.url} alt="" loading="lazy" className="size-full object-cover" />
+                  <img src={m.url} alt="" loading="lazy" className="skeleton size-full object-cover" />
                   {m.kind === 'ai_image' && <Sparkles className="absolute right-1 top-1 size-3.5 text-white drop-shadow" />}
                 </button>
               </li>

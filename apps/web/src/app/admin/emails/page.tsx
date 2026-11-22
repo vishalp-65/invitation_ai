@@ -14,6 +14,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { ArrowLeft, CalendarClock, FlaskConical, Mail, Monitor, Pencil, Plus, Send, ShieldBan, Smartphone, Trash2, X } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { PageSkeleton } from '@/components/ui/skeletons';
 import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
@@ -67,7 +68,7 @@ const statusLabel = (c: EmailCampaignDto) =>
 
 export default function AdminEmailsPage() {
   return (
-    <Suspense>
+    <Suspense fallback={<PageSkeleton variant="list" />}>
       <EmailsInner />
     </Suspense>
   );

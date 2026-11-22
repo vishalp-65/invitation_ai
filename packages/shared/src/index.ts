@@ -2,6 +2,7 @@ export * from './constants/brand.js';
 export * from './constants/languages.js';
 export * from './constants/event-types.js';
 export * from './constants/faith.js';
+export * from './constants/stock-wording.js';
 export * from './constants/products.js';
 export * from './constants/render.js';
 export * from './constants/india.js';

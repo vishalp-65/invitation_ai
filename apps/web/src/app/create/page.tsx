@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { SiteHeader } from '@/components/layout/site-header';
+import { WizardSkeleton } from '@/components/ui/skeletons';
 import { CreateWizard } from '@/features/create/create-wizard';
 
 export const metadata: Metadata = {
@@ -16,7 +17,7 @@ export default function CreatePage() {
     <>
       <SiteHeader />
       <main id="main" className="bg-ivory">
-        <Suspense>
+        <Suspense fallback={<WizardSkeleton />}>
           <CreateWizard />
         </Suspense>
       </main>

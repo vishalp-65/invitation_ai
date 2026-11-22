@@ -1,3 +1,5 @@
+import type { TemplateDefinition } from './types.js';
+
 /**
  * Showpiece designs for marketing and auth surfaces (landing, sign-in, dashboard, menus).
  * Only the modern collections (Atelier, Celebration) are used as showpieces.
@@ -41,3 +43,16 @@ export const SHOWCASE = {
   /** Template a brand-new draft starts from before the user picks one. */
   defaultTemplate: 'raat-mahal-maroon',
 } as const;
+
+/**
+ * The language a design is shown in on its gallery tile (the pre-rendered thumbnail, or the
+ * live English sample for marketplace and layered designs). Picking a design starts the card in
+ * this language, so the form and preview match what the user saw. Kept in step with
+ * apps/worker/src/scripts/render-showcase.ts, which renders the thumbnails with it.
+ */
+export function templateSampleLanguage(t: Pick<TemplateDefinition, 'sampleLanguage' | 'communities' | 'eventTypes' | 'source' | 'doc'>): 'en' | 'hi' {
+  if (t.source === 'marketplace' || t.doc) return 'en';
+  if (t.sampleLanguage) return t.sampleLanguage;
+  const modern = (t.communities as readonly string[]).includes('modern');
+  return modern || ['christian-wedding', 'corporate'].some((e) => (t.eventTypes as readonly string[]).includes(e)) ? 'en' : 'hi';
+}

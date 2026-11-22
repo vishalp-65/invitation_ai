@@ -111,7 +111,7 @@ export function StepOccasion({ onPicked, onScanned }: { onPicked: () => void; on
                     type="button"
                     lang={l.code}
                     aria-pressed={on}
-                    onClick={() => d.set({ language: l.code, ...(d.contentIsDefault ? { content: { ...d.content, headline: '' } } : {}) })}
+                    onClick={() => d.setLanguage(l.code)}
                     className={clsx(
                       'press h-11 shrink-0 border px-4 text-[0.95rem] transition-colors duration-200',
                       on ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink hover:border-ink/30 hover:bg-ink/[0.04]',

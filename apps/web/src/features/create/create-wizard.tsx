@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, type EventDto, type EventTypeId } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, LANGUAGES, type EventDto, type EventTypeId, type LanguageCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowLeft, ArrowRight, Check, Eye } from 'lucide-react';
 import Image from 'next/image';
@@ -50,7 +50,8 @@ const SCAN_STEPS: StepMeta[] = [
 
 export function CreateWizard() {
   const d = useDraft();
-  const hi = useLocale() === 'hi';
+  const locale = useLocale();
+  const hi = locale === 'hi';
   const router = useRouter();
   const search = useSearchParams();
   const [creating, setCreating] = useState(false);
@@ -68,12 +69,22 @@ export function CreateWizard() {
     const s = useDraft.getState();
     if (type && (EVENT_TYPE_IDS as readonly string[]).includes(type)) s.setType(type as EventTypeId);
     const picked = template && (BUILTIN_TEMPLATES.some((t) => t.id === template) || /^adm-[a-f0-9]{8}$/.test(template));
-    if (picked) s.set({ templateId: template });
+    if (picked) s.pickTemplate(template);
     // A chosen design goes straight to the form; an occasion alone goes to the designs.
     s.set({ source: 'form', scan: undefined, step: picked ? 2 : 1 });
     // Consume the params so they can't override the user's own choice later.
     router.replace('/create', { scroll: false });
   }, [search, router]);
+
+  // Until a language is chosen, the card starts in the site's language. A draft already past the
+  // design step (saved before languages followed the design) takes the language of its design.
+  const languageSet = Boolean(d.languageSet);
+  useEffect(() => {
+    if (languageSet) return;
+    const s = useDraft.getState();
+    if (s.step >= 2) s.pickTemplate(s.templateId);
+    else s.setLanguage(LANGUAGES.some((l) => l.code === locale) ? (locale as LanguageCode) : 'en');
+  }, [languageSet, locale]);
 
   // Always some wording, so the preview is never blank.
   const missingWording = !d.content.headline;

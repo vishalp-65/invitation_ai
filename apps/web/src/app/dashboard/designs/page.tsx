@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
+import { GallerySkeleton } from '@/components/ui/skeletons';
 import { TemplateGallery } from '@/app/templates/template-gallery';
 
 export const metadata: Metadata = { title: 'Designs' };
@@ -13,7 +14,7 @@ export default function DashboardDesignsPage() {
       <p className="mt-2 max-w-2xl text-ink-soft">
         Every design works as an image card, a video invite and a website. Pick one to start a new invitation; your words carry over if you switch later.
       </p>
-      <Suspense>
+      <Suspense fallback={<GallerySkeleton />}>
         <TemplateGallery inApp />
       </Suspense>
     </div>

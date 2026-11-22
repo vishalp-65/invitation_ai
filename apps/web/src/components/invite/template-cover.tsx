@@ -47,7 +47,7 @@ export function TemplateCover({ id, name, coverPage, className, sizes = '160px',
       sizes={sizes}
       priority={priority}
       onError={() => setBroken(true)}
-      className={clsx('aspect-[9/16] w-full bg-mist object-cover', className)}
+      className={clsx('skeleton aspect-[9/16] w-full object-cover', className)}
     />
   );
 }

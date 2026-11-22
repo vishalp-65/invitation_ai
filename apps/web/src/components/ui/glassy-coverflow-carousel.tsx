@@ -96,6 +96,9 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
   const [pageVisible, setPageVisible] = useState(true);
   const [hovered, setHovered] = useState(false);
   const [cardFocused, setCardFocused] = useState(false);
+  // Custom `media` (e.g. live-drawn SVG posters, ~140 KB each) mounts only once the carousel nears
+  // the viewport. Server HTML then carries none of it: it was ~1 MB of the homepage before.
+  const [near, setNear] = useState(false);
   const stage = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const gesture = useRef<{ x: number; y: number; time: number; horizontal: boolean } | null>(null);
@@ -125,6 +128,16 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
     return () => media.removeEventListener("change", update);
   }, []);
   const hasItems = items.length > 0;
+  useEffect(() => {
+    const el = stage.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") { setNear(true); return; }
+    const observer = new IntersectionObserver(entries => {
+      if (entries.some(e => e.isIntersecting)) { setNear(true); observer.disconnect(); }
+    }, { rootMargin: "800px 0px" });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [hasItems, near]);
   useEffect(() => {
     const el = stage.current;
     if (!el) return;
@@ -242,7 +255,7 @@ export default function GlassyCarousel({ items, initialIndex = 0, layout = "webs
           {layout === "website" && <span className="gc-browser-bar" aria-hidden="true"><span className="gc-browser-dots"><i /><i /><i /></span><span>{projectDomain(item.href)}</span><Maximize2 size={10} /></span>}
           <span className="gc-poster">
             {item.media
-              ? <span className="gc-media" aria-hidden="true">{item.media}</span>
+              ? <span className="gc-media" aria-hidden="true">{near ? item.media : null}</span>
               : item.image && <Image src={item.image} alt={`${item.title} ${layout === "poster" ? "poster" : "website preview"}`} fill sizes={`${Math.ceil(cardWidth)}px`} unoptimized={!isLocal(item.image)} draggable={false} loading={Math.abs(d) < 2 ? "eager" : "lazy"} />}
             <span className="gc-poster-shade" aria-hidden="true" />
             {badge && <span className="gc-watch" aria-hidden="true"><Play size={13} fill="currentColor" strokeWidth={0} /> {badge}</span>}

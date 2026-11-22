@@ -1,17 +1,24 @@
-import { faithOf, getEventType, invocationFor, type Community, type Faith, type EventContent, type EventTypeId, type LanguageCode } from '@cardai/shared';
+import {
+  eventTitle,
+  faithOf,
+  getEventType,
+  invocationFor,
+  LANGUAGES,
+  localizeFunctionName,
+  STOCK_LINES,
+  type Community,
+  type EventContent,
+  type EventTypeId,
+  type Faith,
+  type LanguageCode,
+} from '@cardai/shared';
 
 const FAITH_WEDDING: Partial<Record<Faith, EventTypeId>> = { muslim: 'nikah', sikh: 'anand-karaj', christian: 'christian-wedding' };
 
-const EN_HEADLINE: Partial<Record<EventTypeId, string>> = {
-  wedding: 'Wedding Invitation',
-  nikah: 'Nikah Ceremony',
-  'christian-wedding': 'Holy Matrimony',
-  'anand-karaj': 'Anand Karaj',
-};
-
 /**
- * Instant, offline wording for the two most used languages so users can preview before
- * signing in. AI wording (any language, any tone) replaces it with one tap.
+ * Instant, offline wording in every card language so users can preview before signing in.
+ * AI wording (any tone) replaces it with one tap. Every line is in the card's language: the
+ * card never mixes two languages unless the user writes it that way.
  *
  * The blessing line follows the family's faith (occasion + tradition): Ganesha for Hindu families,
  * Bismillah for a Nikah or a Muslim family, Ik Onkar for Sikh, Namokar for Jain, none for parties.
@@ -22,34 +29,46 @@ export function defaultWording(type: EventTypeId, language: LanguageCode, names:
   const titleType: EventTypeId = type === 'wedding' ? (FAITH_WEDDING[faith] ?? type) : type;
   const ev = getEventType(titleType);
   const n = names.filter(Boolean);
-  const hindi = language === 'hi' || language === 'mr';
+  const L = STOCK_LINES[language] ?? STOCK_LINES.en;
   const wedding = ev.category === 'wedding';
-  const invocation = invocationFor({ eventType: type, faith, language: hindi ? language : 'en', community });
+  const invocation = invocationFor({ eventType: type, faith, language, community });
 
-  if (hindi) {
-    return {
-      invocation,
-      headline: ev.labelHi,
-      hostLine: hosts ? `${hosts} सादर आमंत्रित करते हैं` : 'आप सपरिवार सादर आमंत्रित हैं',
-      primaryNames: n.slice(0, 2),
-      primaryDetails: [],
-      connector: n.length === 2 ? 'संग' : undefined,
-      message: 'आपकी गरिमामयी उपस्थिति हमारे लिए आशीर्वाद होगी।',
-      familyTitle: 'स्वागतोत्सुक',
-      familyLines: hosts ? [hosts] : [],
-      closing: 'आपके आगमन की प्रतीक्षा में',
-    };
-  }
   return {
     invocation,
-    headline: EN_HEADLINE[titleType] ?? ev.label,
-    hostLine: hosts ? `${hosts} request the pleasure of your company` : 'You are warmly invited',
+    headline: eventTitle(titleType, language),
+    hostLine: hosts ? L.hostLine(hosts) : L.invited,
     primaryNames: n.slice(0, 2),
     primaryDetails: [],
-    connector: n.length === 2 ? (wedding ? 'weds' : '&') : undefined,
-    message: 'Your presence will make our celebration complete.',
-    familyTitle: 'With best compliments',
+    connector: n.length === 2 ? (wedding ? L.weds : L.and) : undefined,
+    message: L.message,
+    familyTitle: L.familyTitle,
     familyLines: hosts ? [hosts] : [],
-    closing: 'Looking forward to celebrating with you',
+    closing: L.closing,
   };
+}
+
+const STOCK_FIELDS = ['invocation', 'headline', 'hostLine', 'connector', 'message', 'familyTitle', 'closing'] as const;
+
+/**
+ * The wording moved to another language. Lines that are still our ready-made ones (in any
+ * language) are swapped for the new language; anything the user or AI wrote is kept as is.
+ */
+export function rewordForLanguage(
+  content: EventContent,
+  opts: { type: EventTypeId; language: LanguageCode; names: string[]; hosts: string; community?: Community },
+): EventContent {
+  const next = defaultWording(opts.type, opts.language, opts.names, opts.hosts, opts.community);
+  const all = LANGUAGES.map((l) => defaultWording(opts.type, l.code, opts.names, opts.hosts, opts.community));
+  const out: EventContent = { ...content };
+  for (const f of STOCK_FIELDS) {
+    const cur = content[f];
+    const stock = !cur?.trim() || all.some((w) => w[f] === cur);
+    if (stock) (out as Record<string, unknown>)[f] = next[f];
+  }
+  return out;
+}
+
+/** Suggested function names follow the card language; names the user typed stay. */
+export function localizeFunctions<T extends { name: string }>(functions: T[], language: LanguageCode): T[] {
+  return functions.map((f) => ({ ...f, name: localizeFunctionName(f.name, language) }));
 }

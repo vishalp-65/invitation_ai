@@ -61,7 +61,12 @@ export default function DesignerPage() {
         <p className="mt-3 max-w-2xl text-lg text-ink-soft">
           Publish invitation themes and earn a share of every paid invitation that uses them.
         </p>
-        {isLoading && <p className="mt-8 text-ink-soft">Loading…</p>}
+        {isLoading && (
+          <div className="mt-8 flex flex-col gap-3" aria-busy aria-label="Loading">
+            <div className="skeleton h-12" />
+            <div className="skeleton h-32" />
+          </div>
+        )}
         {!isLoading && !profile && <ApplyForm onDone={() => qc.invalidateQueries({ queryKey: ['designer', 'me'] })} />}
         {profile?.status === 'pending' && (
           <p className="mt-8 glass-light rounded-[var(--radius-card)] p-6">Thanks, {profile.displayName}. Your profile is being reviewed — usually within two days.</p>

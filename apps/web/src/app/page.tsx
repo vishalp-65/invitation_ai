@@ -146,12 +146,26 @@ async function landingArt(): Promise<string[]> {
 
 /** Organization, WebSite, the app itself (free to try, paid plans up to `highPrice` INR) and the FAQ below. */
 function structuredData(highPrice: number, faq: Array<[string, string]>) {
-  const org = { '@type': 'Organization', '@id': `${BRAND.url}/#org`, name: BRAND.name, url: BRAND.url, logo: `${BRAND.url}/icon.svg`, email: BRAND.supportEmail };
+  // Google's logo guidelines want a crawlable raster image of at least 112×112, so the 512px PNG, not the SVG favicon.
+  const logo = { '@type': 'ImageObject', '@id': `${BRAND.url}/#logo`, url: `${BRAND.url}/icons/icon-512.png`, contentUrl: `${BRAND.url}/icons/icon-512.png`, width: 512, height: 512, caption: BRAND.name };
+  const org = {
+    '@type': 'Organization',
+    '@id': `${BRAND.url}/#org`,
+    name: BRAND.name,
+    alternateName: BRAND.domain,
+    url: BRAND.url,
+    logo,
+    image: { '@id': logo['@id'] },
+    description: 'Online invitation maker for Indian families: invitation cards, WhatsApp video invites and RSVP websites in 12 Indian languages.',
+    email: BRAND.supportEmail,
+    contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: BRAND.supportEmail, availableLanguage: ['English', 'Hindi'] },
+  };
   return {
     '@context': 'https://schema.org',
     '@graph': [
       org,
-      { '@type': 'WebSite', '@id': `${BRAND.url}/#site`, url: BRAND.url, name: BRAND.name, inLanguage: ['en-IN', 'hi-IN'], publisher: { '@id': org['@id'] } },
+      // WebSite name + alternateName feed the site name Google shows above the result.
+      { '@type': 'WebSite', '@id': `${BRAND.url}/#site`, url: `${BRAND.url}/`, name: BRAND.name, alternateName: [`${BRAND.name} Invitations`, BRAND.domain], inLanguage: ['en-IN', 'hi-IN'], publisher: { '@id': org['@id'] } },
       {
         '@type': 'WebApplication',
         name: BRAND.name,

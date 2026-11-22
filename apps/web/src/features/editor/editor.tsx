@@ -720,12 +720,29 @@ function DateDialog({ event, index, onClose, onSave }: { event: EventDto; index:
 
 function EditorSkeleton() {
   return (
-    <div className="fixed inset-0 z-30 flex flex-col bg-workspace">
-      <div className="h-14 border-b border-ink/10 bg-ivory sm:h-16" />
-      <div className="flex flex-1">
-        <div className="hidden w-[84px] border-r border-ink/10 bg-ivory md:block" />
+    <div className="fixed inset-0 z-30 flex flex-col bg-workspace" aria-busy aria-label="Loading editor">
+      <div className="flex h-14 items-center gap-3 border-b border-ink/10 bg-ivory px-4 sm:h-16">
+        <div className="skeleton size-8" />
+        <div className="skeleton h-5 w-32" />
+        <div className="ml-auto flex gap-2">
+          <div className="skeleton h-9 w-20" />
+          <div className="skeleton h-9 w-24" />
+        </div>
+      </div>
+      <div className="flex flex-1 overflow-hidden">
+        <div className="hidden w-[84px] flex-col items-center gap-4 border-r border-ink/10 bg-ivory py-4 md:flex">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} className="skeleton size-11" />
+          ))}
+        </div>
         <div className="editor-stage grid flex-1 place-items-center">
           <div className="skeleton aspect-[9/16] h-[78%]" />
+        </div>
+        <div className="hidden w-[300px] flex-col gap-3 border-l border-ink/10 bg-ivory p-4 xl:flex">
+          <div className="skeleton h-6 w-1/2" />
+          <div className="skeleton h-24" />
+          <div className="skeleton h-10" />
+          <div className="skeleton h-10" />
         </div>
       </div>
     </div>

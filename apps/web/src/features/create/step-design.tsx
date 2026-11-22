@@ -1,6 +1,6 @@
 'use client';
 
-import { faithOf, getEventType, groupByFamily, templateFaithClash, type TemplateDefinition } from '@cardai/shared';
+import { faithOf, getEventType, groupByFamily, templateFaithClash, templateSampleLanguage, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { Check } from 'lucide-react';
 import { useLocale } from 'next-intl';
@@ -107,7 +107,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
               name={f.name}
               variants={f.variants}
               selectedId={d.templateId}
-              onPick={(t) => d.set({ templateId: t.id })}
+              onPick={(t) => d.pickTemplate(t.id)}
               onPreview={(t) => setPreviewId(t.id)}
               priority={i < 5}
             />
@@ -118,7 +118,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
       <Dialog open={Boolean(previewing)} onClose={() => setPreviewId(null)} title={previewing?.family?.name ?? previewing?.name ?? ''}>
         {previewing && (
           <div className="flex flex-col items-center gap-5">
-            <DraftPreview key={previewing.id} templateId={previewing.id} className="w-full max-w-[290px]" />
+            <DraftPreview key={previewing.id} templateId={previewing.id} language={templateSampleLanguage(previewing)} className="w-full max-w-[290px]" />
             <p className="text-center text-sm text-ink-soft">
               {hi ? 'आपके नाम और तारीख अगले चरण में भरेंगे।' : 'Your names, date and venue go in at the next step.'}
             </p>
@@ -126,7 +126,7 @@ export function StepDesign({ onUse }: { onUse: () => void }) {
               variant="solid"
               className="press h-12 w-full"
               onClick={() => {
-                d.set({ templateId: previewing.id });
+                d.pickTemplate(previewing.id);
                 setPreviewId(null);
                 onUse();
               }}

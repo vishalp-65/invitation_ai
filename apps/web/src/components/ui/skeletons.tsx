@@ -50,3 +50,33 @@ export function PageSkeleton({ variant = 'list' }: { variant?: 'list' | 'grid' |
     </div>
   );
 }
+
+/** Fallback for a gallery of 9:16 cards (template pickers, design libraries). */
+export function GallerySkeleton({ count = 8 }: { count?: number }) {
+  return (
+    <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4" aria-busy aria-label="Loading designs">
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i}>
+          <div className="skeleton aspect-[9/16] w-full" />
+          <div className="skeleton mt-3 h-4 w-2/3" />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Fallback for the create wizard: step header, option tiles and a primary action. */
+export function WizardSkeleton() {
+  return (
+    <div className="mx-auto max-w-3xl px-5 pb-24 pt-10 sm:px-6" aria-busy aria-label="Loading">
+      <div className="skeleton h-2 w-full max-w-xs" />
+      <div className="skeleton mt-8 h-10 w-3/4 max-w-md" />
+      <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        {Array.from({ length: 6 }, (_, i) => (
+          <div key={i} className="skeleton h-28" />
+        ))}
+      </div>
+      <div className="skeleton mt-10 h-12 w-40" />
+    </div>
+  );
+}

@@ -1,6 +1,6 @@
 'use client';
 
-import { getEventType, getLanguage, type EventContent, type ScanField } from '@cardai/shared';
+import { getEventType, getLanguage, localizeFunctionName, type EventContent, type LanguageCode, type ScanField } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { CalendarDays, Check, Languages, MapPin, Paintbrush, Sparkles, Users } from 'lucide-react';
 import { useLocale } from 'next-intl';
@@ -17,9 +17,9 @@ import { findTemplate } from '@/lib/template-hooks';
 import { CheckBadge, FLAGGED, FunctionList, resolveScanField, ScanReview } from './scan/scan-review';
 
 /** The function shown on the card: the ceremony itself for weddings, else the first one. */
-export function mainFunctionName(type: Parameters<typeof getEventType>[0]): string {
+export function mainFunctionName(type: Parameters<typeof getEventType>[0], language: LanguageCode = 'en'): string {
   const fns = getEventType(type).defaultFunctions as readonly string[];
-  return fns.find((f) => /wedding|nikah|anand karaj|matrimony/i.test(f)) ?? fns[0] ?? 'Event';
+  return localizeFunctionName(fns.find((f) => /wedding|nikah|anand karaj|matrimony/i.test(f)) ?? fns[0] ?? 'Event', language);
 }
 
 /** What still blocks "Create", or null. */
@@ -55,7 +55,7 @@ export function StepQuick({ showErrors, onChangeDesign, onRescan }: { showErrors
   useEffect(() => {
     const s = useDraft.getState();
     if (s.source === 'scan') return; // every function read off the card is kept
-    const name = mainFunctionName(s.type);
+    const name = mainFunctionName(s.type, s.language);
     if (s.functions.length !== 1 || (!s.functions[0]!.venueName && s.functions[0]!.name !== name)) {
       const keep = s.functions.find((f) => f.venueName) ?? emptyFunction(name);
       s.set({ functions: [{ ...keep, name: keep.venueName ? keep.name : name }] });

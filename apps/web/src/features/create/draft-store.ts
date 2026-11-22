@@ -1,9 +1,10 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, getEventType, SHOWCASE, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, getEventType, SHOWCASE, templateSampleLanguage, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { findTemplate } from '@/lib/template-hooks';
+import { localizeFunctions, rewordForLanguage } from './default-wording';
 
 export interface DraftFunction {
   key: string;
@@ -19,6 +20,8 @@ export interface Draft {
   step: number;
   type: EventTypeId;
   language: LanguageCode;
+  /** The language was chosen (by the user, or by the design they picked), not just our default. */
+  languageSet?: boolean;
   community?: Community;
   tone: WordingTone;
   names: [string, string];
@@ -41,6 +44,10 @@ interface DraftStore extends Draft {
   set: (patch: Partial<Draft>) => void;
   setContent: (patch: Partial<EventContent>) => void;
   setType: (type: EventTypeId) => void;
+  /** Switch the card language: our ready-made wording and function names follow, user text stays. */
+  setLanguage: (language: LanguageCode) => void;
+  /** Pick a design: the card takes the language that design was shown in. */
+  pickTemplate: (templateId: string) => void;
   updateFunction: (key: string, patch: Partial<DraftFunction>) => void;
   addFunction: () => void;
   removeFunction: (key: string) => void;
@@ -78,6 +85,16 @@ const initial = (type: EventTypeId = 'wedding'): Draft => ({
   scan: undefined,
 });
 
+/** The draft's wording and function names in another language (see setLanguage). */
+export function inLanguage(s: Draft, language: LanguageCode): Pick<Draft, 'content' | 'functions'> {
+  if (s.language === language && s.content.headline) return { content: s.content, functions: s.functions };
+  const names = s.names.filter(Boolean);
+  return {
+    content: { ...rewordForLanguage(s.content, { type: s.type, language, names, hosts: s.hosts, community: s.community }), primaryNames: names },
+    functions: localizeFunctions(s.functions, language),
+  };
+}
+
 /** Wizard draft survives refreshes and the login step (localStorage). */
 export const useDraft = create<DraftStore>()(
   persist(
@@ -85,6 +102,13 @@ export const useDraft = create<DraftStore>()(
       ...initial(),
       set: (patch) => set(patch),
       setContent: (patch) => set((s) => ({ content: { ...s.content, ...patch }, contentIsDefault: false })),
+      setLanguage: (language) => set((s) => ({ language, languageSet: true, ...inLanguage(s, language) })),
+      pickTemplate: (templateId) =>
+        set((s) => {
+          const t = findTemplate(templateId);
+          const language = t ? templateSampleLanguage(t) : s.language;
+          return { templateId, language, languageSet: true, ...inLanguage(s, language) };
+        }),
       setType: (type) =>
         set((s) => {
           const current = findTemplate(s.templateId);
@@ -99,7 +123,7 @@ export const useDraft = create<DraftStore>()(
             content: s.contentIsDefault ? { ...s.content, headline: '' } : s.content,
             functions:
               s.functions.every((f) => !f.venueName) // untouched → swap in this occasion's defaults
-                ? getEventType(type).defaultFunctions.slice(0, 3).map((n) => emptyFunction(n))
+                ? localizeFunctions(getEventType(type).defaultFunctions.slice(0, 3).map((n) => emptyFunction(n)), s.language)
                 : s.functions,
           };
         }),
