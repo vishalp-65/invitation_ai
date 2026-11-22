@@ -16,6 +16,8 @@
     "@cardai/templates": "0.1.0",
     "@remotion/player": "4.0.543",
     "@tanstack/react-query": "^5.107.1",
+    "@vercel/analytics": "^2.0.1",
+    "@vercel/speed-insights": "^2.1.0",
     "clsx": "^2.1.1",
     "framer-motion": "^14.14.0",
     "lucide-react": "^1.72.0",
