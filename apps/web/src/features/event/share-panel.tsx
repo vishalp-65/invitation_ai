@@ -77,8 +77,73 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
     }
   }
 
+  const img = renders?.find((x) => x.format === 'image');
+  const vid = renders?.filter((x) => x.format === 'video' || x.format === 'site_video').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+  const stateOf = (r?: RenderDto) => (!r ? 'none' : r.status === 'completed' ? 'ready' : r.status === 'failed' ? 'none' : 'busy');
+  const shareOut = (r: RenderDto) => {
+    const o = r.outputs[0];
+    if (!o) return;
+    const ext = o.contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin';
+    void shareFile(o.url, `${event.slug}-${r.format}.${ext}`, o.contentType, event.id);
+  };
+
   return (
     <div className="flex flex-col gap-6">
+      {/* ---------------- The three outputs: one place for image, video and website ---------------- */}
+      <section aria-labelledby="hub-h">
+        <h2 id="hub-h" className="text-xl">{t('hubTitle')}</h2>
+        <p className="mt-1 text-sm text-ink-soft">{t('hubBody')}</p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <OutputTile
+            icon={ImageIcon}
+            title={t('hubImage')}
+            help={t('hubImageHelp')}
+            status={stateOf(img) === 'ready' ? t('hubReady') : stateOf(img) === 'busy' ? t('hubMaking') : t('hubNotYet')}
+            tone={stateOf(img) === 'ready' ? 'leaf' : 'muted'}
+            thumb={img?.status === 'completed' ? img.outputs[0]?.url : undefined}
+          >
+            {img?.status === 'completed' ? (
+              <Button size="sm" className="w-full" onClick={() => shareOut(img)}>
+                <Share2 className="size-4" /> {t('hubShareFile')}
+              </Button>
+            ) : (
+              <Button size="sm" className="w-full" variant="line" loading={stateOf(img) === 'busy' || (create.isPending && create.variables === 'image')} onClick={() => make('image')}>
+                {t('hubMakeImage')}
+              </Button>
+            )}
+          </OutputTile>
+          <OutputTile
+            icon={Film}
+            title={t('hubVideo')}
+            help={t('hubVideoHelp')}
+            status={stateOf(vid) === 'ready' ? t('hubReady') : stateOf(vid) === 'busy' ? t('hubMaking') : t('hubNotYet')}
+            tone={stateOf(vid) === 'ready' ? 'leaf' : 'muted'}
+          >
+            {vid?.status === 'completed' ? (
+              <Button size="sm" className="w-full" onClick={() => shareOut(vid)}>
+                <Share2 className="size-4" /> {t('hubShareFile')}
+              </Button>
+            ) : (
+              <Button size="sm" className="w-full" variant="line" loading={stateOf(vid) === 'busy' || (create.isPending && create.variables === 'video')} onClick={() => make('video')}>
+                {t('hubMakeVideo')}
+              </Button>
+            )}
+          </OutputTile>
+          <OutputTile icon={Globe} title={t('hubSite')} help={t('hubSiteHelp')} status={live ? t('hubLive') : t('hubDraft')} tone={live ? 'leaf' : 'muted'}>
+            <div className="flex gap-2">
+              <ButtonLink size="sm" href={`/builder/${event.id}`} className="flex-1" variant={live ? 'line' : 'primary'}>
+                {site.data && !site.data.isDefault ? t('hubEditSite') : t('hubDesignSite')}
+              </ButtonLink>
+              {live && (
+                <ButtonLink size="sm" href={siteUrl} target="_blank" rel="noopener" variant="line" aria-label={t('hubOpenSite')}>
+                  <ExternalLink className="size-4" />
+                </ButtonLink>
+              )}
+            </div>
+          </OutputTile>
+        </div>
+      </section>
+
       {/* ---------------- The link ---------------- */}
       <Panel
         title={t('siteTitle')}
@@ -107,7 +172,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                 <WhatsAppIcon className="size-4" />
                 {t('shareWhatsapp')}
               </ButtonLink>
-              <ButtonLink href={`/i/${event.slug}`} target="_blank" variant="line">
+              <ButtonLink href={siteUrl} target="_blank" variant="line">
                 <ExternalLink className="size-4" aria-hidden />
                 {t('open')}
               </ButtonLink>
@@ -128,7 +193,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
       </Panel>
 
       {/* ---------------- Files ---------------- */}
-      <Panel title={t('filesTitle')} description={t('filesBody')} bodyClassName="!px-0 !pb-0">
+      <Panel title={t('hubMore')} description={t('filesBody')} bodyClassName="!px-0 !pb-0">
         <ul className="divide-y divide-ink/10 border-t border-ink/10">
           {FORMATS.map(({ format, icon, feature }) => {
             const label = t(`f_${format}`);
@@ -234,5 +299,43 @@ function Action({
       {done ? <RefreshCw className="size-4" aria-hidden /> : null}
       {done ? t('makeAgain') : t('make')}
     </Button>
+  );
+}
+
+/** One of the three outputs: what it is, whether it is ready, and the one thing to do next. */
+function OutputTile({
+  icon: Icon,
+  title,
+  help,
+  status,
+  tone,
+  thumb,
+  children,
+}: {
+  icon: typeof ImageIcon;
+  title: string;
+  help: string;
+  status: string;
+  tone: 'leaf' | 'muted';
+  thumb?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-3 rounded-[12px] border border-ink/10 p-4">
+      <div className="flex items-start gap-3">
+        {thumb ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={thumb} alt="" className="size-10 shrink-0 rounded-[8px] border border-ink/10 object-cover" loading="lazy" />
+        ) : (
+          <IconTile icon={Icon} />
+        )}
+        <div className="min-w-0 flex-1">
+          <h3 className="text-[1rem] leading-tight">{title}</h3>
+          <StatusPill tone={tone}>{status}</StatusPill>
+        </div>
+      </div>
+      <p className="flex-1 text-sm text-ink-soft">{help}</p>
+      {children}
+    </div>
   );
 }

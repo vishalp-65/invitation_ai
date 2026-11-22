@@ -36,6 +36,7 @@ import {
   Smartphone,
   Sparkles,
   Trash2,
+  Wand2,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -47,16 +48,18 @@ import { api, ApiError } from '@/lib/api';
 import { qk, useEvent } from '@/lib/hooks';
 import { useTemplate } from '@/lib/template-hooks';
 import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
+import { PublishCard } from './publish-card';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
 import { track } from '@/lib/track';
 
-type Tab = 'ai' | 'sections' | 'look' | 'share' | 'live';
+/** The builder is a short path: pick a design, fill the page, fine-tune, publish; Live is for the day. */
+type Tab = 'design' | 'content' | 'style' | 'publish' | 'live';
 const TABS: Array<{ id: Tab; label: string; icon: typeof Sparkles }> = [
-  { id: 'ai', label: 'AI', icon: Sparkles },
-  { id: 'sections', label: 'Sections', icon: LayoutList },
-  { id: 'look', label: 'Look', icon: Palette },
-  { id: 'share', label: 'Link', icon: Share2 },
+  { id: 'design', label: '1 Design', icon: Wand2 },
+  { id: 'content', label: '2 Content', icon: LayoutList },
+  { id: 'style', label: '3 Style', icon: Palette },
+  { id: 'publish', label: '4 Publish', icon: Share2 },
   { id: 'live', label: 'Live', icon: Radio },
 ];
 
@@ -101,7 +104,8 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
   const guests = useQuery({ queryKey: qk.guests(eventId), queryFn: () => api<{ items: GuestDto[] }>(`/events/${eventId}/guests`), select: (d) => d.items });
 
   const [doc, setDocState] = useState<SiteDoc | null>(null);
-  const [tab, setTab] = useState<Tab>('sections');
+  const [tab, setTab] = useState<Tab>('content');
+  const [aiOpen, setAiOpen] = useState(false);
   const [mobileView, setMobileView] = useState<'edit' | 'preview'>('edit');
   const [selected, setSelected] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -122,10 +126,21 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
     setSave('saved');
   }, [eventId]);
 
-  // First load: start from the saved (or default) document.
+  // First load: start from the saved (or default) document. A brand-new page starts on "Design".
   useEffect(() => {
-    if (settings.data && !doc) setDocState(settings.data.site);
+    if (settings.data && !doc) {
+      setDocState(settings.data.site);
+      if (settings.data.isDefault) setTab('design');
+    }
   }, [settings.data, doc]);
+
+  // Picking another opening plays it in the preview straight away.
+  const openingKind = doc?.opening.kind;
+  const lastOpening = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (lastOpening.current && openingKind && openingKind !== lastOpening.current) setReplay((r) => r + 1);
+    lastOpening.current = openingKind;
+  }, [openingKind]);
   useEffect(() => {
     if (preview.data) setAssets((a) => ({ ...preview.data.media.assets, ...a }));
   }, [preview.data]);
@@ -294,8 +309,23 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
 
   const panel = (
     <div className="flex flex-col gap-6 p-5">
-      {tab === 'ai' && <AiPanel eventId={eventId} beforeDraft={flush} onDraft={(d) => setDoc((x) => Object.assign(x, d))} />}
-      {tab === 'sections' &&
+      {tab === 'design' && (
+        <>
+          {settings.data.isDefault && (
+            <div className="rounded-[12px] border border-ink/10 bg-ink/[0.03] p-4 text-sm">
+              <p className="font-semibold">This is your invitation website</p>
+              <p className="mt-1 text-ink-soft">
+                One link with your names, events, venue map, RSVP and wishes. Pick a design below, then fill in the content. Your card image and video are made in the invitation’s Share tab.
+              </p>
+            </div>
+          )}
+          <LookPanel part="design" doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />
+          <Button onClick={() => setTab('content')} className="self-end">
+            Next: content
+          </Button>
+        </>
+      )}
+      {tab === 'content' &&
         (current ? (
           <div className="flex flex-col gap-4">
             <Button variant="quiet" size="sm" className="self-start" onClick={() => setSelected(null)}>
@@ -309,10 +339,40 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             />
           </div>
         ) : (
-          sectionsList
+          <>
+            <div className="rounded-[12px] border border-ink/10">
+              <button type="button" onClick={() => setAiOpen((o) => !o)} aria-expanded={aiOpen} className="flex w-full items-center gap-3 p-4 text-left">
+                <Sparkles className="size-5 shrink-0" aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold">Write my page with AI</span>
+                  <span className="block text-sm text-ink-soft">Welcome note, your story, FAQs and dress code in your language.</span>
+                </span>
+                <ChevronLeft className={`size-4 shrink-0 transition-transform ${aiOpen ? 'rotate-90' : '-rotate-90'}`} aria-hidden />
+              </button>
+              {aiOpen && (
+                <div className="border-t border-ink/10 p-4">
+                  <AiPanel eventId={eventId} beforeDraft={flush} onDraft={(d) => setDoc((x) => Object.assign(x, d))} />
+                </div>
+              )}
+            </div>
+            <p className="text-sm text-ink-soft">Tap a section to edit it. Use the arrows to reorder and the eye to hide.</p>
+            {sectionsList}
+          </>
         ))}
-      {tab === 'look' && <LookPanel doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />}
-      {tab === 'share' && <SharePanel event={event} settings={settings.data} doc={doc} setDoc={setDoc} onUpgrade={onUpgrade} />}
+      {tab === 'style' && <LookPanel part="style" doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />}
+      {tab === 'publish' && (
+        <>
+          <PublishCard
+            published={event.status === 'published'}
+            liveUrl={liveUrl}
+            slug={event.slug}
+            title={event.title}
+            onPublish={() => publish.mutate()}
+            publishing={publish.isPending}
+          />
+          <SharePanel event={event} settings={settings.data} doc={doc} setDoc={setDoc} onUpgrade={onUpgrade} />
+        </>
+      )}
       {tab === 'live' && (
         <LivePanel
           eventId={eventId}
@@ -365,12 +425,12 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             <Button size="sm" variant="line" className="max-sm:!hidden" onClick={() => navigator.clipboard.writeText(liveUrl).then(() => toast.success('Link copied'))}>
               <Copy className="size-4" /> Copy link
             </Button>
-            <ButtonLink size="sm" href={`/i/${event.slug}`} target="_blank" variant="primary">
+            <ButtonLink size="sm" href={liveUrl} target="_blank" variant="primary">
               <ExternalLink className="size-4" /> <span className="hidden sm:inline">Open</span>
             </ButtonLink>
           </>
         ) : (
-          <Button size="sm" onClick={() => publish.mutate()} loading={publish.isPending}>
+          <Button size="sm" onClick={() => setTab('publish')}>
             Publish
           </Button>
         )}

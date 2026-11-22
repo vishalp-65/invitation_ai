@@ -37,6 +37,11 @@
         "REDIS_URL": "redis://localhost:6379"
       },
       "port": 4000
+    },
+    {
+      "name": "web-attach",
+      "url": "http://localhost:3100",
+      "port": 3100
     }
   ]
 }

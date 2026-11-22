@@ -150,9 +150,11 @@
  * Marketing pages pin `data-theme="light"` (ThemeProvider), app pages follow the user's choice.
  */
 @layer base {
+  /* `only light` forbids the browser's forced darkening (Samsung Internet's dark mode otherwise
+     greys the page and inverts template colours while our light theme is on). */
   :root,
   [data-theme='light'] {
-    color-scheme: light;
+    color-scheme: only light;
   }
   [data-theme='dark'] {
     color-scheme: dark;

@@ -8,6 +8,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Character } from './characters';
 import { safeHref, useSite } from './context';
 import { mapsUrl, useCountdown } from './utils';
+import { VenueMap } from './venue-map';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { AlbumSection, GiftsSection, LivestreamSection, UpdatesSection, WishesSection } from './interactive';
 import { RsvpForm } from './rsvp-form';
@@ -448,36 +449,13 @@ function DressCode({ section }: { section: SiteSectionOf<'dresscode'> }) {
 }
 
 function Venue({ section }: { section: SiteSectionOf<'venue'> }) {
-  const { data, t } = useSite();
+  const { data } = useSite();
   const f = data.functions.find((x) => x.id === section.functionId) ?? data.functions[0];
   if (!f) return null;
-  const q = [f.venueName, f.venueAddress].filter(Boolean).join(', ');
   return (
     <Shell section={section}>
-      <Reveal motion={section.motion} className={`${card} overflow-hidden`}>
-        {section.showMap && (
-          <iframe
-            title={f.venueName}
-            src={`https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`}
-            loading="lazy"
-            referrerPolicy="no-referrer-when-downgrade"
-            className="h-72 w-full border-0"
-          />
-        )}
-        <div className="flex flex-wrap items-center justify-between gap-4 p-6">
-          <div>
-            <p className="inv-display text-2xl">{f.venueName}</p>
-            {f.venueAddress && <p className="opacity-75">{f.venueAddress}</p>}
-          </div>
-          <a
-            href={safeHref(f.mapUrl) ?? mapsUrl(q)}
-            target="_blank"
-            rel="noopener"
-            className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--inv-primary)] px-5 font-semibold text-[var(--inv-on-primary)]"
-          >
-            <MapPin className="size-5" aria-hidden /> {t('Get directions', 'रास्ता देखें')}
-          </a>
-        </div>
+      <Reveal motion={section.motion}>
+        <VenueMap fn={f} showMap={section.showMap} />
       </Reveal>
     </Shell>
   );

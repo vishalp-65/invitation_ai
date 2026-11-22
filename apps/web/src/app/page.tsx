@@ -13,6 +13,7 @@ import { StudioPremiumTunnel } from '@/components/studio/premium-tunnel';
 import { StudioPricing } from '@/components/studio/pricing';
 import { StudioPrivacy } from '@/components/studio/privacy';
 import { StudioProcess } from '@/components/studio/process';
+import { StudioSculpture } from '@/components/studio/sculpture';
 import { StudioShare } from '@/components/studio/share';
 import { StudioSiteDeck } from '@/components/studio/site-deck';
 import { StudioVoice } from '@/components/studio/voice';
@@ -66,6 +67,8 @@ export default async function HomePage() {
 
         <main id="main">
           <StudioFeatures hi={hi} />
+          {/* No cv-auto: the WebGL canvas sizes itself from layout, which content-visibility skips. */}
+          <StudioSculpture hi={hi} />
           <StudioPremiumTunnel hi={hi} hidden={designs.hiddenTemplates} />
           <div className="cv-auto">
             <StudioProcess hi={hi} />

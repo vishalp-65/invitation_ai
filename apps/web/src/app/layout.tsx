@@ -39,6 +39,9 @@ export const viewport: Viewport = {
     { media: '(prefers-color-scheme: light)', color: '#F7F6F2' },
     { media: '(prefers-color-scheme: dark)', color: '#050608' },
   ],
+  // Tells browsers with forced "dark mode for websites" (Samsung Internet, Chrome auto-dark) that
+  // the site handles dark itself, so they don't invert our light theme or the templates.
+  colorScheme: 'light dark',
   width: 'device-width',
   initialScale: 1,
 };

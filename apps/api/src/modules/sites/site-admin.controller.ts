@@ -11,10 +11,11 @@ import {
 import { Controller, Delete, Get, HttpCode, Post, Put } from '@nestjs/common';
 import { z } from 'zod';
 import { CurrentUser, RateLimit, type AuthUser } from '../../common/auth.decorators.js';
-import { UuidParam, ZBody } from '../../common/zod.js';
+import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { SiteAdminService } from './site-admin.service.js';
 
 const hideSchema = z.object({ hidden: z.boolean() });
+const aliasCheckSchema = z.object({ alias: z.string().max(64) });
 
 @Controller('events/:eventId/site')
 export class SiteAdminController {
@@ -48,6 +49,13 @@ export class SiteAdminController {
   @RateLimit({ limit: 20, windowSec: 3600 })
   password(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @ZBody(sitePasswordSchema) body: z.infer<typeof sitePasswordSchema>) {
     return this.admin.setPassword(user, eventId, body.password);
+  }
+
+  /** Is this custom link free? Called as the host types (debounced). */
+  @Get('alias/check')
+  @RateLimit({ limit: 240, windowSec: 3600 })
+  checkAlias(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @ZQuery(aliasCheckSchema) q: z.infer<typeof aliasCheckSchema>) {
+    return this.admin.checkAlias(user, eventId, q.alias);
   }
 
   @Put('alias')

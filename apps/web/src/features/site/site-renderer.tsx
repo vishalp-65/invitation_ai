@@ -138,6 +138,7 @@ export function SiteRenderer({
             greeting={greeting}
             title={content.headline || data.event.title}
             monogram={monogram}
+            date={first ? new Intl.DateTimeFormat('en-GB', { timeZone: data.event.settings.timezone, day: '2-digit', month: '2-digit', year: 'numeric' }).format(new Date(first.startsAt)).replace(/\//g, ' · ') : null}
             motionOff={level === 'off'}
             onOpen={() => {
               setStarted(true);

@@ -59,7 +59,8 @@ function Bouquet({ w, h, kind }: { w: number; h: number; kind: 'marigold' | 'ros
       <defs>
         <PaintFilter id={fid} strength={6} />
       </defs>
-      <g filter={`url(#${fid})`}>
+      {/* scn-paint: the website drops this filter (it re-renders every frame under the sway loop). */}
+      <g className="scn-paint" filter={`url(#${fid})`}>
         <Cluster kind={kind} unit={100} />
       </g>
     </svg>
@@ -494,6 +495,160 @@ export const MODERN_SCENES: Record<string, SceneDef> = {
       <At x={-20} y={676} w={440} h={134} move="glide" time={t} phase={0.3}>
         <Clouds w={440} h={134} c={[c.near, c.midShade]} />
       </At>
+    ),
+  },
+
+  // ---------------- Premium collection (Nov 2026, website-first) ----------------
+
+  // Sheesh Mahal: a gold Mughal arch on a night sky, mirror-work stars and three lanterns.
+  'jharokha-night': {
+    far: (c, t) => {
+      const m = loop('twinkle', t);
+      return (
+        <g>
+          <g className={m.className} style={m.style}>
+            <Stars w={400} h={800} c={[c.trim]} opts={{ seed: 17 }} />
+          </g>
+          <At x={0} y={0} w={400} h={800} opacity={0.35}>
+            <GoldDust w={400} h={800} c={[c.trim]} opts={{ seed: 29 }} />
+          </At>
+        </g>
+      );
+    },
+    mid: (c, t) => (
+      <g>
+        <At x={28} y={60} w={344} h={760}>
+          <ArchPanel w={344} h={760} c={[c.mid, c.trim, c.glow]} opts={{ shape: 'mughal' }} />
+        </At>
+        {[
+          [120, 150, 30],
+          [200, 110, 26],
+          [280, 150, 30],
+        ].map(([x, len, w], i) => (
+          <At key={i} x={x! - w! / 2} y={0} w={w!} h={len!} move="sway" time={t} phase={i * 0.33}>
+            <Lantern w={w!} h={len!} c={[c.trim, c.glow]} />
+          </At>
+        ))}
+      </g>
+    ),
+    near: (c, t) => (
+      <g>
+        <At x={-40} y={612} w={200} h={200} flipY move="sway" time={t}>
+          <BloomCorner w={200} h={200} c={c.bloom} opts={{ kind: 'peony' }} />
+        </At>
+        <At x={240} y={612} w={200} h={200} flipX flipY move="sway" time={t} phase={0.5}>
+          <BloomCorner w={200} h={200} c={c.bloom} opts={{ kind: 'peony' }} />
+        </At>
+      </g>
+    ),
+  },
+
+  // Mogra: ivory and champagne, a floral hexagon frame, lace edges and soft greenery.
+  'champa-frame': {
+    far: (c) => (
+      <g>
+        <At x={-80} y={-40} w={320} h={300}>
+          <Wash w={320} h={300} c={[c.far, '#FFFFFF']} opts={{ seed: 21 }} />
+        </At>
+        <At x={160} y={540} w={320} h={300}>
+          <Wash w={320} h={300} c={[c.far, '#FFFFFF']} opts={{ seed: 6 }} />
+        </At>
+        {laceBands(c.trim)}
+      </g>
+    ),
+    mid: (c) => (
+      <g>
+        <At x={0} y={0} w={400} h={800} opacity={0.45}>
+          <GoldDust w={400} h={800} c={[c.trim]} opts={{ seed: 12 }} />
+        </At>
+        <At x={40} y={150} w={320} h={340}>
+          <BloomFrame w={320} h={340} c={[c.mid, c.bloom[0]!, c.bloom[1]!, c.near]} />
+        </At>
+      </g>
+    ),
+    near: (c, t) => (
+      <g>
+        <At x={-50} y={560} w={190} h={190} opacity={0.9}>
+          <Greenery w={190} h={190} c={[c.near, c.midShade]} opts={{ kind: 'eucalyptus' }} />
+        </At>
+        <At x={-26} y={640} w={180} h={180} flipY move="sway" time={t}>
+          <BloomCorner w={180} h={180} c={c.bloom} opts={{ kind: 'rose' }} />
+        </At>
+        <At x={246} y={640} w={180} h={180} flipX flipY move="sway" time={t} phase={0.5}>
+          <BloomCorner w={180} h={180} c={c.bloom} opts={{ kind: 'peony' }} />
+        </At>
+      </g>
+    ),
+  },
+
+  // Kesariya: saffron dusk, marigold strings across the top, brass lanterns, marigold bouquets.
+  'genda-toran': {
+    far: (c) => (
+      <g>
+        <At x={-60} y={360} w={520} h={460}>
+          <Wash w={520} h={460} c={[c.far, c.glow]} opts={{ seed: 33 }} />
+        </At>
+        <At x={0} y={0} w={400} h={800} opacity={0.4}>
+          <GoldDust w={400} h={800} c={[c.trim]} opts={{ seed: 44 }} />
+        </At>
+      </g>
+    ),
+    mid: (c, t) => (
+      <g>
+        <At x={-10} y={-6} w={420} h={118}>
+          <GendaLadi w={420} h={118} c={[c.bloom[0]!, c.bloom[1]!, c.near]} opts={{ count: 9 }} />
+        </At>
+        {[
+          [60, 230, 30],
+          [340, 230, 30],
+        ].map(([x, len, w], i) => (
+          <At key={i} x={x! - w! / 2} y={0} w={w!} h={len!} move="sway" time={t} phase={i * 0.4}>
+            <Lantern w={w!} h={len!} c={[c.trim, c.glow]} />
+          </At>
+        ))}
+      </g>
+    ),
+    near: (c, t) => (
+      <g>
+        <At x={-60} y={600} w={230} h={230} move="sway" time={t}>
+          <Bouquet w={230} h={230} kind="marigold" />
+        </At>
+        <At x={230} y={600} w={230} h={230} flipX move="sway" time={t} phase={0.5}>
+          <Bouquet w={230} h={230} kind="marigold" />
+        </At>
+      </g>
+    ),
+  },
+
+  // Chandni: moonlit indigo, silver-gold rings, clouds drifting below.
+  'moon-rings': {
+    far: (c, t) => {
+      const m = loop('twinkle', t);
+      return (
+        <g className={m.className} style={m.style}>
+          <Stars w={400} h={600} c={[c.far]} opts={{ seed: 23 }} />
+        </g>
+      );
+    },
+    mid: (c, t) => (
+      <g>
+        <At x={130} y={530} w={140} h={105} move="bob" time={t}>
+          <Rings w={140} h={105} c={[c.trim]} />
+        </At>
+        <At x={-80} y={600} w={260} h={80} move="glide" time={t} opacity={0.6}>
+          <Clouds w={260} h={80} c={[c.mid, c.midShade]} />
+        </At>
+      </g>
+    ),
+    near: (c, t) => (
+      <g>
+        <At x={-30} y={680} w={460} h={140} move="glide" time={t} phase={0.4}>
+          <Clouds w={460} h={140} c={[c.near, c.midShade]} />
+        </At>
+        <At x={-34} y={-20} w={150} h={150}>
+          <BloomCorner w={150} h={150} c={c.bloom} opts={{ kind: 'rose' }} />
+        </At>
+      </g>
     ),
   },
 };

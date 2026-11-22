@@ -3,6 +3,7 @@ import { LANGUAGE_CODES } from '../constants/languages.js';
 import { ATTIRES, COUPLE_STYLES } from '../templates/types.js';
 import { eventContentSchema } from '../schemas/events.js';
 import { webUrl } from '../schemas/common.js';
+import { ALIAS_MAX, ALIAS_MIN, ALIAS_PATTERN, ALIAS_PROBLEM_TEXT } from '../constants/links.js';
 import { MUSIC_TRACK_IDS, SITE_DESIGN_IDS } from './designs.js';
 
 /**
@@ -268,7 +269,9 @@ export const vanityLinkSchema = z.object({
     .string()
     .trim()
     .toLowerCase()
-    .regex(/^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/, 'Use 3–32 letters, numbers or hyphens'),
+    .min(ALIAS_MIN, ALIAS_PROBLEM_TEXT.short)
+    .max(ALIAS_MAX, ALIAS_PROBLEM_TEXT.long)
+    .regex(ALIAS_PATTERN, ALIAS_PROBLEM_TEXT.format),
 });
 
 export const albumUploadSchema = z.object({

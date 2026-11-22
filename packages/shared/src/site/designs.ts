@@ -46,6 +46,10 @@ export const SITE_DESIGN_IDS = [
   'gubbare',
   'sunehri-shaam',
   'chanda-mama',
+  'sheesh-mahal',
+  'mogra',
+  'kesariya',
+  'chandni',
 ] as const;
 export type SiteDesignId = (typeof SITE_DESIGN_IDS)[number];
 
@@ -82,6 +86,10 @@ export const SCENE_KINDS = [
   'balloon-party',
   'gold-party',
   'moon-cradle',
+  'jharokha-night',
+  'champa-frame',
+  'genda-toran',
+  'moon-rings',
 ] as const;
 export type SceneKind = (typeof SCENE_KINDS)[number];
 
@@ -137,6 +145,7 @@ export interface SiteDesign {
   faith: Faith | null;
   /** Shows a "New" badge in the picker. */
   isNew?: boolean;
+
   palette: { primary: string; accent: string; background: string; surface: string; text: string };
   scene: {
     kind: SceneKind;
@@ -163,6 +172,99 @@ export interface SiteDesign {
 const paper = (bg: string, ink: string, primary: string): DesignBand => ({ bg, ink, primary });
 
 export const SITE_DESIGNS: readonly SiteDesign[] = [
+  // ---------------- Premium collection (Nov 2026): website-first luxury looks ----------------
+  {
+    id: 'sheesh-mahal',
+    name: 'Sheesh Mahal',
+    blurb: 'Gold Mughal arch, lanterns and starlight on emerald',
+    region: 'Rajasthan',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#0F4D3A', accent: '#D4AF37', background: '#F7F1E3', surface: '#FFFDF6', text: '#14261F' },
+    scene: {
+      kind: 'jharokha-night',
+      night: true,
+      style: 'modern',
+      colors: { skyTop: '#06201A', skyBottom: '#0F3A2D', glow: '#FFE3A1', far: '#D4AF37', mid: '#124535', midShade: '#0A2B22', trim: '#D4AF37', near: '#2F5D43', bloom: ['#F6EFE0', '#E5D3B0', '#2F5D43', '#D4AF37'], water: '#124535' },
+    },
+    bands: [paper('#0F3A2D', '#F4EBD6', '#E2C26A'), paper('#F7F1E3', '#14261F', '#0F4D3A'), paper('#12372B', '#F4EBD6', '#E2C26A')],
+    fonts: { script: 'Great Vibes', serif: 'Cinzel', body: 'Cormorant Garamond' },
+    opening: 'doors',
+    ambient: 'fireflies',
+    divider: 'arches',
+    marker: 'lantern',
+    music: 'shehnai',
+    paint: {},
+  },
+  {
+    id: 'mogra',
+    name: 'Mogra',
+    blurb: 'Ivory and champagne inside a garden frame of roses',
+    region: 'Pan-India',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#7C6A4E', accent: '#C9A96E', background: '#FBF8F2', surface: '#FFFFFF', text: '#2E2A24' },
+    scene: {
+      kind: 'champa-frame',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#FBF8F2', skyBottom: '#F3EDE2', glow: '#FFFFFF', far: '#EDE4D3', mid: '#FFFDF8', midShade: '#6F7F5E', trim: '#C9A96E', near: '#9AA77F', bloom: ['#F2E6D8', '#D8C3A5', '#9AA77F', '#E8D8A8'], water: '#EDE4D3' },
+    },
+    bands: [paper('#FBF8F2', '#2E2A24', '#7C6A4E'), paper('#F1EADD', '#2E2A24', '#7C6A4E'), paper('#E5EAE0', '#2B3326', '#56664A')],
+    fonts: { script: 'Parisienne', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' },
+    opening: 'envelope',
+    ambient: 'petals',
+    divider: 'scallop',
+    marker: 'rose',
+    music: 'piano',
+    paint: {},
+  },
+  {
+    id: 'kesariya',
+    name: 'Kesariya',
+    blurb: 'Saffron dusk, marigold torans and brass lanterns',
+    region: 'Rajasthan',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#B33A1E', accent: '#F2B33D', background: '#FFF4E3', surface: '#FFFBF3', text: '#3A1608' },
+    scene: {
+      kind: 'genda-toran',
+      night: false,
+      style: 'modern',
+      colors: { skyTop: '#FFE6BF', skyBottom: '#FFD08A', glow: '#FFF3D6', far: '#F7A85A', mid: '#B33A1E', midShade: '#8E2A14', trim: '#C98A1E', near: '#2F7D32', bloom: ['#F28C0F', '#FFC93C', '#2F7D32', '#E2553D'], water: '#F7C07A' },
+    },
+    bands: [paper('#FFF4E3', '#3A1608', '#B33A1E'), paper('#B33A1E', '#FFF1DE', '#FFD27A'), paper('#FDE3B3', '#3A1608', '#8E2A14')],
+    fonts: { script: 'Pinyon Script', serif: 'Yeseva One', body: 'Cormorant Garamond' },
+    opening: 'scroll',
+    ambient: 'marigolds',
+    divider: 'scallop',
+    marker: 'marigold',
+    music: 'dhol',
+    paint: {},
+  },
+  {
+    id: 'chandni',
+    name: 'Chandni',
+    blurb: 'Moonlit indigo, gold rings and drifting clouds',
+    region: 'Pan-India',
+    faith: null,
+    isNew: true,
+    palette: { primary: '#1F2A5C', accent: '#D9B86A', background: '#F3F1F8', surface: '#FFFFFF', text: '#151A33' },
+    scene: {
+      kind: 'moon-rings',
+      night: true,
+      style: 'modern',
+      colors: { skyTop: '#0D1433', skyBottom: '#27346B', glow: '#F7E7B5', far: '#F7E7B5', mid: '#3A4A86', midShade: '#2A3670', trim: '#D9B86A', near: '#46559A', bloom: ['#F1E4F0', '#C9B3D9', '#6B7BB0', '#D9B86A'], water: '#27346B' },
+    },
+    bands: [paper('#151D45', '#EEF0FA', '#E3C77F'), paper('#F3F1F8', '#151A33', '#1F2A5C'), paper('#232F66', '#EEF0FA', '#E3C77F')],
+    fonts: { script: 'Allura', serif: 'Marcellus', body: 'Cormorant Garamond' },
+    opening: 'petals',
+    ambient: 'stars',
+    divider: 'wave',
+    marker: 'star',
+    music: 'santoor',
+    paint: {},
+  },
   // ---------------- Modern collection (Nov 2026): crisp, card-matched designs ----------------
   // Each pack shares its id, art and type with the card family of the same name, so the card,
   // the website and the video invite look like one suite.
@@ -890,7 +992,16 @@ export function getSiteDesign(id: string | null | undefined): SiteDesign | null 
 export function designsFor(eventType: string, community?: string | null, cardDesign?: string | null): SiteDesign[] {
   const faith = faithOf(eventType, community);
   const rank = (d: SiteDesign) => (cardDesign && d.id === cardDesign ? -1 : d.faith === faith ? 0 : d.faith === null ? 1 : 2);
-  return [...SITE_DESIGNS].sort((a, b) => rank(a) - rank(b));
+  return SITE_DESIGNS.filter((d) => !isRetiredDesign(d.id)).sort((a, b) => rank(a) - rank(b));
+}
+
+/** Plain/minimal packs retired from the picker (Nov 2026). Pages that already use one keep it. */
+export const RETIRED_SITE_DESIGNS: readonly SiteDesignId[] = ['modern-minimal', 'pampas-boho', 'mr-mrs'];
+export const isRetiredDesign = (id: string | null | undefined) => RETIRED_SITE_DESIGNS.includes(id as SiteDesignId);
+
+/** Every page has a design now (the plain "classic" look is gone): the best one for this event. */
+export function defaultDesignFor(eventType: string, community?: string | null, cardDesign?: string | null): SiteDesignId {
+  return designsFor(eventType, community, cardDesign)[0]!.id;
 }
 
 /** Cover text colour over the design's scene. */

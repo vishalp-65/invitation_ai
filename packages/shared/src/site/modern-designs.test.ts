@@ -9,7 +9,11 @@ describe('modern website / video packs', () => {
   it('come first and each one matches a modern card family by id', () => {
     expect(modern.length).toBeGreaterThanOrEqual(12);
     expect(SITE_DESIGNS.slice(0, modern.length).every((d) => d.scene.style === 'modern')).toBe(true);
+    // Website-first premium packs have no card family of their own.
+    const websiteFirst = new Set(['sheesh-mahal', 'mogra', 'kesariya', 'chandni']);
     for (const d of modern) {
+      expect(DESIGN_TIER[d.id], d.id).toBeDefined();
+      if (websiteFirst.has(d.id)) continue;
       expect(MODERN_FAMILY_IDS as readonly string[], d.id).toContain(d.id);
       expect(DESIGN_TIER[d.id], d.id).toBeDefined();
     }

@@ -2,12 +2,13 @@
 
 import { heroInk, type SiteDoc, type SiteSectionOf, type ThingIcon } from '@cardai/shared';
 import { DressFigures, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal } from '@cardai/templates/scenes';
-import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, Route, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
+import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { safeHref, useSite } from './context';
 import { mapsUrl, useCountdown } from './utils';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { RsvpForm } from './rsvp-form';
+import { VenueMap } from './venue-map';
 
 /**
  * Sections drawn for cinematic design packs (and the two new section types that work in any
@@ -288,41 +289,29 @@ export function RibbonSchedule({ section }: { section: SiteSectionOf<'schedule'>
   );
 }
 
-/** Painted venue, details, map and a vintage car that drives in beside "See the route". */
+/** Painted venue, then the venue card (illustrated map, directions) and a vintage car driving in. */
 export function DesignVenue({ section }: { section: SiteSectionOf<'venue'> }) {
-  const { data, fmt, t, heading, design } = useSite();
+  const { data, heading, design } = useSite();
   const f = data.functions.find((x) => x.id === section.functionId) ?? data.functions[0];
   if (!f || !design) return null;
-  const q = [f.venueName, f.venueAddress].filter(Boolean).join(', ');
-  const route = safeHref(f.mapUrl) ?? mapsUrl(q);
   return (
     <section id={section.id} aria-labelledby={`${section.id}-h`} className="relative px-5 py-16 sm:py-24">
       <div className="mx-auto max-w-xl text-center">
         <Reveal motion={section.motion}>
           <ScriptHeading id={`${section.id}-h`}>{heading(section)}</ScriptHeading>
-          <p className="inv-display mt-4 text-2xl">{f.venueName}</p>
-          <p className="mt-1 text-sm uppercase tracking-[0.14em] opacity-80">
-            {fmt.date.format(new Date(f.startsAt))} · {fmt.time.format(new Date(f.startsAt))}
-          </p>
-          {f.venueAddress && <p className="mx-auto mt-2 max-w-sm opacity-80">{f.venueAddress}</p>}
         </Reveal>
         {section.showArt && (
           <Reveal motion="zoom" delay={1} className="mt-8 overflow-hidden rounded-[18px]">
             <SceneStill design={design} slot="venue" lite />
           </Reveal>
         )}
-        {section.showMap && (
-          <Reveal motion={section.motion} delay={1} className="mt-6 overflow-hidden rounded-[18px] border border-[var(--inv-primary-a28)]">
-            <iframe title={f.venueName} src={`https://www.google.com/maps?q=${encodeURIComponent(q)}&output=embed`} loading="lazy" referrerPolicy="no-referrer-when-downgrade" className="h-64 w-full border-0" />
-          </Reveal>
-        )}
-        <Reveal motion="fade" className="mt-8 flex flex-col items-center gap-4">
+        <Reveal motion={section.motion} delay={1} className="mt-6">
+          <VenueMap fn={f} showMap={section.showMap} />
+        </Reveal>
+        <Reveal motion="fade" className="mt-8 flex flex-col items-center">
           <div className="inv-car w-48">
             <VintageCar body={design.scene.colors.water} />
           </div>
-          <a href={route} target="_blank" rel="noopener" className="inline-flex h-12 items-center gap-2 rounded-full bg-[var(--inv-primary)] px-6 font-semibold text-[var(--inv-on-primary)]">
-            <Route className="size-5" aria-hidden /> {t('See the route', 'रास्ता देखें')}
-          </a>
         </Reveal>
       </div>
     </section>

@@ -1,29 +1,58 @@
 import { and, eq, events, guests, inArray, isNull, shortAliases, sql, type Database } from '@cardai/db';
+import { aliasProblem, ALIAS_MAX, ALIAS_PROBLEM_TEXT, isReservedLink, normaliseAlias } from '@cardai/shared';
 import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { customAlphabet } from 'nanoid';
 import { ENV, type Env } from '../../config/env.js';
-import { onUniqueViolation } from '../../common/db.js';
+import { isUniqueViolation, onUniqueViolation } from '../../common/db.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 
 // No look-alikes (0/O, 1/l/I) so codes survive being read out over the phone.
 const ALPHABET = '23456789abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ';
-/** Event codes: short and shareable (57^5 ≈ 600M). */
-const eventCode = customAlphabet(ALPHABET, 5);
-/** Guest codes: personal links must not be guessable (57^7 ≈ 2T). */
-const guestCode = customAlphabet(ALPHABET, 7);
+const rawEventCode = customAlphabet(ALPHABET, 5);
+const rawGuestCode = customAlphabet(ALPHABET, 7);
 
-/** Words a vanity alias may not take (they are app routes on the short domain). */
-const RESERVED = new Set(['api', 'i', 's', 'login', 'signup', 'dashboard', 'pricing', 'templates', 'create', 'editor', 'admin', 'designer', 'auth', 'dev', 'og']);
+/**
+ * Generated codes always carry a capital letter, while custom names are lowercase only, so a
+ * code and a name can never be the same string. Codes that spell a reserved word in any case
+ * (`Admin`) are skipped: the web proxy would not route them.
+ */
+export function strongCode(make: () => string): string {
+  for (;;) {
+    const c = make();
+    if (/[A-Z]/.test(c) && !isReservedLink(c)) return c;
+  }
+}
+
+/** Event codes: short and shareable (57^5 ≈ 600M). */
+const eventCode = () => strongCode(rawEventCode);
+/** Guest codes: personal links must not be guessable (57^7 ≈ 2T). */
+const guestCode = () => strongCode(rawGuestCode);
 
 export interface ResolvedLink {
   slug: string;
   guestToken: string | null;
 }
 
+export interface AliasCheck {
+  alias: string;
+  available: boolean;
+  /** Why it can't be used (already normalised for display). */
+  reason: string | null;
+  /** Free names close to the one asked for (only when it is taken). */
+  suggestions: string[];
+}
+
 /**
- * Our own short links: `<base>/<code>` for an event, `<base>/<7-char code>` for one guest and
- * `<base>/<alias>` for a vanity name. The base is configurable so the short domain can be
- * chosen at launch (SHORT_LINK_BASE), falling back to `<APP_URL>/s`.
+ * Our own short links, all at the root of one domain:
+ *   `<base>/<5-char code>` an event · `<base>/<7-char code>` one guest · `<base>/<name>` a custom name.
+ * The base is SHORT_LINK_BASE (a separate short domain) or the main site itself; old
+ * `<APP_URL>/s/<code>` links keep working.
+ *
+ * Collisions are ruled out both ways:
+ *  - codes contain a capital, names are lowercase (different strings by construction);
+ *  - a name may not equal any existing code case-insensitively (someone typing a code in
+ *    lowercase must not land on a stranger's page), and new event codes skip existing names;
+ *  - two hosts racing for one name: the primary key decides, the loser gets suggestions.
  */
 @Injectable()
 export class ShortLinksService {
@@ -34,7 +63,7 @@ export class ShortLinksService {
   ) {}
 
   get base(): string {
-    return this.env.SHORT_LINK_BASE ?? `${this.env.APP_URL}/s`;
+    return this.env.SHORT_LINK_BASE ?? this.env.APP_URL.replace(/\/+$/, '');
   }
 
   url(code: string): string {
@@ -44,8 +73,9 @@ export class ShortLinksService {
   /** The event's short code, created on first use. */
   async eventCode(eventId: string, existing?: string | null): Promise<string> {
     if (existing) return existing;
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 8; i++) {
       const code = eventCode();
+      if (await this.aliasExists(code.toLowerCase())) continue;
       // A code collision returns no row, so the loop tries a fresh code.
       const [row] = await onUniqueViolation(
         this.db.update(events).set({ shortCode: code }).where(and(eq(events.id, eventId), isNull(events.shortCode))).returning({ code: events.shortCode }),
@@ -82,7 +112,7 @@ export class ShortLinksService {
     return out;
   }
 
-  /** Fresh code for a new guest row (insert-time). */
+  /** Fresh code for a new guest row (insert-time). Always has a capital, so never equals a name. */
   newGuestCode(): string {
     return guestCode();
   }
@@ -92,18 +122,70 @@ export class ShortLinksService {
     return row?.alias ?? null;
   }
 
-  /** One vanity alias per event; setting a new one replaces the old. */
-  async setAlias(eventId: string, alias: string): Promise<string> {
-    if (RESERVED.has(alias) || alias.length <= 7) {
-      // ≤7 chars could clash with generated event/guest codes.
-      throw new ConflictException(RESERVED.has(alias) ? 'That name is reserved' : 'Use at least 8 characters, e.g. rahul-weds-priya');
+  private async aliasExists(alias: string): Promise<boolean> {
+    const [row] = await this.db.select({ a: shortAliases.alias }).from(shortAliases).where(eq(shortAliases.alias, alias)).limit(1);
+    return Boolean(row);
+  }
+
+  /** True when an event or guest code reads the same as `alias` (ignoring case). */
+  private async clashesWithCode(alias: string): Promise<boolean> {
+    if (alias.length === 5) {
+      const [e] = await this.db.select({ id: events.id }).from(events).where(sql`lower(${events.shortCode}) = ${alias}`).limit(1);
+      if (e) return true;
     }
-    const [taken] = await this.db.select({ eventId: shortAliases.eventId }).from(shortAliases).where(eq(shortAliases.alias, alias));
-    if (taken && taken.eventId !== eventId) throw new ConflictException('That link is already taken');
-    await this.db.transaction(async (tx) => {
-      await tx.delete(shortAliases).where(eq(shortAliases.eventId, eventId));
-      await tx.insert(shortAliases).values({ alias, eventId });
-    });
+    if (alias.length === 7) {
+      const [g] = await this.db.select({ id: guests.id }).from(guests).where(sql`lower(${guests.shortCode}) = ${alias}`).limit(1);
+      if (g) return true;
+    }
+    return false;
+  }
+
+  /** Can this event use `alias`? `reason` is the text shown under the field. */
+  async checkAlias(eventId: string, input: string): Promise<AliasCheck> {
+    const alias = normaliseAlias(input).replace(/-+$/, '');
+    const problem = aliasProblem(alias);
+    if (problem) return { alias, available: false, reason: ALIAS_PROBLEM_TEXT[problem], suggestions: problem === 'reserved' ? await this.suggest(eventId, alias) : [] };
+    const [owner] = await this.db.select({ eventId: shortAliases.eventId }).from(shortAliases).where(eq(shortAliases.alias, alias));
+    if (owner?.eventId === eventId) return { alias, available: true, reason: null, suggestions: [] };
+    if (owner || (await this.clashesWithCode(alias))) {
+      return { alias, available: false, reason: 'Someone already has this link', suggestions: await this.suggest(eventId, alias) };
+    }
+    return { alias, available: true, reason: null, suggestions: [] };
+  }
+
+  /** Up to 4 free names built from `alias` (alias2, alias-26, …). */
+  async suggest(eventId: string, alias: string): Promise<string[]> {
+    const stem = alias.slice(0, ALIAS_MAX - 5).replace(/-+$/, '') || 'invite';
+    const yy = String(new Date().getFullYear()).slice(2);
+    const candidates = [...new Set([`${stem}${yy}`, `${stem}-${yy}`, `${stem}2`, `${stem}-invite`, `${stem}-family`, `the-${stem}`, `${stem}3`, `${stem}-${new Date().getFullYear()}`])].filter(
+      (c) => c.length <= ALIAS_MAX && !aliasProblem(c),
+    );
+    const taken = await this.db.select({ alias: shortAliases.alias, eventId: shortAliases.eventId }).from(shortAliases).where(inArray(shortAliases.alias, candidates));
+    const blocked = new Set(taken.filter((t) => t.eventId !== eventId).map((t) => t.alias));
+    const out: string[] = [];
+    for (const c of candidates) {
+      if (out.length >= 4) break;
+      if (!blocked.has(c) && !(await this.clashesWithCode(c))) out.push(c);
+    }
+    return out;
+  }
+
+  /** One custom name per event; setting a new one replaces the old. Safe against two hosts racing. */
+  async setAlias(eventId: string, input: string): Promise<string> {
+    const check = await this.checkAlias(eventId, input);
+    if (!check.available) throw new ConflictException({ message: check.reason ?? 'That link is not available', details: { suggestions: check.suggestions } });
+    const alias = check.alias;
+    try {
+      await this.db.transaction(async (tx) => {
+        await tx.delete(shortAliases).where(eq(shortAliases.eventId, eventId));
+        await tx.insert(shortAliases).values({ alias, eventId });
+      });
+    } catch (err) {
+      if (!isUniqueViolation(err)) throw err;
+      // Another event took the name between the check and the insert.
+      throw new ConflictException({ message: 'Someone just took this link', details: { suggestions: await this.suggest(eventId, alias) } });
+    }
+    await this.forgetCodes([alias]);
     return alias;
   }
 
@@ -113,13 +195,13 @@ export class ShortLinksService {
 
   /** Code → where it points. Counts the click (best effort). */
   async resolve(code: string): Promise<ResolvedLink> {
-    const cacheKey = `sl:${code}`;
-    const hit = await this.redis.get(cacheKey);
+    const hit = (await this.redis.get(`sl:${code}`)) ?? (await this.redis.get(`sl:a:${code.toLowerCase()}`));
     if (hit) {
       void this.countClick(code);
       return JSON.parse(hit) as ResolvedLink;
     }
 
+    // 1. Exact generated code (case-sensitive).
     let found: ResolvedLink | null = null;
     if (code.length === 7) {
       const [g] = await this.db
@@ -133,32 +215,35 @@ export class ShortLinksService {
       const [e] = await this.db.select({ slug: events.slug }).from(events).where(eq(events.shortCode, code));
       if (e) found = { slug: e.slug, guestToken: null };
     }
-    if (!found) {
-      const alias = code.toLowerCase();
-      const [a] = await this.db
-        .select({ slug: events.slug })
-        .from(shortAliases)
-        .innerJoin(events, eq(events.id, shortAliases.eventId))
-        .where(eq(shortAliases.alias, alias));
-      if (a) {
-        found = { slug: a.slug, guestToken: null };
-        void this.db.update(shortAliases).set({ clicks: sql`${shortAliases.clicks} + 1` }).where(eq(shortAliases.alias, alias)).catch(() => undefined);
-      }
+    if (found) {
+      await this.redis.set(`sl:${code}`, JSON.stringify(found), 'EX', 120);
+      return found;
     }
-    if (!found) throw new NotFoundException('Link not found');
+
+    // 2. Custom name (any case: "RP" and "rp" are the same link).
+    const alias = code.toLowerCase();
+    const [a] = await this.db
+      .select({ slug: events.slug })
+      .from(shortAliases)
+      .innerJoin(events, eq(events.id, shortAliases.eventId))
+      .where(eq(shortAliases.alias, alias));
+    if (!a) throw new NotFoundException('Link not found');
+    found = { slug: a.slug, guestToken: null };
+    void this.countClick(alias);
     // Short cache: slugs can change when the host edits the link.
-    await this.redis.set(cacheKey, JSON.stringify(found), 'EX', 120);
+    await this.redis.set(`sl:a:${alias}`, JSON.stringify(found), 'EX', 120);
     return found;
   }
 
   private async countClick(code: string) {
-    if (code.length > 7) {
-      await this.db.update(shortAliases).set({ clicks: sql`${shortAliases.clicks} + 1` }).where(eq(shortAliases.alias, code.toLowerCase())).catch(() => undefined);
+    if (code.length === 5 || code.length === 7) {
+      if (/[A-Z]/.test(code)) return; // generated code, not a name
     }
+    await this.db.update(shortAliases).set({ clicks: sql`${shortAliases.clicks} + 1` }).where(eq(shortAliases.alias, code.toLowerCase())).catch(() => undefined);
   }
 
   async forgetCodes(codes: string[]) {
-    if (codes.length) await this.redis.del(...codes.map((c) => `sl:${c}`));
+    if (codes.length) await this.redis.del(...codes.flatMap((c) => [`sl:${c}`, `sl:a:${c.toLowerCase()}`]));
   }
 
   /** Guests' codes for one event (for cache busting on slug change). */

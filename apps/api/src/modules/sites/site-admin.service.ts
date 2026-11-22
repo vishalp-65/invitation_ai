@@ -151,13 +151,25 @@ export class SiteAdminService {
     return { hasPassword: Boolean(password) };
   }
 
+  /** Custom links are Site Premium (or any admin). Admin-owned events pass inside `require`. */
+  private async requireCustomLink(user: AuthUser, eventId: string) {
+    if (user.role === 'admin' && !user.imp) return;
+    await this.entitlements.require(eventId, 'website_premium', 'Your own link name is part of Site Premium');
+  }
+
+  /** Live availability while the host types (no plan needed to look). */
+  async checkAlias(user: AuthUser, eventId: string, alias: string) {
+    await this.events.getOwned(user, eventId, 'view');
+    return this.links.checkAlias(eventId, alias);
+  }
+
   async setAlias(user: AuthUser, eventId: string, alias: string) {
     await this.events.getOwned(user, eventId, 'edit');
-    await this.entitlements.require(eventId, 'website_premium', 'Your own short link name is part of Site Premium');
+    await this.requireCustomLink(user, eventId);
     const previous = await this.links.aliasOf(eventId);
-    await this.links.setAlias(eventId, alias);
-    if (previous) await this.links.forgetCodes([previous]);
-    return { vanityAlias: alias, vanityUrl: this.links.url(alias) };
+    const saved = await this.links.setAlias(eventId, alias);
+    if (previous && previous !== saved) await this.links.forgetCodes([previous]);
+    return { vanityAlias: saved, vanityUrl: this.links.url(saved) };
   }
 
   async removeAlias(user: AuthUser, eventId: string) {

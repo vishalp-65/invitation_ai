@@ -50,3 +50,7 @@
 @media (prefers-reduced-motion: reduce) {
   .design-poster [class*='scn-'] { animation: none !important; }
 }
+
+/* Painted-edge SVG filters re-render every frame under the idle loops; the website skips them
+   (the video invite keeps them, it renders offline). */
+.inv-root .scn-paint { filter: none; }

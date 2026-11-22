@@ -20,6 +20,8 @@ import {
   applySiteTier,
   BRAND,
   defaultSiteDoc,
+  ensureDesign,
+  findBuiltinTemplate,
   siteDocSchema,
   siteExpiresAt,
   siteTier,
@@ -95,10 +97,12 @@ export class SitesService {
   // ---------------- helpers shared with the builder ----------------
 
   docOf(event: EventRow): SiteDoc {
-    if (!event.site) return defaultSiteDoc({ eventType: event.type, community: event.community, primaryNames: event.content.primaryNames });
-    // Fill fields added since the doc was saved (design, music...) with their defaults.
+    const opts = { eventType: event.type, community: event.community, cardDesign: findBuiltinTemplate(event.templateId)?.design ?? null };
+    if (!event.site) return defaultSiteDoc({ ...opts, primaryNames: event.content.primaryNames });
+    // Fill fields added since the doc was saved (design, music...) with their defaults; pages
+    // saved with the retired plain look get the event's best design.
     const parsed = siteDocSchema.safeParse(event.site);
-    return parsed.success ? parsed.data : event.site;
+    return ensureDesign(parsed.success ? parsed.data : event.site, opts);
   }
 
   async planOf(eventId: string): Promise<{ tier: SiteTier; features: Set<Feature>; extraYears: number }> {

@@ -4,6 +4,7 @@ import {
   autoCharacter,
   defaultSiteDoc,
   eventFunctionInputSchema,
+  getSiteDesign,
   lockedInDoc,
   newSection,
   siteDocSchema,
@@ -21,7 +22,9 @@ describe('defaultSiteDoc', () => {
     const couple = doc.sections.find((s) => s.type === 'couple');
     expect(couple?.type === 'couple' && couple.people.map((p) => p.name)).toEqual(['Rahul', 'Priya']);
     expect(doc.character.attire).toBe('bengali');
-    expect(doc.opening.kind).toBe('doors');
+    // Every page starts on a design (the plain look is gone) and takes its opening.
+    expect(getSiteDesign(doc.design)).not.toBeNull();
+    expect(doc.opening.kind).toBe(getSiteDesign(doc.design)!.opening);
     // Royale extras start hidden so a new page isn't full of empty sections.
     expect(doc.sections.find((s) => s.type === 'livestream')?.hidden).toBe(true);
   });
@@ -40,6 +43,7 @@ describe('defaultSiteDoc', () => {
 
 describe('plans', () => {
   const doc = defaultSiteDoc({ eventType: 'wedding', primaryNames: ['A', 'B'] });
+  doc.opening.kind = 'doors';
   doc.access.mode = 'password';
   doc.sections.find((s) => s.type === 'gallery')!.audience = ['Family'];
 
@@ -57,6 +61,8 @@ describe('plans', () => {
     expect(types).not.toContain('travel');
     expect(free.opening.kind).toBe('envelope'); // doors are Premium
     expect(free.access.mode).toBe('link');
+    // A Premium design falls back to a free design, never to a plain page.
+    expect(getSiteDesign(free.design)).not.toBeNull();
   });
 
   it('premium keeps story & gallery but strips Royale-only options', () => {

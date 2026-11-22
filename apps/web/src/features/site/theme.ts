@@ -18,12 +18,12 @@ export function readableOn(bg: string): string {
   return luminance(bg) > 0.42 ? '#24170F' : '#FFF8EE';
 }
 
-function rgba(hex: string, a: number): string {
+export function rgba(hex: string, a: number): string {
   const [r, g, b] = hexToRgb(hex);
   return `rgba(${r}, ${g}, ${b}, ${a})`;
 }
 
-function mix(a: string, b: string, t: number): string {
+export function mix(a: string, b: string, t: number): string {
   const ca = hexToRgb(a);
   const cb = hexToRgb(b);
   return `#${ca.map((v, i) => Math.round(v + (cb[i]! - v) * t).toString(16).padStart(2, '0')).join('')}`;

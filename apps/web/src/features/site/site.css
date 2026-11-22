@@ -140,58 +140,6 @@
 .inv-opening .inv-backdrop { transition: opacity 0.9s ease 0.9s; }
 .inv-opening[data-state='opening'] .inv-backdrop { opacity: 0; }
 
-/* doors */
-.inv-door {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 50.5%;
-  transition: transform 1.9s var(--ease-soft);
-  backface-visibility: hidden;
-}
-.inv-door.l { left: 0; transform-origin: 0 50%; }
-.inv-door.r { right: 0; transform-origin: 100% 50%; }
-[data-state='opening'] .inv-door.l { transform: rotateY(-105deg); }
-[data-state='opening'] .inv-door.r { transform: rotateY(105deg); }
-
-/* curtain */
-.inv-curtain {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 51%;
-  transition: transform 1.6s var(--ease-soft);
-}
-.inv-curtain.l { left: 0; transform-origin: 0 0; }
-.inv-curtain.r { right: 0; transform-origin: 100% 0; }
-[data-state='opening'] .inv-curtain.l { transform: translate3d(-92%, 0, 0) scaleX(0.35); }
-[data-state='opening'] .inv-curtain.r { transform: translate3d(92%, 0, 0) scaleX(0.35); }
-
-/* envelope */
-.inv-envelope { position: relative; transition: transform 1.2s var(--ease-out) 0.9s, opacity 0.6s ease 1.5s; }
-.inv-flap {
-  position: absolute;
-  inset: 0 0 auto 0;
-  height: 58%;
-  transform-origin: 50% 0;
-  transition: transform 0.9s var(--ease-soft);
-  clip-path: polygon(0 0, 100% 0, 50% 100%);
-}
-.inv-letter-card { transition: transform 1s var(--ease-out) 0.55s; }
-[data-state='opening'] .inv-flap { transform: rotateX(180deg); }
-[data-state='opening'] .inv-letter-card { transform: translate3d(0, -42%, 0); }
-[data-state='opening'] .inv-envelope { transform: translate3d(0, 120vh, 0); opacity: 0; }
-
-/* scroll */
-.inv-scroll-paper { transform-origin: 50% 0; transform: scaleY(0.08); transition: transform 1.3s var(--ease-out); }
-[data-state='opening'] .inv-scroll-paper { transform: scaleY(1); }
-.inv-scroll-wrap { transition: opacity 0.7s ease 1.3s, transform 0.9s var(--ease-out) 1.3s; }
-[data-state='opening'] .inv-scroll-wrap { opacity: 0; transform: scale(1.08); }
-
-/* petals burst */
-.inv-burst-petal { transition: transform 1.6s var(--ease-out), opacity 1.6s ease; }
-[data-state='opening'] .inv-burst-petal { transform: translate3d(var(--bx), var(--by), 0) rotate(var(--br)); opacity: 0; }
-
 /* ---------- Story timeline ---------- */
 .inv-story-line {
   transform-origin: 50% 0;
@@ -308,3 +256,9 @@
 
 /* Seal grows with the screen (the SVG has a fixed size attribute). */
 .inv-seal svg { display: block; width: 100%; height: auto; }
+
+/* Venue map pin: a soft pulse (transform/opacity only). */
+.inv-pin-pulse { transform-box: fill-box; transform-origin: center; animation: inv-pin 2.4s ease-out infinite; }
+@keyframes inv-pin { 0% { transform: scale(0.4); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
+.inv-motion-off .inv-pin-pulse { animation: none; }
+@media (prefers-reduced-motion: reduce) { .inv-pin-pulse { animation: none; } }

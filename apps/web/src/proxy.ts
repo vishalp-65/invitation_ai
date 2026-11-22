@@ -1,3 +1,4 @@
+import { isReservedLink, LINK_SEGMENT_PATTERN } from '@cardai/shared';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PROTECTED = ['/dashboard', '/designer', '/admin', '/builder'];
@@ -88,12 +89,22 @@ export function proxy(req: NextRequest) {
   if (SHORT_HOST && host === SHORT_HOST) {
     const code = path.slice(1);
     const url = req.nextUrl.clone();
-    if (/^[A-Za-z0-9-]{3,40}$/.test(code)) {
+    if (LINK_SEGMENT_PATTERN.test(code)) {
       url.pathname = `/s/${code}`;
       return NextResponse.rewrite(url);
     }
     // Bare short domain → main site.
     return NextResponse.redirect(new URL('/', process.env.NEXT_PUBLIC_APP_URL ?? req.nextUrl.origin));
+  }
+
+  // Invitation links at the root: noyta.in/<name or code>. Served in place (not redirected), so
+  // the short URL stays in the address bar and WhatsApp reads its preview from this one URL.
+  // App pages and occasion pages are reserved words and never reach here.
+  const seg = path.slice(1);
+  if (seg && LINK_SEGMENT_PATTERN.test(seg) && !isReservedLink(seg)) {
+    const url = req.nextUrl.clone();
+    url.pathname = `/s/${seg}`;
+    return NextResponse.rewrite(url);
   }
 
   if (PROTECTED.some((p) => path === p || path.startsWith(`${p}/`))) {

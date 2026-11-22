@@ -1,6 +1,6 @@
 'use client';
 
-import { applyDesign, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, type PublicSiteDto, type SiteDesignId } from '@cardai/shared';
+import { applyDesign, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, SITE_OPENINGS, type PublicSiteDto, type SiteDesignId, type SiteOpening } from '@cardai/shared';
 import { useMemo, useState } from 'react';
 import { SiteRenderer } from '@/features/site/site-renderer';
 import { Select } from '@/components/ui/select';
@@ -74,12 +74,16 @@ function sampleData(): PublicSiteDto {
 }
 
 /** Dev QA: every cinematic design rendered with the same sample wedding. */
-export function SiteGallery({ initial, skipOpening = false }: { initial: string; skipOpening?: boolean }) {
+export function SiteGallery({ initial, skipOpening = false, opening }: { initial: string; skipOpening?: boolean; opening?: string }) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
   // `?open=0` skips the opening (used to capture landing-page screenshots).
   const [replay, setReplay] = useState(skipOpening ? 0 : 1);
   const data = useMemo(sampleData, []);
-  const doc = useMemo(() => applyDesign(data.site, id), [data, id]);
+  const [kind, setKind] = useState<SiteOpening | ''>((SITE_OPENINGS as readonly string[]).includes(opening ?? '') ? (opening as SiteOpening) : '');
+  const doc = useMemo(() => {
+    const d = applyDesign(data.site, id);
+    return kind ? { ...d, opening: { ...d.opening, kind } } : d;
+  }, [data, id, kind]);
   return (
     <>
       <div hidden={skipOpening} className="fixed left-2 top-2 z-[80] flex gap-1 rounded-lg bg-black/70 p-1 text-xs text-white">
@@ -99,11 +103,28 @@ export function SiteGallery({ initial, skipOpening = false }: { initial: string;
             </option>
           ))}
         </Select>
+        <Select
+          variant="bare"
+          aria-label="Opening"
+          value={kind}
+          onChange={(e) => {
+            setKind(e.target.value as SiteOpening | '');
+            setReplay((r) => r + 1);
+          }}
+          className="rounded px-2"
+        >
+          <option value="">Design opening</option>
+          {SITE_OPENINGS.map((o) => (
+            <option key={o} value={o}>
+              {o}
+            </option>
+          ))}
+        </Select>
         <button type="button" onClick={() => setReplay((r) => r + 1)} className="rounded px-2 hover:bg-white/20">
           Replay
         </button>
       </div>
-      <SiteRenderer key={id} data={data} doc={doc} preview replayKey={replay} />
+      <SiteRenderer key={`${id}-${kind}`} data={data} doc={doc} preview replayKey={replay} />
     </>
   );
 }

@@ -3,10 +3,16 @@
 import type { SiteDesign, SiteOpening } from '@cardai/shared';
 import { Ambient, SceneLayer, WaxSeal } from '@cardai/templates/scenes';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
+import { mix, rgba } from './theme';
+import './openings.css';
+
+/** How long each scene plays after the tap before the page takes over (ms). */
+const DURATION: Record<SiteOpening, number> = { none: 0, envelope: 2500, doors: 2500, curtain: 2300, scroll: 2900, petals: 2100, seal: 2600, lanterns: 2600 };
 
 /**
  * Tap-to-open scene in front of the page. The tap is also the user gesture that lets music
- * start on phones. Every scene is transforms + opacity only, then the layer unmounts.
+ * start on phones. Every scene is drawn with HTML/CSS + a little SVG (no images to download),
+ * animates transforms and opacity only, then unmounts.
  */
 export function Opening({
   design,
@@ -17,6 +23,7 @@ export function Opening({
   greeting,
   title,
   monogram,
+  date,
   onOpen,
   motionOff,
 }: {
@@ -28,6 +35,8 @@ export function Opening({
   greeting: string | null;
   title: string;
   monogram: string;
+  /** "14 · 02 · 2027" under the names. */
+  date?: string | null;
   onOpen: () => void;
   motionOff: boolean;
 }) {
@@ -35,7 +44,7 @@ export function Opening({
 
   useEffect(() => {
     if (state !== 'opening') return;
-    const t = setTimeout(() => setState('gone'), motionOff ? 0 : kind === 'seal' || kind === 'lanterns' ? 2600 : 2300);
+    const t = setTimeout(() => setState('gone'), motionOff ? 0 : DURATION[kind]);
     return () => clearTimeout(t);
   }, [state, motionOff, kind]);
 
@@ -57,79 +66,235 @@ export function Opening({
     onOpen();
   };
 
-  const cta = (
-    <div className="inv-cta relative z-10 flex flex-col items-center gap-5 px-8 text-center">
-      {greeting && <p className="text-lg italic opacity-90">{greeting}</p>}
-      <p className="inv-display max-w-xs text-3xl leading-tight">{title}</p>
-      <button
-        type="button"
-        onClick={open}
-        autoFocus
-        className="h-14 rounded-full bg-[var(--inv-primary)] px-8 text-lg font-semibold text-[var(--inv-on-primary)] shadow-[0_10px_30px_-10px_rgb(0_0_0/0.5)] active:scale-95"
-      >
-        {label}
-      </button>
+  // Palette for every scene: lacquer (deep primary), gold trim, paper.
+  const P = design?.palette.primary ?? '#7A1F2B';
+  const G = design?.palette.accent ?? '#D4AF6A';
+  const paper = design?.palette.surface ?? '#FFF8EC';
+  const ground = design?.palette.background ?? '#F6EBDA';
+  const deep = mix(P, '#000000', 0.42);
+  const script = design?.fonts.script;
+  const pal = {
+    '--op-p': P,
+    '--op-deep': deep,
+    '--op-deeper': mix(P, '#000000', 0.62),
+    '--op-light': mix(P, '#FFFFFF', 0.12),
+    '--op-gold': G,
+    '--op-gold-soft': rgba(G, 0.55),
+    '--op-gold-faint': rgba(G, 0.22),
+    '--op-gold-hi': mix(G, '#FFFFFF', 0.45),
+    '--op-gold-lo': mix(G, '#000000', 0.35),
+    '--op-paper': paper,
+    '--op-ground': ground,
+    '--op-ink': mix(P, '#000000', 0.3),
+    ...(script ? { '--op-script': `"${script}", var(--inv-script)` } : {}),
+  } as CSSProperties;
+
+  const shownNames =
+    names.length > 1 ? (
+      <>
+        {names[0]}
+        <span className="op-amp">{connector || '&'}</span>
+        {names[1]}
+      </>
+    ) : (
+      names[0] ?? title
+    );
+
+  /** Names + date + "tap to open", the same type system on every scene. */
+  const Words = ({ tone, className = '', hint = true }: { tone: 'light' | 'dark'; className?: string; hint?: boolean }) => (
+    <div className={`op-words inv-cta op-${tone} ${className}`}>
+      {greeting && <p className="op-greet">{greeting}</p>}
+      <p className="op-kicker">{names.length ? title : ''}</p>
+      <p className="op-names">{shownNames}</p>
+      {date && <p className="op-date">{date}</p>}
+      {hint && (
+        <p className="op-hint">
+          <span aria-hidden />
+          {label}
+          <span aria-hidden />
+        </p>
+      )}
     </div>
   );
 
-  const panel = 'bg-[var(--inv-bg-alt)]';
-  const pattern: CSSProperties = {
-    backgroundImage:
-      'radial-gradient(circle at 50% 50%, var(--inv-primary-a28) 0 2px, transparent 3px), radial-gradient(circle at 0 0, var(--inv-primary-a16) 0 1.5px, transparent 2.5px)',
-    backgroundSize: '28px 28px, 14px 14px',
-  };
-
   let scene: ReactNode;
   switch (kind) {
+    // ---------------- Palace doors: carved lacquer leaves, brass studs, light behind ----------------
     case 'doors':
       scene = (
-        <>
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
+          <div className="inv-backdrop op-doors-ground" />
+          <div className="op-doors-light" aria-hidden />
           {(['l', 'r'] as const).map((side) => (
-            <div key={side} className={`inv-door ${side} ${panel}`} style={pattern}>
-              <div className={`absolute inset-y-6 ${side === 'l' ? 'right-0 left-6 rounded-l-[40%_8%]' : 'left-0 right-6 rounded-r-[40%_8%]'} border-4 border-[var(--inv-primary)]`} />
-              <span
-                className={`absolute top-1/2 ${side === 'l' ? 'right-4' : 'left-4'} size-5 -translate-y-1/2 rounded-full border-2 border-[var(--inv-primary)] bg-[var(--inv-accent)]`}
-              />
+            <div key={side} className={`op-leaf op-leaf-${side}`} aria-hidden>
+              <div className="op-leaf-frame" />
+              <div className="op-studs op-studs-top" />
+              <div className="op-arch-panel">
+                <div className="op-arch-inner" />
+                <div className="op-jaali" />
+              </div>
+              <div className="op-low-panel">
+                <span className="op-diamond" />
+              </div>
+              <div className="op-studs op-studs-bottom" />
+              <span className="op-knocker" />
+              {side === 'l' && (
+                <span className="op-medallion">
+                  <span>{[...monogram].slice(0, 2).join('')}</span>
+                </span>
+              )}
             </div>
           ))}
-          <div className="inv-backdrop absolute inset-0 -z-10 bg-[var(--inv-bg)]" />
-          {cta}
-        </>
+          <svg className="op-toran inv-cta" viewBox="0 0 600 60" preserveAspectRatio="none" aria-hidden>
+            <path d="M0 0H600V14H0Z" fill="var(--op-deeper)" />
+            <path d="M0 14 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0V0H0Z" fill="var(--op-deeper)" />
+            <path d="M0 14 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0 q30 34 60 0" fill="none" stroke="var(--op-gold)" strokeWidth="1.6" vectorEffect="non-scaling-stroke" />
+            {Array.from({ length: 10 }, (_, i) => (
+              <circle key={i} cx={30 + i * 60} cy="38" r="3.2" fill="var(--op-gold)" />
+            ))}
+          </svg>
+          <Words tone="light" className="op-doors-words" />
+        </button>
       );
       break;
+
+    // ---------------- Theatre curtain: velvet folds, swag valance, gold fringe ----------------
     case 'curtain':
       scene = (
-        <>
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
+          <div className="inv-backdrop op-stage" />
+          <div className="op-spot" aria-hidden />
           {(['l', 'r'] as const).map((side) => (
-            <div
-              key={side}
-              className={`inv-curtain ${side}`}
-              style={{
-                background: 'repeating-linear-gradient(90deg, var(--inv-primary) 0 22px, var(--inv-primary-deep) 22px 44px)',
-              }}
-            >
-              <div className="absolute inset-x-0 top-0 h-10 bg-[var(--inv-accent)]" />
+            <div key={side} className={`op-drape op-drape-${side}`} aria-hidden>
+              <div className="op-fringe" />
+              <span className="op-tassel" />
             </div>
           ))}
-          <div className="inv-backdrop absolute inset-0 -z-10 bg-[var(--inv-bg)]" />
-          <div className="relative z-10 rounded-3xl bg-[var(--inv-bg-a90)] py-8">{cta}</div>
-        </>
+          <svg className="op-valance" viewBox="0 0 600 120" preserveAspectRatio="none" aria-hidden>
+            <defs>
+              <linearGradient id="op-val" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stopColor="var(--op-deeper)" />
+                <stop offset="1" stopColor="var(--op-p)" />
+              </linearGradient>
+            </defs>
+            <path d="M0 0H600V58 C570 108 510 108 480 58 C450 108 390 108 360 58 C330 108 270 108 240 58 C210 108 150 108 120 58 C90 108 30 108 0 58Z" fill="url(#op-val)" />
+            <path d="M0 58 C30 108 90 108 120 58 C150 108 210 108 240 58 C270 108 330 108 360 58 C390 108 450 108 480 58 C510 108 570 108 600 58" fill="none" stroke="var(--op-gold)" strokeWidth="2.4" vectorEffect="non-scaling-stroke" />
+            <path d="M0 18H600" stroke="var(--op-gold)" strokeWidth="1.2" vectorEffect="non-scaling-stroke" opacity="0.7" />
+          </svg>
+          <Words tone="light" className="op-curtain-words" />
+        </button>
       );
       break;
+
+    // ---------------- Envelope: flap lifts, letter rises with the names ----------------
+    case 'envelope':
+      scene = (
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
+          <div className="inv-backdrop op-linen" />
+          <div className="op-env-top inv-cta">
+            {greeting && <p className="op-greet">{greeting}</p>}
+            <p className="op-kicker">{names.length ? title : ''}</p>
+            <p className="op-env-names">{shownNames}</p>
+          </div>
+          <div className="op-env" aria-hidden>
+            <div className="op-env-back" />
+            <div className="op-letter">
+              <div className="op-letter-border">
+                <p className="op-letter-kicker">{names.length ? title : ''}</p>
+                <p className="op-letter-names">{shownNames}</p>
+                {date && <p className="op-letter-date">{date}</p>}
+              </div>
+            </div>
+            <div className="op-env-pocket" />
+            <div className="op-env-flap">
+              <div className="op-flap-face op-flap-front" />
+              <div className="op-flap-face op-flap-liner" />
+              <span className="op-env-stamp">{[...monogram].slice(0, 2).join('')}</span>
+            </div>
+          </div>
+          <p className="op-hint op-env-hint inv-cta">
+            <span aria-hidden />
+            {label}
+            <span aria-hidden />
+          </p>
+        </button>
+      );
+      break;
+
+    // ---------------- Royal scroll: ribbon slips off, parchment unrolls between gold rods ----------------
     case 'scroll':
       scene = (
-        <>
-          <div className="inv-backdrop absolute inset-0 bg-[var(--inv-bg-alt)]" style={pattern} />
-          <div className="inv-scroll-wrap relative flex w-[min(86vw,380px)] flex-col items-center">
-            <div className="z-10 h-6 w-[108%] rounded-full bg-[var(--inv-primary)]" />
-            <div className="inv-scroll-paper -my-1 flex min-h-[46vh] w-full items-center justify-center bg-[var(--inv-surface)] py-10 text-[var(--inv-on-surface)]">
-              {cta}
-            </div>
-            <div className="z-10 h-6 w-[108%] rounded-full bg-[var(--inv-primary)]" />
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
+          <div className="inv-backdrop op-scroll-ground" />
+          <div className="op-scroll-top inv-cta">
+            {greeting && <p className="op-greet">{greeting}</p>}
+            <p className="op-kicker">{title}</p>
           </div>
-        </>
+          <div className="op-scroll" aria-hidden>
+            <div className="op-parchment">
+              <div className="op-parchment-border">
+                <p className="op-letter-kicker">{names.length ? title : ''}</p>
+                <p className="op-letter-names">{shownNames}</p>
+                {date && <p className="op-letter-date">{date}</p>}
+              </div>
+            </div>
+            <div className="op-rod op-rod-top" />
+            <div className="op-rod op-rod-bottom" />
+            <div className="op-ribbon">
+              <span />
+            </div>
+          </div>
+          <p className="op-hint op-scroll-hint inv-cta">
+            <span aria-hidden />
+            {label}
+            <span aria-hidden />
+          </p>
+        </button>
       );
       break;
+
+    // ---------------- Bloom: a lotus of three petal rings opens from the monogram ----------------
+    case 'petals': {
+      const rings = [
+        { n: 12, r: 0.5, size: 1, tone: 'var(--op-p)', delay: 0 },
+        { n: 10, r: 0.33, size: 0.82, tone: 'var(--op-light)', delay: 90 },
+        { n: 8, r: 0.17, size: 0.64, tone: 'var(--op-gold-hi)', delay: 180 },
+      ];
+      scene = (
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
+          <div className="inv-backdrop op-bloom-ground" />
+          <div className="op-bloom" aria-hidden>
+            {rings.map((ring, ri) =>
+              Array.from({ length: ring.n }, (_, i) => {
+                const a = (i / ring.n) * 360 + ri * 14;
+                return (
+                  <span
+                    key={`${ri}-${i}`}
+                    className="op-petal"
+                    style={
+                      {
+                        '--a': `${a}deg`,
+                        '--r': ring.r,
+                        '--s': ring.size,
+                        '--d': `${ring.delay + i * 18}ms`,
+                        background: `linear-gradient(180deg, ${ring.tone}, var(--op-deep))`,
+                      } as CSSProperties
+                    }
+                  />
+                );
+              }),
+            )}
+            <span className="op-bloom-heart">
+              <span>{[...monogram].slice(0, 2).join('')}</span>
+            </span>
+          </div>
+          <Words tone="dark" className="op-bloom-words" />
+        </button>
+      );
+      break;
+    }
+
+    // ---------------- Wax seal (unchanged: the one guests loved) ----------------
     case 'seal': {
       const wax = design?.palette.primary ?? 'var(--inv-primary)';
       const paperDeep = design ? design.palette.primary : 'var(--inv-primary-deep)';
@@ -179,10 +344,12 @@ export function Opening({
       );
       break;
     }
+
+    // ---------------- Sky lanterns over the design's own scene ----------------
     case 'lanterns': {
       const c = design?.scene.colors;
       scene = (
-        <>
+        <button type="button" onClick={open} autoFocus aria-label={label} className="op-hit">
           <div className="inv-backdrop absolute inset-0" style={{ background: c ? `linear-gradient(${c.skyTop}, ${c.skyBottom})` : 'linear-gradient(#16264F, #3E5C9A)' }}>
             {design && <SceneLayer design={design} layer="sky" lite />}
             {design && (
@@ -190,80 +357,22 @@ export function Opening({
                 <SceneLayer design={design} layer="mid" lite />
               </div>
             )}
+            <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 42%, rgb(0 0 0 / 0.38), transparent 62%)' }} />
           </div>
           <div className="inv-lantern-field absolute inset-0">
             <Ambient kind="lanterns" colors={['#FFB547']} glow={c?.glow ?? '#FFB547'} density={motionOff ? 0.3 : 1.6} />
           </div>
-          <div className="inv-cta relative z-10 flex flex-col items-center px-8 text-center text-white">
-            {greeting && <p className="mb-6 text-lg italic opacity-90">{greeting}</p>}
-            {names.length > 1 ? (
-              <p className="inv-display text-[clamp(2.2rem,10vw,4rem)] uppercase leading-[1.05] tracking-[0.08em] [text-shadow:0_2px_24px_rgb(0_0_0/0.45)]">
-                {names[0]}
-                <span className="my-1 block text-[0.3em] tracking-[0.5em]">{connector || '&'}</span>
-                {names[1]}
-              </p>
-            ) : (
-              <p className="inv-display text-[clamp(2rem,9vw,3.4rem)] leading-tight [text-shadow:0_2px_24px_rgb(0_0_0/0.45)]">{title}</p>
-            )}
-            <button type="button" onClick={open} autoFocus className="mt-10 h-14 rounded-full border border-white/70 bg-white/10 px-8 text-lg font-semibold text-white backdrop-blur-sm active:scale-95">
-              {label}
-            </button>
-          </div>
-        </>
+          <Words tone="light" className="op-lantern-words" />
+        </button>
       );
       break;
     }
-    case 'petals':
-      scene = (
-        <>
-          <div className="inv-backdrop absolute inset-0 bg-[var(--inv-bg)]" />
-          {Array.from({ length: 28 }, (_, i) => {
-            const a = (i / 28) * Math.PI * 2;
-            const d = 40 + (i % 5) * 12;
-            return (
-              <span
-                key={i}
-                className="inv-burst-petal absolute left-1/2 top-1/2 h-5 w-7 rounded-[80%_0_80%_0]"
-                style={
-                  {
-                    background: i % 3 ? 'var(--inv-accent)' : 'var(--inv-primary)',
-                    transform: `translate3d(${Math.cos(a) * 70}px, ${Math.sin(a) * 70}px, 0) rotate(${i * 40}deg)`,
-                    '--bx': `${Math.cos(a) * d}vmax`,
-                    '--by': `${Math.sin(a) * d}vmax`,
-                    '--br': `${i * 90}deg`,
-                  } as CSSProperties
-                }
-              />
-            );
-          })}
-          {cta}
-        </>
-      );
-      break;
     default:
-      // envelope
-      scene = (
-        <>
-          <div className="inv-backdrop absolute inset-0 bg-[var(--inv-bg-alt)]" style={pattern} />
-          <div className="inv-envelope relative z-10 w-[min(84vw,360px)]">
-            <div className="relative aspect-[4/3] w-full">
-              <div className="inv-letter-card absolute inset-x-4 top-3 bottom-6 rounded-xl bg-[var(--inv-surface)] p-4 text-center text-[var(--inv-on-surface)] shadow">
-                <p className="inv-display mt-6 text-2xl tracking-[0.3em]">{monogram}</p>
-              </div>
-              <div className="absolute inset-0 rounded-2xl bg-[var(--inv-primary)]" style={{ clipPath: 'polygon(0 30%, 50% 72%, 100% 30%, 100% 100%, 0 100%)' }} />
-              <div className="inv-flap bg-[var(--inv-primary-deep)]" />
-              <span className="absolute left-1/2 top-[54%] grid size-14 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full bg-[var(--inv-accent)] text-sm font-bold text-[var(--inv-on-primary)] shadow-lg">
-                {[...monogram].slice(0, 2).join('')}
-              </span>
-            </div>
-          </div>
-          <div className="absolute inset-x-0 bottom-[12vh] z-20">{cta}</div>
-        </>
-      );
+      scene = null;
   }
 
   return (
-    <div className={`inv-opening inv-open-${kind}`} data-state={state} role="dialog" aria-label={title}>
+    <div className={`inv-opening inv-open-${kind}`} data-state={state} role="dialog" aria-label={title} style={pal}>
       {scene}
     </div>
   );

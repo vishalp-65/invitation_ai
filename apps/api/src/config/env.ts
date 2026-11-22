@@ -21,7 +21,7 @@ const envSchema = z.object({
   APP_URL: z.url(),
   /**
    * Base of short invitation links, e.g. https://inv.to (a separate short domain pointed at the
-   * web app). Unset = `${APP_URL}/s`. Pick the domain at launch; links are built from this only.
+   * web app). Unset = the main domain root (`${APP_URL}/<code>`, handled by the web proxy). Pick the domain at launch; links are built from this only.
    */
   SHORT_LINK_BASE: z
     .string()

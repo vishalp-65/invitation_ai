@@ -72,10 +72,14 @@ export const CHARACTER_TIER: Record<SiteCharacter, SiteTier> = {
   house: 'premium',
 };
 
+/** Shown instead of a design the plan doesn't include. */
+export const FREE_FALLBACK_DESIGN: SiteDesignId = 'gulab-ring';
+
 /** Cinematic design packs: two are free, the painted royal ones need Premium. */
 export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
   'modern-minimal': 'free',
   'pastel-floral': 'free',
+  'gulab-ring': 'free',
   'royal-lanterns': 'premium',
   'rose-seal': 'premium',
   'temple-dawn': 'premium',
@@ -95,7 +99,6 @@ export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
   'bombay-deco': 'premium',
   'pichwai-lotus': 'premium',
   'raat-mahal': 'premium',
-  'gulab-ring': 'premium',
   'neel-gulab': 'premium',
   'titli-bagh': 'premium',
   'raat-ki-rani': 'premium',
@@ -106,6 +109,10 @@ export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
   'gubbare': 'premium',
   'sunehri-shaam': 'premium',
   'chanda-mama': 'premium',
+  'sheesh-mahal': 'premium',
+  mogra: 'premium',
+  kesariya: 'premium',
+  chandni: 'premium',
 };
 
 /** Royale-only page features (beyond sections). */
@@ -133,7 +140,8 @@ export function sectionAllowed(section: Pick<SiteSection, 'type'>, tier: SiteTie
  */
 export function applySiteTier(doc: SiteDoc, tier: SiteTier): SiteDoc {
   const royale = tierAtLeast(tier, 'royale');
-  const design = doc.design && tierAtLeast(tier, DESIGN_TIER[doc.design]) ? doc.design : undefined;
+  // A locked design falls back to a free one (never to a plain page).
+  const design = doc.design && tierAtLeast(tier, DESIGN_TIER[doc.design]) ? doc.design : FREE_FALLBACK_DESIGN;
   return {
     ...doc,
     design,

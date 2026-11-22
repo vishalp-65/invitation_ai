@@ -10,6 +10,7 @@ export * from './constants/flags.js';
 export * from './constants/tracking.js';
 export * from './constants/auth.js';
 export * from './constants/guests.js';
+export * from './constants/links.js';
 
 export * from './templates/types.js';
 export * from './templates/catalog.js';
