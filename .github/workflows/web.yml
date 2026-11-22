@@ -38,3 +38,5 @@ jobs:
       - run: npm ci
       # `...` adds the workspace packages the web app depends on (@cardai/shared, @cardai/templates).
       - run: npx turbo run typecheck lint test --filter=@cardai/web...
+      # Every internal link must hit a real route, blog post or public file.
+      - run: npm run check:links -w @cardai/web

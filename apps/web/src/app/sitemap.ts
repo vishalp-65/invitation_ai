@@ -1,6 +1,7 @@
 import { BRAND } from '@cardai/shared';
 import type { MetadataRoute } from 'next';
 import { POSTS, postHref } from '@/features/blog';
+import { LANGUAGE_PAGES, languageHref } from '@/features/languages/content';
 import { OCCASION_SLUGS } from '@/features/occasions/routes';
 
 const base = process.env.NEXT_PUBLIC_APP_URL ?? BRAND.url;
@@ -21,6 +22,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       lastModified: now,
       changeFrequency: 'weekly' as const,
       priority: 0.8,
+    })),
+    { url: `${base}/invitation-maker`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
+    ...LANGUAGE_PAGES.map((l) => ({
+      url: `${base}${languageHref(l.slug)}`,
+      lastModified: now,
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
     })),
     { url: `${base}/blog`, lastModified: new Date(latestPost), changeFrequency: 'weekly', priority: 0.7 },
     ...POSTS.map((p) => ({

@@ -319,6 +319,296 @@ export const OCCASION_PAGES: OccasionPage[] = [
     ],
     related: ['wedding', 'birthday', 'engagement', 'griha-pravesh'],
   }),
+
+  page('reception', {
+    name: { en: 'Reception', hi: 'रिसेप्शन' },
+    title: 'Wedding Reception Invitation Card & Video Maker',
+    description:
+      'Make a wedding reception invitation card, WhatsApp video and RSVP website in English, Hindi or 10 more Indian languages. Dinner time, venue map and RSVP.',
+    h1: { en: 'Wedding reception invitations', hi: 'शादी के रिसेप्शन के निमंत्रण' },
+    intro: {
+      en: 'Invite friends, colleagues and family to the reception with an elegant card, a short video for WhatsApp and a page with the venue map where guests say they’re coming.',
+      hi: 'दोस्तों, सहकर्मियों और परिवार को रिसेप्शन पर बुलाइए — सुंदर कार्ड, WhatsApp के लिए छोटा वीडियो और नक्शे वाला पेज जहाँ मेहमान बताएँ कि वे आ रहे हैं।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a reception invitation say?', hi: 'रिसेप्शन के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'Who is hosting, the couple’s names, the date, the time dinner starts and the venue. For example: “Mr. & Mrs. Gupta request the pleasure of your company at the wedding reception of Ankit & Priya.”',
+          hi: 'आमंत्रित करने वाले, वर-वधू के नाम, तारीख़, प्रीतिभोज का समय और जगह। जैसे: “अंकित व प्रिया के विवाह उपलक्ष्य में आयोजित प्रीतिभोज में आप सादर आमंत्रित हैं।”',
+        },
+      },
+      {
+        q: { en: 'Can I send a reception-only invitation to colleagues?', hi: 'क्या सहकर्मियों को सिर्फ़ रिसेप्शन का निमंत्रण भेज सकते हैं?' },
+        a: {
+          en: 'Yes. Make a separate reception invitation with just the reception’s date, time and venue, and send that one to colleagues.',
+          hi: 'हाँ। सिर्फ़ रिसेप्शन की तारीख़, समय और जगह के साथ अलग निमंत्रण बनाइए, और वही सहकर्मियों को भेजिए।',
+        },
+      },
+    ],
+    related: ['wedding', 'engagement', 'anniversary', 'nikah'],
+  }),
+
+  page('anand-karaj', {
+    name: { en: 'Anand Karaj', hi: 'आनंद कारज' },
+    title: 'Anand Karaj (Sikh Wedding) Invitation Card Maker',
+    description:
+      'Make an Anand Karaj invitation card, WhatsApp video and RSVP website in Punjabi (Gurmukhi), Hindi or English. Opens with Ik Onkar. Free to make and share.',
+    h1: { en: 'Anand Karaj and Sikh wedding invitations', hi: 'आनंद कारज के निमंत्रण' },
+    intro: {
+      en: 'Invite the sangat to the Anand Karaj and the reception with one design: a card that follows Sikh tradition, a video for WhatsApp and a website with the gurdwara on a map.',
+      hi: 'आनंद कारज और रिसेप्शन के लिए एक ही डिज़ाइन: सिख परंपरा वाला कार्ड, WhatsApp के लिए वीडियो और गुरुद्वारे को नक्शे पर दिखाने वाली वेबसाइट।',
+    },
+    faq: [
+      {
+        q: { en: 'Will the card carry Hindu symbols?', hi: 'क्या कार्ड पर हिन्दू चिह्न आएँगे?' },
+        a: {
+          en: 'No. Anand Karaj invitations open with a Sikh blessing such as Ik Onkar and never show Ganesha or other Hindu marks, whichever design you pick.',
+          hi: 'नहीं। आनंद कारज के निमंत्रण इक ओंकार जैसी सिख पंक्ति से शुरू होते हैं, और कोई भी डिज़ाइन चुनें, उन पर गणेश या दूसरे हिन्दू चिह्न नहीं आते।',
+        },
+      },
+      {
+        q: { en: 'Can I write the invitation in Punjabi?', hi: 'क्या निमंत्रण पंजाबी में लिख सकते हैं?' },
+        a: {
+          en: 'Yes. Punjabi in Gurmukhi script is one of the 12 languages. You can also write in Hindi or English.',
+          hi: 'हाँ। गुरमुखी लिपि में पंजाबी 12 भाषाओं में से एक है। आप हिन्दी या अंग्रेज़ी में भी लिख सकते हैं।',
+        },
+      },
+    ],
+    related: ['wedding', 'reception', 'engagement', 'anniversary'],
+  }),
+
+  page('christian-wedding', {
+    name: { en: 'Church wedding', hi: 'चर्च विवाह' },
+    title: 'Christian Wedding Invitation Card & Video Maker',
+    description:
+      'Make a Christian or church wedding invitation card, WhatsApp video and RSVP website. Holy Matrimony and reception on one invite, in English or 11 Indian languages.',
+    h1: { en: 'Christian and church wedding invitations', hi: 'ईसाई और चर्च विवाह के निमंत्रण' },
+    intro: {
+      en: 'Invite family to the Holy Matrimony and the reception: a card with a scripture line, a short video for WhatsApp and a website with the church and reception venue on a map.',
+      hi: 'होली मैट्रिमनी और रिसेप्शन के लिए परिवार को बुलाइए: बाइबल की पंक्ति वाला कार्ड, WhatsApp के लिए छोटा वीडियो और चर्च व रिसेप्शन की जगह नक्शे पर दिखाने वाली वेबसाइट।',
+    },
+    faq: [
+      {
+        q: { en: 'Will a church wedding card carry a Bible verse?', hi: 'क्या चर्च विवाह के कार्ड पर बाइबल की पंक्ति होगी?' },
+        a: {
+          en: 'It opens with a Christian blessing line instead of Hindu symbols, whichever design you pick, and you can replace it with your own verse.',
+          hi: 'कोई भी डिज़ाइन चुनें, कार्ड हिन्दू चिह्नों की जगह ईसाई आशीर्वाद की पंक्ति से शुरू होता है, और आप उसे अपनी पसंद की पंक्ति से बदल सकते हैं।',
+        },
+      },
+      {
+        q: { en: 'Can I write it in Malayalam or Tamil?', hi: 'क्या मलयालम या तमिल में लिख सकते हैं?' },
+        a: {
+          en: 'Yes. Malayalam, Tamil and 10 other Indian languages are supported in their own script, alongside English.',
+          hi: 'हाँ। अंग्रेज़ी के साथ मलयालम, तमिल और 10 दूसरी भारतीय भाषाएँ अपनी लिपि में उपलब्ध हैं।',
+        },
+      },
+    ],
+    related: ['wedding', 'reception', 'engagement', 'anniversary'],
+  }),
+
+  page('annaprashan', {
+    name: { en: 'Annaprashan', hi: 'अन्नप्राशन' },
+    title: 'Annaprashan (Rice Ceremony) Invitation Card Maker',
+    description:
+      'Make an annaprashan, mukhe bhaat or choroonu invitation card, WhatsApp video and RSVP website in Bengali, Hindi, Malayalam and more. Free to make and share.',
+    h1: { en: 'Annaprashan invitations', hi: 'अन्नप्राशन संस्कार के निमंत्रण' },
+    intro: {
+      en: 'Celebrate your baby’s first rice with a gentle card, a short video for the family WhatsApp group and a page with the venue and the bhoj timing.',
+      hi: 'बच्चे के पहले अन्न के उत्सव के लिए कोमल कार्ड, परिवार के WhatsApp ग्रुप के लिए छोटा वीडियो और जगह व भोज के समय वाला पेज।',
+    },
+    faq: [
+      {
+        q: { en: 'What should an annaprashan invitation say?', hi: 'अन्नप्राशन के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'The baby’s and parents’ names, the date, time and venue, and a line inviting family to bless the child at the first-rice ceremony and the meal after.',
+          hi: 'बच्चे और माता-पिता के नाम, तारीख़, समय और जगह, और अन्नप्राशन व उसके बाद के भोज में बच्चे को आशीर्वाद देने का निवेदन।',
+        },
+      },
+      {
+        q: { en: 'Can I write it in Bengali for a mukhe bhaat?', hi: 'क्या मुखे भात के लिए बांग्ला में लिख सकते हैं?' },
+        a: {
+          en: 'Yes. Bengali is supported in its own script, and you can rename the function to mukhe bhaat, choroonu or whatever your family calls it.',
+          hi: 'हाँ। बांग्ला अपनी लिपि में उपलब्ध है, और आप कार्यक्रम का नाम मुखे भात, चोरूणु या जो आपके परिवार में कहते हैं, रख सकते हैं।',
+        },
+      },
+    ],
+    related: ['naming-ceremony', 'mundan', 'birthday', 'baby-shower'],
+  }),
+
+  page('upanayana', {
+    name: { en: 'Thread ceremony', hi: 'उपनयन' },
+    title: 'Upanayanam (Thread Ceremony) Invitation Maker',
+    description:
+      'Make an upanayanam, janeu or munj thread ceremony invitation card, WhatsApp video and RSVP website in Telugu, Kannada, Tamil, Marathi, Hindi and more.',
+    h1: { en: 'Thread ceremony and upanayanam invitations', hi: 'उपनयन और जनेऊ संस्कार के निमंत्रण' },
+    intro: {
+      en: 'Invite family to the upanayanam with a traditional card, a short video for WhatsApp and a page with the muhurat, venue map and bhojan timing.',
+      hi: 'उपनयन संस्कार के लिए परिवार को बुलाइए — पारंपरिक कार्ड, WhatsApp के लिए छोटा वीडियो और मुहूर्त, नक्शे और भोजन के समय वाला पेज।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a thread ceremony invitation include?', hi: 'उपनयन के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'A blessing line, the boy’s and parents’ names, the muhurat, the venue and any bhojan after the ceremony. Families often add the grandparents as hosts.',
+          hi: 'एक वंदना, बटु और माता-पिता के नाम, मुहूर्त, जगह और संस्कार के बाद भोजन हो तो उसका समय। कई परिवार दादा-दादी को भी आमंत्रित करने वालों में लिखते हैं।',
+        },
+      },
+      {
+        q: { en: 'Is it available in South Indian languages?', hi: 'क्या यह दक्षिण भारतीय भाषाओं में है?' },
+        a: {
+          en: 'Yes. Telugu, Kannada, Tamil and Malayalam are supported in their own script, along with Marathi, Hindi and English.',
+          hi: 'हाँ। तेलुगु, कन्नड़, तमिल और मलयालम अपनी लिपि में हैं, साथ में मराठी, हिन्दी और अंग्रेज़ी भी।',
+        },
+      },
+    ],
+    related: ['mundan', 'puja', 'naming-ceremony', 'griha-pravesh'],
+  }),
+
+  page('jagran', {
+    name: { en: 'Jagran', hi: 'जागरण' },
+    title: 'Jagran & Mata ki Chowki Invitation Card Maker',
+    description:
+      'Make a jagran or Mata ki Chowki invitation card, WhatsApp video and RSVP website in Hindi or Punjabi. Add the bhajan and bhandara timings. Free to make and share.',
+    h1: { en: 'Jagran and Mata ki Chowki invitations', hi: 'जागरण और माता की चौकी के निमंत्रण' },
+    intro: {
+      en: 'Invite family and neighbours to the jagran with a devotional card, a short video for WhatsApp and a page with the venue and timings.',
+      hi: 'जागरण में परिवार और पड़ोसियों को बुलाइए — भक्ति भरा कार्ड, WhatsApp के लिए छोटा वीडियो और जगह व समय वाला पेज।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a jagran invitation say?', hi: 'जागरण के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'A devotional opening such as “Jai Mata Di”, the family’s names, the date, the start time, the venue and the bhandara or prasad timing.',
+          hi: '“जय माता दी” जैसी शुरुआत, परिवार के नाम, तारीख़, शुरू होने का समय, जगह और भंडारे या प्रसाद का समय।',
+        },
+      },
+      {
+        q: { en: 'Can I add a bhandara after the jagran?', hi: 'क्या जागरण के बाद भंडारा जोड़ सकते हैं?' },
+        a: {
+          en: 'Yes. Add it as another function with its own time, so guests can reply to each.',
+          hi: 'हाँ। उसे अपने समय के साथ दूसरे कार्यक्रम के रूप में जोड़िए, ताकि मेहमान दोनों के लिए जवाब दे सकें।',
+        },
+      },
+    ],
+    related: ['bhandara', 'puja', 'griha-pravesh', 'mundan'],
+  }),
+
+  page('bhandara', {
+    name: { en: 'Bhandara', hi: 'भंडारा' },
+    title: 'Bhandara Invitation Card & WhatsApp Message Maker',
+    description:
+      'Make a bhandara invitation card, WhatsApp video and page with the venue map in Hindi or 11 more Indian languages. Add puja and prasad timings. Free to share.',
+    h1: { en: 'Bhandara invitations', hi: 'भंडारे के निमंत्रण' },
+    intro: {
+      en: 'Let the whole mohalla know about the bhandara: a devotional card, a short video for WhatsApp groups and a page with the address on a map.',
+      hi: 'पूरे मोहल्ले को भंडारे की ख़बर दीजिए: भक्ति भरा कार्ड, WhatsApp ग्रुप के लिए छोटा वीडियो और नक्शे पर पता दिखाने वाला पेज।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a bhandara invitation include?', hi: 'भंडारे के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'The occasion (a puja, a path or a remembrance), the hosting family or committee, the date, the prasad timing and the address with a landmark.',
+          hi: 'अवसर (पूजा, पाठ या पुण्यतिथि), आयोजक परिवार या समिति, तारीख़, प्रसाद का समय और किसी पहचान वाली जगह के साथ पता।',
+        },
+      },
+      {
+        q: { en: 'Can I share it in many WhatsApp groups at once?', hi: 'क्या इसे कई WhatsApp ग्रुप में एक साथ भेज सकते हैं?' },
+        a: {
+          en: 'Yes. Share the card or video, or the short link, which opens on any phone without an app.',
+          hi: 'हाँ। कार्ड, वीडियो या छोटा लिंक भेजिए, जो बिना किसी ऐप के किसी भी फ़ोन पर खुलता है।',
+        },
+      },
+    ],
+    related: ['jagran', 'puja', 'griha-pravesh', 'mundan'],
+  }),
+
+  page('retirement', {
+    name: { en: 'Retirement', hi: 'सेवानिवृत्ति' },
+    title: 'Retirement Party Invitation Card & Video Maker',
+    description:
+      'Make a retirement or farewell party invitation card, WhatsApp video and RSVP website in English, Hindi or 10 more Indian languages. Free to make and share.',
+    h1: { en: 'Retirement and farewell party invitations', hi: 'सेवानिवृत्ति समारोह के निमंत्रण' },
+    intro: {
+      en: 'Honour years of service with a dignified card, a short video for colleagues on WhatsApp and a page where guests confirm for the farewell.',
+      hi: 'वर्षों की सेवा के सम्मान में गरिमापूर्ण कार्ड, सहकर्मियों के लिए WhatsApp वीडियो और एक पेज जहाँ मेहमान विदाई समारोह के लिए पुष्टि करें।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a retirement invitation say?', hi: 'सेवानिवृत्ति के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'The retiree’s name and role, years of service, who is hosting (family or office), the date, time and venue. For example: “Join us to celebrate 35 years of service of Shri R. K. Verma.”',
+          hi: 'सेवानिवृत्त होने वाले का नाम और पद, सेवा के वर्ष, आयोजक (परिवार या कार्यालय), तारीख़, समय और जगह। जैसे: “श्री आर. के. वर्मा की 35 वर्षों की सेवा के सम्मान में आप आमंत्रित हैं।”',
+        },
+      },
+      {
+        q: { en: 'Will it have religious symbols?', hi: 'क्या इस पर धार्मिक चिह्न होंगे?' },
+        a: {
+          en: 'No. Retirement invitations carry no blessing line or sacred art by default; you can add one if you wish.',
+          hi: 'नहीं। सेवानिवृत्ति के निमंत्रण पर अपने आप कोई वंदना या धार्मिक चिह्न नहीं आता; चाहें तो आप जोड़ सकते हैं।',
+        },
+      },
+    ],
+    related: ['birthday', 'anniversary', 'corporate', 'griha-pravesh'],
+  }),
+
+  page('shop-opening', {
+    name: { en: 'Shop opening', hi: 'शुभारंभ' },
+    title: 'Shop & Office Opening (Shubharambh) Invitation Maker',
+    description:
+      'Make a shop, showroom or office opening (shubharambh, udghatan) invitation card, WhatsApp video and page with a map, in Hindi or 11 more languages. Free to try.',
+    h1: { en: 'Shop and office opening invitations', hi: 'दुकान और कार्यालय शुभारंभ के निमंत्रण' },
+    intro: {
+      en: 'Announce your new shop, showroom or office with a festive card, a short video for customers on WhatsApp and a page with the address on a map.',
+      hi: 'अपनी नई दुकान, शोरूम या कार्यालय की घोषणा कीजिए — उत्सव वाला कार्ड, ग्राहकों के लिए WhatsApp वीडियो और नक्शे पर पता दिखाने वाला पेज।',
+    },
+    faq: [
+      {
+        q: { en: 'What should a shop opening invitation include?', hi: 'दुकान के शुभारंभ के निमंत्रण में क्या लिखें?' },
+        a: {
+          en: 'The business name, what you sell, the owners’ names, the date and time of the puja or ribbon cutting, the address with a landmark and any opening offer.',
+          hi: 'दुकान का नाम, आप क्या बेचते हैं, मालिकों के नाम, पूजा या उद्घाटन की तारीख़ और समय, पहचान वाली जगह के साथ पता और कोई शुभारंभ ऑफ़र।',
+        },
+      },
+      {
+        q: { en: 'Can customers find the shop from the invitation?', hi: 'क्या ग्राहक निमंत्रण से दुकान ढूँढ सकते हैं?' },
+        a: {
+          en: 'Yes. The invitation website shows the address on a map that opens in their phone’s maps app.',
+          hi: 'हाँ। निमंत्रण वेबसाइट पर पता नक्शे पर दिखता है, जो उनके फ़ोन के मैप ऐप में खुलता है।',
+        },
+      },
+    ],
+    related: ['griha-pravesh', 'puja', 'corporate', 'retirement'],
+  }),
+
+  page('corporate', {
+    name: { en: 'Corporate event', hi: 'कॉर्पोरेट कार्यक्रम' },
+    title: 'Corporate Event Invitation Card & RSVP Page Maker',
+    description:
+      'Make a corporate event, launch or annual day invitation card, WhatsApp video and RSVP page in English or 11 Indian languages. Track replies live. Free to try.',
+    h1: { en: 'Corporate event invitations', hi: 'कॉर्पोरेट कार्यक्रम के निमंत्रण' },
+    intro: {
+      en: 'For a product launch, annual day or team offsite: a clean card, a short video for WhatsApp and an RSVP page with a live list of who is coming.',
+      hi: 'प्रोडक्ट लॉन्च, वार्षिक दिवस या टीम आउटिंग के लिए: साफ़-सुथरा कार्ड, WhatsApp के लिए छोटा वीडियो और RSVP पेज जिसमें आने वालों की लाइव सूची हो।',
+    },
+    faq: [
+      {
+        q: { en: 'Can I track RSVPs for a corporate event?', hi: 'क्या कॉर्पोरेट कार्यक्रम के RSVP देख सकते हैं?' },
+        a: {
+          en: 'Yes. Guests reply on the invitation page and you see a live list with headcounts, which co-organisers can help manage.',
+          hi: 'हाँ। मेहमान निमंत्रण पेज पर जवाब देते हैं और आपको गिनती के साथ लाइव सूची दिखती है, जिसे सह-आयोजक भी संभाल सकते हैं।',
+        },
+      },
+      {
+        q: { en: 'Can I invite people in their own language?', hi: 'क्या लोगों को उनकी भाषा में बुला सकते हैं?' },
+        a: {
+          en: 'Yes. Write the invitation in English or any of 11 Indian languages, each in its own script.',
+          hi: 'हाँ। निमंत्रण अंग्रेज़ी या 11 भारतीय भाषाओं में से किसी में भी लिखिए, हर एक अपनी लिपि में।',
+        },
+      },
+    ],
+    related: ['shop-opening', 'retirement', 'birthday', 'anniversary'],
+  }),
 ];
 
 export const occasionBySlug = (slug: string) => OCCASION_PAGES.find((o) => o.slug === slug);

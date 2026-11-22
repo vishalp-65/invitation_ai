@@ -15,6 +15,16 @@ export const OCCASION_SLUGS = {
   mundan: 'mundan-invitation',
   'baby-shower': 'baby-shower-invitation',
   anniversary: 'anniversary-invitation',
+  reception: 'reception-invitation',
+  'anand-karaj': 'anand-karaj-invitation',
+  'christian-wedding': 'church-wedding-invitation',
+  annaprashan: 'annaprashan-invitation',
+  upanayana: 'thread-ceremony-invitation',
+  jagran: 'jagran-invitation',
+  bhandara: 'bhandara-invitation',
+  retirement: 'retirement-invitation',
+  'shop-opening': 'shop-opening-invitation',
+  corporate: 'corporate-event-invitation',
 } as const satisfies Partial<Record<EventTypeId, string>>;
 
 export type OccasionWithPage = keyof typeof OCCASION_SLUGS;

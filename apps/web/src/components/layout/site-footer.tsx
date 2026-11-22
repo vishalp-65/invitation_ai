@@ -49,6 +49,10 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
               ['/create', 'Make an invitation'],
               ['/templates', 'Designs'],
               ['/pricing', 'Pricing'],
+              ['/invitation-maker/hindi', 'Hindi card maker'],
+              ['/invitation-maker/marathi', 'Marathi card maker'],
+              ['/invitation-maker/gujarati', 'Gujarati card maker'],
+              ['/invitation-maker', 'All languages'],
             ]}
           />
           <FooterCol
@@ -74,6 +78,7 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
             title="Help"
             links={[
               ['/blog', 'Blog'],
+              ['/blog/how-to-make-an-invitation-online', 'How to make an invitation'],
               ['/blog/wedding-invitation-wording', 'Wedding wording'],
               ['/blog/shadi-card-matter-in-hindi', 'Hindi card matter'],
               ['/faq', 'FAQ'],

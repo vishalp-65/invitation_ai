@@ -45,7 +45,7 @@ function BlockView({ b }: { b: Block }) {
       return (
         <figure className="rounded-[var(--radius-card)] border border-hairline bg-surface p-6">
           {b.title && <figcaption className="mb-3 font-mono text-xs text-ink-soft">{b.title}</figcaption>}
-          <p lang={b.lang === 'hi' ? 'hi' : undefined} className="whitespace-pre-line text-ink">
+          <p lang={b.lang && b.lang !== 'en' ? b.lang : undefined} className="whitespace-pre-line text-ink">
             {b.text}
           </p>
         </figure>

@@ -6,12 +6,23 @@ import { post as hindiMatter } from './posts/shadi-card-matter-in-hindi';
 import { post as wording } from './posts/wedding-invitation-wording';
 import { post as video } from './posts/wedding-invitation-video-for-whatsapp';
 import { post as timeline } from './posts/when-to-send-wedding-invitations';
+import { post as marriageWhatsapp } from './posts/marriage-invitation-message-for-whatsapp';
+import { post as roka } from './posts/roka-engagement-invitation-message';
+import { post as naamkaran } from './posts/naamkaran-invitation-message';
+import { post as godhBharai } from './posts/godh-bharai-baby-shower-invitation-message';
+import { post as nikah } from './posts/nikah-walima-invitation-wording';
+import { post as anniversary } from './posts/anniversary-party-invitation-message';
+import { post as mundan } from './posts/mundan-invitation-card-matter';
+import { post as puja } from './posts/satyanarayan-puja-invitation-message';
+import { post as howTo } from './posts/how-to-make-an-invitation-online';
+import { post as haldiMehndi } from './posts/haldi-mehndi-sangeet-invitation-message';
+import { post as marathi } from './posts/marathi-lagna-patrika-matter';
 import type { BlogPost } from './types';
 
 export type { BlogPost, Block } from './types';
 
 /** Every post, newest first (ties keep this order). Add a post: create it in ./posts and list it here. */
-export const POSTS: BlogPost[] = [wording, hindiMatter, video, rsvp, timeline, grihaPravesh, birthday].sort((a, b) =>
+export const POSTS: BlogPost[] = [howTo, wording, hindiMatter, marriageWhatsapp, roka, naamkaran, godhBharai, nikah, anniversary, mundan, puja, haldiMehndi, marathi, video, rsvp, timeline, grihaPravesh, birthday].sort((a, b) =>
   b.published.localeCompare(a.published),
 );
 

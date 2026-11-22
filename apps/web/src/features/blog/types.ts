@@ -12,7 +12,7 @@ export type Block =
   | { t: 'ul'; items: string[] }
   | { t: 'ol'; items: string[] }
   /** A ready-to-copy wording sample (keeps line breaks). `lang` sets the text's language for screen readers and fonts. */
-  | { t: 'sample'; title?: string; lang?: 'en' | 'hi'; text: string }
+  | { t: 'sample'; title?: string; lang?: 'en' | 'hi' | 'mr'; text: string }
   | { t: 'tip'; text: string }
   /** Mid-article call to action into the maker. */
   | { t: 'cta'; text: string; href: string; label: string }
