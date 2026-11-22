@@ -83,6 +83,7 @@ export function LocaleSwitch({ tone = 'dark' }: { tone?: 'dark' | 'light'; compa
 const LINKS = [
   { href: '/templates', key: 'templates' },
   { href: '/pricing', key: 'pricing' },
+  { href: '/blog', key: 'blog' },
 ] as const;
 
 const initials = (name: string | null, email: string | null) =>
@@ -137,7 +138,7 @@ export function SiteHeader({ overlay = false }: { overlay?: boolean } = {}) {
   const onMedia = overlay && !scrolled && !drawer;
   const linkCls = (on: boolean) =>
     clsx(
-      'nav-link relative z-10 inline-flex h-9 items-center gap-1 rounded-full px-3 text-sm transition-colors duration-200',
+      'nav-link relative z-10 inline-flex h-9 items-center gap-1 whitespace-nowrap rounded-full px-3 text-sm transition-colors duration-200',
       onMedia
         ? on
           ? 'text-white'

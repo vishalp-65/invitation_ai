@@ -112,9 +112,14 @@ export function StudioSiteDeck({ hi }: { hi: boolean }) {
         <div className="lg:col-span-7">
           <Kicker className="mb-8">{hi ? 'वेबसाइट' : 'Websites'}</Kicker>
           <h2 id="websites-title" className="display-md">
-            {hi ? 'हर निमंत्रण की' : 'Every invite gets'}
-            <br />
-            <span className="text-ink-soft">{hi ? 'अपनी वेबसाइट।' : 'its own website.'}</span>
+            <span className="sr-only">
+              {hi ? 'हर निमंत्रण की अपनी RSVP वेडिंग वेबसाइट' : 'Every invitation gets its own RSVP wedding website'}
+            </span>
+            <span aria-hidden>
+              {hi ? 'हर निमंत्रण की' : 'Every invite gets'}
+              <br />
+              <span className="text-ink-soft">{hi ? 'अपनी वेबसाइट।' : 'its own website.'}</span>
+            </span>
           </h2>
         </div>
         <p className="max-w-md text-lg leading-relaxed text-ink-soft lg:col-span-5">

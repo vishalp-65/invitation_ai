@@ -25,9 +25,14 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
           <div className="lg:col-span-7">
             <Kicker className="mb-6">{hi ? 'आपको क्या मिलेगा' : 'What you get'}</Kicker>
             <h2 className={clsx('display-xl', rise(on))}>
-              {hi ? 'एक फ़ॉर्म।' : 'One form.'}
-              <br />
-              <span className="text-ink-soft">{hi ? 'तीन निमंत्रण।' : 'Three invites.'}</span>
+              <span className="sr-only">
+                {hi ? 'एक फ़ॉर्म से निमंत्रण कार्ड, वीडियो और वेबसाइट' : 'Invitation card, video and website from one form'}
+              </span>
+              <span aria-hidden>
+                {hi ? 'एक फ़ॉर्म।' : 'One form.'}
+                <br />
+                <span className="text-ink-soft">{hi ? 'तीन निमंत्रण।' : 'Three invites.'}</span>
+              </span>
             </h2>
           </div>
           <p className={clsx('text-xl leading-relaxed text-ink-soft lg:col-span-5 lg:pb-4', rise(on, 'sm'), 'delay-200')}>
@@ -58,9 +63,9 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
           {/* Phones / tablets: the same designs as a short fanned row under the text */}
           <div aria-hidden className="relative flex h-64 items-end justify-center overflow-clip px-6 sm:h-80 lg:hidden">
             {[
-              ['gulab-ring-blush', '-rotate-[8deg] translate-x-[38%] translate-y-6'],
-              ['raat-mahal-maroon', 'z-10'],
-              ['raat-ki-rani-onyx', 'rotate-[8deg] -translate-x-[38%] translate-y-6'],
+              [FAN[0], '-rotate-[8deg] translate-x-[38%] translate-y-6'],
+              [FAN[1], 'z-10'],
+              [FAN[2], 'rotate-[8deg] -translate-x-[38%] translate-y-6'],
             ].map(([id, pos]) => (
               <CardShot key={id} id={id!} alt={DESIGN_ALT[id!]} sizes="40vw" className={clsx('-mb-16 w-[36%] max-w-[190px] border border-white/10', pos)} />
             ))}
@@ -70,9 +75,9 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
           <div className="parallax relative hidden w-[46%] shrink-0 lg:block">
             <div className="absolute inset-0 flex items-center justify-center">
               {[
-                ['gulab-ring-blush', '-rotate-[10deg] -translate-x-36 translate-y-6'],
-                ['raat-mahal-maroon', 'z-10 -translate-y-2'],
-                ['raat-ki-rani-onyx', 'rotate-[10deg] translate-x-36 translate-y-6'],
+                [FAN[0], '-rotate-[10deg] -translate-x-36 translate-y-6'],
+                [FAN[1], 'z-10 -translate-y-2'],
+                [FAN[2], 'rotate-[10deg] translate-x-36 translate-y-6'],
               ].map(([id, pos]) => (
                 <CardShot
                   key={id}
@@ -83,7 +88,6 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
                 />
               ))}
             </div>
-            <div className="absolute inset-0 bg-gradient-to-r from-black via-transparent to-transparent" />
           </div>
         </div>
 
@@ -111,9 +115,12 @@ export function StudioFeatures({ hi }: { hi: boolean }) {
   );
 }
 
+/** Premium designs in the feature fan (left, centre, right); all from the premium Atelier collection. */
+const FAN = ['sheesh-mahal-emerald', 'raat-mahal-maroon', 'sunehri-nikah-navy'] as const;
+
 /** Alt text for the real design renders shown in the feature fan. */
 const DESIGN_ALT: Record<string, string> = {
-  'gulab-ring-blush': 'Wedding invitation with pink watercolour roses around a gold ring',
+  'sheesh-mahal-emerald': 'Hindi wedding invitation with a gold Ganesha under an emerald Mughal arch and hanging lanterns',
   'raat-mahal-maroon': 'Wedding invitation with a maroon scalloped arch, lanterns and white peonies',
-  'raat-ki-rani-onyx': 'Wedding invitation with blush roses and gold flecks on black',
+  'sunehri-nikah-navy': 'Nikah invitation with gold lanterns and a navy arch above white flowers',
 };

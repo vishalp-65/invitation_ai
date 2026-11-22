@@ -35,7 +35,16 @@ async function bootstrap() {
     route.bodyLimit ??= bodyLimitFor(route.url);
   });
 
-  const allowedOrigins = new Set([new URL(env.APP_URL).origin, ...(env.SHORT_LINK_BASE ? [new URL(env.SHORT_LINK_BASE).origin] : [])]);
+  // The site is served on both noyta.in and www.noyta.in, so browsers send either as Origin
+  // regardless of which one APP_URL names. Accept both (and likewise for the short-link domain).
+  const withWwwVariant = (url: string): string[] => {
+    const u = new URL(url);
+    if (u.hostname === 'localhost' || /^[\d.]+$/.test(u.hostname) || u.hostname.includes(':')) return [u.origin];
+    const alt = new URL(u.origin);
+    alt.hostname = u.hostname.startsWith('www.') ? u.hostname.slice(4) : `www.${u.hostname}`;
+    return [u.origin, alt.origin];
+  };
+  const allowedOrigins = new Set([...withWwwVariant(env.APP_URL), ...(env.SHORT_LINK_BASE ? withWwwVariant(env.SHORT_LINK_BASE) : [])]);
   fastify.addHook(
     'onRequest',
     async (
@@ -68,7 +77,7 @@ async function bootstrap() {
   await app.register(helmet, { contentSecurityPolicy: false });
   await app.register(cookie);
   await app.register(cors, {
-    origin: [env.APP_URL],
+    origin: [...allowedOrigins],
     credentials: true,
   });
 

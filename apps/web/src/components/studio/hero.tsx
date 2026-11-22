@@ -63,7 +63,7 @@ function BlurWord({ word }: { word: string }) {
  * Performance: poster paints immediately, phones get a 960px file, the video only loads once the
  * hero is on screen, pauses when scrolled away, and stays a still image for reduced motion / data saver.
  */
-export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string; whatsappHref: string }) {
+export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string; whatsappHref: string | null }) {
   // Admin can replace the hero video and poster (Settings → Media) without a deploy.
   const media = useOffers().data?.media ?? {};
   const words = hi ? ['उत्सव', 'आशीर्वाद', 'मिलन', 'स्वागत'] : ['celebrate', 'gather', 'bless', 'say yes'];
@@ -153,15 +153,17 @@ export function StudioHero({ hi, cta, whatsappHref }: { hi: boolean; cta: string
               {cta}
               <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden />
             </Link>
-            <a
-              href={whatsappHref}
-              target="_blank"
-              rel="noopener"
-              className="press inline-flex h-13 items-center justify-center gap-2 rounded-full border border-white/25 px-8 text-base text-white transition-colors hover:bg-white/10 sm:h-14"
-            >
-              <WhatsAppIcon className="size-[18px] text-[#1fa855]" />
-              {hi ? 'WhatsApp पर बनाएँ' : 'Make it on WhatsApp'}
-            </a>
+            {whatsappHref && (
+              <a
+                href={whatsappHref}
+                target="_blank"
+                rel="noopener"
+                className="press inline-flex h-13 items-center justify-center gap-2 rounded-full border border-white/25 px-8 text-base text-white transition-colors hover:bg-white/10 sm:h-14"
+              >
+                <WhatsAppIcon className="size-[18px] text-[#1fa855]" />
+                {hi ? 'WhatsApp पर बनाएँ' : 'Make it on WhatsApp'}
+              </a>
+            )}
           </div>
         </div>
 

@@ -1,4 +1,6 @@
 import { BRAND, LANGUAGES, formatINR, type ProductCode } from '@cardai/shared';
+import { POSTS, postHref } from '@/features/blog';
+import { OCCASION_PAGES } from '@/features/occasions/content';
 import { loadOffers } from '@/lib/offers-server';
 
 /**
@@ -54,6 +56,14 @@ Invitation websites are private family pages: they are marked noindex and are no
 - [Invitation designs](${base}/templates): every design works as a card, a video and a website
 - [Pricing](${base}/pricing): plans, website plan comparison, add-ons
 - [Make an invitation](${base}/create): start an invitation for free
+- [FAQ](${base}/faq): pricing, languages, WhatsApp, RSVP, printing, privacy
+- [Blog](${base}/blog): invitation wording and planning guides
+
+## Occasions
+${OCCASION_PAGES.map((o) => `- [${o.name.en} invitations](${base}/${o.slug}): ${o.description}`).join('\n')}
+
+## Guides
+${POSTS.map((p) => `- [${p.h1}](${base}${postHref(p)}): ${p.description}`).join('\n')}
 
 ## Contact
 - Email: ${BRAND.supportEmail}

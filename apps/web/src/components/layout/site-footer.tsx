@@ -3,6 +3,7 @@ import { clsx } from 'clsx';
 import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 import { ArtImage } from '@/components/studio/primitives';
+import { WHATSAPP_CHAT_URL } from '@/lib/whatsapp';
 import { Logo } from './logo';
 
 /** Site footer. A server component: plain links, so it adds no client JavaScript. */
@@ -30,15 +31,17 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
               Invitation cards, video invites and invitation websites for every Indian family
               occasion, in your language.
             </p>
-            <a
-              href="https://wa.me/910000000000?text=Hi"
-              target="_blank"
-              rel="noopener"
-              className="group flex w-fit items-center gap-1 text-sm text-white/40 transition-colors hover:text-white"
-            >
-              WhatsApp
-              <ArrowUpRight className="size-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
-            </a>
+            {WHATSAPP_CHAT_URL && (
+              <a
+                href={WHATSAPP_CHAT_URL}
+                target="_blank"
+                rel="noopener"
+                className="group flex w-fit items-center gap-1 text-sm text-white/40 transition-colors hover:text-white"
+              >
+                WhatsApp
+                <ArrowUpRight className="size-3 -translate-x-1 opacity-0 transition-all group-hover:translate-x-0 group-hover:opacity-100" />
+              </a>
+            )}
           </div>
           <FooterCol
             title="Make"
@@ -70,9 +73,11 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
           <FooterCol
             title="Help"
             links={[
-              ['/#pricing', 'Plans'],
+              ['/blog', 'Blog'],
+              ['/blog/wedding-invitation-wording', 'Wedding wording'],
+              ['/blog/shadi-card-matter-in-hindi', 'Hindi card matter'],
+              ['/faq', 'FAQ'],
               ['/#privacy', 'Privacy'],
-              ['/#faq', 'FAQ'],
             ]}
           />
         </div>

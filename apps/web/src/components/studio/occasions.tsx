@@ -54,8 +54,13 @@ export function StudioOccasions({ hi }: { hi: boolean }) {
               {hi ? 'हर अवसर' : 'Occasions'}
             </span>
             <h2 className={clsx('text-4xl transition-[opacity,transform] duration-1000 lg:text-5xl', on ? 'translate-y-0 opacity-100' : 'translate-y-4 opacity-0')}>
-              {hi ? 'हर अवसर के लिए,' : 'Made for every occasion,'}
-              <span className="text-ivory/40">{hi ? ' सही शब्दों में।' : ' in the right words.'}</span>
+              <span className="sr-only">
+                {hi ? 'हर भारतीय अवसर के लिए निमंत्रण, सही शब्दों में' : 'Invitations for every Indian occasion, in the right words'}
+              </span>
+              <span aria-hidden>
+                {hi ? 'हर अवसर के लिए,' : 'Made for every occasion,'}
+                <span className="text-ivory/40">{hi ? ' सही शब्दों में।' : ' in the right words.'}</span>
+              </span>
             </h2>
           </div>
           <div className="hidden items-center gap-2 lg:flex">

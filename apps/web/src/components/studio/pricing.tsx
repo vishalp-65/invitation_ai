@@ -25,9 +25,14 @@ export function StudioPricing({ hi, plans }: { hi: boolean; plans: Product[] }) 
           <div className="lg:col-span-7">
             <Kicker className="mb-8">{hi ? 'क़ीमत' : 'Pricing'}</Kicker>
             <h2 className={clsx('display-xl transition-[opacity,transform] duration-1000', on ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0')}>
-              {hi ? 'बनाना मुफ़्त।' : 'Free to make.'}
-              <br />
-              <span className="text-stroke">{hi ? 'HD के लिए भुगतान।' : 'Pay for HD.'}</span>
+              <span className="sr-only">
+                {hi ? 'निमंत्रण कार्ड की कीमत: बनाना मुफ़्त, HD के लिए भुगतान' : 'Invitation maker pricing: free to make, pay for HD'}
+              </span>
+              <span aria-hidden>
+                {hi ? 'बनाना मुफ़्त।' : 'Free to make.'}
+                <br />
+                <span className="text-stroke">{hi ? 'HD के लिए भुगतान।' : 'Pay for HD.'}</span>
+              </span>
             </h2>
             <p className={clsx('mt-8 max-w-lg text-xl leading-relaxed text-ink-soft transition-opacity delay-100 duration-1000', on ? 'opacity-100' : 'opacity-0')}>
               {hi

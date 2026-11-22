@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react';
  * Floating action dock for phones: slides up once the hero's
  * buttons have scrolled away, and tucks away again near the bottom of the page.
  */
-export function MobileDock({ label, whatsappHref }: { label: string; whatsappHref: string }) {
+export function MobileDock({ label, whatsappHref }: { label: string; whatsappHref: string | null }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     let raf = 0;
@@ -38,16 +38,18 @@ export function MobileDock({ label, whatsappHref }: { label: string; whatsappHre
         <Link href="/create" tabIndex={show ? 0 : -1} className="press flex h-12 flex-1 items-center justify-center rounded-lg bg-primary font-medium text-on-primary">
           {label}
         </Link>
-        <a
-          href={whatsappHref}
-          target="_blank"
-          rel="noopener"
-          tabIndex={show ? 0 : -1}
-          aria-label="Make it on WhatsApp"
-          className="press grid size-12 place-items-center rounded-lg border border-hairline text-ink"
-        >
-          <MessageCircle className="size-5" />
-        </a>
+        {whatsappHref && (
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener"
+            tabIndex={show ? 0 : -1}
+            aria-label="Make it on WhatsApp"
+            className="press grid size-12 place-items-center rounded-lg border border-hairline text-ink"
+          >
+            <MessageCircle className="size-5" />
+          </a>
+        )}
       </div>
     </div>
   );

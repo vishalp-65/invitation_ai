@@ -9,6 +9,7 @@ import { SiteHeader } from '@/components/layout/site-header';
 import { JsonLd } from '@/components/seo/json-ld';
 import { CardShot } from '@/components/studio/primitives';
 import { ButtonLink } from '@/components/ui/button';
+import { postHref, postsForOccasion } from '@/features/blog';
 import { OCCASION_PAGES, occasionBySlug, type L, type OccasionPage } from '@/features/occasions/content';
 import { designsFor } from '@/features/occasions/designs';
 import { occasionHref } from '@/features/occasions/routes';
@@ -41,6 +42,7 @@ export default async function OccasionLandingPage({ params }: Props) {
   const createHref = `/create?type=${o.type}`;
   const galleryHref = `/templates?type=${o.type}`;
   const functions = ev.defaultFunctions;
+  const guides = postsForOccasion(o.type).slice(0, 3);
 
   return (
     <>
@@ -217,6 +219,26 @@ export default async function OccasionLandingPage({ params }: Props) {
             ))}
           </div>
         </section>
+
+        {/* ---------------- Guides for this occasion (blog, English) ---------------- */}
+        {guides.length > 0 && (
+          <section className="mt-20 lg:mt-28" aria-labelledby="guides-h">
+            <h2 id="guides-h" className="display-md max-w-3xl">
+              {hi ? `${name} निमंत्रण: शब्द और गाइड` : `${o.name.en} invitation wording and guides`}
+            </h2>
+            <ul className="mt-10 grid gap-8 md:grid-cols-3">
+              {guides.map((g) => (
+                <li key={g.slug} className="border-t border-ink pt-6">
+                  <p className="font-mono text-xs text-ink-soft">{g.category}</p>
+                  <Link href={postHref(g)} className="mt-3 block font-display text-xl leading-snug hover:underline hover:decoration-ink/30 hover:underline-offset-4">
+                    {g.h1}
+                  </Link>
+                  <p className="mt-2 line-clamp-2 text-sm text-ink-soft">{g.excerpt}</p>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {/* ---------------- Related occasions + closing CTA ---------------- */}
         <section className="mt-20 border-t border-hairline pt-12 lg:mt-28" aria-labelledby="more-h">

@@ -8,7 +8,7 @@ import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { CardShot, Frame, useInView } from './primitives';
 
 /** Closing call to action: a bordered panel with a pointer spotlight and a stack of real designs. */
-export function StudioCta({ hi, cta, whatsappHref }: { hi: boolean; cta: string; whatsappHref: string }) {
+export function StudioCta({ hi, cta, whatsappHref }: { hi: boolean; cta: string; whatsappHref: string | null }) {
   const [ref, on] = useInView<HTMLElement>(0.2);
 
   return (
@@ -33,18 +33,21 @@ export function StudioCta({ hi, cta, whatsappHref }: { hi: boolean; cta: string;
               </h2>
               <p className="mb-12 max-w-xl text-xl leading-relaxed text-ink-soft">
                 {hi
-                  ? 'अपना अवसर चुनिए, नाम लिखिए, और दो मिनट में परिवार के ग्रुप में भेजिए। या WhatsApp पर "Hi" भेजिए।'
-                  : 'Pick your occasion, type the names and send it to the family group in two minutes. Or just send “Hi” on WhatsApp.'}
+                  ? 'अपना अवसर चुनिए, नाम लिखिए, और दो मिनट में परिवार के ग्रुप में भेजिए।'
+                  : 'Pick your occasion, type the names and send it to the family group in two minutes.'}
+                {whatsappHref && (hi ? ' या WhatsApp पर "Hi" भेजिए।' : ' Or just send “Hi” on WhatsApp.')}
               </p>
               <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-start sm:gap-4">
                 <Link href="/create" className="press group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-ink px-8 text-base font-medium text-ivory transition-colors hover:bg-ink/90">
                   {cta}
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Link>
-                <a href={whatsappHref} target="_blank" rel="noopener" className="press inline-flex h-14 items-center justify-center gap-2 rounded-full border border-ink/20 px-8 text-base transition-colors hover:bg-ink/5">
-                  <WhatsAppIcon className="size-[18px] text-[#1fa855]" />
-                  {hi ? 'WhatsApp खोलें' : 'Open WhatsApp'}
-                </a>
+                {whatsappHref && (
+                  <a href={whatsappHref} target="_blank" rel="noopener" className="press inline-flex h-14 items-center justify-center gap-2 rounded-full border border-ink/20 px-8 text-base transition-colors hover:bg-ink/5">
+                    <WhatsAppIcon className="size-[18px] text-[#1fa855]" />
+                    {hi ? 'WhatsApp खोलें' : 'Open WhatsApp'}
+                  </a>
+                )}
               </div>
               <p className="mt-8 font-mono text-sm text-ink-soft">{hi ? 'बनाना मुफ़्त · HD ₹79 से' : 'Free to make · HD from ₹79'}</p>
             </div>

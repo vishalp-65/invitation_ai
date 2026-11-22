@@ -1,4 +1,3 @@
-import { Plus } from 'lucide-react';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { SiteHeader } from '@/components/layout/site-header';
@@ -20,17 +19,29 @@ import { StudioVoice } from '@/components/studio/voice';
 import { ArtProvider, Frame, Kicker } from '@/components/studio/primitives';
 import { readdir } from 'node:fs/promises';
 import path from 'node:path';
-import { BRAND, EVENT_TYPES, formatINR, type PricedProduct } from '@cardai/shared';
+import { BRAND } from '@cardai/shared';
 import type { Metadata } from 'next';
+import Link from 'next/link';
 import { JsonLd } from '@/components/seo/json-ld';
+import { FaqList } from '@/components/seo/faq-list';
+import { homeFaq } from '@/features/faq/content';
 import { loadOffers } from '@/lib/offers-server';
+import { WHATSAPP_CHAT_URL } from '@/lib/whatsapp';
 
-const WHATSAPP_BOT = 'https://wa.me/910000000000?text=Hi';
+const WHATSAPP_BOT = WHATSAPP_CHAT_URL;
+
+const TITLE = `Wedding Invitation Maker: Card, Video & Website · ${BRAND.name}`;
+const DESCRIPTION =
+  'Free online wedding invitation maker for Indian families. Make a card, video and RSVP website in Hindi or 11 more languages and share on WhatsApp. Start free.';
 
 export const metadata: Metadata = {
   // Main search term first; the brand tagline stays the default title for other pages.
-  title: { absolute: `Wedding Invitation Maker: Card, Video & Website · ${BRAND.name}` },
+  title: { absolute: TITLE },
+  description: DESCRIPTION,
   alternates: { canonical: '/' },
+  // Repeats the layout's siteName / locale: Next replaces nested openGraph objects instead of merging them.
+  openGraph: { siteName: BRAND.name, type: 'website', locale: 'en_IN', alternateLocale: ['hi_IN'], url: '/', title: TITLE, description: DESCRIPTION },
+  twitter: { card: 'summary_large_image', title: TITLE, description: DESCRIPTION },
 };
 
 /**
@@ -44,7 +55,7 @@ export default async function HomePage() {
   const plans = [products.card, products.video, products.combo, products.website];
   const art = await landingArt();
   const prices = plans.map((p) => p.pricePaise / 100);
-  const faq = homeFaq(plans);
+  const faq = homeFaq(products);
 
   return (
     <ArtProvider names={art}>
@@ -92,26 +103,24 @@ export default async function HomePage() {
               <div className="lg:col-span-5">
                 <Kicker className="mb-8">FAQ</Kicker>
                 <h2 className="display-md">
-                  {hi ? 'सवाल,' : 'Questions,'}
-                  <br />
-                  <span className="text-ink-soft">{hi ? 'जवाब।' : 'answered.'}</span>
+                  <span className="sr-only">{hi ? 'निमंत्रण कार्ड से जुड़े सवाल और जवाब' : 'Invitation maker questions, answered'}</span>
+                  <span aria-hidden>
+                    {hi ? 'सवाल,' : 'Questions,'}
+                    <br />
+                    <span className="text-ink-soft">{hi ? 'जवाब।' : 'answered.'}</span>
+                  </span>
                 </h2>
               </div>
-              <div className="divide-y divide-ink/10 border-y border-ink/10 lg:col-span-7">
-                {faq.map(([q, a], k) => (
-                  <details key={q} className="faq group">
-                    <summary className="flex min-h-14 cursor-pointer list-none items-center gap-4 py-5 text-base sm:gap-6 sm:py-6 sm:text-lg [&::-webkit-details-marker]:hidden">
-                      <span className="font-mono text-xs text-ink-soft">
-                        {String(k + 1).padStart(2, '0')}
-                      </span>
-                      <span className="flex-1">{q}</span>
-                      <span className="grid size-8 shrink-0 place-items-center border border-ink/15 text-ink-soft transition-transform duration-300 ease-[var(--ease-out-quint)] group-open:rotate-45">
-                        <Plus className="size-4" aria-hidden />
-                      </span>
-                    </summary>
-                    <p className="max-w-2xl pb-6 pl-9 text-ink-soft sm:pl-11">{a}</p>
-                  </details>
-                ))}
+              <div className="lg:col-span-7">
+                <FaqList items={faq} />
+                <p className="mt-8 flex flex-wrap gap-x-8 gap-y-3 font-mono text-sm text-ink-soft">
+                  <Link href="/faq" className="underline decoration-ink/20 underline-offset-4 hover:text-ink hover:decoration-ink">
+                    {hi ? 'सारे सवाल देखें' : 'All questions'}
+                  </Link>
+                  <Link href="/blog" className="underline decoration-ink/20 underline-offset-4 hover:text-ink hover:decoration-ink">
+                    {hi ? 'निमंत्रण के शब्द और गाइड' : 'Invitation wording & guides'}
+                  </Link>
+                </p>
               </div>
             </Frame>
           </section>
@@ -161,47 +170,3 @@ function structuredData(highPrice: number, faq: Array<[string, string]>) {
     ],
   };
 }
-
-/**
- * FAQ shown on the page and in FAQPage schema. The price and occasion answers are built from live
- * offers and the event list, so they never drift from what the app actually charges and supports.
- */
-function homeFaq(plans: PricedProduct[]): Array<[string, string]> {
-  const [card, video, combo, website] = plans as [PricedProduct, PricedProduct, PricedProduct, PricedProduct];
-  const occasions = EVENT_TYPES.filter((e) => e.id !== 'other').map((e) => e.label);
-  return [
-    FAQ[0]!,
-    [
-      'How much does an invitation cost?',
-      `Making and sharing is free. Pay once per event: ${card.name} ${formatINR(card.pricePaise)}, ${video.name} ${formatINR(video.pricePaise)}, ${website.name} ${formatINR(website.pricePaise)}, or all three in the ${combo.name} for ${formatINR(combo.pricePaise)}. No subscription. UPI, cards and wallets accepted.`,
-    ],
-    [
-      'Which occasions can I make invitations for?',
-      `${occasions.slice(0, -1).join(', ')} and ${occasions.at(-1)}. Each occasion comes with its own functions, wording and designs.`,
-    ],
-    ...FAQ.slice(1),
-  ];
-}
-
-const FAQ: Array<[string, string]> = [
-  [
-    'Is it really free to try?',
-    'Yes. Make your invitation, preview every design and share a watermarked card and website for free. Pay only for HD files, the video or RSVP.',
-  ],
-  [
-    'Can I write in Hindi, Marathi or Tamil?',
-    'Yes, in 12 Indian languages with correct script. Type in English and convert names to your script, or speak and let AI write the wording.',
-  ],
-  [
-    'Will the video play properly on WhatsApp?',
-    'Every video is encoded to stay under 16 MB, so WhatsApp forwards it without blurring.',
-  ],
-  [
-    'Can guests reply for each function separately?',
-    'Yes. Guests choose Haldi, Sangeet, Wedding and so on individually, with headcount and meal preference. You get a live list for the caterer.',
-  ],
-  [
-    'Can I print the same design?',
-    'Yes. Get a print-ready 5×7 inch PDF with bleed and crop marks, or order printed cards from a partner press.',
-  ],
-];
