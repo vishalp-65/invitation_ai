@@ -311,7 +311,8 @@ Then in the browser:
 | Symptom | Cause |
 | --- | --- |
 | API exits at boot with `Invalid environment configuration` | A required key is missing in `/opt/noyta/.env` (the log lists which) |
-| `Missing production configuration: ...` | OpenRouter/Razorpay keys are required in production |
+| `Missing production configuration: ...` | `OPENROUTER_API_KEY` is required in production; with `RAZORPAY_KEY_ID` set, `RAZORPAY_WEBHOOK_SECRET` is too |
+| Checkout says "Payments are not available yet" | No Razorpay keys in `/opt/noyta/.env`: the API runs with payments switched off. Add all three keys and restart |
 | `EMAIL_PROVIDER=console is not allowed` / `ADMIN_MFA=false is not allowed` | Set `EMAIL_PROVIDER=resend`; leave `ADMIN_MFA` empty or `true` |
 | Upload fails with 403 `SignatureDoesNotMatch` | Wrong Spaces region/endpoint, or the bucket name is included in `S3_ENDPOINT` (it must be just `https://blr1.digitaloceanspaces.com`) |
 | Upload blocked by CORS | Bucket CORS is missing `https://noyta.in` |

@@ -157,7 +157,9 @@ export function loadEnv(source: NodeJS.ProcessEnv = process.env): Env {
   }
   const env = parsed.data;
   if (env.NODE_ENV === 'production') {
-    const required: Array<keyof Env> = ['OPENROUTER_API_KEY', 'RAZORPAY_KEY_ID', 'RAZORPAY_KEY_SECRET', 'RAZORPAY_WEBHOOK_SECRET'];
+    // Razorpay is optional: without its keys checkout is switched off (DisabledGateway), never mocked.
+    const required: Array<keyof Env> = ['OPENROUTER_API_KEY'];
+    if (env.RAZORPAY_KEY_ID && !env.RAZORPAY_WEBHOOK_SECRET) required.push('RAZORPAY_WEBHOOK_SECRET');
     const missing = required.filter((k) => !env[k]);
     if (missing.length) throw new Error(`Missing production configuration: ${missing.join(', ')}`);
     if (env.EMAIL_PROVIDER === 'console') throw new Error('EMAIL_PROVIDER=console is not allowed in production');

@@ -108,6 +108,8 @@ export class PaymentsService {
   }
 
   async createOrder(user: AuthUser, input: CreateOrderInput): Promise<CheckoutDto> {
+    // Production without Razorpay keys: refuse before any order row is written
+    if (this.gateway.name === 'disabled') throw new ServiceUnavailableException('Payments are not available yet. Please try again later.');
     const event = await this.events.getOwned(user, input.eventId);
     const product = await this.offers.product(input.productCode);
     if (product.disabled) throw new BadRequestException(`${product.name} is not available right now.`);

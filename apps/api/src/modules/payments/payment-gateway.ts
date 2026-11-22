@@ -7,7 +7,7 @@ export interface GatewayOrder {
 }
 
 export interface PaymentGateway {
-  readonly name: 'razorpay' | 'mock';
+  readonly name: 'razorpay' | 'mock' | 'disabled';
   readonly publicKey: string;
   createOrder(amountPaise: number, receipt: string, notes: Record<string, string>): Promise<GatewayOrder>;
   verifyCheckoutSignature(orderId: string, paymentId: string, signature: string): boolean;
@@ -129,12 +129,44 @@ export class MockGateway implements PaymentGateway {
   }
 }
 
+/**
+ * Production without Razorpay keys: the app runs, checkout is refused. Never falls back to the mock
+ * gateway there, which would hand out paid features for free.
+ */
+export class DisabledGateway implements PaymentGateway {
+  readonly name = 'disabled' as const;
+  readonly publicKey = '';
+
+  async createOrder(): Promise<GatewayOrder> {
+    throw new Error('Payments are not configured');
+  }
+
+  verifyCheckoutSignature(): boolean {
+    return false;
+  }
+
+  verifyWebhookSignature(): boolean {
+    return false;
+  }
+
+  async refund(): Promise<{ id: string }> {
+    throw new Error('Payments are not configured');
+  }
+
+  async paymentMethod(): Promise<string | null> {
+    return null;
+  }
+
+  async refundsOf(): Promise<GatewayRefund[]> {
+    return [];
+  }
+}
+
 export const PAYMENT_GATEWAY = Symbol('PAYMENT_GATEWAY');
 
 export function createGateway(env: Env): PaymentGateway {
   if (env.RAZORPAY_KEY_ID && env.RAZORPAY_KEY_SECRET) {
     return new RazorpayGateway(env.RAZORPAY_KEY_ID, env.RAZORPAY_KEY_SECRET, env.RAZORPAY_WEBHOOK_SECRET);
   }
-  if (env.NODE_ENV === 'production') throw new Error('Razorpay keys are required in production');
-  return new MockGateway();
+  return env.NODE_ENV === 'production' ? new DisabledGateway() : new MockGateway();
 }
