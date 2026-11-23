@@ -261,13 +261,14 @@ export class SitesService {
   }
 
   /** Published, not expired, and the plan allows the section type. */
-  private async liveSite(slug: string) {
+  private async liveSite(slug: string, guestToken?: string) {
     const event = await this.publishedBySlug(slug);
-    const [fns, plan] = await Promise.all([this.eventsService.functionsOf(event.id), this.planOf(event.id)]);
+    // The guest (personal links) loads in the same batch: one round trip fewer per open.
+    const [fns, plan, guest] = await Promise.all([this.eventsService.functionsOf(event.id), this.planOf(event.id), this.guestByToken(event.id, guestToken)]);
     const expires = this.expiry(fns, plan.tier, plan.extraYears);
     if (expires && expires < new Date()) throw new GoneException('This invitation website is no longer online');
     const doc = applySiteTier(this.docOf(event), plan.tier);
-    return { event, plan, doc, fns };
+    return { event, plan, doc, fns, guest };
   }
 
   /** Private sites (password / guests only) open for a personal guest link or a valid unlock key. */
@@ -282,10 +283,9 @@ export class SitesService {
    * RSVP, UPI QR, calendar) goes through this, so a private site never leaks venues or content.
    */
   private async openSite(slug: string, access: SiteAccess = {}) {
-    const live = await this.liveSite(slug);
-    const guest = await this.guestByToken(live.event.id, access.guestToken);
-    if (!this.canOpen(live.event, live.doc, guest, access.key)) throw new ForbiddenException('This invitation is private');
-    return { ...live, guest };
+    const live = await this.liveSite(slug, access.guestToken);
+    if (!this.canOpen(live.event, live.doc, live.guest, access.key)) throw new ForbiddenException('This invitation is private');
+    return live;
   }
 
   private async guestByToken(eventId: string, token?: string) {
@@ -318,8 +318,7 @@ export class SitesService {
   }
 
   private async buildSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
-    const { event, doc, fns, plan } = await this.liveSite(slug);
-    const guest = await this.guestByToken(event.id, guestToken);
+    const { event, doc, fns, plan, guest } = await this.liveSite(slug, guestToken);
 
     // Personal links always open; otherwise private modes need a guest link or the password.
     if (!this.canOpen(event, doc, guest, key)) {

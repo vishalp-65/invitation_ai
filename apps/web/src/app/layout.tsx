@@ -1,12 +1,11 @@
 import { BRAND } from '@cardai/shared';
 import type { Metadata, Viewport } from 'next';
-import { NextIntlClientProvider } from 'next-intl';
 import { getLocale } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Instrument_Sans, JetBrains_Mono, Noto_Sans_Devanagari } from 'next/font/google';
 import type { ReactNode } from 'react';
-import { Providers } from '@/components/providers';
+import { ErrorReporter } from '@/components/error-reporter';
 import { LITE_BOOT_SCRIPT } from '@/lib/perf-boot';
 import { THEME_BOOT_SCRIPT } from '@/lib/theme';
 import '@/styles/globals.css';
@@ -75,10 +74,13 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
         >
           Skip to content
         </a>
-        <div className="ambient" aria-hidden />
-        <NextIntlClientProvider>
-          <Providers>{children}</Providers>
-        </NextIntlClientProvider>
+        {/*
+          Lean on purpose: guest pages (invitation websites, short links, builder preview) render
+          straight from here. The app's providers (data fetching, toasts, tooltips, translations)
+          live in app/(app)/layout.tsx so guests on cheap phones never download them.
+        */}
+        <ErrorReporter />
+        {children}
         <Analytics />
         <SpeedInsights />
       </body>

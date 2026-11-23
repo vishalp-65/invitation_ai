@@ -91,7 +91,27 @@ export class ShortLinksService {
   /** Makes sure every listed guest has a short code; returns id → code. */
   async guestCodes(rows: Array<{ id: string; shortCode: string | null }>): Promise<Map<string, string>> {
     const out = new Map<string, string>();
+    for (const r of rows) if (r.shortCode) out.set(r.id, r.shortCode);
+    // Older guests without a code: give them all one in a single statement (a 7-character
+    // collision is very unlikely; if one happens the whole batch rolls back and the safe
+    // one-by-one path below takes over).
+    const missing = rows.filter((r) => !r.shortCode);
+    if (missing.length > 1) {
+      const values = sql.join(
+        missing.map((r) => sql`(${r.id}::uuid, ${guestCode()})`),
+        sql`, `,
+      );
+      try {
+        const res = await this.db.execute(
+          sql`update guests g set short_code = v.code from (values ${values}) as v(id, code) where g.id = v.id and g.short_code is null returning g.id, g.short_code`,
+        );
+        for (const row of res.rows as Array<{ id: string; short_code: string }>) out.set(row.id, row.short_code);
+      } catch {
+        /* fall through to the one-by-one path */
+      }
+    }
     for (const r of rows) {
+      if (out.has(r.id)) continue;
       if (r.shortCode) {
         out.set(r.id, r.shortCode);
         continue;

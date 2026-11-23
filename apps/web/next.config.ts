@@ -4,6 +4,8 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const apiUrl = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 const storageUrl = process.env.STORAGE_PUBLIC_URL ?? 'http://localhost:9000/cardai';
 const storageOrigin = new URL(storageUrl).origin;
+// Photo and song uploads go straight to the API origin (see API_PUBLIC_URL on the API).
+const apiOrigin = new URL(apiUrl).origin;
 const isDev = process.env.NODE_ENV !== 'production';
 
 /**
@@ -25,7 +27,7 @@ const reportOnlyCsp = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   `media-src 'self' blob: ${storageOrigin}`,
-  `connect-src 'self' ${storageOrigin} https://accounts.google.com https://*.razorpay.com${isDev ? ' ws: http://localhost:*' : ''}`,
+  `connect-src 'self' ${storageOrigin} ${apiOrigin} https://accounts.google.com https://*.razorpay.com${isDev ? ' ws: http://localhost:*' : ''}`,
   "frame-src 'self' https://accounts.google.com https://*.razorpay.com https://www.youtube-nocookie.com https://www.youtube.com https://www.google.com",
   "worker-src 'self' blob:",
   "frame-ancestors 'self'",

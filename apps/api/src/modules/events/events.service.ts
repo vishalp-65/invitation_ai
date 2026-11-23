@@ -76,12 +76,16 @@ export class EventsService {
 
   /** Links pending co-host invites to this account once its email is verified. */
   async acceptInvites(user: AuthUser): Promise<number> {
-    const [me] = await this.db.select({ email: users.email, verified: users.emailVerifiedAt }).from(users).where(eq(users.id, user.id));
-    if (!me?.email || !me.verified) return 0;
+    // One statement (runs on every dashboard load): match pending invites to this account's verified email.
     const res = await this.db
       .update(eventMembers)
       .set({ userId: user.id, acceptedAt: new Date() })
-      .where(and(eq(eventMembers.email, me.email.toLowerCase()), isNull(eventMembers.userId)));
+      .where(
+        and(
+          isNull(eventMembers.userId),
+          sql`${eventMembers.email} = (select lower(${users.email}) from ${users} where ${users.id} = ${user.id} and ${users.emailVerifiedAt} is not null)`,
+        ),
+      );
     return res.rowCount ?? 0;
   }
 
@@ -157,8 +161,9 @@ export class EventsService {
   }
 
   async getDto(user: AuthUser, eventId: string): Promise<EventDto> {
-    const { event, access } = await this.access(user, eventId, 'view');
-    return this.toDto(event, await this.functionsOf(eventId), access);
+    // Functions load alongside the access check (they are only returned if access passes).
+    const [{ event, access }, fns] = await Promise.all([this.access(user, eventId, 'view'), this.functionsOf(eventId)]);
+    return this.toDto(event, fns, access);
   }
 
   async update(user: AuthUser, eventId: string, input: UpdateEventInput): Promise<EventDto> {

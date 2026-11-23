@@ -8,7 +8,10 @@ import { useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
-import { TemplatePreview } from '@/components/invite/template-preview';
+import dynamic from 'next/dynamic';
+
+// The preview dialog (card builder + art) loads when a design is tapped, not with the gallery.
+const TemplatePreview = dynamic(() => import('@/components/invite/template-preview').then((m) => m.TemplatePreview), { ssr: false });
 import { COMMUNITY_LABEL, NoTemplates, useTemplateSearch, type TemplateSearchState } from '@/components/invite/template-search';
 import { designHref } from '@/lib/links';
 import { Dialog } from '@/components/ui/dialog';
@@ -244,7 +247,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
         </section>
       </div>
 
-      <TemplatePreview family={previewFamily} activeId={previewId} onSelect={setPreviewId} onClose={() => setPreviewId(null)} href={hrefFor} hi={hi} />
+      {previewFamily && <TemplatePreview family={previewFamily} activeId={previewId} onSelect={setPreviewId} onClose={() => setPreviewId(null)} href={hrefFor} hi={hi} />}
 
       {/* Mobile filters */}
       <Dialog focusField={false} open={sheetOpen} onClose={() => setSheetOpen(false)} title={hi ? 'फ़िल्टर' : 'Filters'}>

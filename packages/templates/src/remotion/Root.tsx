@@ -9,7 +9,7 @@ import { sampleInviteProps } from '../sample';
 import { SiteVideo, siteVideoFrames, type SiteVideoProps } from '../site-video/SiteVideo';
 import { STATUS_VIDEO_SECONDS, StatusVideo, type StatusVideoProps } from '../site-video/StatusVideo';
 
-const defaultProps = sampleInviteProps();
+const defaultProps = sampleInviteProps(BUILTIN_TEMPLATES[0]!);
 // Remotion's generic props typing is stricter than our serialisable InviteProps.
 const Card = InviteCard as ComponentType<Record<string, unknown>>;
 const Video = InviteVideo as ComponentType<Record<string, unknown>>;

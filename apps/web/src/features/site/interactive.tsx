@@ -1,5 +1,6 @@
 'use client';
 
+import { shrinkImage } from '@/lib/shrink-image';
 import type { SiteSectionOf, SiteUpdateDto, SiteWishDto } from '@cardai/shared';
 import { Camera, Check, Copy, Gift, Heart, Radio, Send, Wallet } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -328,17 +329,8 @@ export function WishesSection({ section }: { section: SiteSectionOf<'wishes'> })
 
 // ---------------- Guest photo album ----------------
 
-/** Downscales big phone photos before upload (saves guests' data and our storage). */
-async function shrink(file: File): Promise<Blob> {
-  if (file.size < 1.5 * 1024 * 1024 || !('createImageBitmap' in window)) return file;
-  const bmp = await createImageBitmap(file);
-  const scale = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
-  const canvas = document.createElement('canvas');
-  canvas.width = Math.round(bmp.width * scale);
-  canvas.height = Math.round(bmp.height * scale);
-  canvas.getContext('2d')!.drawImage(bmp, 0, 0, canvas.width, canvas.height);
-  return new Promise((resolve) => canvas.toBlob((b) => resolve(b ?? file), 'image/jpeg', 0.85));
-}
+/** Guest photos: smaller than the family's own (2000 px). */
+const shrink = (file: File) => shrinkImage(file, 2000, 0.85);
 
 export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
   const { data, t, preview, guestToken, accessKey } = useSite();

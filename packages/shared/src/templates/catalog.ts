@@ -2,7 +2,8 @@ import type { Community, EventTypeId } from '../constants/event-types.js';
 import { type DesignFamily } from '../design/families.js';
 import { ALL_DESIGN_FAMILIES } from '../design/families-heritage.js';
 import { PHOTO_LOOKS, type PhotoLookId } from '../art/looks.js';
-import { decorSchema, type Decor, type LayoutId, type MotifId, type PatternId, type TemplateDefinition, type Theme } from './types.js';
+import { withDecorDefaults } from './decor.js';
+import type { Decor, LayoutId, MotifId, PatternId, TemplateDefinition, Theme } from './types.js';
 
 type Palette = Theme['palette'];
 
@@ -234,7 +235,7 @@ function expand(f: Family): TemplateDefinition[] {
         motif: f.motif,
         pattern: f.pattern,
         ornamentOpacity: f.ornamentOpacity ?? 0.18,
-        ...(f.decor ? { decor: decorSchema.parse(f.decor) } : {}),
+        ...(f.decor ? { decor: withDecorDefaults(f.decor) } : {}),
       },
       eventTypes: f.eventTypes,
       communities: f.communities ?? [],
@@ -308,14 +309,4 @@ export function templateSupportsEvent(template: TemplateDefinition, eventType: s
   return template.eventTypes === 'all' || (template.eventTypes as string[]).includes(eventType);
 }
 
-/** Groups templates into families (marketplace templates become single-variant families). */
-export function groupByFamily(templates: TemplateDefinition[]): Array<{ id: string; name: string; variants: TemplateDefinition[] }> {
-  const map = new Map<string, { id: string; name: string; variants: TemplateDefinition[] }>();
-  for (const t of templates) {
-    const id = t.family?.id ?? t.id;
-    const entry = map.get(id) ?? { id, name: t.family?.name ?? t.name, variants: [] };
-    entry.variants.push(t);
-    map.set(id, entry);
-  }
-  return [...map.values()];
-}
+export { groupByFamily } from './group.js';

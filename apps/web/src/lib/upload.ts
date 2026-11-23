@@ -1,10 +1,13 @@
 import type { MediaAssetDto } from '@cardai/shared';
 import { api } from './api';
+import { shrinkImage } from './shrink-image';
 
 /** Presigned upload straight to storage, then confirm with the API. */
-export async function uploadPhoto(eventId: string, file: File): Promise<MediaAssetDto> {
-  const type = file.type as 'image/jpeg' | 'image/png' | 'image/webp';
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(type)) throw new Error('Use a JPG, PNG or WebP photo');
+export async function uploadPhoto(eventId: string, original: File): Promise<MediaAssetDto> {
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(original.type)) throw new Error('Use a JPG, PNG or WebP photo');
+  // Phone photos are resized to 2400 px (sharp on cards and print, light for guests).
+  const file = await shrinkImage(original);
+  const type = (file.type || original.type) as 'image/jpeg' | 'image/png' | 'image/webp';
   const { assetId, uploadUrl, headers } = await api<{ assetId: string; uploadUrl: string; headers: Record<string, string> }>('/media/presign', {
     method: 'POST',
     json: { eventId, contentType: type, bytes: file.size },

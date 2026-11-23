@@ -1,14 +1,16 @@
 import { getEventType } from '../constants/event-types.js';
 import { blessingFor, faithOf, type Faith } from '../constants/faith.js';
 import type { LanguageCode } from '../constants/languages.js';
-import { decorSchema, type TemplateDefinition } from '../templates/types.js';
+import { withDecorDefaults } from '../templates/decor.js';
+import type { TemplateDefinition } from '../templates/types.js';
 import type { DesignData } from './bindings.js';
 import { artEl, faithElements, fullPage, makeCtx, resetIds, shapeEl, solidBg, stack, tonesFor, TYPE_SETS, type Band, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
 import { isDarkColor } from './color.js';
 import { goldOn, trueGold, type Chrome, type DesignFamily } from './families.js';
 import { ALL_DESIGN_FAMILIES } from './families-heritage.js';
 import { blessingBands, ceremonyBands, familyBands, FUNCTIONS_PER_PAGE, hasFamilyExtras, photoBands } from './pages.js';
-import { DESIGN_H, DESIGN_W, type DesignDoc, type DesignElement, type DesignPage } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignDoc, DesignElement, DesignPage } from './schema.js';
 
 export interface BuildDesignInput {
   template: Pick<TemplateDefinition, 'id' | 'layout' | 'theme'> & { design?: string; communities?: readonly string[]; doc?: DesignDoc };
@@ -202,7 +204,7 @@ const LEGACY_INSET: Record<string, { top: number; x: number; bottom: number; pan
 function legacySpec(template: BuildDesignInput['template']): Spec {
   const rule = LEGACY_INSET[template.layout] ?? LEGACY_INSET['royal-arch']!;
   const theme = template.theme;
-  const d = decorSchema.parse(theme.decor ?? {});
+  const d = withDecorDefaults(theme.decor);
   const top = rule.top + (d.toran ? 6 : 0) + (d.florals !== 'none' && d.floralPlacement === 'diagonal' && !d.toran ? 3 : 0);
   const bottom = rule.bottom + (d.florals !== 'none' ? 4 : 0);
   const onSurface = Boolean(rule.panel || rule.surfaceFrame);

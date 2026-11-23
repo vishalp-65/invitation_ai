@@ -2,10 +2,9 @@
 
 import { getSiteDesign, type SiteDoc, type SiteSection, type SiteSectionOf } from '@cardai/shared';
 import { MandalaWatermark } from '@cardai/templates/art';
-import { SceneStill } from '@cardai/templates/scenes';
+import { Character, SceneStill } from './lazy-art';
 import { BedDouble, Bus, CalendarPlus, ChevronDown, Clock, Hotel, MapPin, Phone, Shirt } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Character } from './characters';
 import { safeHref, useSite } from './context';
 import { mapsUrl, useCountdown } from './utils';
 import { VenueMap } from './venue-map';

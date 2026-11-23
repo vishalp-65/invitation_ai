@@ -10,7 +10,7 @@ let sample: DesignData | null = null;
 /** Sample wedding details for live thumbnails of admin-published templates (built once). */
 export function sampleDesignData(): DesignData {
   if (sample) return sample;
-  const s = sampleInviteProps(BUILTIN_TEMPLATES[0], 'en');
+  const s = sampleInviteProps(BUILTIN_TEMPLATES[0]!, 'en');
   sample = designDataFrom({
     content: s.content,
     functions: s.functions.map((f, i) => ({ name: f.name, startsAt: `2026-12-${12 + i}T19:00:00+05:30`, venueName: f.venue, venueAddress: f.address ?? undefined })),

@@ -1,7 +1,8 @@
 'use client';
 
 import { heroInk, type SiteDoc, type SiteSectionOf, type ThingIcon } from '@cardai/shared';
-import { DressFigures, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal } from '@cardai/templates/scenes';
+import { Marker, WaxSeal } from '@cardai/templates/scenes';
+import { DressFigures, SceneLayer, SceneStill, VintageCar } from './lazy-art';
 import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { safeHref, useSite } from './context';

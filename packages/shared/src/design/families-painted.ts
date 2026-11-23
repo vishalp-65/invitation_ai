@@ -5,7 +5,8 @@ import { nextId, type Band, type DateStyle, type RecipeCtx, type TypeSetKey, typ
 import { mix } from './color.js';
 import { coupleNames, soloOrNames, venue } from './families-atelier.js';
 import { ALL_WEDDINGS, type Chrome, type DesignCategory, type DesignFamily } from './families.js';
-import { DESIGN_H, DESIGN_W, type DesignElement, type ImageElement } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignElement, ImageElement } from './schema.js';
 
 /**
  * "Painted photo" collection (Nov 2026): the couple's (or family's) own photo inside painted

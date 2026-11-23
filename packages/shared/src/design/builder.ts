@@ -5,9 +5,11 @@ import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
 
-const isPaintedMaskName = (m: string) => m === 'blob' || m === 'brush' || m === 'soft-arch';
 import { detectScript, EDITOR_FONTS, fontSupports } from './fonts.js';
-import { curvedTextPath, DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
+import { curvedTextPath, DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignElement, PageBackground, TextEffect, TextElement } from './schema.js';
+
+const isPaintedMaskName = (m: string) => m === 'blob' || m === 'brush' || m === 'soft-arch';
 
 export type Palette = Theme['palette'];
 

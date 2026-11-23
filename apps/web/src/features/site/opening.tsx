@@ -1,7 +1,8 @@
 'use client';
 
 import type { SiteDesign, SiteOpening } from '@cardai/shared';
-import { Ambient, SceneLayer, WaxSeal } from '@cardai/templates/scenes';
+import { Ambient, WaxSeal } from '@cardai/templates/scenes';
+import { SceneLayer } from './lazy-art';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { mix, rgba } from './theme';
 import './openings.css';

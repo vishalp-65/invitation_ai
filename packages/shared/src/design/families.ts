@@ -2,7 +2,8 @@ import type { Community, EventTypeId } from '../constants/event-types.js';
 import type { LayoutId, MotifId, PatternId } from '../templates/types.js';
 import { artEl, fullPage, shapeEl, solidBg, type Band, type DateStyle, type RecipeCtx, type Tones, type TypeSetKey, type Zone } from './builder.js';
 import { contrast, isDarkColor, mix } from './color.js';
-import { DESIGN_H, DESIGN_W, type DesignElement, type PageBackground } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignElement, PageBackground } from './schema.js';
 
 /** Gallery groups (what the user picked in the brief). */
 export const DESIGN_CATEGORIES = [

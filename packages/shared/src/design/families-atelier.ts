@@ -1,7 +1,8 @@
 import { artEl, shapeEl, solidBg, TYPE_SETS, type Band, type RecipeCtx, type TypeSetKey } from './builder.js';
 import { isDarkColor, mix } from './color.js';
 import { ALL_WEDDINGS, ganesha, goldOn, motif, radial, SACRED, trueGold, WEDDINGS, type DesignFamily } from './families.js';
-import { DESIGN_H, DESIGN_W, type DesignElement } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignElement } from './schema.js';
 
 /**
  * "Atelier" collection (Nov 2026): premium suites drawn after the best-selling printed

@@ -19,26 +19,39 @@ export class EntitlementsService {
     return row?.role === 'admin';
   }
 
+  /**
+   * Features and credits of an event in ONE round trip: the owner's role and every entitlement
+   * row come back together (this runs on nearly every paid action and every website open).
+   */
   async forEvent(eventId: string): Promise<{ features: Set<Feature>; credits: Partial<Record<Feature, number>> }> {
-    if (await this.isAdminOwned(eventId)) {
+    const rows = await this.db
+      .select({ role: users.role, feature: entitlements.feature, credits: entitlements.credits })
+      .from(events)
+      .innerJoin(users, eq(users.id, events.userId))
+      .leftJoin(entitlements, eq(entitlements.eventId, events.id))
+      .where(eq(events.id, eventId));
+    if (rows[0]?.role === 'admin') {
       // `site_extra_year` credits are years bought, so they stay 0 (royale already gives the longest base life).
       const credits = Object.fromEntries(FEATURES.filter((f) => f !== 'site_extra_year').map((f) => [f, 9999]));
       return { features: new Set<Feature>(FEATURES), credits };
     }
-    const rows = await this.db.select().from(entitlements).where(eq(entitlements.eventId, eventId));
+    const owned = rows.filter((r): r is { role: typeof r.role; feature: Feature; credits: number } => r.feature !== null);
     return {
-      features: new Set(rows.map((r) => r.feature)),
-      credits: Object.fromEntries(rows.filter((r) => r.credits > 0).map((r) => [r.feature, r.credits])),
+      features: new Set(owned.map((r) => r.feature)),
+      credits: Object.fromEntries(owned.filter((r) => r.credits > 0).map((r) => [r.feature, r.credits])),
     };
   }
 
   async has(eventId: string, feature: Feature): Promise<boolean> {
-    if (await this.isAdminOwned(eventId)) return true;
+    // One query: the owner's role plus whether this feature row exists.
     const [row] = await this.db
-      .select({ f: entitlements.feature })
-      .from(entitlements)
-      .where(and(eq(entitlements.eventId, eventId), eq(entitlements.feature, feature)));
-    return Boolean(row);
+      .select({ role: users.role, f: entitlements.feature })
+      .from(events)
+      .innerJoin(users, eq(users.id, events.userId))
+      .leftJoin(entitlements, and(eq(entitlements.eventId, events.id), eq(entitlements.feature, feature)))
+      .where(eq(events.id, eventId))
+      .limit(1);
+    return row?.role === 'admin' || Boolean(row?.f);
   }
 
   async require(eventId: string, feature: Feature, message?: string): Promise<void> {

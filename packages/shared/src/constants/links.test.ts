@@ -5,9 +5,11 @@ import { describe, expect, it } from 'vitest';
 import { aliasProblem, isReservedLink, LINK_SEGMENT_PATTERN, normaliseAlias } from './links.js';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '../../../../apps/web');
-const topLevel = (dir: string) =>
+const topLevel = (dir: string): string[] =>
   readdirSync(join(root, dir), { withFileTypes: true })
-    .map((d) => d.name.replace(/\.[a-z0-9]+$/i, ''))
+    // Route groups like (app) don't add a URL segment: their folders are top-level routes too.
+    .flatMap((d) => (d.isDirectory() && d.name.startsWith('(') ? topLevel(`${dir}/${d.name}`) : [d.name]))
+    .map((n) => n.replace(/\.[a-z0-9]+$/i, ''))
     .filter((n) => !n.startsWith('[') && !n.startsWith('(') && !n.startsWith('_') && LINK_SEGMENT_PATTERN.test(n));
 
 describe('custom link rules', () => {

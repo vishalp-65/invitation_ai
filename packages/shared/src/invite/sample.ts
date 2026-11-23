@@ -1,4 +1,3 @@
-import { BUILTIN_TEMPLATES } from '../templates/catalog.js';
 import type { EventContent } from '../schemas/events.js';
 import { buildInviteProps, type BuildInvitePropsInput, type InviteProps } from './build-invite-props.js';
 import type { TemplateDefinition } from '../templates/types.js';
@@ -117,7 +116,8 @@ function occasionSample(t: TemplateDefinition, hi: boolean): Sample | null {
 }
 
 /** Demo content for gallery thumbnails, Remotion Studio and visual tests. */
-export function sampleInviteProps(template: TemplateDefinition = BUILTIN_TEMPLATES[0]!, language: 'en' | 'hi' = 'en'): InviteProps {
+/** Sample props for a template (no catalogue import here: pages that only show thumbnails stay light). */
+export function sampleInviteProps(template: TemplateDefinition, language: 'en' | 'hi' = 'en'): InviteProps {
   const hi = language === 'hi';
   const s = occasionSample(template, hi) ?? weddingSample(template, hi);
   const lang = template.communities.includes('christian') || template.theme.decor?.attire === 'christian' ? 'en' : language;

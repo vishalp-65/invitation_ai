@@ -1,10 +1,14 @@
-import { SiteHeader } from '@/components/layout/site-header';
+import { Logo } from '@/components/layout/logo';
 import { ButtonLink } from '@/components/ui/button';
 
 export default function NotFound() {
+  // Rendered by the lean root layout (also for unknown invitation links): a light page with no
+  // app header, so a 404 costs guests almost nothing to load.
   return (
     <>
-      <SiteHeader />
+      <header className="flex justify-center px-5 pt-8">
+        <Logo />
+      </header>
       <div className="toran animate-sway" aria-hidden />
       <main id="main" className="mx-auto flex max-w-xl flex-col items-center px-5 py-20 text-center sm:py-28">
         <p className="animate-fade-up font-display text-7xl text-primary sm:text-8xl">404</p>

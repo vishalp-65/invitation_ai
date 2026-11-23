@@ -1,7 +1,8 @@
 import { artEl, fullPage, shapeEl, solidBg, type Band, type DateStyle, type RecipeCtx } from './builder.js';
 import { isDarkColor, mix } from './color.js';
 import { ALL_WEDDINGS, couple, DESIGN_FAMILIES, ganesha, goldOn, motif, radial, SACRED, trueGold, WEDDINGS, type Chrome, type DesignFamily } from './families.js';
-import { DESIGN_H, DESIGN_W, type DesignElement } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
+import type { DesignElement } from './schema.js';
 import { ATELIER_FAMILIES } from './families-atelier.js';
 import { CELEBRATION_FAMILIES } from './families-celebration.js';
 import { PAINTED_FAMILIES } from './families-painted.js';

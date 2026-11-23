@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import { GallerySkeleton } from '@/components/ui/skeletons';
-import { TemplateGallery } from '@/app/templates/template-gallery';
+import { TemplateGallery } from '@/app/(app)/templates/template-gallery';
 
 export const metadata: Metadata = { title: 'Designs' };
 

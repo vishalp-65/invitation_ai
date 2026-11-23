@@ -3,7 +3,7 @@ import { artEl, shapeEl, solidBg, type Band, type RecipeCtx } from './builder.js
 import { isDarkColor, mix } from './color.js';
 import { corner, coupleNames, namesInRing, onSurface, petals, soloOrNames, venue } from './families-atelier.js';
 import { couple, goldOn, linear, radial, trueGold, WEDDINGS, type DesignFamily } from './families.js';
-import { DESIGN_H, DESIGN_W } from './schema.js';
+import { DESIGN_H, DESIGN_W } from './constants.js';
 
 /**
  * "Celebration" collection (Nov 2026, second set of references): a mauve arch with rings and

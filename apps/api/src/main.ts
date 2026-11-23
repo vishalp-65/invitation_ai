@@ -73,6 +73,8 @@ async function bootstrap() {
   await app.register(cookie);
   await app.register(cors, {
     origin: [...allowedOrigins],
+    // The plugin's default is GET, HEAD, POST only, which blocks the cross-origin upload PUT.
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   });
 
