@@ -52,6 +52,8 @@ export interface DesignFamily {
   blessing?: (ctx: RecipeCtx, t: Tones) => Chrome;
   /** Search metadata: visual style words (see templates/search.ts). */
   styles?: string[];
+  /** Painted photo look behind this family (website and video use the same look). */
+  look?: string;
   /** Language the gallery thumbnail is shown in (defaults: modern → English, else Hindi). */
   sampleLanguage?: 'en' | 'hi';
 }

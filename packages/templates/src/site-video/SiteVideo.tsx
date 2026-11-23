@@ -1,7 +1,8 @@
-import { getLanguage, getSiteDesign, heroInk, type EventContent, type SiteDesign } from '@cardai/shared';
+import { getLanguage, getSiteDesign, heroInk, setArtOrigin, type EventContent, type SiteDesign } from '@cardai/shared';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
+import { planPhotoStory, PhotoStory } from './PhotoStory';
 import { Ambient, Divider, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal, type ImgLike } from '../scenes';
 
 /**
@@ -32,6 +33,17 @@ export interface SiteVideoProps {
   link: string | null;
   /** cinematic (full film) | teaser (15 s save-the-date reel) | storybook (page turns). */
   style?: 'cinematic' | 'teaser' | 'storybook';
+  /** The event's photos (painted photo designs show them; first = cover). */
+  photos?: string[];
+  /** Corner QR on the last scene (venue map by default). */
+  qr?: { src: string; label: string; corner: 'br' | 'bl' | 'tr' | 'tl' } | null;
+  /** Where the painted art (`/art/...`) is served; the renderer runs on another origin. */
+  artOrigin?: string | null;
+}
+
+/** Length of the video for these props (photo storybook for painted photo designs). */
+export function siteVideoFrames(props: Pick<SiteVideoProps, 'designId' | 'functions' | 'style'>, fps: number): number {
+  return getSiteDesign(props.designId)?.look ? planPhotoStory(props.functions.length, fps).durationInFrames : planSiteVideo(props.functions.length, fps, props.style ?? 'cinematic').durationInFrames;
 }
 
 /** Seconds per scene. Functions beyond five are summarised on the venue scene. */
@@ -252,6 +264,7 @@ function ScriptTitle({ t, at, children, color, font }: { t: number; at: number; 
 }
 
 export function SiteVideo(props: SiteVideoProps) {
+  setArtOrigin(props.artOrigin);
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const d = getSiteDesign(props.designId) ?? getSiteDesign('rose-seal')!;
@@ -261,6 +274,28 @@ export function SiteVideo(props: SiteVideoProps) {
   const serifFont = latin ? d.fonts.serif : lang.fonts.display;
   const bodyFont = latin ? d.fonts.body : lang.fonts.body;
   useFonts([...new Set([scriptFont, serifFont, bodyFont])]);
+
+  // Painted photo designs play the photo storybook (same paper, art and fonts as the website).
+  if (d.look) {
+    return (
+      <PhotoStory
+        lookId={d.look}
+        language={props.language}
+        timezone={props.timezone}
+        content={props.content}
+        functions={props.functions}
+        photos={props.photos ?? []}
+        musicUrl={props.musicUrl}
+        watermark={props.watermark}
+        watermarkText={props.watermarkText}
+        link={props.link}
+        qr={props.qr ?? null}
+        scriptFont={scriptFont}
+        serifFont={serifFont}
+        bodyFont={bodyFont}
+      />
+    );
+  }
 
   const c = props.content;
   const names = c.primaryNames.filter(Boolean);

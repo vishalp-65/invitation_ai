@@ -31,7 +31,7 @@ export interface PublicSiteDto {
     content: EventContent;
     settings: Pick<
       EventSettings,
-      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation' | 'saveTheDate'
+      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation' | 'saveTheDate' | 'qr'
     >;
   };
   template: { id: string; layout: LayoutId; theme: Theme };

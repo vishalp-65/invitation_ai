@@ -1,6 +1,7 @@
 import type { Community, EventTypeId } from '../constants/event-types.js';
 import { type DesignFamily } from '../design/families.js';
 import { ALL_DESIGN_FAMILIES } from '../design/families-heritage.js';
+import { PHOTO_LOOKS, type PhotoLookId } from '../art/looks.js';
 import { decorSchema, type Decor, type LayoutId, type MotifId, type PatternId, type TemplateDefinition, type Theme } from './types.js';
 
 type Palette = Theme['palette'];
@@ -44,6 +45,13 @@ export const PALETTES = {
   mauve: { background: '#8A6A66', backgroundAlt: '#6E5350', surface: '#F5EBDD', primary: '#B98A3E', accent: '#E58E6E', text: '#2E2523', muted: '#6B5A55' },
   parchment: { background: '#F4EEE3', backgroundAlt: '#EAE0D0', surface: '#FCF9F3', primary: '#8C7A5B', accent: '#B98F8A', text: '#4A4440', muted: '#6E6660' },
   iceBlue: { background: '#E6F4FC', backgroundAlt: '#C4E3F5', surface: '#FFFFFF', primary: '#2F7FA8', accent: '#5FB3D9', text: '#163444', muted: '#466879' },
+  // Painted photo looks (design/families-painted.ts): colours taken from each look's paper and ink.
+  ...(Object.fromEntries(
+    PHOTO_LOOKS.map((l) => [
+      `look:${l.id}`,
+      { background: l.paperColor, backgroundAlt: l.paperAlt, surface: l.dark ? l.paperAlt : '#FFFFFF', primary: l.primary, accent: l.accent, text: l.ink, muted: l.muted },
+    ]),
+  ) as Record<`look:${PhotoLookId}`, Palette>),
 } satisfies Record<string, Palette>;
 
 export type PaletteKey = keyof typeof PALETTES;
@@ -56,6 +64,7 @@ const VARIANT_NAMES: Record<PaletteKey, string> = {
   cream: 'Cream', babyBlue: 'Baby Blue', babyPink: 'Baby Pink', butter: 'Butter', kumkum: 'Kumkum', forest: 'Forest',
   linen: 'Linen', dustyRose: 'Dusty Rose', dustyBlue: 'Dusty Blue', champagne: 'Champagne',
   mauve: 'Mauve', parchment: 'Parchment', iceBlue: 'Ice Blue',
+  ...(Object.fromEntries(PHOTO_LOOKS.map((l) => [`look:${l.id}`, 'Painted'])) as Record<`look:${PhotoLookId}`, string>),
 };
 
 interface Family {
@@ -249,8 +258,9 @@ function expandDesign(f: DesignFamily): TemplateDefinition[] {
   return f.palettes.map((key) => {
     const k = key as PaletteKey;
     return {
-      id: `${f.id}-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`,
-      name: `${f.name} · ${VARIANT_NAMES[k]}`,
+      // Painted photo families come in one colourway: the template id is the look id.
+      id: f.look ? f.id : `${f.id}-${key.replace(/[A-Z]/g, (c) => `-${c.toLowerCase()}`)}`,
+      name: f.look ? f.name : `${f.name} · ${VARIANT_NAMES[k]}`,
       layout: f.legacy.layout,
       theme: { palette: PALETTES[k], motif: f.legacy.motif, pattern: f.legacy.pattern, ornamentOpacity: 0.14 },
       eventTypes: f.eventTypes,

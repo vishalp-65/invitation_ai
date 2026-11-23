@@ -4,6 +4,8 @@ import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto }
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { EventPhotos } from './event-photos';
+import { QrSettingsCard } from './qr-settings';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
@@ -143,6 +145,12 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
           </OutputTile>
         </div>
       </section>
+
+      {/* Photos and the corner QR feed all three outputs. */}
+      <div className="grid gap-4 lg:grid-cols-2">
+        <EventPhotos event={event} onUpgrade={onUpgrade} />
+        <QrSettingsCard event={event} />
+      </div>
 
       {/* ---------------- The link ---------------- */}
       <Panel

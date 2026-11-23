@@ -6,6 +6,7 @@
  * Writes <id>-1.jpg (cover), <id>-2.jpg (middle) and <id>-3.jpg (closing) into DIR.
  */
 import { COMPOSITION_IDS, SITE_DESIGNS, type EventContent } from '@cardai/shared';
+import QRCode from 'qrcode';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { mkdir } from 'node:fs/promises';
 import pino from 'pino';
@@ -30,6 +31,9 @@ const content = {
   hashtag: '#AbhiWedsKanika',
 } as unknown as EventContent;
 
+/** Where the painted art is served (a running web app): `--art=http://localhost:3100`. */
+const artOrigin = (process.argv.find((a) => a.startsWith('--art='))?.slice(6) ?? 'http://localhost:3100').replace(/[/]+$/, '');
+const qr = { src: await QRCode.toDataURL('https://www.google.com/maps/search/?api=1&query=Rambagh+Palace+Jaipur', { margin: 1, width: 480 }), label: 'Scan for directions', corner: 'br' as const };
 const runtime = new RemotionRuntime(log);
 const serveUrl = await runtime.getServeUrl();
 const browser = await runtime.getBrowser();
@@ -46,12 +50,17 @@ for (const d of SITE_DESIGNS.filter((x) => !only || only.includes(x.id))) {
     musicUrl: null,
     watermark: false,
     watermarkText: '',
-    link: null,
+    link: 'noyta.in/ak',
     style: 'cinematic',
+    photos: [`${artOrigin}/art/sample-couple.webp`, `${artOrigin}/art/sample-couple-2.webp`],
+    qr,
+    artOrigin,
   };
   const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.siteVideo, inputProps: props, puppeteerInstance: browser });
   const n = composition.durationInFrames;
-  const frames = [Math.round(composition.fps * 6), Math.round(n * 0.5), n - Math.round(composition.fps * 1.5)];
+  // Photo storybook designs: one frame near the end of each scene; others: cover, middle, closing.
+  const fps = composition.fps;
+  const frames = d.look ? [3.4, 8.6, 13.2, 16.4, 24].map((s) => Math.min(n - 1, Math.round(s * fps))) : [Math.round(fps * 6), Math.round(n * 0.5), n - Math.round(fps * 1.5)];
   for (const [i, frame] of frames.entries()) {
     await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance: browser, frame, output: `${out}/${d.id}-${i + 1}.jpg`, imageFormat: 'jpeg', jpegQuality: 80, scale: 0.35 });
   }

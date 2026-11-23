@@ -4,6 +4,7 @@ import { ALL_WEDDINGS, couple, DESIGN_FAMILIES, ganesha, goldOn, motif, radial, 
 import { DESIGN_H, DESIGN_W, type DesignElement } from './schema.js';
 import { ATELIER_FAMILIES } from './families-atelier.js';
 import { CELEBRATION_FAMILIES } from './families-celebration.js';
+import { PAINTED_FAMILIES } from './families-painted.js';
 
 /**
  * "Heritage & Florals" collection (Nov 2026): multi-page, Canva-style invitations —
@@ -476,4 +477,4 @@ export const HERITAGE_FAMILIES: DesignFamily[] = [
 ];
 
 /** Every layered family: newest collections first (Atelier, Celebration, Heritage, then the first set). */
-export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...ATELIER_FAMILIES, ...CELEBRATION_FAMILIES, ...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];
+export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...PAINTED_FAMILIES, ...ATELIER_FAMILIES, ...CELEBRATION_FAMILIES, ...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];

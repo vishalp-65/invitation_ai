@@ -13,6 +13,8 @@ export interface DesignData {
   photos: string[];
   /** "Kindly RSVP by 17 June" (from the event's RSVP deadline), or null. */
   rsvpBy?: string | null;
+  /** Corner QR code (venue map or website) drawn on page `page` (a page id, usually the cover). */
+  qr?: { src: string; corner: 'br' | 'bl' | 'tr' | 'tl'; label: string; page: string } | null;
 }
 
 /**

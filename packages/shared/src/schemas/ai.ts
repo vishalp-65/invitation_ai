@@ -32,7 +32,8 @@ export const translateContentSchema = z.object({
   targetLanguage: z.enum(LANGUAGE_CODES),
 });
 
-export const AI_IMAGE_KINDS = ['background', 'caricature', 'portrait'] as const;
+/** `painting`: the host's photo repainted as a watercolour portrait (uses the AI background allowance / credits). */
+export const AI_IMAGE_KINDS = ['background', 'caricature', 'portrait', 'painting'] as const;
 export type AiImageKind = (typeof AI_IMAGE_KINDS)[number];
 
 export const generateImageSchema = z.object({
@@ -40,7 +41,7 @@ export const generateImageSchema = z.object({
   kind: z.enum(AI_IMAGE_KINDS),
   /** Extra user direction, e.g. "lake palace at sunset". */
   prompt: z.string().trim().max(400).optional(),
-  /** Required for caricature/portrait: the uploaded photo to stylise. */
+  /** Required for caricature/portrait/painting: the uploaded photo to stylise. */
   sourceAssetId: z.uuid().optional(),
 });
 export type GenerateImageInput = z.infer<typeof generateImageSchema>;

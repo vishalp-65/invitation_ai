@@ -1,4 +1,8 @@
 import {
+  artSrc,
+  isPaintedMask,
+  PAINTED_MASKS,
+  resolveArtUrl,
   DESIGN_H,
   DESIGN_W,
   detectScript,
@@ -247,11 +251,19 @@ function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: Te
 }
 
 function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: DesignData | null; placeholders?: boolean }) {
-  const src = el.src ?? (el.bind && data ? resolveBinding(el.bind, data) : null);
+  const src = resolveArtUrl(el.src) ?? (el.bind && data ? resolveBinding(el.bind, data) : null);
   // A circle stays a true circle whatever the frame's proportions (centred, cropped to fit).
   const side = Math.min(el.w, el.h);
   const circle = el.mask === 'circle';
+  const painted = isPaintedMask(el.mask);
   const radius = circle || el.mask === 'oval' ? '50%' : el.mask === 'arch' ? `${el.w / 2}px ${el.w / 2}px 18px 18px` : el.mask === 'rounded' ? Math.min(36, side * 0.12) : 0;
+  // Painted watercolour edges: the art library's mask shapes, stretched to the frame.
+  const paint: CSSProperties | null = painted
+    ? (() => {
+        const url = `url("${artSrc(PAINTED_MASKS[el.mask as keyof typeof PAINTED_MASKS])}")`;
+        return { WebkitMaskImage: url, maskImage: url, WebkitMaskSize: '100% 100%', maskSize: '100% 100%', WebkitMaskRepeat: 'no-repeat', maskRepeat: 'no-repeat' } as CSSProperties;
+      })()
+    : null;
   const frame: CSSProperties = {
     width: circle ? side : '100%',
     height: circle ? side : '100%',
@@ -259,8 +271,9 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
     borderRadius: radius,
     overflow: 'hidden',
     boxSizing: 'border-box',
-    border: el.borderW && el.border ? `${el.borderW}px solid ${el.border}` : undefined,
-    boxShadow: el.borderW ? '0 18px 40px rgba(0,0,0,0.18)' : undefined,
+    border: el.borderW && el.border && !painted ? `${el.borderW}px solid ${el.border}` : undefined,
+    boxShadow: el.borderW && !painted ? '0 18px 40px rgba(0,0,0,0.18)' : undefined,
+    ...paint,
   };
   if (!src && el.empty) {
     // Template frame before a photo is added: initials on a tinted disc, same crop and roundness.
@@ -397,7 +410,7 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
         <div style={{ position: 'absolute', inset: 0, background, transform: `scale(${zoom})` }} />
         {bg.image && (
           <img
-            src={bg.image}
+            src={resolveArtUrl(bg.image)}
             alt=""
             crossOrigin="anonymous"
             style={{
@@ -422,7 +435,45 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
         {visible.map((el, i) => (
           <Layer key={el.id} el={el} index={i} total={visible.length} data={data} t={t} language={language} gate={gate} placeholders={placeholders} onMeasure={onMeasure} fontsReady={fontsReady} />
         ))}
+        {data?.qr && data.qr.page === page.id && <QrTile qr={data.qr} t={t} />}
       </div>
     </div>
   );
 });
+
+const QR_SIZE = 176;
+
+/** Small white tile with the QR code and a one-line caption, in a corner of the card. */
+function QrTile({ qr, t }: { qr: NonNullable<DesignData['qr']>; t?: number }) {
+  const pad = 14;
+  const w = QR_SIZE + pad * 2;
+  const h = QR_SIZE + pad * 2 + 34;
+  const inset = 44;
+  const x = qr.corner.endsWith('l') ? inset : DESIGN_W - w - inset;
+  const y = qr.corner.startsWith('t') ? inset : DESIGN_H - h - inset;
+  const p = t === undefined ? 1 : Math.max(0, Math.min(1, (t - 1.6) / 0.6));
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        width: w,
+        height: h,
+        padding: pad,
+        boxSizing: 'border-box',
+        borderRadius: 18,
+        background: '#FFFFFF',
+        boxShadow: '0 10px 30px rgba(0,0,0,0.16)',
+        opacity: p,
+        transform: `translateY(${(1 - p) * 20}px)`,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+      }}
+    >
+      <img src={qr.src} alt="" width={QR_SIZE} height={QR_SIZE} style={{ display: 'block', width: QR_SIZE, height: QR_SIZE, imageRendering: 'pixelated' }} />
+      <div style={{ marginTop: 6, fontFamily: '"Inter", "Noto Sans", "Noto Sans Devanagari", sans-serif', fontSize: 19, lineHeight: 1.2, color: '#333', whiteSpace: 'nowrap', textAlign: 'center' }}>{qr.label}</div>
+    </div>
+  );
+}

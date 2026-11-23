@@ -211,6 +211,7 @@ export class SitesService {
           askMealPreference: s.askMealPreference,
           askAccommodation: s.askAccommodation,
           saveTheDate: teaser,
+          qr: event.settings.qr,
         },
       },
       template: { id: template.id, layout: template.layout, theme: template.theme },

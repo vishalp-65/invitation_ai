@@ -8,6 +8,7 @@ import { safeHref, SiteProvider } from './context';
 import { EntryPass, SaveTheDateRibbon } from './interactive';
 import { MotionContext, Petals, useEffectiveMotion } from './motion';
 import { Opening } from './opening';
+import { BandArt } from './photo-look';
 import { SectionView } from './sections';
 import { bandVars, googleFontsHref, siteVars } from './theme';
 import './scenes.css';
@@ -164,13 +165,17 @@ export function SiteRenderer({
                 );
               }
               // Design pages: each section sits on the next colour band, joined by the pack's divider.
-              const b = design.bands[band++ % design.bands.length]!;
+              const index = band++;
+              const b = design.bands[index % design.bands.length]!;
               return (
                 <div key={s.id} id={anchor} data-section={s.id} className="inv-band relative" style={bandVars(b)}>
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] -translate-y-[calc(100%-1px)]">
                     <Divider kind={design.divider} color={b.bg} accent={b.primary} />
                   </div>
-                  <SectionView section={s} doc={doc} started={started} />
+                  {design.look && <BandArt lookId={design.look} index={index} />}
+                  <div className="relative z-[1]">
+                    <SectionView section={s} doc={doc} started={started} />
+                  </div>
                 </div>
               );
             });

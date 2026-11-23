@@ -5,6 +5,7 @@ import { designDataFrom } from './bindings.js';
 import { buildDesign } from './build.js';
 import { DEVA_PAIRS, TYPE_SETS } from './builder.js';
 import { ATELIER_FAMILIES } from './families-atelier.js';
+import { PAINTED_FAMILIES } from './families-painted.js';
 import { EDITOR_FONTS, fontSupports } from './fonts.js';
 
 const known = new Set(EDITOR_FONTS.map((f) => f.family));
@@ -56,8 +57,8 @@ describe('gallery', () => {
     }
   });
 
-  it('lists the Atelier collection first and hides retired designs', () => {
-    expect(BUILTIN_TEMPLATES[0]!.design).toBe(ATELIER_FAMILIES[0]!.id);
+  it('lists the painted photo collection first and hides retired designs', () => {
+    expect(BUILTIN_TEMPLATES[0]!.design).toBe(PAINTED_FAMILIES[0]!.id);
     expect(BUILTIN_TEMPLATES.some((t) => t.retired)).toBe(false);
     expect(ALL_BUILTIN_TEMPLATES.length).toBeGreaterThan(BUILTIN_TEMPLATES.length);
   });

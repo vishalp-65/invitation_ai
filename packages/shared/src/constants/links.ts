@@ -24,7 +24,7 @@ export const RESERVED_LINK_WORDS: ReadonlySet<string> = new Set([
   'admin', 'api', 'auth', 'blog', 'builder', 'create', 'dashboard', 'designer', 'dev', 'editor', 'email', 'faq',
   'host', 'i', 's', 'invitation-maker', 'login', 'logout', 'signup', 'pricing', 'preview', 'templates', 'og',
   // public folders and well-known files
-  'brand', 'icons', 'landing', 'showcase', 'sculpture', 'video','designs', 'music', 'fonts', 'static', 'assets', 'public',
+  'art', 'brand', 'icons', 'landing', 'showcase', 'sculpture', 'video','designs', 'music', 'fonts', 'static', 'assets', 'public',
   'favicon', 'robots', 'sitemap', 'manifest', 'icon', 'apple-icon', 'opengraph-image', 'llms', 'llms-full',
   // product words people would expect to be ours
   'about', 'account', 'app', 'billing', 'blogs', 'careers', 'contact', 'cookies', 'help', 'home', 'legal', 'me',

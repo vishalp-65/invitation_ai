@@ -33,7 +33,7 @@ const WHATSAPP_BOT = WHATSAPP_CHAT_URL;
 
 const TITLE = `Wedding Invitation Maker: Card, Video & Website · ${BRAND.name}`;
 const DESCRIPTION =
-  'Free online wedding invitation maker for Indian families. Make a card, video and RSVP website in Hindi or 11 more languages and share on WhatsApp. Start free.';
+  'Create a premium wedding invitation in 2 minutes: designer card, WhatsApp video and RSVP website with venue map, in Hindi and 11 more languages. Preview every design free.';
 
 export const metadata: Metadata = {
   // Main search term first; the brand tagline stays the default title for other pages.

@@ -1,8 +1,9 @@
 'use client';
 
-import { applyDesign, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, SITE_OPENINGS, type PublicSiteDto, type SiteDesignId, type SiteOpening } from '@cardai/shared';
+import { applyDesign, artSrc, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, SITE_OPENINGS, type PublicSiteDto, type SiteDesignId, type SiteOpening } from '@cardai/shared';
 import { useMemo, useState } from 'react';
 import { SiteRenderer } from '@/features/site/site-renderer';
+import { LookThumb } from '@/features/site/photo-look';
 import { Select } from '@/components/ui/select';
 
 const IN = (days: number, h: number) => {
@@ -11,7 +12,11 @@ const IN = (days: number, h: number) => {
   return d.toISOString();
 };
 
-function sampleData(): PublicSiteDto {
+const BRIDE = '00000000-0000-4000-8000-0000000000b1';
+const GROOM = '00000000-0000-4000-8000-0000000000b2';
+
+/** `photos`: how many sample couple photos the event has (0 shows the empty frames). */
+function sampleData(photos = 2): PublicSiteDto {
   const template = BUILTIN_TEMPLATES[0]!;
   const doc = defaultSiteDoc({ eventType: 'wedding', community: 'hindu-north', primaryNames: ['Abhishek', 'Kanika'] });
   return {
@@ -43,13 +48,30 @@ function sampleData(): PublicSiteDto {
       { id: '00000000-0000-4000-8000-0000000000a3', sortOrder: 2, name: 'Sangeet', startsAt: IN(41, 19), venueName: 'Rambagh Palace', venueAddress: 'Jaipur' },
       { id: '00000000-0000-4000-8000-0000000000a4', sortOrder: 3, name: 'Wedding', startsAt: IN(42, 18), venueName: 'Rambagh Palace', venueAddress: 'Bhawani Singh Rd, Rambagh, Jaipur, Rajasthan 302005' },
     ],
-    media: { photos: [], gallery: [], backgroundUrl: null, musicUrl: null, musicLibrary: {}, coverUrl: null, videoUrl: null, assets: {} },
+    media: {
+      photos: [artSrc('sample-couple'), artSrc('sample-couple-2'), artSrc('sample-family')].slice(0, photos),
+      gallery: [],
+      backgroundUrl: null,
+      musicUrl: null,
+      musicLibrary: {},
+      coverUrl: null,
+      videoUrl: null,
+      assets: photos ? { [BRIDE]: artSrc('sample-bride'), [GROOM]: artSrc('sample-groom') } : {},
+    },
     guest: null,
     features: { rsvp: true, showBranding: false, gifts: true },
     site: {
       ...doc,
       sections: doc.sections.map((s) =>
-        s.type === 'things'
+        s.type === 'couple'
+          ? {
+              ...s,
+              people: [
+                { name: 'Abhishek', role: 'The groom', bio: 'Architect, chai lover and the family DJ.', photoAssetId: photos ? GROOM : undefined },
+                { name: 'Kanika', role: 'The bride', bio: 'Doctor, dancer and the planner of this whole celebration.', photoAssetId: photos ? BRIDE : undefined },
+              ],
+            }
+          : s.type === 'things'
           ? {
               ...s,
               items: [
@@ -74,11 +96,11 @@ function sampleData(): PublicSiteDto {
 }
 
 /** Dev QA: every cinematic design rendered with the same sample wedding. */
-export function SiteGallery({ initial, skipOpening = false, opening }: { initial: string; skipOpening?: boolean; opening?: string }) {
+export function SiteGallery({ initial, skipOpening = false, opening, photos = 2 }: { initial: string; skipOpening?: boolean; opening?: string; photos?: number }) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
   // `?open=0` skips the opening (used to capture landing-page screenshots).
   const [replay, setReplay] = useState(skipOpening ? 0 : 1);
-  const data = useMemo(sampleData, []);
+  const data = useMemo(() => sampleData(photos), [photos]);
   const [kind, setKind] = useState<SiteOpening | ''>((SITE_OPENINGS as readonly string[]).includes(opening ?? '') ? (opening as SiteOpening) : '');
   const doc = useMemo(() => {
     const d = applyDesign(data.site, id);
@@ -126,5 +148,19 @@ export function SiteGallery({ initial, skipOpening = false, opening }: { initial
       </div>
       <SiteRenderer key={`${id}-${kind}`} data={data} doc={doc} preview replayKey={replay} />
     </>
+  );
+}
+
+/** Dev QA (`?thumbs=1`): the design-picker thumbnails of every painted photo design. */
+export function LookThumbs() {
+  return (
+    <div className="grid grid-cols-3 gap-2 bg-white p-3 sm:grid-cols-5">
+      {SITE_DESIGNS.filter((d) => d.look).map((d) => (
+        <div key={d.id} className="relative aspect-[3/4] overflow-hidden rounded-[12px] border border-black/10">
+          <LookThumb lookId={d.look!} />
+          <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-1.5 pt-6 text-sm text-white">{d.name}</span>
+        </div>
+      ))}
+    </div>
   );
 }

@@ -49,6 +49,8 @@ import { qk, useEvent } from '@/lib/hooks';
 import { useTemplate } from '@/lib/template-hooks';
 import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
 import { PublishCard } from './publish-card';
+import { EventPhotos } from '@/features/event/event-photos';
+import { QrSettingsCard } from '@/features/event/qr-settings';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
 import { track } from '@/lib/track';
@@ -319,6 +321,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
               </p>
             </div>
           )}
+          <EventPhotos event={event} compact onChange={() => void preview.refetch()} onUpgrade={onUpgrade} />
           <LookPanel part="design" doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />
           <Button onClick={() => setTab('content')} className="self-end">
             Next: content
@@ -340,6 +343,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
           </div>
         ) : (
           <>
+            <EventPhotos event={event} onChange={() => void preview.refetch()} onUpgrade={onUpgrade} />
             <div className="rounded-[12px] border border-ink/10">
               <button type="button" onClick={() => setAiOpen((o) => !o)} aria-expanded={aiOpen} className="flex w-full items-center gap-3 p-4 text-left">
                 <Sparkles className="size-5 shrink-0" aria-hidden />
@@ -371,6 +375,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             publishing={publish.isPending}
           />
           <SharePanel event={event} settings={settings.data} doc={doc} setDoc={setDoc} onUpgrade={onUpgrade} />
+          <QrSettingsCard event={event} onChange={() => void preview.refetch()} />
         </>
       )}
       {tab === 'live' && (

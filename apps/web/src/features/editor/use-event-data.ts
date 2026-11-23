@@ -1,14 +1,42 @@
 'use client';
 
-import { designDataFrom, writeBinding, type DesignData, type EventDto, type EventFunctionInput } from '@cardai/shared';
+import { BRAND, coverPageIndex, designDataFrom, qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, writeBinding, type DesignData, type DesignDoc, type EventDto, type EventFunctionInput } from '@cardai/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
+import { useQrDataUrl } from '@/lib/qr';
 
-/** Event → the live data a design shows (names, dates, venues, photos). */
-export function useDesignData(event: EventDto | undefined, photos: string[] = []): DesignData | null {
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? BRAND.url).replace(/\/+$/, '');
+
+/**
+ * Event → the live data a design shows (names, dates, venues, photos), plus the corner QR
+ * (venue map by default) when the host left it on for `output`.
+ */
+export function useDesignData(event: EventDto | undefined, photos: string[] = [], output: 'image' | 'video' = 'image'): DesignData | null {
+  const base = useBaseDesignData(event, photos);
+  const qr = event ? qrSettingsOf(event.settings) : null;
+  const target =
+    event && base && qr?.[output]
+      ? qrTargetUrl(qr.target, { mapUrl: venueMapsUrl(event.functions[base.mainFunction] ?? event.functions[0]), siteUrl: event.status === 'published' ? `${APP_URL}/i/${event.slug}` : null })
+      : null;
+  const src = useQrDataUrl(target?.url);
+  return useMemo(() => {
+    if (!base || !event || !src || !target || !qr) return base;
+    return { ...base, qr: { src, label: qrLabel(target.target, event.language), corner: qr.corner, page: 'cover' } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- target/qr derive from event
+  }, [base, src, event?.language, qr?.corner, target?.target]);
+}
+
+/** Puts the QR on the design's main page when it isn't called `cover` (older saved designs). */
+export function qrOnCover(data: DesignData | null, doc: DesignDoc | null): DesignData | null {
+  if (!data?.qr || !doc) return data;
+  const id = doc.pages[coverPageIndex(doc)]?.id;
+  return id && id !== data.qr.page ? { ...data, qr: { ...data.qr, page: id } } : data;
+}
+
+function useBaseDesignData(event: EventDto | undefined, photos: string[]): DesignData | null {
   return useMemo(
     () =>
       event

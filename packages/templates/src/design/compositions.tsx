@@ -1,4 +1,4 @@
-import { DESIGN_W, type DesignData, type DesignDoc } from '@cardai/shared';
+import { DESIGN_W, setArtOrigin, type DesignData, type DesignDoc } from '@cardai/shared';
 import { useEffect, useMemo, useState } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
@@ -15,6 +15,8 @@ export interface DesignRenderProps {
   watermarkText: string;
   musicUrl: string | null;
   aiClipUrl: string | null;
+  /** Where the painted art (`/art/...`) is served (the web app); the renderer runs on another origin. */
+  artOrigin?: string | null;
 }
 
 const gate: RenderGate = {
@@ -55,6 +57,7 @@ function Watermark({ text }: { text: string }) {
 
 /** One page of a designed card as a still (image / PDF / print). */
 export function DesignCard(props: DesignRenderProps) {
+  setArtOrigin(props.artOrigin);
   const { width } = useVideoConfig();
   const ready = useDesignFonts(props.design, props.data, true);
   const page = props.design.pages[Math.min(Math.max(props.page, 0), props.design.pages.length - 1)]!;
@@ -92,6 +95,7 @@ export function planDesignVideo(design: DesignDoc, fps: number, hasClip: boolean
 
 /** Video invite: every page of the designed card, layers animating in, crossfading page to page. */
 export function DesignVideo(props: DesignRenderProps) {
+  setArtOrigin(props.artOrigin);
   const frame = useCurrentFrame();
   const { width, fps, durationInFrames } = useVideoConfig();
   const ready = useDesignFonts(props.design, props.data, true);

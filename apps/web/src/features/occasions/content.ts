@@ -32,9 +32,9 @@ const page = (type: OccasionWithPage, p: Omit<OccasionPage, 'type' | 'slug'>): O
 export const OCCASION_PAGES: OccasionPage[] = [
   page('wedding', {
     name: { en: 'Wedding', hi: 'शादी' },
-    title: 'Wedding Invitation Card Maker: Card, Video & Website',
+    title: 'Wedding Invitation Maker: Premium Cards & Videos',
     description:
-      'Make a wedding invitation card, WhatsApp video and RSVP website in Hindi or 11 more languages. Haldi, Mehendi, Sangeet and reception on one invite. Free to try.',
+      'Create a stunning wedding invitation in minutes: premium cards, a WhatsApp video and an RSVP website with venue map. 12 Indian languages. Preview every design free.',
     h1: { en: 'Wedding invitation cards, videos and websites', hi: 'शादी के निमंत्रण कार्ड, वीडियो और वेबसाइट' },
     intro: {
       en: 'Write the names, dates and functions once — Haldi, Mehendi, Sangeet, the wedding and the reception — and get a print-quality card, a WhatsApp-ready video and an RSVP website that all match.',

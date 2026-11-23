@@ -4,6 +4,8 @@ import { attireFor, faithMotif, markSuitsFaith, sacredMarkOf, type Faith } from 
 import type { Theme } from '../templates/types.js';
 import { resolveBinding, type DesignData } from './bindings.js';
 import { readableOn } from './color.js';
+
+const isPaintedMaskName = (m: string) => m === 'blob' || m === 'brush' || m === 'soft-arch';
 import { detectScript, EDITOR_FONTS, fontSupports } from './fonts.js';
 import { curvedTextPath, DESIGN_H, DESIGN_W, type DesignElement, type PageBackground, type TextEffect, type TextElement } from './schema.js';
 
@@ -68,7 +70,23 @@ export type Band =
   | { t: 'art'; asset: string; w: number; h: number; colors?: string[]; opts?: Record<string, string | number | boolean>; gap?: number; anim?: 'drop' | 'zoom' | 'fade'; group?: string }
   | { t: 'divider'; style?: string; w?: number; gap?: number }
   | { t: 'date'; style: DateStyle; gap?: number }
-  | { t: 'photo'; w: number; h: number; mask: 'circle' | 'arch' | 'rounded' | 'oval' | 'rect'; gap?: number; borderW?: number; border?: string; rot?: number; empty?: { bg: string; ink: string; font: string } }
+  | {
+      t: 'photo';
+      w: number;
+      h: number;
+      mask: 'circle' | 'arch' | 'rounded' | 'oval' | 'rect' | 'blob' | 'brush' | 'soft-arch';
+      gap?: number;
+      borderW?: number;
+      border?: string;
+      rot?: number;
+      empty?: { bg: string; ink: string; font: string };
+      /** Painted frame around the photo: `hole` = the opening in the art (x0, y0, x1, y1 fractions); aspect = art h / w. */
+      frame?: { src: string; hole: readonly [number, number, number, number]; aspect: number };
+      /** Painted crown over the photo's top: width relative to the photo; `dy` = crown bottom in photo heights from its top. */
+      crown?: { src: string; w: number; dy: number; aspect: number };
+      /** Two overlapping photos (photo.0 and photo.1). */
+      twin?: boolean;
+    }
   | { t: 'gap'; h: number };
 
 /** strip: WEEKDAY — 14 — MONTH YEAR; bars: MONTH / WEEKDAY | 14 | TIME / YEAR. */
@@ -632,28 +650,74 @@ export function stack(bands: Band[], zone: Zone, ctx: RecipeCtx, ts: TypeSet, to
           }
           const w = b.w * k;
           const h = b.h * k;
+          const photoEl = (bind: string, x: number, y: number, pw: number, ph: number): DesignElement => ({
+            id: nextId('i'),
+            type: 'image',
+            x,
+            y,
+            w: pw,
+            h: ph,
+            rot: b.rot ?? 0,
+            opacity: 1,
+            src: null,
+            bind,
+            mask: b.mask,
+            border: b.border ?? tones.accent,
+            borderW: b.borderW ?? (isPaintedMaskName(b.mask) ? 0 : 8),
+            auto: true,
+            ...(b.empty ? { empty: b.empty } : {}),
+          });
+          // Painted frame / crown around the photo: the block reserves their full height.
+          let top = 0;
+          let bottom = h;
+          const frame = b.frame
+            ? (() => {
+                const [x0, y0, x1] = b.frame.hole;
+                const fw = w / (x1 - x0);
+                const fh = fw * b.frame.aspect;
+                return { x: -x0 * fw, y: -y0 * fh, w: fw, h: fh };
+              })()
+            : null;
+          if (frame) {
+            top = Math.min(top, frame.y);
+            bottom = Math.max(bottom, frame.y + frame.h);
+          }
+          const crown = b.crown ? { x: (w - w * b.crown.w) / 2, y: b.crown.dy * h - w * b.crown.w * b.crown.aspect, w: w * b.crown.w, h: w * b.crown.w * b.crown.aspect } : null;
+          if (crown) top = Math.min(top, crown.y);
+          const lockedArt = (src: string, r: { x: number; y: number; w: number; h: number }, ox: number, oy: number): DesignElement => ({
+            id: nextId('o'),
+            type: 'image',
+            x: ox + r.x,
+            y: oy + r.y,
+            w: r.w,
+            h: r.h,
+            rot: 0,
+            opacity: 1,
+            locked: true,
+            src,
+            mask: 'rect',
+            borderW: 0,
+            anim: 'zoom',
+          });
           return {
-            h,
+            h: bottom - top,
             gap,
-            make: (y) => [
-              {
-                id: nextId('i'),
-                type: 'image',
-                x: at(w),
-                y,
-                w,
-                h,
-                rot: b.rot ?? 0,
-                opacity: 1,
-                src: null,
-                bind: 'photo.0',
-                mask: b.mask,
-                border: b.border ?? tones.accent,
-                borderW: b.borderW ?? 8,
-                auto: true,
-                ...(b.empty ? { empty: b.empty } : {}),
-              },
-            ],
+            make: (y) => {
+              const ox = at(w);
+              const oy = y - top;
+              const out: DesignElement[] = [];
+              if (crown && b.crown) out.push(lockedArt(b.crown.src, crown, ox, oy));
+              if (b.twin) {
+                // Two overlapping painted circles: the first photo lower left, the second larger and in front.
+                const d1 = h * 0.66;
+                const d2 = h * 0.8;
+                out.push(photoEl('photo.0', ox + w * 0.06, oy + h * 0.28, d1, d1), photoEl('photo.1', ox + w * 0.41, oy + h * 0.1, d2, d2));
+              } else {
+                out.push(photoEl('photo.0', ox, oy, w, h));
+              }
+              if (frame && b.frame) out.push(lockedArt(b.frame.src, frame, ox, oy));
+              return out;
+            },
           };
         }
         case 'divider': {

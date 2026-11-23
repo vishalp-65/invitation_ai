@@ -11,6 +11,9 @@ export * from './constants/tracking.js';
 export * from './constants/auth.js';
 export * from './constants/guests.js';
 export * from './constants/links.js';
+export * from './constants/qr.js';
+export * from './art/library.js';
+export * from './art/looks.js';
 
 export * from './templates/types.js';
 export * from './templates/catalog.js';

@@ -27,7 +27,16 @@ type Props = { params: Promise<{ occasion: string }> };
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const o = occasionBySlug((await params).occasion);
   if (!o) return {};
-  return { title: o.title, description: o.description, alternates: { canonical: `/${o.slug}` } };
+  const url = `/${o.slug}`;
+  const title = `${o.title} · ${BRAND.name}`;
+  return {
+    title: o.title,
+    description: o.description,
+    alternates: { canonical: url },
+    // Nested openGraph replaces the layout's, so siteName/locale repeat. og:image comes from ./opengraph-image.tsx.
+    openGraph: { siteName: BRAND.name, type: 'website', locale: 'en_IN', alternateLocale: ['hi_IN'], url, title, description: o.description },
+    twitter: { card: 'summary_large_image', title, description: o.description },
+  };
 }
 
 export default async function OccasionLandingPage({ params }: Props) {
@@ -46,7 +55,7 @@ export default async function OccasionLandingPage({ params }: Props) {
 
   return (
     <>
-      <JsonLd data={structuredData(o, faq)} />
+      <JsonLd data={structuredData(o, faq, designs.slice(0, 8), guides.length ? guides.map((g) => g.h1) : [])} />
       <SiteHeader />
       <main id="main" className="mx-auto max-w-[1400px] px-6 pb-20 pt-10 lg:px-12 lg:pt-16">
         <nav aria-label={hi ? 'ब्रेडक्रम्ब' : 'Breadcrumb'} className="mb-10 font-mono text-xs text-ink-soft">
@@ -81,11 +90,12 @@ export default async function OccasionLandingPage({ params }: Props) {
             <p className="mt-4 text-sm text-ink-soft">{hi ? 'बनाना और भेजना मुफ़्त। कोई सब्सक्रिप्शन नहीं।' : 'Free to make and share. No subscription.'}</p>
           </div>
           {designs.length >= 3 && (
-            <div aria-hidden className="relative hidden h-[460px] lg:col-span-5 lg:block">
+            <div className="relative hidden h-[460px] lg:col-span-5 lg:block">
               {designs.slice(0, 3).map((d, k) => (
                 <CardShot
                   key={d.id}
                   id={d.id}
+                  alt={`${d.family?.name ?? d.name} ${o.name.en.toLowerCase()} invitation card design`}
                   sizes="240px"
                   priority={k === 1}
                   className={
@@ -294,11 +304,48 @@ function sharedFaq(o: OccasionPage, hi: boolean, [card, video, website, combo]: 
       ];
 }
 
-function structuredData(o: OccasionPage, faq: Array<[string, string]>) {
+function structuredData(o: OccasionPage, faq: Array<[string, string]>, designs: Array<{ id: string; name: string; family?: { name: string } | undefined }>, guideTitles: string[]) {
   const url = `${BRAND.url}/${o.slug}`;
+  const ogImage = `${url}/opengraph-image`;
+  const shot = (id: string) => `${BRAND.url}/showcase/${id}.jpg`;
   return {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'WebPage',
+        '@id': `${url}#page`,
+        url,
+        name: o.title,
+        description: o.description,
+        inLanguage: ['en-IN', 'hi-IN'],
+        isPartOf: { '@id': `${BRAND.url}/#site` },
+        about: { '@id': `${url}#app` },
+        primaryImageOfPage: { '@type': 'ImageObject', url: ogImage, width: 1200, height: 630 },
+        image: [ogImage, ...designs.slice(0, 3).map((d) => shot(d.id))],
+        ...(guideTitles.length ? { mentions: guideTitles.map((name) => ({ '@type': 'Article', name })) } : {}),
+      },
+      {
+        '@type': 'WebApplication',
+        '@id': `${url}#app`,
+        name: `${BRAND.name} ${o.name.en} Invitation Maker`,
+        url,
+        description: o.description,
+        applicationCategory: 'DesignApplication',
+        operatingSystem: 'Any (web browser)',
+        inLanguage: ['en-IN', 'hi-IN'],
+        publisher: { '@id': `${BRAND.url}/#org` },
+        image: ogImage,
+        offers: { '@type': 'Offer', priceCurrency: 'INR', price: 0, description: 'Free to make and share; pay once per event for HD, video, website and print upgrades.' },
+      },
+      {
+        '@type': 'ItemList',
+        name: `${o.name.en} invitation designs`,
+        itemListElement: designs.map((d, k) => ({
+          '@type': 'ListItem',
+          position: k + 1,
+          item: { '@type': 'ImageObject', name: `${d.family?.name ?? d.name} ${o.name.en.toLowerCase()} invitation design`, contentUrl: shot(d.id), url: `${BRAND.url}/create?type=${o.type}&template=${d.id}` },
+        })),
+      },
       {
         '@type': 'BreadcrumbList',
         itemListElement: [

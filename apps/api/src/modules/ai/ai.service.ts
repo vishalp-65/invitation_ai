@@ -4,6 +4,7 @@ import {
   cardScanPrompt,
   intentPrompt,
   OpenRouterError,
+  paintingPrompt,
   portraitCutoutPrompt,
   siteDraftPrompt,
   PROMPT_VERSION,
@@ -226,7 +227,7 @@ export class AiService {
       .from(aiGenerations)
       .where(
         sql`${aiGenerations.eventId} = ${eventId} and ${aiGenerations.kind} = 'image' and ${aiGenerations.status} = 'completed'
-            and ${aiGenerations.input}->>'kind' = 'background' and coalesce(${aiGenerations.input}->>'paid', 'allowance') = 'allowance'`,
+            and ${aiGenerations.input}->>'kind' in ('background', 'painting') and coalesce(${aiGenerations.input}->>'paid', 'allowance') = 'allowance'`,
       );
     return Number(row?.n ?? 0);
   }
@@ -293,10 +294,12 @@ export class AiService {
       const source = await this.media.getOwnedAsset(user, input.sourceAssetId);
       const urls = await this.media.urlsFor([source.id]);
       references = [urls.get(source.id)!];
-      prompt = input.kind === 'caricature' ? caricaturePrompt(input.prompt) : portraitCutoutPrompt();
+      prompt = input.kind === 'caricature' ? caricaturePrompt(input.prompt) : input.kind === 'painting' ? paintingPrompt(input.prompt) : portraitCutoutPrompt();
     }
 
-    const charge = input.kind === 'background' ? await this.chargeBackground(event.id, paid) : null;
+    // Backgrounds and photo paintings share the invitation's AI allowance, then pack credits.
+    const charged = input.kind === 'background' || input.kind === 'painting';
+    const charge = charged ? await this.chargeBackground(event.id, paid) : null;
     // Daily per-user guardrail applies to free generations only (pack credits are paid for).
     if (!paid && charge !== 'credit') {
       try {
@@ -312,10 +315,10 @@ export class AiService {
       const result = await this.ai.generateImage({
         model,
         prompt,
-        aspectRatio: input.kind === 'background' ? '9:16' : '1:1',
+        aspectRatio: input.kind === 'background' ? '9:16' : input.kind === 'painting' ? '3:4' : '1:1',
         references,
-        background: input.kind === 'background' ? 'opaque' : 'transparent',
-        outputFormat: input.kind === 'background' ? 'jpeg' : 'png',
+        background: charged ? 'opaque' : 'transparent',
+        outputFormat: charged ? 'jpeg' : 'png',
         userId: user.id,
       });
       const asset = await this.media.storeGenerated({

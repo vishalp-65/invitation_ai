@@ -1,8 +1,9 @@
 'use client';
 
-import type { EventFunctionDto } from '@cardai/shared';
-import { Check, Copy, Map as MapIcon, Navigation, SquareArrowOutUpRight } from 'lucide-react';
+import { qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, type EventFunctionDto } from '@cardai/shared';
+import { Check, Copy, Map as MapIcon, Navigation, SquareArrowOutUpRight, X } from 'lucide-react';
 import { useState } from 'react';
+import { useQrDataUrl } from '@/lib/qr';
 import { safeHref, useSite } from './context';
 import { mapsUrl } from './utils';
 
@@ -15,8 +16,13 @@ const directionsUrl = (q: string) => `https://www.google.com/maps/dir/?api=1&des
  * light on cheap phones. Directions and "Open in Google Maps" go straight to the Maps app.
  */
 export function VenueMap({ fn, showMap = true, className = '' }: { fn: EventFunctionDto; showMap?: boolean; className?: string }) {
-  const { t, fmt, preview } = useSite();
+  const { t, fmt, preview, data, language } = useSite();
   const [live, setLive] = useState(false);
+  const [bigQr, setBigQr] = useState(false);
+  // Corner QR (host setting): venue directions by default; handy to show a driver or a relative.
+  const qr = qrSettingsOf(data.event.settings);
+  const qrTarget = qr.site ? qrTargetUrl(qr.target, { mapUrl: venueMapsUrl(fn), siteUrl: data.shortUrl }) : null;
+  const qrSrc = useQrDataUrl(qrTarget?.url);
   const [copied, setCopied] = useState(false);
   const q = [fn.venueName, fn.venueAddress].filter(Boolean).join(', ');
   const own = safeHref(fn.mapUrl);
@@ -33,6 +39,18 @@ export function VenueMap({ fn, showMap = true, className = '' }: { fn: EventFunc
     <div className={`inv-venue-card overflow-hidden rounded-[20px] border border-[var(--inv-primary-a28)] bg-[var(--inv-bg-a60)] text-left ${className}`}>
       {showMap && (
         <div className="relative aspect-[16/9] w-full overflow-hidden bg-[var(--inv-bg-alt)]">
+          {qrSrc && qrTarget && (
+            <button
+              type="button"
+              onClick={() => setBigQr(true)}
+              className="absolute right-2.5 top-2.5 z-[2] flex flex-col items-center rounded-[10px] bg-white p-1.5 text-[9px] font-semibold leading-tight text-neutral-700 shadow-[0_6px_18px_-8px_rgb(0_0_0/0.5)]"
+              aria-label={qrLabel(qrTarget.target, language)}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrSrc} alt="" width={60} height={60} className="size-[60px] [image-rendering:pixelated]" />
+              <span className="mt-0.5">{t('Scan', 'स्कैन')}</span>
+            </button>
+          )}
           {live && !preview ? (
             <iframe
               title={`Map: ${fn.venueName}`}
@@ -48,6 +66,19 @@ export function VenueMap({ fn, showMap = true, className = '' }: { fn: EventFunc
               </span>
             </button>
           )}
+        </div>
+      )}
+      {bigQr && qrSrc && qrTarget && (
+        <div role="dialog" aria-modal className="fixed inset-0 z-[90] grid place-items-center bg-black/70 p-6" onClick={() => setBigQr(false)}>
+          <div className="relative flex flex-col items-center rounded-[20px] bg-white p-5 text-center text-neutral-800" onClick={(e) => e.stopPropagation()}>
+            <button type="button" onClick={() => setBigQr(false)} className="absolute right-2 top-2 grid size-9 place-items-center rounded-full hover:bg-black/5" aria-label={t('Close', 'बंद करें')}>
+              <X className="size-5" />
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={qrSrc} alt="" width={240} height={240} className="size-60 [image-rendering:pixelated]" />
+            <p className="mt-3 max-w-[15rem] text-sm font-semibold">{qrLabel(qrTarget.target, language)}</p>
+            <p className="mt-1 max-w-[15rem] text-xs opacity-70">{fn.venueName}</p>
+          </div>
         </div>
       )}
       <div className="p-5">

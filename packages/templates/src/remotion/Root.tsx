@@ -6,7 +6,7 @@ import { InviteCard } from '../InviteCard';
 import { InviteVideo } from '../InviteVideo';
 import { DesignCard, DesignVideo, planDesignVideo, type DesignRenderProps } from '../design/compositions';
 import { sampleInviteProps } from '../sample';
-import { planSiteVideo, SiteVideo, type SiteVideoProps } from '../site-video/SiteVideo';
+import { SiteVideo, siteVideoFrames, type SiteVideoProps } from '../site-video/SiteVideo';
 
 const defaultProps = sampleInviteProps();
 // Remotion's generic props typing is stricter than our serialisable InviteProps.
@@ -85,7 +85,7 @@ export function RemotionRoot() {
         durationInFrames={900}
         defaultProps={siteVideoDefaults}
         calculateMetadata={({ props }) => ({
-          durationInFrames: planSiteVideo((props as unknown as SiteVideoProps).functions.length, COMPOSITIONS.siteVideo.fps, (props as unknown as SiteVideoProps).style ?? 'cinematic').durationInFrames,
+          durationInFrames: siteVideoFrames(props as unknown as SiteVideoProps, COMPOSITIONS.siteVideo.fps),
         })}
       />
     </>

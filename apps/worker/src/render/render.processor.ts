@@ -75,6 +75,7 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
       const props = await loadDesignProps(ctx, render.eventId, {
         watermark: render.watermark,
         withQr: render.format === 'print_pdf' || render.format === 'pdf',
+        output: render.format === 'video' ? 'video' : 'image',
       });
       const outputs = await remotion.withBrowser(async (browser, serveUrl): Promise<RenderOutput[]> => {
         const outputs: RenderOutput[] = [];

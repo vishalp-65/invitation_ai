@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
-import { useDesignData } from '@/features/editor/use-event-data';
+import { qrOnCover, useDesignData } from '@/features/editor/use-event-data';
 import { useTemplate } from '@/lib/template-hooks';
 import { useEventMedia } from './use-event-props';
 
@@ -25,11 +25,12 @@ export function EventDesignPreview({ event, mode }: { event: EventDto; mode: 'ca
     () => event.settings.photoAssetIds.map((id) => media?.find((m) => m.id === id)?.url).filter((u): u is string => Boolean(u)),
     [event.settings.photoAssetIds, media],
   );
-  const data = useDesignData(event, photos);
+  const raw = useDesignData(event, photos, mode === 'video' ? 'video' : 'image');
   const doc = useMemo(() => {
     if (event.design) return event.design;
-    return template && data ? buildDesign({ template, data, language: event.language, eventType: event.type, community: event.community }) : null;
-  }, [event, template, data]);
+    return template && raw ? buildDesign({ template, data: raw, language: event.language, eventType: event.type, community: event.community }) : null;
+  }, [event, template, raw]);
+  const data = useMemo(() => qrOnCover(raw, doc), [raw, doc]);
   const [page, setPage] = useState(0);
   if (!doc || !data) return <div className="skeleton aspect-[9/16] w-full rounded-xl" />;
   const current = Math.min(page, doc.pages.length - 1);

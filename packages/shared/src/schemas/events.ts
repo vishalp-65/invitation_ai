@@ -59,6 +59,20 @@ export const followUpsSchema = z.object({
 });
 export type FollowUps = z.infer<typeof followUpsSchema>;
 
+/** Corner QR code on the card image, the video and the website (venue map by default). */
+export const QR_TARGETS = ['map', 'site'] as const;
+export type QrTarget = (typeof QR_TARGETS)[number];
+export const QR_CORNERS = ['br', 'bl', 'tr', 'tl'] as const;
+export type QrCorner = (typeof QR_CORNERS)[number];
+export const qrSettingsSchema = z.object({
+  image: z.boolean().default(true),
+  video: z.boolean().default(true),
+  site: z.boolean().default(true),
+  target: z.enum(QR_TARGETS).default('map'),
+  corner: z.enum(QR_CORNERS).default('br'),
+});
+export type QrSettings = z.infer<typeof qrSettingsSchema>;
+
 export const eventSettingsSchema = z.object({
   timezone: z.string().default('Asia/Kolkata'),
   rsvpEnabled: z.boolean().default(true),
@@ -74,6 +88,7 @@ export const eventSettingsSchema = z.object({
   followUps: followUpsSchema.optional(),
   /** Save-the-date mode: the site shows only names, date and city until the full invite is released. */
   saveTheDate: z.boolean().default(false),
+  qr: qrSettingsSchema.optional(),
 });
 export type EventSettings = z.infer<typeof eventSettingsSchema>;
 
@@ -110,6 +125,7 @@ export const eventSettingsPatchSchema = z.object({
   aiClipAssetId: z.uuid().nullable().optional(),
   followUps: followUpsSchema.nullable().optional(),
   saveTheDate: z.boolean().optional(),
+  qr: qrSettingsSchema.nullable().optional(),
 });
 export type EventSettingsPatch = z.infer<typeof eventSettingsPatchSchema>;
 

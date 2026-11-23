@@ -6,7 +6,7 @@
  *   npm run showcase -w @cardai/worker
  *   npm run showcase -w @cardai/worker -- id1,id2 --out=DIR --lang=hi   (review renders)
  */
-import { BRAND, BUILTIN_TEMPLATES, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, templateSampleLanguage, type DesignData, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, getPhotoLook, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, templateSampleLanguage, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -27,6 +27,8 @@ const allPages = process.argv.includes('--all-pages');
 const outArg = process.argv.find((a) => a.startsWith('--out='))?.slice(6);
 /** Review in another language: `--lang=hi` renders every thumbnail in Hindi. */
 const langArg = process.argv.find((a) => a.startsWith('--lang='))?.slice(7) as 'en' | 'hi' | undefined;
+/** Where the painted art is served (a running web app): `--art=http://localhost:3100`. */
+const artOrigin = (process.argv.find((a) => a.startsWith('--art='))?.slice(6) ?? process.env.APP_URL ?? 'http://localhost:3100').replace(/\/+$/, '');
 const runtime = new RemotionRuntime(log);
 await mkdir(outDir, { recursive: true });
 const serveUrl = await runtime.getServeUrl();
@@ -44,12 +46,14 @@ for (const t of list) {
   const faith = faithOf(sample.eventType, t.communities[0]);
   const invocation = resolveInvocation(content.invocation, { eventType: sample.eventType, faith, language, community: t.communities[0] });
   const data: DesignData = { content: { ...content, invocation }, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
+  // Painted photo designs are shown with sample couple photos (fictional people).
+  if (getPhotoLook(t.design)) data.photos = [`${artOrigin}/art/sample-couple.webp`, `${artOrigin}/art/sample-couple-2.webp`];
   const design = buildDesign({ template: t, data, language, eventType: sample.eventType, community: t.communities[0] });
   const dir = outArg ? `${outArg.replace(/[/\\]$/, '')}/` : outDir;
   const pages = allPages ? design.pages.map((p, n) => ({ n, file: `${dir}${t.id}-${n + 1}-${p.id}.jpg` })) : [{ n: coverPageIndex(design), file: `${dir}${t.id}.jpg` }];
   for (const pg of pages) {
     // Thumbnails show the main invitation page, not the blessing page in front of it.
-    const props = { design, data, language, page: pg.n, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null };
+    const props = { design, data, language, page: pg.n, watermark: false, watermarkText: BRAND.watermarkText, musicUrl: null, aiClipUrl: null, artOrigin };
     const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.designCard, inputProps: props, puppeteerInstance: browser });
     await renderStill({
       composition,

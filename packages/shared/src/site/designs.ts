@@ -1,3 +1,4 @@
+import { getPhotoLook, type PhotoLookId } from '../art/looks.js';
 import { faithOf, type Faith } from '../constants/faith.js';
 
 /**
@@ -14,6 +15,17 @@ import { faithOf, type Faith } from '../constants/faith.js';
  */
 
 export const SITE_DESIGN_IDS = [
+  // painted photo looks (art/looks.ts): same ids as their card families
+  'gulab-bagh',
+  'herbarium',
+  'gulabi-syahi',
+  'mahal-maroon',
+  'harit',
+  'kahani',
+  'genda',
+  'jharokha',
+  'kamal',
+  'roshni',
   'royal-lanterns',
   'rose-seal',
   'temple-dawn',
@@ -167,11 +179,50 @@ export interface SiteDesign {
   music: MusicMood;
   /** Painted art once it exists (public URLs). Missing slots fall back to the drawn placeholder. */
   paint: Partial<Record<PaintSlot, string>>;
+  /** Photo-first pack: the hero is the host's photo in this painted look (no drawn scene). */
+  look?: PhotoLookId;
 }
 
 const paper = (bg: string, ink: string, primary: string): DesignBand => ({ bg, ink, primary });
 
+/** A website pack from a painted photo look: same paper, art, colours and fonts as the card. */
+function photoPack(id: PhotoLookId, o: Pick<SiteDesign, 'region' | 'opening' | 'ambient' | 'divider' | 'marker' | 'music'>): SiteDesign {
+  const l = getPhotoLook(id)!;
+  return {
+    id,
+    name: l.name,
+    blurb: l.blurb,
+    faith: null,
+    isNew: true,
+    look: id,
+    palette: { primary: l.primary, accent: l.accent, background: l.paperColor, surface: l.dark ? l.paperAlt : '#FFFFFF', text: l.ink },
+    scene: {
+      kind: 'minimal-arch',
+      night: l.dark,
+      style: 'modern',
+      ink: l.ink,
+      colors: { skyTop: l.paperColor, skyBottom: l.paperAlt, glow: l.dark ? l.primary : '#FFFFFF', far: l.paperAlt, mid: l.paperAlt, midShade: l.muted, trim: l.accent, near: l.accent, bloom: [l.primary, l.accent, l.muted, l.paperAlt], water: l.paperAlt },
+    },
+    bands: [paper(l.paperColor, l.ink, l.primary), paper(l.paperAlt, l.ink, l.primary), paper(l.paperColor, l.ink, l.primary)],
+    fonts: l.fonts,
+    paint: {},
+    ...o,
+  };
+}
+
 export const SITE_DESIGNS: readonly SiteDesign[] = [
+  // ---------------- Painted photo collection (Nov 2026): your photo inside painted art ----------------
+  photoPack('gulab-bagh', { region: 'Pan-India', opening: 'seal', ambient: 'petals', divider: 'scallop', marker: 'rose', music: 'piano' }),
+  photoPack('kahani', { region: 'Pan-India', opening: 'seal', ambient: 'petals', divider: 'torn', marker: 'leaf', music: 'acoustic' }),
+  photoPack('jharokha', { region: 'Rajasthan', opening: 'doors', ambient: 'fireflies', divider: 'arches', marker: 'lantern', music: 'shehnai' }),
+  photoPack('mahal-maroon', { region: 'North India', opening: 'doors', ambient: 'fireflies', divider: 'arches', marker: 'rose', music: 'shehnai' }),
+  photoPack('gulabi-syahi', { region: 'Pan-India', opening: 'seal', ambient: 'petals', divider: 'line', marker: 'rose', music: 'strings' }),
+  photoPack('genda', { region: 'Pan-India', opening: 'doors', ambient: 'marigolds', divider: 'scallop', marker: 'marigold', music: 'dhol' }),
+  photoPack('herbarium', { region: 'Pan-India', opening: 'envelope', ambient: 'butterflies', divider: 'line', marker: 'leaf', music: 'acoustic' }),
+  photoPack('harit', { region: 'Pan-India', opening: 'envelope', ambient: 'butterflies', divider: 'wave', marker: 'leaf', music: 'flute' }),
+  photoPack('kamal', { region: 'Pan-India', opening: 'petals', ambient: 'petals', divider: 'wave', marker: 'lotus', music: 'santoor' }),
+  photoPack('roshni', { region: 'Pan-India', opening: 'lanterns', ambient: 'fairylights', divider: 'line', marker: 'star', music: 'strings' }),
+
   // ---------------- Premium collection (Nov 2026): website-first luxury looks ----------------
   {
     id: 'sheesh-mahal',

@@ -77,6 +77,17 @@ export const FREE_FALLBACK_DESIGN: SiteDesignId = 'gulab-ring';
 
 /** Cinematic design packs: two are free, the painted royal ones need Premium. */
 export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
+  // Painted photo collection: two free, the rest Premium.
+  'gulabi-syahi': 'free',
+  herbarium: 'free',
+  'gulab-bagh': 'premium',
+  'mahal-maroon': 'premium',
+  harit: 'premium',
+  kahani: 'premium',
+  genda: 'premium',
+  jharokha: 'premium',
+  kamal: 'premium',
+  roshni: 'premium',
   'modern-minimal': 'free',
   'pastel-floral': 'free',
   'gulab-ring': 'free',

@@ -15,7 +15,8 @@ const num = (min: number, max: number) => z.number().finite().min(min).max(max);
 
 export const ELEMENT_ANIMS = ['auto', 'fade', 'rise', 'zoom', 'drop', 'none'] as const;
 export const TEXT_EFFECTS = ['none', 'shadow', 'glow', 'gold', 'outline'] as const;
-export const IMAGE_MASKS = ['rect', 'rounded', 'circle', 'arch', 'oval'] as const;
+/** `blob`, `brush` and `soft-arch` are painted watercolour edges (art library masks). */
+export const IMAGE_MASKS = ['rect', 'rounded', 'circle', 'arch', 'oval', 'blob', 'brush', 'soft-arch'] as const;
 export const SHAPES = ['rect', 'ellipse', 'line'] as const;
 /** One-tap photo looks (CSS filter presets, see imageFilterCss). */
 export const IMAGE_FILTERS = ['none', 'warm', 'cool', 'vivid', 'fade', 'mono', 'sepia', 'noir'] as const;

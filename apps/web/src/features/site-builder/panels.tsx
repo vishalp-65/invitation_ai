@@ -1,5 +1,6 @@
 'use client';
 
+import { LookThumb } from '@/features/site/photo-look';
 import {
   applyDesign,
   ATTIRES,
@@ -247,9 +248,11 @@ function DesignThumb({
       aria-pressed={selected}
       className={`group relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] border text-left ${selected ? 'border-2 border-accent' : 'border-ink/10'}`}
     >
-      {(['sky', 'far', 'mid', 'near'] as const).map((l) => (
-        <SceneLayer key={l} design={d} layer={l} lite time={0} />
-      ))}
+      {d.look ? (
+        <LookThumb lookId={d.look} />
+      ) : (
+        (['sky', 'far', 'mid', 'near'] as const).map((l) => <SceneLayer key={l} design={d} layer={l} lite time={0} />)
+      )}
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/75 to-transparent px-2 pb-1.5 pt-6 text-white">
         <span className="block text-sm font-medium leading-tight">{d.name}</span>
         <span className="block text-[11px] leading-tight opacity-80">{d.region}</span>

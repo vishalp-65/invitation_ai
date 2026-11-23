@@ -186,6 +186,18 @@ export function caricaturePrompt(extra?: string) {
   ].join(' ');
 }
 
+/** Photo → hand-painted watercolour portrait (the look of painted wedding invitations). */
+export function paintingPrompt(extra?: string) {
+  return [
+    'Repaint the reference photo as a delicate hand-painted watercolour portrait for a luxury Indian invitation card.',
+    'Keep every person exactly recognisable: same faces, expressions, skin tones, hairstyles, outfits, jewellery and pose.',
+    'Soft layered watercolour washes, fine ink-free brushwork, gentle paper texture, warm natural light; the background',
+    'becomes a soft impressionistic garden wash that fades to cream paper near the edges.',
+    'No text, no letters, no frame, no border, no watermark, no extra people.',
+    extra ?? '',
+  ].join(' ');
+}
+
 export function portraitCutoutPrompt() {
   return 'Same people as the reference photo, unchanged, cleanly cut out on a transparent background, studio quality. No text.';
 }

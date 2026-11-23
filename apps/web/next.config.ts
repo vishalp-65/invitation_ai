@@ -65,6 +65,16 @@ const config: NextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), geolocation=(), microphone=(self)' },
         ],
       },
+      {
+        // Painted art library: the video/image renderer (another origin) loads it with CORS, and
+        // the files never change in place (new art gets a new name), so they cache for a year.
+        source: '/art/:file*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Cross-Origin-Resource-Policy', value: 'cross-origin' },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
     ];
   },
 };

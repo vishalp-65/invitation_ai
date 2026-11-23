@@ -1,0 +1,96 @@
+/* Photo-first website designs (photo-look.tsx). Transform / opacity animation only. */
+
+.inv-look-hero {
+  --pw: min(100vw, 560px);
+  background-size: cover;
+  background-position: center;
+}
+@media (min-width: 900px) {
+  .inv-look-hero { --pw: min(100vw, 640px); }
+}
+
+/* Full-page painted frames keep a portrait shape on wide screens. */
+.inv-look-frame {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: min(100%, 64svh);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.inv-look-in {
+  opacity: 0;
+  animation: inv-look-fade 1.6s var(--ease-out) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+@keyframes inv-look-fade { to { opacity: 1; } }
+
+/* Corner art grows in from its own corner. */
+[class*='inv-look-from-'] {
+  opacity: 0;
+  animation: 1.8s var(--ease-out) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+.inv-look-from-tl { animation-name: inv-from-tl; transform-origin: 0 0; }
+.inv-look-from-tr { animation-name: inv-from-tr; transform-origin: 100% 0; }
+.inv-look-from-bl { animation-name: inv-from-bl; transform-origin: 0 100%; }
+.inv-look-from-br { animation-name: inv-from-br; transform-origin: 100% 100%; }
+.inv-look-from-top { animation-name: inv-from-top; transform-origin: 50% 0; }
+.inv-look-from-bottom { animation-name: inv-from-bottom; transform-origin: 50% 100%; }
+@keyframes inv-from-tl { from { opacity: 0; transform: translate3d(-8%, -8%, 0) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes inv-from-tr { from { opacity: 0; transform: translate3d(8%, -8%, 0) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes inv-from-bl { from { opacity: 0; transform: translate3d(-8%, 8%, 0) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes inv-from-br { from { opacity: 0; transform: translate3d(8%, 8%, 0) scale(0.9); } to { opacity: 1; transform: none; } }
+@keyframes inv-from-top { from { opacity: 0; transform: translate3d(0, -14%, 0); } to { opacity: 1; transform: none; } }
+@keyframes inv-from-bottom { from { opacity: 0; transform: translate3d(0, 14%, 0); } to { opacity: 1; transform: none; } }
+
+/* Idle: flowers sway, lights breathe. */
+.inv-sway { animation: inv-sway 7s ease-in-out infinite alternate; transform-origin: 50% 50%; will-change: transform; }
+@keyframes inv-sway {
+  from { transform: rotate(-0.8deg) translate3d(-2px, 0, 0); }
+  to { transform: rotate(0.8deg) translate3d(2px, 2px, 0); }
+}
+.inv-glow { animation: inv-glow 3.2s ease-in-out infinite alternate; }
+@keyframes inv-glow { from { opacity: 0.72; } to { opacity: 1; } }
+
+/* The photo rises in, then settles with a slow push-out. */
+.inv-photo-in {
+  opacity: 0;
+  animation: inv-photo-in 1.5s var(--ease-out) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+@keyframes inv-photo-in {
+  from { opacity: 0; transform: translate3d(0, 24px, 0) scale(0.92); }
+  to { opacity: 1; transform: none; }
+}
+.inv-photo-img { animation: inv-photo-push 10s var(--ease-out) forwards; transform-origin: 50% 40%; }
+@keyframes inv-photo-push { from { transform: scale(1.12); } to { transform: scale(1); } }
+
+.inv-look-crown {
+  opacity: 0;
+  transform-origin: 50% 100%;
+  animation: inv-crown 1.6s var(--ease-out) forwards;
+  animation-delay: var(--delay, 0ms);
+}
+@keyframes inv-crown {
+  from { opacity: 0; transform: translate3d(0, 10%, 0) scale(0.86); }
+  to { opacity: 1; transform: none; }
+}
+
+.inv-paused :is(.inv-look-in, [class*='inv-look-from-'], .inv-photo-in, .inv-photo-img, .inv-look-crown) { animation-play-state: paused; }
+[data-off] :is(.inv-sway, .inv-glow) { animation-play-state: paused; }
+.inv-subtle .inv-sway { animation: none; }
+.inv-motion-off :is(.inv-look-in, [class*='inv-look-from-'], .inv-photo-in, .inv-photo-img, .inv-look-crown, .inv-sway, .inv-glow) {
+  animation: none;
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .inv-root :is(.inv-look-in, [class*='inv-look-from-'], .inv-photo-in, .inv-photo-img, .inv-look-crown, .inv-sway, .inv-glow) {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+}

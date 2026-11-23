@@ -26,8 +26,20 @@ export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? BRAND.url),
   title: { default: `${BRAND.name} — ${BRAND.tagline}`, template: `%s · ${BRAND.name}` },
   description:
-    'Wedding, griha pravesh, birthday and puja invitations in Hindi and 11 more Indian languages: card, video and RSVP website for WhatsApp. Free to try.',
+    'Create premium wedding, griha pravesh, birthday and puja invitations in minutes: a designer card, WhatsApp video and RSVP website in Hindi and 11 more Indian languages. Preview free.',
   applicationName: BRAND.name,
+  keywords: ['wedding invitation maker', 'invitation card maker', 'Hindi wedding card', 'WhatsApp video invitation', 'RSVP website', 'e-invite India', 'digital invitation'],
+  // Google wants favicons in multiples of 48px; listing them explicitly (plus the SVG) beats relying on auto-discovery.
+  icons: {
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/icons/favicon-48.png', sizes: '48x48', type: 'image/png' },
+      { url: '/icons/favicon-96.png', sizes: '96x96', type: 'image/png' },
+      { url: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+      { url: '/icon.svg', type: 'image/svg+xml' },
+    ],
+    apple: [{ url: '/apple-icon', sizes: '180x180', type: 'image/png' }],
+  },
   // og:title / og:description fall back to each page's title and description; og:image comes
   // from app/opengraph-image.tsx, and Twitter reuses it.
   openGraph: { siteName: BRAND.name, type: 'website', locale: 'en_IN', alternateLocale: ['hi_IN'] },

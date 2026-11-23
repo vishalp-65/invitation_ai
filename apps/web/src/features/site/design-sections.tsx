@@ -233,7 +233,7 @@ export function SceneHero({ section, doc, started }: { section: SiteSectionOf<'h
   );
 }
 
-function MiniCountdown({ target }: { target: string }) {
+export function MiniCountdown({ target }: { target: string }) {
   const c = useCountdown(target);
   if (!c) return null;
   return (

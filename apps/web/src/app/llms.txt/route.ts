@@ -42,6 +42,15 @@ How to make one: open ${base}/create, pick the occasion, type or speak the names
 
 Noyta is not the right fit for: printed card delivery by post as the main product, or very large ticketed events.
 
+## Key facts (safe to quote)
+- Product: online invitation maker for Indian weddings and family events. Operator brand: ${BRAND.name}, site ${base}, contact ${BRAND.supportEmail}.
+- One form produces three matching outputs: an HD image card, a 9:16 WhatsApp video and an RSVP invitation website.
+- Designs: premium, newly designed collections (painted-photo, royal Mughal, floral, minimal and playful styles) for every occasion; each design works as card, video and website. Browse: ${base}/templates
+- Languages (${LANGUAGES.length}): ${languages}.
+- Pricing: free to preview and share; pay once per event, no subscription. Live prices: ${base}/pricing
+- Audience: families in India and the diaspora planning weddings (Haldi, Mehendi, Sangeet, Baraat, reception), engagements, Nikah, Anand Karaj, griha pravesh, birthdays, baby ceremonies and pujas.
+- Sharing: WhatsApp-first (video under 16 MB), plus print-ready PDF.
+
 ## Occasions supported
 ${EVENT_TYPES.filter((e) => e.id !== 'other').map((e) => e.label).join(', ')}, and any custom event.
 

@@ -1,6 +1,6 @@
 'use client';
 
-import type { SiteDoc, SiteSection, SiteSectionOf } from '@cardai/shared';
+import { getSiteDesign, type SiteDoc, type SiteSection, type SiteSectionOf } from '@cardai/shared';
 import { MandalaWatermark } from '@cardai/templates/art';
 import { SceneStill } from '@cardai/templates/scenes';
 import { BedDouble, Bus, CalendarPlus, ChevronDown, Clock, Hotel, MapPin, Phone, Shirt } from 'lucide-react';
@@ -9,6 +9,7 @@ import { Character } from './characters';
 import { safeHref, useSite } from './context';
 import { mapsUrl, useCountdown } from './utils';
 import { VenueMap } from './venue-map';
+import { lookOf, PhotoHero, PhotoMask } from './photo-look';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { AlbumSection, GiftsSection, LivestreamSection, UpdatesSection, WishesSection } from './interactive';
 import { RsvpForm } from './rsvp-form';
@@ -273,7 +274,8 @@ function Welcome({ section }: { section: SiteSectionOf<'welcome'> }) {
 }
 
 function Couple({ section }: { section: SiteSectionOf<'couple'> }) {
-  const { asset, content } = useSite();
+  const { asset, content, design } = useSite();
+  const look = lookOf(design?.look);
   const people = section.people.length ? section.people : content.primaryNames.filter(Boolean).map((name) => ({ name, role: '', bio: '', photoAssetId: undefined }));
   if (!people.length) return null;
   return (
@@ -284,12 +286,18 @@ function Couple({ section }: { section: SiteSectionOf<'couple'> }) {
           return (
             <Reveal key={i} motion={section.motion === 'slide' ? (i % 2 ? 'slide-r' : 'slide') : section.motion} delay={i + 1} className="flex flex-col items-center text-center">
               <div className="relative">
+                {look ? (
+                  <PhotoMask src={src} mask={look.photo.twin ? 'blob' : look.photo.mask === 'rect' ? 'soft-arch' : look.photo.mask} ring={look.photo.ring} initials={[...p.name][0] ?? ''} look={look} className="size-52" />
+                ) : (
+                <>
                 <div className="absolute -inset-3 rounded-full border border-dashed border-[var(--inv-primary-a28)]" aria-hidden />
                 {src ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={src} alt={p.name} loading="lazy" className="size-44 rounded-full object-cover" />
                 ) : (
                   <div className="inv-display grid size-44 place-items-center rounded-full bg-[var(--inv-surface)] text-6xl text-[var(--inv-primary)]">{p.name.slice(0, 1)}</div>
+                )}
+                </>
                 )}
               </div>
               <h3 className="inv-display mt-6 text-3xl">{p.name}</h3>
@@ -521,7 +529,14 @@ export function PhotoGrid({ photos, layout, motion }: { photos: string[]; layout
 
 function Gallery({ section }: { section: SiteSectionOf<'gallery'> }) {
   const { data, asset } = useSite();
-  const photos = section.assetIds.length ? section.assetIds.map(asset).filter((u): u is string => Boolean(u)) : data.media.gallery;
+  // No gallery picked: the event's gallery, else its photos (the ones on the card and cover).
+  const photos = section.assetIds.length
+    ? section.assetIds.map(asset).filter((u): u is string => Boolean(u))
+    : data.media.gallery.length
+      ? data.media.gallery
+      : data.media.photos.length > 1
+        ? data.media.photos
+        : [];
   if (!photos.length) return null;
   return (
     <Shell section={section} tone="alt" wide>
@@ -738,6 +753,8 @@ function Closing({ section }: { section: SiteSectionOf<'closing'> }) {
 export function SectionView({ section, doc, started }: { section: SiteSection; doc: SiteDoc; started: boolean }) {
   // Design packs swap in their cinematic variants; everything else is shared.
   if (doc.design) {
+    // Photo-first packs always open on the host's photo in the painted look.
+    if (section.type === 'hero' && getSiteDesign(doc.design)?.look) return <PhotoHero section={section} doc={doc} started={started} />;
     if (section.type === 'hero' && section.variant === 'scene') return <SceneHero section={section} doc={doc} started={started} />;
     if (section.type === 'schedule' && section.variant === 'ribbon') return <RibbonSchedule section={section} />;
     if (section.type === 'venue') return <DesignVenue section={section} />;
