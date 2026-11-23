@@ -113,12 +113,15 @@ function ListEditor<T>({
   max,
   addLabel,
   render,
+  prepare,
 }: {
   items: T[];
   onChange: (items: T[]) => void;
   blank: T;
   max: number;
   addLabel: string;
+  /** Fills in a new item (e.g. gives it an id) when it is added. */
+  prepare?: (item: T) => T;
   render: (item: T, set: (patch: Partial<T>) => void, index: number) => ReactNode;
 }) {
   // Stable React keys that travel with each item through moves and removals, so per-item state
@@ -169,7 +172,7 @@ function ListEditor<T>({
         </div>
       ))}
       {items.length < max && (
-        <Button variant="line" size="sm" onClick={() => onChange([...items, structuredClone(blank)])}>
+        <Button variant="line" size="sm" onClick={() => onChange([...items, prepare ? prepare(structuredClone(blank)) : structuredClone(blank)])}>
           <Plus className="size-4" /> {addLabel}
         </Button>
       )}
@@ -445,6 +448,26 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
           <TextF label="UPI id (optional)" value={section.upiId} onChange={(v) => set({ upiId: optional(v) })} max={100} placeholder="name@okhdfcbank" hint="Guests pay you directly from their UPI app. We never handle the money." />
           <TextF label="Name shown in the UPI app" value={section.payeeName} onChange={(v) => set({ payeeName: optional(v) })} max={60} />
           <TextF label="Gift list link (optional)" value={section.registryUrl} onChange={(v) => set({ registryUrl: optional(v) })} max={500} />
+          <div className="mt-2 border-t border-ink/10 pt-4">
+            <p className="font-semibold">Gift wishlist</p>
+            <p className="mb-3 text-sm text-ink-soft">Guests tap “I’ll gift this” so nobody buys the same thing twice. Who picked what shows in your Shagun list; guests only see “Reserved”.</p>
+            <ListEditor
+              items={section.wishlist}
+              onChange={(wishlist) => set({ wishlist })}
+              blank={{ id: '', title: '', note: '', price: '' }}
+              max={40}
+              addLabel="Add gift"
+              prepare={(w) => (w.id ? w : { ...w, id: Math.random().toString(36).slice(2, 10).padEnd(6, '0') })}
+              render={(w, s) => (
+                <>
+                  <TextF label="Gift" value={w.title} onChange={(title) => s({ title })} max={80} placeholder="Pressure cooker, dinner set, silver diya…" />
+                  <TextF label="Price range (optional)" value={w.price} onChange={(price) => s({ price })} max={30} placeholder="₹2,000–3,000" />
+                  <TextF label="Note (optional)" value={w.note} onChange={(note) => s({ note })} max={200} placeholder="Any colour is fine" />
+                  <TextF label="Shop link (optional)" value={w.url} onChange={(v) => s({ url: optional(v) })} max={500} />
+                </>
+              )}
+            />
+          </div>
         </>
       );
     case 'livestream':
@@ -471,7 +494,12 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
         />
       );
     case 'album':
-      return <TextF label="Note to guests" value={section.note} onChange={(note) => set({ note })} max={200} placeholder="Share the photos you clicked!" />;
+      return (
+        <>
+          <TextF label="Note to guests" value={section.note} onChange={(note) => set({ note })} max={200} placeholder="Share the photos you clicked!" />
+          <p className="text-sm text-ink-soft">Guests upload from the page or by scanning the photo-wall QR at the venue (Live tab). Each photo shows only after you approve it in the Live tab.</p>
+        </>
+      );
     case 'custom':
       return (
         <>
@@ -515,6 +543,46 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
       return <p className="text-sm text-ink-soft">Guests write blessings here. Hide any message from the Live tab.</p>;
     case 'family':
       return <p className="text-sm text-ink-soft">Uses the family list from your invitation text (Edit tab).</p>;
+    case 'familytree':
+      return (
+        <>
+          <p className="text-sm text-ink-soft">Grandparents, parents and close family of each side, with photos. Mark someone as late to show them with a soft remembrance mark.</p>
+          {(section.sides.length ? section.sides : [{ title: '', members: [] }]).map((side, si) => {
+            const setSide = (patch: Partial<typeof side>) => {
+              const sides = section.sides.length ? [...section.sides] : [{ title: '', members: [] }];
+              sides[si] = { ...sides[si]!, ...patch };
+              set({ sides });
+            };
+            return (
+              <div key={si} className="rounded-[12px] border border-ink/10 p-3">
+                <TextF label={`Side ${si + 1} heading`} value={side.title} onChange={(title) => setSide({ title })} max={60} placeholder={si === 0 ? 'The Sharma family' : 'The Mehta family'} />
+                <ListEditor
+                  items={side.members}
+                  onChange={(members) => setSide({ members })}
+                  blank={{ name: '', relation: '', late: false }}
+                  max={16}
+                  addLabel="Add family member"
+                  render={(m, s) => (
+                    <>
+                      <TextF label="Name" value={m.name} onChange={(name) => s({ name })} max={80} placeholder="Smt. Kamla Devi Sharma" />
+                      <TextF label="Relation" value={m.relation} onChange={(relation) => s({ relation })} max={60} placeholder="Dadi ji (grandmother)" />
+                      <PhotoField label="Photo (optional)" value={m.photoAssetId} onChange={(photoAssetId) => s({ photoAssetId })} ctx={ctx} />
+                      <Chip selected={m.late} onClick={() => s({ late: !m.late })}>
+                        In loving memory
+                      </Chip>
+                    </>
+                  )}
+                />
+              </div>
+            );
+          })}
+          {section.sides.length < 2 && (
+            <Button variant="line" size="sm" className="self-start" onClick={() => set({ sides: [...(section.sides.length ? section.sides : [{ title: '', members: [] }]), { title: '', members: [] }] })}>
+              Add the other family
+            </Button>
+          )}
+        </>
+      );
     case 'closing':
     case 'rsvp':
       return <p className="text-sm text-ink-soft">{section.type === 'rsvp' ? 'RSVP questions are set in the Edit tab (meal, stay, deadline).' : 'Uses the closing line from your invitation text.'}</p>;

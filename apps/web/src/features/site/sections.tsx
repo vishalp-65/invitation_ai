@@ -10,6 +10,7 @@ import { safeHref, useSite } from './context';
 import { mapsUrl, useCountdown } from './utils';
 import { VenueMap } from './venue-map';
 import { lookOf, PhotoHero, PhotoMask } from './photo-look';
+import { CeremonyNote, FamilyTreeSection } from './extras';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { AlbumSection, GiftsSection, LivestreamSection, UpdatesSection, WishesSection } from './interactive';
 import { RsvpForm } from './rsvp-form';
@@ -391,7 +392,7 @@ function Schedule({ section, dress }: { section: SiteSectionOf<'schedule'>; dres
                   <Shirt className="size-4" aria-hidden /> {f.dressCode || dressFor(f.id)?.label}
                 </p>
               )}
-              {f.notes && <p className="mt-2 text-sm opacity-75">{f.notes}</p>}
+              <CeremonyNote f={f} />
               {actions(f)}
             </Reveal>
           ))}
@@ -419,7 +420,7 @@ function Schedule({ section, dress }: { section: SiteSectionOf<'schedule'>; dres
                 <Shirt className="size-4" aria-hidden /> {f.dressCode || dressFor(f.id)?.label}
               </p>
             )}
-            {f.notes && <p className="mt-2 text-sm opacity-75">{f.notes}</p>}
+            <CeremonyNote f={f} />
             {actions(f)}
           </Reveal>
         ))}
@@ -786,6 +787,8 @@ export function SectionView({ section, doc, started }: { section: SiteSection; d
       return <Video section={section} />;
     case 'family':
       return <Family section={section} />;
+    case 'familytree':
+      return <FamilyTreeSection section={section} />;
     case 'travel':
       return <Travel section={section} />;
     case 'rsvp':

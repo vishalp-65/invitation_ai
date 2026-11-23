@@ -2,7 +2,7 @@
 
 import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles } from 'lucide-react';
+import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles, Timer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { EventPhotos } from './event-photos';
 import { QrSettingsCard } from './qr-settings';
@@ -20,6 +20,7 @@ const FORMATS: Array<{ format: RenderDto['format']; icon: typeof ImageIcon; feat
   { format: 'image', icon: ImageIcon },
   { format: 'video', icon: Film },
   { format: 'site_video', icon: Sparkles },
+  { format: 'status_video', icon: Timer },
   { format: 'pdf', icon: FileText },
   { format: 'print_pdf', icon: Printer, feature: 'print_pdf' },
 ];

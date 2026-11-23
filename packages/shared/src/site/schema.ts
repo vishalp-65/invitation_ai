@@ -27,6 +27,7 @@ export const SITE_SECTION_TYPES = [
   'gallery',
   'video',
   'family',
+  'familytree',
   'travel',
   'rsvp',
   'gifts',
@@ -138,6 +139,23 @@ export const siteSectionSchema = z.discriminatedUnion('type', [
   z.object({ ...base, type: z.literal('family') }),
   z.object({
     ...base,
+    type: z.literal('familytree'),
+    /** One or two family sides (the bride's and the groom's), each with its elders and close family. */
+    sides: z
+      .array(
+        z.object({
+          title: text(60),
+          members: z
+            .array(z.object({ name: text(80), relation: text(60).default(''), photoAssetId: photo, late: z.boolean().default(false) }))
+            .max(16)
+            .default([]),
+        }),
+      )
+      .max(2)
+      .default([]),
+  }),
+  z.object({
+    ...base,
     type: z.literal('travel'),
     hotels: z
       .array(z.object({ name: text(100), address: text(300).default(''), url: webUrl().optional(), phone: text(20).optional(), note: text(200).default('') }))
@@ -160,6 +178,11 @@ export const siteSectionSchema = z.discriminatedUnion('type', [
       .optional(),
     payeeName: text(60).optional(),
     registryUrl: webUrl().optional(),
+    /** Gift wishlist: guests reserve an item so nobody buys the same thing twice. */
+    wishlist: z
+      .array(z.object({ id: z.string().regex(/^[a-z0-9]{4,16}$/), title: text(80), note: text(200).default(''), url: webUrl().optional(), price: text(30).default('') }))
+      .max(40)
+      .default([]),
   }),
   z.object({ ...base, type: z.literal('livestream'), url: webUrl().optional(), note: text(200).default('') }),
   z.object({ ...base, type: z.literal('updates') }),
@@ -230,6 +253,11 @@ export const siteDocSchema = z.object({
     })
     .default({ kind: 'auto', attire: 'north', style: 'watercolor' }),
   access: z.object({ mode: z.enum(ACCESS_MODES).default('link') }).default({ mode: 'link' }),
+  /**
+   * Wedding-day mode (Premium): on function days the page leads with what is happening now and
+   * next, the live stream, and a "share your photos" button for the photo wall.
+   */
+  live: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
   /** Royale: second language the guest can switch to. */
   alt: z
     .object({

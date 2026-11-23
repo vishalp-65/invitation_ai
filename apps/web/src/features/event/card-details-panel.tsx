@@ -1,6 +1,6 @@
 'use client';
 
-import { functionIcon, type EventContent, type EventDto, type EventFunctionInput, type UpdateEventInput } from '@cardai/shared';
+import { ceremonyPack, ceremonyStart, ceremonyText, findCeremony, functionIcon, type Ceremony, type EventContent, type EventDto, type EventFunctionInput, type UpdateEventInput } from '@cardai/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowDown, ArrowUp, Plus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -95,6 +95,34 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
       return next;
     });
 
+  // ---- Ceremony pack: the tradition's usual functions, one tap each ----
+  const pack = ceremonyPack(event.community, event.type);
+  const have = new Set(fns.map((f) => findCeremony(f.name)?.id).filter(Boolean));
+  const missing = pack.filter((c) => !have.has(c.id));
+  /** The wedding day: the function that is the wedding itself, else the last one. */
+  const weddingDay = (fns.find((f) => findCeremony(f.name)?.day === 0) ?? fns[fns.length - 1])?.date;
+  function addCeremonies(list: Ceremony[]) {
+    if (!weddingDay) return toast.message(t('ceremonyNeedDate'));
+    const main = fns.find((f) => f.venueName.trim()) ?? fns[0];
+    const room = 12 - fns.length;
+    const added: FnDraft[] = list.slice(0, Math.max(0, room)).map((c, i) => {
+      const { date, time } = splitIso(ceremonyStart(c, weddingDay));
+      return {
+        key: `new-${Date.now()}-${i}`,
+        name: ceremonyText(c.name, event.language),
+        date,
+        time,
+        venueName: main?.venueName ?? '',
+        venueAddress: main?.venueAddress ?? '',
+        dressCode: ceremonyText(c.dress, event.language),
+        notes: ceremonyText(c.about, event.language),
+      };
+    });
+    // Keep the schedule in date order.
+    setFns((l) => [...l, ...added].sort((a, b) => `${a.date}T${a.time}`.localeCompare(`${b.date}T${b.time}`)));
+    if (list.length > room) toast.message(t('ceremonyMax'));
+  }
+
   function submit() {
     const bad = fns.find((f) => !f.name.trim() || !f.venueName.trim() || !f.date);
     if (bad) return toast.error(t('needFields'));
@@ -181,6 +209,32 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
         >
           <Plus className="size-4" /> {t('addFn')}
         </Button>
+        {missing.length > 0 && (
+          <div className="rounded-xl border border-dashed border-ink/20 p-4">
+            <p className="font-medium">{t('ceremonyTitle')}</p>
+            <p className="mt-0.5 text-sm text-ink-soft">{t('ceremonyBody')}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {missing.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  disabled={fns.length >= 12}
+                  onClick={() => addCeremonies([c])}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-ink/15 px-3 text-sm hover:border-ink/40 disabled:opacity-40"
+                >
+                  <span aria-hidden>{ICON_EMOJI[c.icon] ?? '🌸'}</span>
+                  {ceremonyText(c.name, event.language)}
+                  <Plus className="size-3.5 opacity-60" aria-hidden />
+                </button>
+              ))}
+              {missing.length > 1 && (
+                <Button size="sm" variant="line" disabled={fns.length >= 12} onClick={() => addCeremonies(missing)}>
+                  {t('ceremonyAll')}
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Welcome & compliments */}

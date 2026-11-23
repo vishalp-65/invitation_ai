@@ -39,7 +39,7 @@ const updatedAt = () =>
 
 export const userRole = pgEnum('user_role', ['user', 'designer', 'agent', 'admin']);
 export const eventStatus = pgEnum('event_status', ['draft', 'published', 'archived']);
-export const renderFormat = pgEnum('render_format', ['image', 'pdf', 'print_pdf', 'video', 'site_video']);
+export const renderFormat = pgEnum('render_format', ['image', 'pdf', 'print_pdf', 'video', 'site_video', 'status_video']);
 export const jobStatus = pgEnum('job_status', ['queued', 'processing', 'completed', 'failed']);
 export const assetKind = pgEnum('asset_kind', ['photo', 'ai_image', 'ai_clip', 'music', 'render']);
 export const aiKind = pgEnum('ai_kind', [
@@ -451,9 +451,16 @@ export const siteGifts = pgTable(
     /** guest (left on the site) | host (written down by the family) */
     source: text().notNull().default('guest'),
     thankedAt: timestamp({ withTimezone: true }),
+    /** Wishlist item this guest reserved (gifts section `wishlist[].id`); one reservation per item. */
+    wishId: text(),
     createdAt: createdAt(),
   },
-  (t) => [index('site_gifts_event_idx').on(t.eventId, t.createdAt)],
+  (t) => [
+    index('site_gifts_event_idx').on(t.eventId, t.createdAt),
+    uniqueIndex('site_gifts_wish_uq')
+      .on(t.eventId, t.wishId)
+      .where(sql`${t.wishId} IS NOT NULL`),
+  ],
 );
 
 // ---------------- Print ----------------

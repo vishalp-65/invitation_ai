@@ -35,7 +35,9 @@ import { BadRequestException, ConflictException, ForbiddenException, Inject, Inj
 import { randomBytes } from 'node:crypto';
 import type { AuthUser } from '../../common/auth.decorators.js';
 import { disabledKey } from '../../common/guards.js';
+import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, STORAGE, type Redis, type S3Storage } from '../../infra/infra.module.js';
+import { presignUpload } from '../media/upload-signer.js';
 import { ACCESS_TTL_SEC, TokenService } from '../auth/token.service.js';
 import { FlagsService } from '../flags/flags.service.js';
 import { OffersService } from '../offers/offers.service.js';
@@ -58,6 +60,7 @@ export class AdminSystemService {
     @Inject(DB) private readonly db: Database,
     @Inject(REDIS) private readonly redis: Redis,
     @Inject(STORAGE) private readonly storage: S3Storage,
+    @Inject(ENV) private readonly env: Env,
     private readonly flags: FlagsService,
     private readonly offers: OffersService,
     private readonly tokens: TokenService,
@@ -182,7 +185,7 @@ export class AdminSystemService {
     if (!(def.accept as readonly string[]).includes(contentType)) throw new BadRequestException(`Use ${def.accept.join(', ')}`);
     if (bytes > def.maxMb * 1024 * 1024) throw new BadRequestException(`Keep it under ${def.maxMb} MB so it loads fast on mobile data.`);
     const key = `site/${slot.replace('.', '-')}/${randomBytes(6).toString('hex')}.${EXT[contentType] ?? 'bin'}`;
-    return { key, uploadUrl: await this.storage.presignPut(key, contentType, bytes), headers: this.storage.uploadHeaders(contentType) };
+    return { key, ...presignUpload(this.env, key, contentType, bytes) };
   }
 
   async saveMedia(admin: AuthUser, slot: MediaSlot, key: string) {
@@ -223,7 +226,7 @@ export class AdminSystemService {
     if (!AUDIO_TYPES.includes(contentType)) throw new BadRequestException('Use MP3, M4A, AAC or OGG audio.');
     if (bytes > 15 * 1024 * 1024) throw new BadRequestException('Keep songs under 15 MB.');
     const key = `music/${randomBytes(6).toString('hex')}.${EXT[contentType] ?? 'mp3'}`;
-    return { key, uploadUrl: await this.storage.presignPut(key, contentType, bytes), headers: this.storage.uploadHeaders(contentType) };
+    return { key, ...presignUpload(this.env, key, contentType, bytes) };
   }
 
   async saveTrack(admin: AuthUser, input: TrackData) {

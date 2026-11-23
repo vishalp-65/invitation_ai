@@ -7,9 +7,11 @@
 export const BODY_LIMIT = 1024 * 1024;
 /** Card scans send up to 4 resized photos as base64 (~5 MB worst case); design/site docs can be large too. */
 export const BIG_BODY_LIMIT = 6 * 1024 * 1024;
+/** Photos and songs sent to /api/storage/upload (presign caps them at 15 MB). */
+export const UPLOAD_BODY_LIMIT = 16 * 1024 * 1024;
 const BIG_BODY_PREFIXES = ['/api/ai/scan-card', '/api/events', '/api/admin', '/api/designer', '/api/me/templates'];
 
-export const bodyLimitFor = (url: string): number => (BIG_BODY_PREFIXES.some((p) => url === p || url.startsWith(`${p}/`)) ? BIG_BODY_LIMIT : BODY_LIMIT);
+export const bodyLimitFor = (url: string): number => (url.startsWith('/api/storage/upload') ? UPLOAD_BODY_LIMIT : BIG_BODY_PREFIXES.some((p) => url === p || url.startsWith(`${p}/`)) ? BIG_BODY_LIMIT : BODY_LIMIT);
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 

@@ -15,6 +15,7 @@ import { UuidParam, ZBody, ZQuery } from '../../common/zod.js';
 import { SiteAdminService } from './site-admin.service.js';
 
 const hideSchema = z.object({ hidden: z.boolean() });
+const approveSchema = z.object({ ids: z.array(z.uuid()).max(200).default([]), all: z.boolean().default(false) });
 const aliasCheckSchema = z.object({ alias: z.string().max(64) });
 
 @Controller('events/:eventId/site')
@@ -106,6 +107,12 @@ export class SiteAdminController {
   @HttpCode(204)
   removeAlbumPhoto(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @UuidParam('assetId') assetId: string) {
     return this.admin.removeAlbumPhoto(user, eventId, assetId);
+  }
+
+  @Post('album/approve')
+  @HttpCode(200)
+  approveAlbum(@CurrentUser() user: AuthUser, @UuidParam('eventId') eventId: string, @ZBody(approveSchema) body: z.infer<typeof approveSchema>) {
+    return this.admin.approveAlbum(user, eventId, body.all ? 'all' : body.ids);
   }
 
   @Get('album')

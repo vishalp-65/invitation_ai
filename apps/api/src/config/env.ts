@@ -44,6 +44,8 @@ const envSchema = z.object({
   /** true on DigitalOcean Spaces: objects are written with the public-read ACL. */
   S3_PUBLIC_READ_ACL: bool,
   STORAGE_PUBLIC_URL: z.url(),
+  /** Public origin of this API (e.g. https://api.noyta.in). Browser uploads go straight to it; unset = same-origin /api via the web rewrite. */
+  API_PUBLIC_URL: z.url().optional(),
 
   JWT_ACCESS_SECRET: z.string().min(32),
   /**

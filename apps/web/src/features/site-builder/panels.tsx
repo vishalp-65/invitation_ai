@@ -1,5 +1,6 @@
 'use client';
 
+import { PhotoWall } from './photo-wall';
 import { LookThumb } from '@/features/site/photo-look';
 import {
   applyDesign,
@@ -832,12 +833,20 @@ export function LivePanel({
   onUpgrade,
   sections,
   showSection,
+  liveUrl,
+  title,
+  live,
+  setLive,
 }: {
   eventId: string;
   tier: SiteTier;
   onUpgrade: () => void;
   sections: SiteDoc['sections'];
   showSection: (t: LiveSection) => void;
+  liveUrl: string;
+  title: string;
+  live: boolean;
+  setLive: (on: boolean) => void;
 }) {
   const qc = useQueryClient();
   const [text, setText] = useState('');
@@ -859,14 +868,6 @@ export function LivePanel({
           createdAt: string;
         }>;
       }>(`/events/${eventId}/site/wishes`),
-    select: (d) => d.items,
-  });
-  const album = useQuery({
-    queryKey: ['site', eventId, 'album'],
-    queryFn: () =>
-      api<{ items: Array<{ id: string; url: string; uploader: string }> }>(
-        `/events/${eventId}/site/album`,
-      ),
     select: (d) => d.items,
   });
   const fail = (err: unknown) =>
@@ -977,45 +978,20 @@ export function LivePanel({
       </Group>
 
       <Group
-        title="Guest album"
-        hint="Photos guests uploaded (Site Royale). Remove any you don’t want shown."
+        title="Wedding-day mode"
+        hint="On function days your page leads with what’s happening now and next, Watch live, Share photos and Directions (Site Premium)."
+      >
+        <Chip selected={live} onClick={() => setLive(!live)}>
+          {live ? 'On' : 'Off'}
+        </Chip>
+      </Group>
+
+      <Group
+        title="Photo wall"
+        hint="Guests share photos from the venue. Each one shows on your page only after you approve it (Site Premium)."
       >
         <SectionOff type="album" sections={sections} showSection={showSection} />
-        {album.data?.length ? (
-          <div className="grid grid-cols-3 gap-1.5">
-            {album.data.map((a) => (
-              <div key={a.id} className="group relative aspect-square overflow-hidden rounded-lg">
-                <a
-                  href={a.url}
-                  target="_blank"
-                  rel="noopener"
-                  title={a.uploader}
-                  className="block size-full"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={a.url} alt={`From ${a.uploader}`} className="size-full object-cover" />
-                </a>
-                <button
-                  type="button"
-                  aria-label={`Remove photo from ${a.uploader}`}
-                  onClick={() =>
-                    api(`/events/${eventId}/site/album/${a.id}`, { method: 'DELETE' })
-                      .then(() => qc.invalidateQueries({ queryKey: ['site', eventId, 'album'] }))
-                      .catch((err: unknown) => toast.error((err as Error).message))
-                  }
-                  className="absolute right-1 top-1 grid size-7 place-items-center rounded-full bg-black/60 text-white"
-                >
-                  <Trash2 className="size-3.5" />
-                </button>
-                <span className="absolute inset-x-0 bottom-0 truncate bg-black/50 px-1.5 py-0.5 text-[11px] text-white">
-                  {a.uploader}
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p className="text-sm text-ink-soft">No photos yet.</p>
-        )}
+        <PhotoWall eventId={eventId} liveUrl={liveUrl} title={title} />
       </Group>
     </div>
   );

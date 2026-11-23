@@ -10,8 +10,8 @@ function planFor(eventType: string): Plan {
   const t = getEventType(eventType);
   if (t.category === 'wedding') {
     return [
-      'hero', 'welcome', 'countdown', 'couple', 'story', 'schedule', 'venue', 'dresscode', 'gallery', 'video', 'family', 'travel', 'things', 'rsvp', 'gifts',
-      ['livestream', { hidden: true }], ['updates', { hidden: true }], 'faq', 'wishes', ['album', { hidden: true }], 'closing',
+      'hero', 'welcome', 'countdown', 'couple', 'story', 'schedule', 'venue', 'dresscode', 'gallery', 'video', 'family', 'familytree', 'travel', 'things', 'rsvp', 'gifts',
+      ['livestream', { hidden: true }], ['updates', { hidden: true }], 'faq', 'wishes', 'album', 'closing',
     ];
   }
   if (t.category === 'business') {

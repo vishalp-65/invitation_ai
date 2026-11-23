@@ -381,6 +381,10 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
       {tab === 'live' && (
         <LivePanel
           eventId={eventId}
+          liveUrl={liveUrl}
+          title={event.title}
+          live={doc.live?.enabled ?? true}
+          setLive={(on) => setDoc((x) => void (x.live = { enabled: on }))}
           tier={tier}
           onUpgrade={onUpgrade}
           sections={doc.sections}

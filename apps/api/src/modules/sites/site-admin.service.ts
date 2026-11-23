@@ -228,6 +228,23 @@ export class SiteAdminService {
     await this.media.remove(user, assetId);
   }
 
+  /** Shows guest photos on the photo wall (one, or every one still waiting). */
+  async approveAlbum(user: AuthUser, eventId: string, assetIds: string[] | 'all') {
+    const owned = await this.events.getOwned(user, eventId, 'guests');
+    await this.db
+      .update(mediaAssets)
+      .set({ meta: sql`${mediaAssets.meta} || '{"approved": true}'::jsonb` })
+      .where(
+        and(
+          eq(mediaAssets.eventId, eventId),
+          sql`${mediaAssets.meta}->>'source' = 'guest_album'`,
+          assetIds === 'all' ? undefined : inArray(mediaAssets.id, assetIds),
+        ),
+      );
+    await this.sites.forgetSite(owned.slug);
+    return { ok: true };
+  }
+
   async album(user: AuthUser, eventId: string) {
     await this.events.getOwned(user, eventId, 'view');
     return { items: await this.sites.albumOf(eventId) };

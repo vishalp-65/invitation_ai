@@ -26,6 +26,7 @@ export const SECTION_TIER: Record<SiteSectionType, SiteTier> = {
   schedule: 'free',
   venue: 'free',
   family: 'free',
+  familytree: 'premium',
   rsvp: 'free',
   custom: 'free',
   closing: 'free',
@@ -40,9 +41,9 @@ export const SECTION_TIER: Record<SiteSectionType, SiteTier> = {
   wishes: 'premium',
   gifts: 'premium',
   travel: 'royale',
-  livestream: 'royale',
+  livestream: 'premium',
   updates: 'royale',
-  album: 'royale',
+  album: 'premium',
 };
 
 export const OPENING_TIER: Record<SiteOpening, SiteTier> = {
@@ -159,6 +160,8 @@ export function applySiteTier(doc: SiteDoc, tier: SiteTier): SiteDoc {
     opening: tierAtLeast(tier, OPENING_TIER[doc.opening.kind]) ? doc.opening : { ...doc.opening, kind: 'envelope' },
     character: tierAtLeast(tier, CHARACTER_TIER[doc.character.kind]) ? doc.character : { ...doc.character, kind: 'auto' },
     access: royale ? doc.access : { mode: 'link' },
+    // Wedding-day mode is a Premium feature.
+    live: tierAtLeast(tier, 'premium') ? doc.live : { enabled: false },
     alt: royale ? doc.alt : undefined,
     sections: doc.sections
       .filter((s) => sectionAllowed(s, tier))

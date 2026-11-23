@@ -3,6 +3,7 @@
 import type { SiteSectionOf, SiteUpdateDto, SiteWishDto } from '@cardai/shared';
 import { Camera, Check, Copy, Gift, Heart, Radio, Send, Wallet } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
+import { Wishlist } from './extras';
 import { safeHref, useSite } from './context';
 import { Reveal } from './motion';
 import { PhotoGrid, Shell, youtubeEmbed } from './sections';
@@ -49,7 +50,7 @@ export function GiftsSection({ section }: { section: SiteSectionOf<'gifts'> }) {
   const { data, t, preview, publicUrl } = useSite();
   const [copied, setCopied] = useState(false);
   const registry = safeHref(section.registryUrl);
-  if (!section.upiId && !registry && !section.note) return null;
+  if (!section.upiId && !registry && !section.note && !section.wishlist.some((w) => w.title.trim())) return null;
   const payee = section.payeeName || data.event.title;
   const upi = section.upiId ? `upi://pay?pa=${encodeURIComponent(section.upiId)}&pn=${encodeURIComponent(payee)}&cu=INR&tn=${encodeURIComponent('Shagun')}` : null;
   return (
@@ -91,7 +92,8 @@ export function GiftsSection({ section }: { section: SiteSectionOf<'gifts'> }) {
             {t('See the gift list', 'उपहार सूची देखें')}
           </a>
         )}
-        {data.features.gifts && !preview && <ShagunNote />}
+        {data.features.gifts && !preview && (section.upiId || section.note) && <ShagunNote />}
+        <Wishlist section={section} />
       </Reveal>
     </Shell>
   );
@@ -344,6 +346,7 @@ export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
   const [name, setName] = useState(data.guest?.name ?? '');
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState('');
+  const [sent, setSent] = useState(0);
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => setPhotos(data.album), [data.album]);
 
@@ -365,8 +368,10 @@ export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
         });
         const put = await fetch(slot.uploadUrl, { method: 'PUT', headers: slot.headers, body: blob });
         if (!put.ok) throw new Error(t('Upload failed. Try again.', 'अपलोड नहीं हुआ। फिर कोशिश करें।'));
-        const done = await post<{ url: string }>(`/api/public/events/${data.event.slug}/album/uploads/${slot.assetId}/complete`, {});
-        setPhotos((p) => [done.url, ...p]);
+        const done = await post<{ url: string; pending?: boolean }>(`/api/public/events/${data.event.slug}/album/uploads/${slot.assetId}/complete`, {});
+        // New photos wait for the family's approval before they join the wall.
+        if (done.pending) setSent((n) => n + 1);
+        else setPhotos((p) => [done.url, ...p]);
       } catch (err) {
         setError((err as Error).message);
         break;
@@ -390,6 +395,12 @@ export function AlbumSection({ section }: { section: SiteSectionOf<'album'> }) {
         >
           <Camera className="size-4" aria-hidden /> {busy ?? t('Add photos', 'तस्वीरें जोड़ें')}
         </button>
+        {sent > 0 && !busy && (
+          <p role="status" className="inline-flex items-center gap-1.5 font-semibold">
+            <Check className="size-4" aria-hidden />
+            {t(`${sent} photo${sent > 1 ? 's' : ''} sent. They appear here once the family approves.`, `${sent} फ़ोटो भेजी गईं। परिवार की मंज़ूरी के बाद यहाँ दिखेंगी।`)}
+          </p>
+        )}
         {error && (
           <p role="alert" className="text-[#C0392B]">
             {error}

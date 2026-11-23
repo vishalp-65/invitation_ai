@@ -7,6 +7,7 @@ import { InviteVideo } from '../InviteVideo';
 import { DesignCard, DesignVideo, planDesignVideo, type DesignRenderProps } from '../design/compositions';
 import { sampleInviteProps } from '../sample';
 import { SiteVideo, siteVideoFrames, type SiteVideoProps } from '../site-video/SiteVideo';
+import { STATUS_VIDEO_SECONDS, StatusVideo, type StatusVideoProps } from '../site-video/StatusVideo';
 
 const defaultProps = sampleInviteProps();
 // Remotion's generic props typing is stricter than our serialisable InviteProps.
@@ -15,6 +16,7 @@ const Video = InviteVideo as ComponentType<Record<string, unknown>>;
 const DCard = DesignCard as ComponentType<Record<string, unknown>>;
 const DVideo = DesignVideo as ComponentType<Record<string, unknown>>;
 const SVideo = SiteVideo as ComponentType<Record<string, unknown>>;
+const StVideo = StatusVideo as ComponentType<Record<string, unknown>>;
 
 const siteVideoDefaults: SiteVideoProps = {
   designId: 'rose-seal',
@@ -30,6 +32,20 @@ const siteVideoDefaults: SiteVideoProps = {
   watermark: false,
   watermarkText: BRAND.watermarkText,
   link: 'https://example.test/s/abcde',
+};
+
+const statusDefaults: StatusVideoProps = {
+  designId: 'gulab-bagh',
+  language: 'en',
+  timezone: 'Asia/Kolkata',
+  content: siteVideoDefaults.content,
+  target: { name: 'Wedding', startsAt: '2026-12-14T18:00:00+05:30', venueName: 'Rambagh Palace' },
+  days: 7,
+  photos: [],
+  musicUrl: null,
+  watermark: false,
+  watermarkText: BRAND.watermarkText,
+  link: 'noyta.in/ak',
 };
 
 const designDefaults: DesignRenderProps = (() => {
@@ -87,6 +103,15 @@ export function RemotionRoot() {
         calculateMetadata={({ props }) => ({
           durationInFrames: siteVideoFrames(props as unknown as SiteVideoProps, COMPOSITIONS.siteVideo.fps),
         })}
+      />
+      <Composition
+        id={COMPOSITIONS.statusVideo.id}
+        component={StVideo}
+        width={COMPOSITIONS.statusVideo.width}
+        height={COMPOSITIONS.statusVideo.height}
+        fps={COMPOSITIONS.statusVideo.fps}
+        durationInFrames={STATUS_VIDEO_SECONDS * COMPOSITIONS.statusVideo.fps}
+        defaultProps={statusDefaults}
       />
     </>
   );

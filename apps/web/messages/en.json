@@ -193,7 +193,9 @@
     "hubDesignSite": "Design website",
     "hubEditSite": "Edit website",
     "hubOpenSite": "Open",
-    "hubMore": "All formats and downloads"
+    "hubMore": "All formats and downloads",
+    "f_status_video": "Countdown for WhatsApp Status",
+    "f_status_videoHelp": "An 8-second “7 days to go” clip with your photo, in your website design. Make a fresh one any day."
   },
   "edit": {
     "saved": "Saved",
@@ -290,7 +292,12 @@
     "note": "Note",
     "noteHint": "e.g. Your blessings are our gift. Kindly no boxed gifts.",
     "hashtag": "Hashtag",
-    "save": "Save card pages"
+    "save": "Save card pages",
+    "ceremonyTitle": "Ceremonies for your tradition",
+    "ceremonyBody": "Tap to add a ceremony with its usual day, time, dress code and a line explaining it to guests. Change anything afterwards.",
+    "ceremonyAll": "Add all",
+    "ceremonyNeedDate": "Set the wedding date first",
+    "ceremonyMax": "An invitation can have up to 12 functions."
   },
   "upgrade": {
     "badCoupon": "This coupon code is not valid.",

@@ -1,16 +1,18 @@
 import {
   albumUploadSchema,
+  claimWishSchema,
   submitGiftSchema,
   submitRsvpSchema,
   trackViewSchema,
   unlockSiteSchema,
   wishInputSchema,
   type AlbumUploadInput,
+  type ClaimWishInput,
   type SubmitGiftInput,
   type SubmitRsvpInput,
   type WishInput,
 } from '@cardai/shared';
-import { Controller, Get, Header, HttpCode, Param, Post, Query, Req, Res } from '@nestjs/common';
+import { Controller, Get, Header, HttpCode, NotFoundException, Param, Post, Query, Req, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { Public, RateLimit, type AuthedRequest } from '../../common/auth.decorators.js';
@@ -71,6 +73,14 @@ export class SitesController {
   @RateLimit({ limit: 200, windowSec: 3600, by: 'ip' })
   albumComplete(@Param('slug') slug: string, @UuidParam('assetId') assetId: string) {
     return this.sites.albumComplete(slug, assetId);
+  }
+
+  @Post(':slug/wishlist/:wishId')
+  @HttpCode(200)
+  @RateLimit({ limit: 20, windowSec: 600, by: 'ip' })
+  claimWish(@Param('slug') slug: string, @Param('wishId') wishId: string, @ZBody(claimWishSchema) body: ClaimWishInput) {
+    if (!/^[a-z0-9]{4,16}$/.test(wishId)) throw new NotFoundException('This gift is no longer on the list');
+    return this.sites.claimWish(slug, wishId, body);
   }
 
   @Post(':slug/view')

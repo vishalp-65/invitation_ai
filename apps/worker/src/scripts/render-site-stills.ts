@@ -37,6 +37,35 @@ const qr = { src: await QRCode.toDataURL('https://www.google.com/maps/search/?ap
 const runtime = new RemotionRuntime(log);
 const serveUrl = await runtime.getServeUrl();
 const browser = await runtime.getBrowser();
+// `--status`: frames of the WhatsApp Status countdown clip (7 days to go, and the day itself).
+if (process.argv.includes('--status')) {
+  for (const d of SITE_DESIGNS.filter((x) => !only || only.includes(x.id))) {
+    for (const days of [7, 0]) {
+      const props = {
+        designId: d.id,
+        language: process.argv.includes('--hi') ? 'hi' : 'en',
+        timezone: 'Asia/Kolkata',
+        content,
+        target: { name: 'Wedding', startsAt: '2026-12-14T18:00:00+05:30', venueName: 'Rambagh Palace, Jaipur' },
+        days,
+        photos: [`${artOrigin}/art/sample-couple.webp`],
+        musicUrl: null,
+        watermark: false,
+        watermarkText: '',
+        link: 'noyta.in/ak',
+        artOrigin,
+      };
+      const composition = await selectComposition({ serveUrl, id: COMPOSITION_IDS.statusVideo, inputProps: props, puppeteerInstance: browser });
+      for (const [i, sec] of [1, 5].entries()) {
+        await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance: browser, frame: Math.round(sec * composition.fps), output: `${out}/${d.id}-status${days}-${i + 1}.jpg`, imageFormat: 'jpeg', jpegQuality: 80, scale: 0.35 });
+      }
+    }
+    log.info(`${d.id}: status clip`);
+  }
+  await runtime.close();
+  process.exit(0);
+}
+
 for (const d of SITE_DESIGNS.filter((x) => !only || only.includes(x.id))) {
   const props = {
     designId: d.id,

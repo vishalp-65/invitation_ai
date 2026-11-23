@@ -155,6 +155,15 @@ export const submitGiftSchema = z.object({
 });
 export type SubmitGiftInput = z.infer<typeof submitGiftSchema>;
 
+/** A guest reserves a wishlist item ("I'll bring this") so nobody buys it twice. */
+export const claimWishSchema = z.object({
+  guestToken: z.string().max(40).optional(),
+  key: z.string().max(64).optional(),
+  name: z.string().trim().min(1).max(100),
+  phone: phoneSchema.optional(),
+});
+export type ClaimWishInput = z.infer<typeof claimWishSchema>;
+
 /** Host writes down a gift received at the venue. */
 export const recordGiftSchema = submitGiftSchema.omit({ guestToken: true, key: true }).extend({ guestId: z.uuid().optional() });
 export type RecordGiftInput = z.infer<typeof recordGiftSchema>;
@@ -169,5 +178,7 @@ export interface GiftDto {
   note: string | null;
   source: 'guest' | 'host';
   thankedAt: string | null;
+  /** Wishlist item the guest reserved, if any. */
+  wishId: string | null;
   createdAt: string;
 }

@@ -9,6 +9,7 @@ import type { WorkerContext } from '../context.js';
 import type { Browser, RemotionRuntime } from '../remotion.js';
 import { loadDesignProps, type DesignRenderProps } from './load-design.js';
 import { loadSiteVideoProps } from './load-site-video.js';
+import { loadStatusVideoProps } from './load-status-video.js';
 import { buildPrintPdf, buildScreenPdf } from './pdf.js';
 
 export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRuntime) {
@@ -63,6 +64,13 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
     };
 
     try {
+      if (render.format === 'status_video') {
+        // Short "N days to go" clip for WhatsApp Status, in the website's design.
+        const props = await loadStatusVideoProps(ctx, render.eventId, { watermark: render.watermark });
+        const outputs = await remotion.withBrowser(async (browser, serveUrl) => [await renderMp4(browser, serveUrl, COMPOSITION_IDS.statusVideo, props)]);
+        await finish(outputs);
+        return;
+      }
       if (render.format === 'site_video') {
         // Cinematic video from the website's design pack (painted scene, bands, music).
         const props = await loadSiteVideoProps(ctx, render.eventId, { watermark: render.watermark });

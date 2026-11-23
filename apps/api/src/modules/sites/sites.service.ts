@@ -26,6 +26,7 @@ import {
   siteExpiresAt,
   siteTier,
   type AlbumUploadInput,
+  type ClaimWishInput,
   type Feature,
   type LockedSiteDto,
   type PublicSiteDto,
@@ -46,6 +47,7 @@ import { DB, REDIS, STORAGE, type Redis, type S3Storage } from '../../infra/infr
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
 import { EventsService, fromFunctionRow, type FunctionRow } from '../events/events.service.js';
 import { MediaService } from '../media/media.service.js';
+import { presignUpload } from '../media/upload-signer.js';
 import { RendersService } from '../renders/renders.service.js';
 import { ShortLinksService } from '../short-links/short-links.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
@@ -64,6 +66,7 @@ export function sectionAssetIds(doc: SiteDoc): string[] {
     if (s.type === 'story') ids.push(...s.chapters.map((c) => c.photoAssetId).filter((x): x is string => Boolean(x)));
     if (s.type === 'custom' && s.photoAssetId) ids.push(s.photoAssetId);
     if (s.type === 'gallery') ids.push(...s.assetIds);
+    if (s.type === 'familytree') for (const side of s.sides) ids.push(...side.members.map((m) => m.photoAssetId).filter((x): x is string => Boolean(x)));
   }
   if (doc.music?.assetId) ids.push(doc.music.assetId);
   return ids;
@@ -179,7 +182,7 @@ export class SitesService {
     const s = event.settings;
     const sectionIds = sectionAssetIds(site);
     const ids = [...s.photoAssetIds, ...s.galleryAssetIds, ...(s.backgroundAssetId ? [s.backgroundAssetId] : []), ...sectionIds];
-    const [urls, musicUrl, musicLibrary, coverUrl, videoUrl, updates, wishes, album, shortUrl] = await Promise.all([
+    const [urls, musicUrl, musicLibrary, coverUrl, videoUrl, updates, wishes, album, shortUrl, claimedWishes] = await Promise.all([
       this.media.urlsFor(ids),
       this.media.musicUrl(s.musicTrackId),
       premium || owner ? this.media.musicLibrary().then((l) => Object.fromEntries(l.items.map((t) => [t.id, t.url]))) : {},
@@ -189,6 +192,7 @@ export class SitesService {
       has('wishes') ? this.listWishes(event.id, false) : [],
       has('album') ? this.albumUrls(event.id) : [],
       this.shortUrlOf(event, guest),
+      site.sections.some((x) => x.type === 'gifts' && x.wishlist.length) ? this.claimedWishes(event.id) : [],
     ]);
     const pick = (list: string[]) => list.map((id) => urls.get(id)).filter((u): u is string => Boolean(u));
     const showGallery = premium || owner;
@@ -243,6 +247,7 @@ export class SitesService {
       updates,
       wishes,
       album,
+      claimedWishes,
       expiresAt: this.expiry(fns, plan.tier, plan.extraYears)?.toISOString() ?? null,
     };
   }
@@ -377,15 +382,21 @@ export class SitesService {
     return rows.map((r) => ({ id: r.id, name: r.name, message: r.message, createdAt: r.createdAt.toISOString(), hidden: r.hidden }));
   }
 
-  private albumWhere(eventId: string) {
-    return and(eq(mediaAssets.eventId, eventId), eq(mediaAssets.ready, true), sql`${mediaAssets.meta}->>'source' = ${ALBUM_SOURCE}`);
+  /** Guest photo-wall uploads; `approved` keeps only the ones the family approved (older uploads had no approval step). */
+  private albumWhere(eventId: string, approvedOnly = false) {
+    return and(
+      eq(mediaAssets.eventId, eventId),
+      eq(mediaAssets.ready, true),
+      sql`${mediaAssets.meta}->>'source' = ${ALBUM_SOURCE}`,
+      approvedOnly ? sql`coalesce(${mediaAssets.meta}->>'approved', 'true') = 'true'` : undefined,
+    );
   }
 
   private async albumUrls(eventId: string): Promise<string[]> {
     const rows = await this.db
       .select({ key: mediaAssets.storageKey })
       .from(mediaAssets)
-      .where(this.albumWhere(eventId))
+      .where(this.albumWhere(eventId, true))
       .orderBy(desc(mediaAssets.createdAt))
       .limit(200);
     return rows.map((r) => this.storage.publicUrl(r.key));
@@ -393,7 +404,7 @@ export class SitesService {
 
   async albumOf(eventId: string) {
     const rows = await this.db.select().from(mediaAssets).where(this.albumWhere(eventId)).orderBy(desc(mediaAssets.createdAt)).limit(ALBUM_LIMIT);
-    return rows.map((r) => ({ ...this.media.toDto(r), uploader: String(r.meta.uploader ?? '') }));
+    return rows.map((r) => ({ ...this.media.toDto(r), uploader: String(r.meta.uploader ?? ''), approved: r.meta.approved !== false }));
   }
 
   /** Live updates poll (cheap, no full page rebuild). */
@@ -441,13 +452,13 @@ export class SitesService {
       storageKey: key,
       contentType: input.contentType,
       bytes: input.bytes,
-      meta: { source: ALBUM_SOURCE, uploader: input.name, guestId: guest?.id ?? null },
+      // Waits for the family's approval before it shows on the photo wall.
+      meta: { source: ALBUM_SOURCE, uploader: input.name, guestId: guest?.id ?? null, approved: false },
     });
-    const uploadUrl = await this.storage.presignPut(key, input.contentType, input.bytes);
-    return { assetId: id, uploadUrl, headers: this.storage.uploadHeaders(input.contentType) };
+    return { assetId: id, ...presignUpload(this.env, key, input.contentType, input.bytes) };
   }
 
-  /** Guest album step 2: confirm the object exists, then show it. */
+  /** Guest album step 2: confirm the object exists; it shows once the family approves it. */
   async albumComplete(slug: string, assetId: string) {
     const event = await this.publishedBySlug(slug);
     const [asset] = await this.db.select().from(mediaAssets).where(and(eq(mediaAssets.id, assetId), eq(mediaAssets.eventId, event.id)));
@@ -456,7 +467,7 @@ export class SitesService {
     if (!head) throw new BadRequestException('Upload not found, please try again');
     if (asset.bytes && head.bytes > asset.bytes) throw new BadRequestException('Uploaded file is larger than declared');
     await this.db.update(mediaAssets).set({ ready: true, bytes: head.bytes }).where(eq(mediaAssets.id, assetId));
-    return { url: this.storage.publicUrl(asset.storageKey) };
+    return { url: this.storage.publicUrl(asset.storageKey), pending: asset.meta.approved === false };
   }
 
   /** A guest tells the family what shagun they sent (self-reported; money never passes through us). */
@@ -473,6 +484,34 @@ export class SitesService {
       note: input.note ?? null,
       source: 'guest',
     });
+    return { ok: true };
+  }
+
+  /** Ids of wishlist items a guest has reserved. */
+  private async claimedWishes(eventId: string): Promise<string[]> {
+    const rows = await this.db
+      .select({ wishId: siteGifts.wishId })
+      .from(siteGifts)
+      .where(and(eq(siteGifts.eventId, eventId), sql`${siteGifts.wishId} IS NOT NULL`));
+    return rows.map((r) => r.wishId!).filter(Boolean);
+  }
+
+  /**
+   * A guest reserves a wishlist item. It lands in the family's gift list (method `gift`) so
+   * the thank-you tracker covers it too. The unique index makes double booking impossible.
+   */
+  async claimWish(slug: string, wishId: string, input: ClaimWishInput) {
+    const { event, doc, guest } = await this.openSite(slug, input);
+    const gifts = doc.sections.find((x) => x.type === 'gifts' && !x.hidden);
+    const item = gifts?.type === 'gifts' ? gifts.wishlist.find((w) => w.id === wishId) : undefined;
+    if (!item) throw new NotFoundException('This gift is no longer on the list');
+    const rows = await this.db
+      .insert(siteGifts)
+      .values({ eventId: event.id, guestId: guest?.id ?? null, name: input.name, phone: input.phone ?? guest?.phone ?? null, method: 'gift', note: item.title, source: 'guest', wishId })
+      .onConflictDoNothing()
+      .returning({ id: siteGifts.id });
+    if (!rows.length) throw new ConflictException('Someone has already picked this gift. Please choose another.');
+    await this.forgetSite(event.slug);
     return { ok: true };
   }
 

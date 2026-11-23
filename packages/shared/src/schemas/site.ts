@@ -65,6 +65,8 @@ export interface PublicSiteDto {
   updates: SiteUpdateDto[];
   wishes: SiteWishDto[];
   album: string[];
+  /** Wishlist items already reserved by a guest (ids only; who reserved them stays private). */
+  claimedWishes: string[];
   expiresAt: string | null;
 }
 

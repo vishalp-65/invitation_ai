@@ -81,6 +81,38 @@ function sampleData(photos = 2): PublicSiteDto {
                 { icon: 'stay' as const, title: 'Stay', text: 'Rooms are held at Rambagh Palace for outstation guests.' },
               ],
             }
+          : s.type === 'familytree'
+            ? {
+                ...s,
+                sides: [
+                  {
+                    title: 'The Kapoor family',
+                    members: [
+                      { name: 'Late Shri Om Prakash Kapoor', relation: 'Dadaji', late: true, photoAssetId: undefined },
+                      { name: 'Smt. Kamla Kapoor', relation: 'Dadiji', late: false, photoAssetId: undefined },
+                      { name: 'Rajiv & Sudha Kapoor', relation: 'Parents', late: false, photoAssetId: photos ? GROOM : undefined },
+                    ],
+                  },
+                  {
+                    title: 'The Mehta family',
+                    members: [
+                      { name: 'Shri Harish Mehta', relation: 'Nanaji', late: false, photoAssetId: undefined },
+                      { name: 'Ashok & Neeta Mehta', relation: 'Parents', late: false, photoAssetId: photos ? BRIDE : undefined },
+                    ],
+                  },
+                ],
+              }
+            : s.type === 'gifts'
+              ? {
+                  ...s,
+                  note: 'Your blessings are the best gift. If you would like to give something, here are a few ideas.',
+                  upiId: 'kapoorfamily@okhdfcbank',
+                  wishlist: [
+                    { id: 'wsh001', title: 'Silver pooja thali', note: 'Any design', price: '₹3,000–5,000', url: undefined },
+                    { id: 'wsh002', title: 'Dinner set for 12', note: '', price: '₹4,000', url: undefined },
+                    { id: 'wsh003', title: 'Air fryer', note: 'Philips or similar', price: '₹6,000', url: undefined },
+                  ],
+                }
           : s.type === 'dresscode'
             ? { ...s, items: [{ label: 'Rose gold, burgundy and ivory', note: 'We kindly ask guests to wear these tones.', colors: ['#7A1F2B', '#C9A27A', '#F3E6D8'] }] }
             : s,
@@ -91,21 +123,24 @@ function sampleData(photos = 2): PublicSiteDto {
     updates: [],
     wishes: [],
     album: [],
+    claimedWishes: ['wsh002'],
     expiresAt: null,
   };
 }
 
 /** Dev QA: every cinematic design rendered with the same sample wedding. */
-export function SiteGallery({ initial, skipOpening = false, opening, photos = 2 }: { initial: string; skipOpening?: boolean; opening?: string; photos?: number }) {
+export function SiteGallery({ initial, skipOpening = false, opening, photos = 2, live = false, only }: { initial: string; skipOpening?: boolean; opening?: string; photos?: number; live?: boolean; only?: string[] }) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
   // `?open=0` skips the opening (used to capture landing-page screenshots).
   const [replay, setReplay] = useState(skipOpening ? 0 : 1);
   const data = useMemo(() => sampleData(photos), [photos]);
   const [kind, setKind] = useState<SiteOpening | ''>((SITE_OPENINGS as readonly string[]).includes(opening ?? '') ? (opening as SiteOpening) : '');
   const doc = useMemo(() => {
-    const d = applyDesign(data.site, id);
+    const d0 = applyDesign(data.site, id);
+    // `?s=familytree,gifts` shows only those sections (QA screenshots).
+    const d = only?.length ? { ...d0, sections: d0.sections.filter((s) => only.includes(s.type)) } : d0;
     return kind ? { ...d, opening: { ...d.opening, kind } } : d;
-  }, [data, id, kind]);
+  }, [data, id, kind, only]);
   return (
     <>
       <div hidden={skipOpening} className="fixed left-2 top-2 z-[80] flex gap-1 rounded-lg bg-black/70 p-1 text-xs text-white">
@@ -146,7 +181,7 @@ export function SiteGallery({ initial, skipOpening = false, opening, photos = 2 
           Replay
         </button>
       </div>
-      <SiteRenderer key={`${id}-${kind}`} data={data} doc={doc} preview replayKey={replay} />
+      <SiteRenderer key={`${id}-${kind}`} data={data} doc={doc} preview replayKey={replay} liveNow={live ? Date.parse(data.functions[3]!.startsAt) + 20 * 60_000 : undefined} />
     </>
   );
 }

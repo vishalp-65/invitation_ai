@@ -8,7 +8,7 @@ import { Logger } from 'nestjs-pino';
 import { randomUUID } from 'node:crypto';
 import { AppModule } from './app.module.js';
 import { resolveClientIp } from './common/client-ip.js';
-import { BODY_LIMIT, allowedOriginsFor, bodyLimitFor, isForeignOrigin } from './common/http-hardening.js';
+import { BODY_LIMIT, UPLOAD_BODY_LIMIT, allowedOriginsFor, bodyLimitFor, isForeignOrigin } from './common/http-hardening.js';
 import { loadEnv } from './config/env.js';
 
 async function bootstrap() {
@@ -29,6 +29,9 @@ async function bootstrap() {
 
   app.useLogger(app.get(Logger));
   const fastify = app.getHttpAdapter().getInstance();
+
+  // Raw file bytes for /api/storage/upload (photos and songs).
+  fastify.addContentTypeParser(/^(image|audio)\//, { parseAs: 'buffer', bodyLimit: UPLOAD_BODY_LIMIT }, (_req: unknown, body: Buffer, done: (e: Error | null, b?: Buffer) => void) => done(null, body));
 
   // Routes are registered at listen(), so this hook sees every Nest route.
   fastify.addHook('onRoute', (route: { url: string; bodyLimit?: number }) => {

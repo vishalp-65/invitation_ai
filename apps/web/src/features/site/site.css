@@ -177,7 +177,7 @@
 .inv-script { font-family: var(--inv-script, var(--inv-display)); }
 
 /* Design bands: hide the band (and its divider) when its section has nothing to show. */
-.inv-band:not(:has(> section, > header)) { display: none; }
+.inv-band:not(:has(section, header)) { display: none; }
 
 /* Hero scene: layers drift on scroll (JS) and settle in on open. */
 .inv-scene-layer { position: absolute; inset: 0; will-change: transform; }
@@ -262,3 +262,9 @@
 @keyframes inv-pin { 0% { transform: scale(0.4); opacity: 0.5; } 100% { transform: scale(1.6); opacity: 0; } }
 .inv-motion-off .inv-pin-pulse { animation: none; }
 @media (prefers-reduced-motion: reduce) { .inv-pin-pulse { animation: none; } }
+
+/* Wedding-day bar: the "live" dot breathes. */
+.inv-live-dot { animation: inv-live-dot 1.6s ease-in-out infinite; }
+@keyframes inv-live-dot { 50% { opacity: 0.35; transform: scale(0.8); } }
+.inv-motion-off .inv-live-dot { animation: none; }
+.inv-live-bar { animation: inv-enter 0.8s var(--ease-out) both; }

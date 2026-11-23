@@ -54,7 +54,10 @@ export function PhotoMask({
   eager,
   className = '',
   style,
+  hint = true,
 }: {
+  /** Builder: show "Add your photo" on an empty frame (off for small avatars). */
+  hint?: boolean;
   src: string | undefined;
   mask: LookPhotoMask;
   ring?: string;
@@ -77,7 +80,7 @@ export function PhotoMask({
           <span className="inv-script leading-none" style={{ color: look.primary, fontSize: 'clamp(2.5rem, 12vw, 5rem)' }}>
             {initials || '♡'}
           </span>
-          {preview && (
+          {preview && hint && (
             <span className="absolute bottom-[12%] left-1/2 inline-flex -translate-x-1/2 items-center gap-1.5 whitespace-nowrap rounded-full bg-white/90 px-3 py-1 font-sans text-xs font-semibold text-neutral-800">
               <ImagePlus className="size-3.5" aria-hidden /> {t('Add your photo', 'अपनी फ़ोटो जोड़ें')}
             </span>

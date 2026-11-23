@@ -21,7 +21,7 @@ interface Ops {
   tables: Array<{ name: string; rows: number; bytes: number }>;
 }
 
-const FORMAT: Record<string, string> = { image: 'Image card', pdf: 'PDF', print_pdf: 'Print PDF', video: 'Video', site_video: 'Design film' };
+const FORMAT: Record<string, string> = { image: 'Image card', pdf: 'PDF', print_pdf: 'Print PDF', video: 'Video', site_video: 'Design film', status_video: 'Countdown clip' };
 
 function bytes(n: number) {
   if (n >= 1024 ** 3) return `${(n / 1024 ** 3).toFixed(2)} GB`;

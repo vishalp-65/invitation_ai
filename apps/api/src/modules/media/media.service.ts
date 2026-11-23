@@ -3,8 +3,10 @@ import type { MediaAssetDto, PresignUploadInput } from '@cardai/shared';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
 import type { AuthUser } from '../../common/auth.decorators.js';
+import { ENV, type Env } from '../../config/env.js';
 import { DB, STORAGE, type S3Storage } from '../../infra/infra.module.js';
 import { EventsService } from '../events/events.service.js';
+import { presignUpload } from './upload-signer.js';
 
 const EXT: Record<string, string> = {
   'image/jpeg': 'jpg',
@@ -24,6 +26,7 @@ export class MediaService {
   constructor(
     @Inject(DB) private readonly db: Database,
     @Inject(STORAGE) private readonly storage: S3Storage,
+    @Inject(ENV) private readonly env: Env,
     private readonly events: EventsService,
   ) {}
 
@@ -48,8 +51,7 @@ export class MediaService {
       contentType: input.contentType,
       bytes: input.bytes,
     });
-    const uploadUrl = await this.storage.presignPut(key, input.contentType, input.bytes);
-    return { assetId: id, uploadUrl, headers: this.storage.uploadHeaders(input.contentType), url: this.storage.publicUrl(key) };
+    return { assetId: id, ...presignUpload(this.env, key, input.contentType, input.bytes), url: this.storage.publicUrl(key) };
   }
 
   /** Step 2: browser confirms; we verify the object really exists and matches. */

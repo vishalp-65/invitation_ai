@@ -1,5 +1,5 @@
 import { and, desc, eq, inArray, renders, type Database } from '@cardai/db';
-import { QUEUES, type CreateRenderInput, type RenderDto, type RenderJobData } from '@cardai/shared';
+import { QUEUES, VIDEO_FORMATS, type CreateRenderInput, type RenderDto, type RenderJobData } from '@cardai/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -35,7 +35,7 @@ export class RendersService {
     if (input.format === 'print_pdf' && !features.has('print_pdf')) {
       throw new ForbiddenException({ message: 'Print-ready PDF is a paid feature', details: { feature: 'print_pdf' } });
     }
-    const isVideo = input.format === 'video' || input.format === 'site_video';
+    const isVideo = VIDEO_FORMATS.has(input.format);
     if (isVideo && user.role !== 'admin') await this.flags.require('video_render', 'Video rendering is paused for a short while. Your card and website still work.');
     const watermark = isVideo ? !features.has('video_hd') : input.format === 'print_pdf' ? false : !features.has('image_hd');
 
@@ -47,7 +47,9 @@ export class RendersService {
       templateId: event.templateId,
       website: features.has('website_premium'),
       // The cinematic video follows the website's design, music and words.
-      site: input.format === 'site_video' ? (event.site ?? null) : undefined,
+      site: input.format === 'site_video' || input.format === 'status_video' ? (event.site ?? null) : undefined,
+      // The countdown clip says "N days to go", so a new day means a new clip.
+      day: input.format === 'status_video' ? new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10) : undefined,
     });
 
     const [existing] = await this.db

@@ -9,6 +9,7 @@ import { EntryPass, SaveTheDateRibbon } from './interactive';
 import { MotionContext, Petals, useEffectiveMotion } from './motion';
 import { Opening } from './opening';
 import { BandArt } from './photo-look';
+import { LiveBar } from './extras';
 import { SectionView } from './sections';
 import { bandVars, googleFontsHref, siteVars } from './theme';
 import './scenes.css';
@@ -38,6 +39,7 @@ export function SiteRenderer({
   accessKey,
   preview = false,
   replayKey = 0,
+  liveNow,
 }: {
   data: PublicSiteDto;
   doc?: SiteDoc;
@@ -45,6 +47,8 @@ export function SiteRenderer({
   accessKey?: string;
   preview?: boolean;
   replayKey?: number;
+  /** Builder / QA: pretend it is this moment, to preview wedding-day mode. */
+  liveNow?: number;
 }) {
   const doc = docOverride ?? data.site;
   const [useAlt, setUseAlt] = useState(false);
@@ -146,6 +150,7 @@ export function SiteRenderer({
               playMusic();
             }}
           />
+          {started && <LiveBar doc={doc} nowOverride={liveNow} />}
           {doc.motion.petals && level === 'full' && started && <Petals colors={petalColors} />}
           {design && design.ambient !== 'none' && level !== 'off' && started && (
             <div aria-hidden className="pointer-events-none fixed inset-0 z-[5]">

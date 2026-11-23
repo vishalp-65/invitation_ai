@@ -96,6 +96,7 @@ function toDto(r: GiftRow): GiftDto {
     note: r.note,
     source: r.source === 'host' ? 'host' : 'guest',
     thankedAt: r.thankedAt?.toISOString() ?? null,
+    wishId: r.wishId ?? null,
     createdAt: r.createdAt.toISOString(),
   };
 }
