@@ -4,7 +4,6 @@ import { ALL_BUILTIN_TEMPLATES, BUILTIN_TEMPLATES, findBuiltinTemplate, template
 import { designDataFrom } from './bindings.js';
 import { buildDesign } from './build.js';
 import { DEVA_PAIRS, TYPE_SETS } from './builder.js';
-import { ATELIER_FAMILIES } from './families-atelier.js';
 import { PAINTED_FAMILIES } from './families-painted.js';
 import { EDITOR_FONTS, fontSupports } from './fonts.js';
 
