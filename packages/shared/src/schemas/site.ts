@@ -1,3 +1,4 @@
+import type { SiteBranding } from '../constants/free-plan.js';
 import { z } from 'zod';
 import type { EventContent, EventFunctionDto, EventSettings } from './events.js';
 import type { LayoutId, Theme } from '../templates/types.js';
@@ -57,7 +58,13 @@ export interface PublicSiteDto {
     stay: GuestStay | null;
   } | null;
   /** `gifts`: guests can tell the family what shagun they sent (needs a gifts section). */
-  features: { rsvp: boolean; showBranding: boolean; gifts: boolean };
+  /** `branding`: how Noyta is credited (free: sticky bar, Premium: footer line, Royale: none). */
+  features: { rsvp: boolean; branding: SiteBranding; gifts: boolean };
+  /**
+   * Free website past its visitor limit, for this visitor: only the basics (names, date, venue)
+   * are sent, and the page says the rest opens when the family upgrades.
+   */
+  capped?: boolean;
   /** The page document with the plan applied (locked sections removed). */
   site: SiteDoc;
   tier: SiteTier;

@@ -4,6 +4,7 @@ import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpol
 import { loadFamily } from '../fonts';
 import { planPhotoStory, PhotoStory } from './PhotoStory';
 import { Ambient, Divider, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal, type ImgLike } from '../scenes';
+import { BrandOutro } from '../components/BrandOutro';
 
 /**
  * Cinematic 9:16 video invite built from a website design pack: the same painted scene,
@@ -507,6 +508,7 @@ export function SiteVideo(props: SiteVideoProps) {
           <div style={{ padding: '12px 32px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontFamily: 'sans-serif', fontSize: 32 }}>{props.watermarkText}</div>
         </AbsoluteFill>
       )}
+      {props.watermark && <BrandOutro />}
       {props.musicUrl && (
         <Audio src={props.musicUrl} volume={(f) => interpolate(f, [0, fps, durationInFrames - fps * 1.5, durationInFrames], [0, 0.8, 0.8, 0], clamp)} />
       )}

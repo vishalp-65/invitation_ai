@@ -1,6 +1,6 @@
 'use client';
 
-import { applyDesign, artSrc, BUILTIN_TEMPLATES, defaultSiteDoc, SITE_DESIGNS, SITE_OPENINGS, type PublicSiteDto, type SiteDesignId, type SiteOpening } from '@cardai/shared';
+import { applyDesign, artSrc, BUILTIN_TEMPLATES, CAPPED_SITE_SECTIONS, defaultSiteDoc, SITE_DESIGNS, SITE_OPENINGS, type PublicSiteDto, type SiteBranding, type SiteDesignId, type SiteOpening } from '@cardai/shared';
 import { useMemo, useState } from 'react';
 import { SiteRenderer } from '@/features/site/site-renderer';
 import { LookThumb } from '@/features/site/photo-look';
@@ -15,8 +15,11 @@ const IN = (days: number, h: number) => {
 const BRIDE = '00000000-0000-4000-8000-0000000000b1';
 const GROOM = '00000000-0000-4000-8000-0000000000b2';
 
-/** `photos`: how many sample couple photos the event has (0 shows the empty frames). */
-function sampleData(photos = 2): PublicSiteDto {
+/**
+ * `photos`: how many sample couple photos the event has (0 shows the empty frames).
+ * `brandingParam`: free bar / Premium footer / Royale none.
+ */
+function sampleData(photos = 2, brandingParam: SiteBranding = 'none'): PublicSiteDto {
   const template = BUILTIN_TEMPLATES[0]!;
   const doc = defaultSiteDoc({ eventType: 'wedding', community: 'hindu-north', primaryNames: ['Abhishek', 'Kanika'] });
   return {
@@ -59,7 +62,7 @@ function sampleData(photos = 2): PublicSiteDto {
       assets: photos ? { [BRIDE]: artSrc('sample-bride'), [GROOM]: artSrc('sample-groom') } : {},
     },
     guest: null,
-    features: { rsvp: true, showBranding: false, gifts: true },
+    features: { rsvp: true, branding: brandingParam, gifts: true },
     site: {
       ...doc,
       sections: doc.sections.map((s) =>
@@ -129,11 +132,33 @@ function sampleData(photos = 2): PublicSiteDto {
 }
 
 /** Dev QA: every cinematic design rendered with the same sample wedding. */
-export function SiteGallery({ initial, skipOpening = false, opening, photos = 2, live = false, only }: { initial: string; skipOpening?: boolean; opening?: string; photos?: number; live?: boolean; only?: string[] }) {
+export function SiteGallery({
+  initial,
+  skipOpening = false,
+  opening,
+  photos = 2,
+  live = false,
+  only,
+  branding = 'none',
+  capped = false,
+}: {
+  initial: string;
+  skipOpening?: boolean;
+  opening?: string;
+  photos?: number;
+  live?: boolean;
+  only?: string[];
+  branding?: SiteBranding;
+  capped?: boolean;
+}) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
   // `?open=0` skips the opening (used to capture landing-page screenshots).
   const [replay, setReplay] = useState(skipOpening ? 0 : 1);
-  const data = useMemo(() => sampleData(photos), [photos]);
+  const data = useMemo(() => {
+    const d = sampleData(photos, branding);
+    // `?cap=1`: a free site past its visitor limit (basics only).
+    return capped ? { ...d, capped: true, site: { ...d.site, sections: d.site.sections.filter((x) => CAPPED_SITE_SECTIONS.has(x.type)) } } : d;
+  }, [photos, branding, capped]);
   const [kind, setKind] = useState<SiteOpening | ''>((SITE_OPENINGS as readonly string[]).includes(opening ?? '') ? (opening as SiteOpening) : '');
   const doc = useMemo(() => {
     const d0 = applyDesign(data.site, id);

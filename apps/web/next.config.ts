@@ -4,8 +4,8 @@ import createNextIntlPlugin from 'next-intl/plugin';
 const apiUrl = process.env.API_INTERNAL_URL ?? 'http://127.0.0.1:4000';
 const storageUrl = process.env.STORAGE_PUBLIC_URL ?? 'http://localhost:9000/cardai';
 const storageOrigin = new URL(storageUrl).origin;
-// Photo and song uploads go straight to the API origin (see API_PUBLIC_URL on the API).
-const apiOrigin = new URL(apiUrl).origin;
+// Photo and song uploads go straight to the API origin (set API_PUBLIC_URL here too, e.g. https://api.noyta.in).
+const apiOrigin = new URL(process.env.API_PUBLIC_URL ?? apiUrl).origin;
 const isDev = process.env.NODE_ENV !== 'production';
 
 /**

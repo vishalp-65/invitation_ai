@@ -1,6 +1,6 @@
 import { BUILTIN_TEMPLATES, EVENT_TYPES, faithOf, getEventType, LANGUAGES, templateFaithClash, templateSupportsEvent, type EventTypeId, type LanguageCode } from '@cardai/shared';
 import { and, desc, eq, events, ne, users, type Database } from '@cardai/db';
-import { Inject, Injectable, Logger } from '@nestjs/common';
+import { ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common';
 import { ENV, type Env } from '../../config/env.js';
 import { DB, REDIS, type Redis } from '../../infra/infra.module.js';
 import { EntitlementsService } from '../entitlements/entitlements.service.js';
@@ -209,10 +209,23 @@ export class BotService {
       })),
     });
     await this.events.setStatus(authUser, event.id, 'published');
-    await this.renders.create(authUser, { eventId: event.id, format: 'image' }, { whatsapp: phone });
-
     await this.save(phone, { ...state, step: 'confirm', language: code, eventId: event.id });
+    if (!(await this.renderOrUpsell(phone, event.id, () => this.renders.create(authUser, { eventId: event.id, format: 'image' }, { whatsapp: phone })))) return;
     await this.wa.sendText(phone, '🎨 Designing your card. It will arrive here in about a minute.');
+  }
+
+  /** Free-plan allowance used up: say so with the upgrade link instead of going quiet. */
+  private async renderOrUpsell(phone: string, eventId: string, run: () => Promise<unknown>): Promise<boolean> {
+    try {
+      await run();
+      return true;
+    } catch (err) {
+      if (!(err instanceof ForbiddenException)) throw err;
+      const res = err.getResponse() as { message?: string };
+      await this.wa.sendText(phone, `${res.message ?? 'This needs an upgrade.'}
+💳 Upgrade here: ${this.env.APP_URL}/dashboard/events/${eventId}?upgrade=1`);
+      return false;
+    }
   }
 
   private async onConfirm(phone: string, state: BotState, replyId?: string) {
@@ -220,7 +233,8 @@ export class BotService {
     const editUrl = `${this.env.APP_URL}/dashboard/events/${state.eventId}`;
     if (replyId === 'video') {
       const { user } = await this.auth.upsertUserByPhone(phone);
-      await this.renders.create({ id: user.id, role: user.role }, { eventId: state.eventId, format: 'video' }, { whatsapp: phone });
+      const eventId = state.eventId;
+      if (!(await this.renderOrUpsell(phone, eventId, () => this.renders.create({ id: user.id, role: user.role }, { eventId, format: 'video' }, { whatsapp: phone })))) return;
       await this.wa.sendText(phone, '🎬 Making your video invite. It takes 2–4 minutes.');
       return;
     }

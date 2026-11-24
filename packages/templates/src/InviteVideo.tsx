@@ -13,6 +13,7 @@ import {
   useVideoConfig,
 } from 'remotion';
 import { DateStrip, FamilyBlock, FunctionsBlock, HeroArt, NamesBlock, VenueBlock, type LineAnim } from './components/Content';
+import { BrandOutro } from './components/BrandOutro';
 import { Motif } from './components/Motif';
 import { Stage } from './components/Stage';
 import { skinFor } from './layouts/skin';
@@ -55,6 +56,8 @@ export function InviteVideo(props: InviteProps) {
           <ClipScene src={props.aiClipUrl} duration={clip.duration} props={props} />
         </Sequence>
       )}
+
+      {props.watermark && <BrandOutro />}
 
       {props.musicUrl && (
         <Audio

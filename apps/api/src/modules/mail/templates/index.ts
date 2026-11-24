@@ -514,6 +514,54 @@ export const TEMPLATES = {
       }),
   }),
 
+  'site.visitor_limit': define<{ name: string | null; eventTitle: string; eventId: string; visitors: number; limit: number; reached: boolean }>({
+    label: 'Free website visitor limit',
+    group: 'Automations',
+    category: 'transactional',
+    sample: { name: 'Priya Sharma', eventTitle: 'Priya & Arjun — Wedding', eventId: '00000000-0000-4000-8000-000000000000', visitors: 50, limit: 50, reached: true },
+    render: (p, { t, layout, kicker, heading, greeting, para, button, url, ctx }) =>
+      layout({
+        appUrl: ctx.appUrl,
+        subject: p.reached
+          ? t(`${p.limit} people opened “${p.eventTitle}”: upgrade so everyone sees all of it`, `“${p.eventTitle}” ${p.limit} लोगों ने खोला: अपग्रेड करें ताकि सबको पूरा दिखे`)
+          : t(`${p.visitors} of ${p.limit} free website visits used for “${p.eventTitle}”`, `“${p.eventTitle}” की ${p.limit} में से ${p.visitors} मुफ़्त विज़िट हो गईं`),
+        preheader: p.reached
+          ? t('New guests now see only the names, date and venue.', 'नए मेहमानों को अब सिर्फ़ नाम, तारीख़ और जगह दिख रही है।')
+          : t(`After ${p.limit} people, new guests will see only the basics.`, `${p.limit} लोगों के बाद नए मेहमानों को सिर्फ़ मुख्य जानकारी दिखेगी।`),
+        reason: t(
+          `You are receiving this because you made the invitation “${p.eventTitle}” on ${BRAND.name} on the free plan.`,
+          `यह ईमेल इसलिए आया क्योंकि आपने ${BRAND.name} पर मुफ़्त प्लान में “${p.eventTitle}” निमंत्रण बनाया है।`,
+        ),
+        blocks: [
+          kicker(t('Your invitation website', 'आपकी निमंत्रण वेबसाइट')),
+          heading(
+            p.reached
+              ? t('Your guests love your invitation', 'आपके मेहमानों को निमंत्रण पसंद आ रहा है')
+              : t(`${p.visitors} people have opened it already`, `${p.visitors} लोग इसे खोल चुके हैं`),
+          ),
+          greeting(p.name),
+          para(
+            p.reached
+              ? t(
+                  `${p.limit} people have opened your free invitation website. Guests who open it from now on still see the names, date, venue and map, but not your photos, story, RSVP and the other sections.`,
+                  `आपकी मुफ़्त निमंत्रण वेबसाइट ${p.limit} लोगों ने खोल ली है। अब से खोलने वाले मेहमानों को नाम, तारीख़, जगह और नक्शा दिखेगा, पर आपकी फ़ोटो, कहानी, RSVP और बाकी हिस्से नहीं।`,
+                )
+              : t(
+                  `The free website opens in full for ${p.limit} people. After that, new guests see only the names, date, venue and map.`,
+                  `मुफ़्त वेबसाइट ${p.limit} लोगों के लिए पूरी खुलती है। उसके बाद नए मेहमानों को सिर्फ़ नाम, तारीख़, जगह और नक्शा दिखेगा।`,
+                ),
+          ),
+          para(
+            t(
+              'Upgrade to Site Premium and every guest sees the whole invitation, with no visitor limit, RSVPs, music and your own link.',
+              'साइट प्रीमियम में अपग्रेड करें: हर मेहमान को पूरा निमंत्रण दिखेगा, बिना विज़िट सीमा के, RSVP, संगीत और आपके अपने लिंक के साथ।',
+            ),
+          ),
+          button(t('Upgrade the website', 'वेबसाइट अपग्रेड करें'), url(`/dashboard/events/${p.eventId}?upgrade=site`)),
+        ],
+      }),
+  }),
+
   'lifecycle.winback': define<{ name: string | null; newDesigns: number }>({
     label: 'Win-back (inactive 60 days)',
     group: 'Automations',

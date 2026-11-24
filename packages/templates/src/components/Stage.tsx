@@ -157,7 +157,7 @@ function Watermark({ text, u }: { text: string; u: number }) {
           whiteSpace: 'nowrap',
         }}
       >
-        {text}
+        {text.split(' · ')[0]}
       </AbsoluteFill>
       <div
         style={{

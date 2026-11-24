@@ -445,7 +445,8 @@ export function Editor({ eventId }: { eventId: string }) {
     setFinishing(true);
     try {
       await flush();
-      await api('/renders', { method: 'POST', json: { eventId: event.id, format: 'image' } }).catch(() => undefined);
+      // Link-preview cover; `auto` so it doesn't use a free-plan image until downloaded.
+      await api('/renders', { method: 'POST', json: { eventId: event.id, format: 'image', auto: true } }).catch(() => undefined);
       router.push(`/dashboard/events/${event.id}`);
     } catch (e) {
       toast.error(e instanceof ApiError ? e.message : 'Could not save. Try again.');

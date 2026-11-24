@@ -66,7 +66,7 @@ ${EVENT_TYPES.filter((e) => e.id !== 'other').map((e) => e.label).join(', ')}, a
 ${languages}.
 
 ## Pricing (INR)
-- Free: unlimited previews of every design, an image card with a small watermark, an invitation website for up to 25 guests (online 15 days after the event), AI wording.
+- Free: unlimited previews of every design, 5 image cards and 1 video invitation with a small watermark, an invitation website shown in full to the first 50 people (then names, date and venue only) for up to 25 guests (online 15 days after the event), AI wording.
 ${PAID.map(price).join('\n')}
 
 Add-ons:

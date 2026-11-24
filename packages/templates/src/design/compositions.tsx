@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, interpolate, OffthreadVideo, Sequence, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
 import { DesignPage, fontsForPages, type RenderGate } from './DesignPage';
+import { BrandOutro } from '../components/BrandOutro';
 
 /** Serialisable props for designed cards (Remotion inputProps). */
 export interface DesignRenderProps {
@@ -48,7 +49,7 @@ function Watermark({ text }: { text: string }) {
   return (
     <>
       <AbsoluteFill style={{ justifyContent: 'center', alignItems: 'center', transform: 'rotate(-30deg)', fontSize: 97, fontFamily: 'sans-serif', fontWeight: 700, color: 'rgba(255,255,255,0.08)', textShadow: '0 0 2px rgba(0,0,0,0.08)', whiteSpace: 'nowrap', pointerEvents: 'none' }}>
-        {text}
+        {text.split(' · ')[0]}
       </AbsoluteFill>
       <div style={{ position: 'absolute', bottom: 24, left: '50%', transform: 'translateX(-50%)', padding: '9px 26px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontFamily: 'sans-serif', fontSize: 24, letterSpacing: '0.04em' }}>{text}</div>
     </>
@@ -131,6 +132,7 @@ export function DesignVideo(props: DesignRenderProps) {
           <Watermark text={props.watermarkText} />
         </AbsoluteFill>
       )}
+      {props.watermark && <BrandOutro />}
       {props.musicUrl && (
         <Audio
           src={props.musicUrl}

@@ -195,7 +195,11 @@
     "hubOpenSite": "Open",
     "hubMore": "All formats and downloads",
     "f_status_video": "Countdown for WhatsApp Status",
-    "f_status_videoHelp": "An 8-second “7 days to go” clip with your photo, in your website design. Make a fresh one any day."
+    "f_status_videoHelp": "An 8-second “7 days to go” clip with your photo, in your website design. Make a fresh one any day.",
+    "freeUsage": "Free plan: {images} of {maxImages} images and {videos} of {maxVideos} video used, with watermark.",
+    "freeUsageUpgrade": "Remove limits",
+    "siteVisitors": "{n} of {max} free visits used.",
+    "siteVisitorsFull": "{max} people opened it: new guests now see only names, date and venue."
   },
   "edit": {
     "saved": "Saved",

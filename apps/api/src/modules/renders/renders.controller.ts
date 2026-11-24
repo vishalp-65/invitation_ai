@@ -14,6 +14,12 @@ export class RendersController {
     return this.renders.create(user, body);
   }
 
+  /** Free-plan meters (images and videos used) for the download buttons. */
+  @Get('renders/free-usage')
+  freeUsage(@CurrentUser() user: AuthUser) {
+    return this.renders.freeUsage(user.id);
+  }
+
   @Get('renders/:id')
   get(@CurrentUser() user: AuthUser, @UuidParam('id') id: string) {
     return this.renders.get(user, id);

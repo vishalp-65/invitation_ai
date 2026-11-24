@@ -2,6 +2,7 @@ import { artAspect, artSrc, getLanguage, getPhotoLook, getSiteDesign, layerBox, 
 import { useEffect, useState, type CSSProperties } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
+import { BrandOutro } from '../components/BrandOutro';
 
 /**
  * Countdown clip for WhatsApp / Instagram Status (9:16, 8 s): "7 days to go" with the couple's
@@ -139,6 +140,7 @@ export function StatusVideo(props: StatusVideoProps) {
         </AbsoluteFill>
       )}
       <AbsoluteFill style={{ background: '#000', opacity: end * 0.6 }} />
+      {props.watermark && <BrandOutro />}
       {props.musicUrl && <Audio src={props.musicUrl} volume={(f) => interpolate(f, [0, fps * 0.6, durationInFrames - fps, durationInFrames], [0, 0.8, 0.8, 0], clamp)} />}
     </AbsoluteFill>
   );

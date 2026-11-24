@@ -220,7 +220,7 @@ export function LiveBar({ doc, nowOverride }: { doc: SiteDoc; nowOverride?: numb
 
   return (
     // Floats just above the bottom action bar (thumb zone), so the cover stays full-bleed.
-    <aside aria-label={t('Happening now', 'अभी चल रहा है')} className="inv-live-bar fixed inset-x-3 bottom-[76px] z-40">
+    <aside aria-label={t('Happening now', 'अभी चल रहा है')} className="inv-live-bar fixed inset-x-3 bottom-[calc(76px+var(--inv-dock,0px))] z-40">
       <div className="mx-auto flex max-w-md flex-col gap-2 rounded-[18px] bg-[var(--inv-primary)] p-3 text-[var(--inv-on-primary)] shadow-[0_14px_30px_-14px_rgb(0_0_0/0.55)]">
         <div className="flex items-start gap-2.5">
           {state.current ? (

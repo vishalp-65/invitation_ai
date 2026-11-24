@@ -58,6 +58,9 @@ export class S3Storage {
       endpoint: config.endpoint || undefined,
       region: config.region,
       forcePathStyle: config.forcePathStyle,
+      // Newer SDKs add x-amz-checksum-* headers to every write, which DigitalOcean Spaces answers with 501.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
       credentials: { accessKeyId: config.accessKeyId, secretAccessKey: config.secretAccessKey },
     });
   }

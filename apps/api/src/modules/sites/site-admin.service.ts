@@ -46,6 +46,7 @@ export class SiteAdminService {
       hasPassword: Boolean(event.sitePasswordHash),
       expiresAt: this.sites.expiry(fns, plan.tier, plan.extraYears)?.toISOString() ?? null,
       updatedAt: event.site ? event.updatedAt.toISOString() : null,
+      visitors: event.visitorCount,
     };
   }
 

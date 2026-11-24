@@ -1,4 +1,4 @@
-import { BRAND, formatINR, type ActiveOffersDto, type ProductCode } from '@cardai/shared';
+import { BRAND, formatINR, FREE_PLAN, type ActiveOffersDto, type ProductCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { Check, Minus } from 'lucide-react';
 import type { Metadata } from 'next';
@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 
 const FREE = [
   'Unlimited previews in every design',
-  'Image card with a small watermark',
-  'Animated invitation website with short link (online 15 days after the event)',
+  `${FREE_PLAN.images} image cards and ${FREE_PLAN.videos} video invitation, with a small watermark`,
+  `Animated invitation website with short link, in full for the first ${FREE_PLAN.siteVisitors} people (after that, guests see names, date and venue)`,
   'Up to 25 guests',
   'AI wording in 12 languages',
 ];
@@ -42,10 +42,12 @@ const SITE_ROWS: Array<[string, boolean | string, boolean | string, boolean | st
   ['Guest wishes & Shagun (UPI) section', false, true, true],
   ['Personal links for unlimited guests', '25 guests', true, true],
   ['Your own short link name', false, true, true],
-  ['No branding, background music', false, true, true],
+  ['Background music', false, true, true],
+  ['Noyta credit', 'Bar on screen', 'One line at the end', 'None (white-label)'],
+  ['People who can open the full page', `${FREE_PLAN.siteVisitors}`, 'Unlimited', 'Unlimited'],
+  ['Gift wishlist, family tree, live wedding-day bar, guest photo wall', false, true, true],
   ['Travel & stay: each guest sees their room and pickup', false, false, true],
-  ['Live updates on the day + live stream', false, false, true],
-  ['Guest photo album after the event', false, false, true],
+  ['Live updates on the day + live stream', false, true, true],
   ['Second language (one tap to switch)', false, false, true],
   ['Sections only for chosen guest groups', false, false, true],
   ['Password / guests-only access', false, false, true],

@@ -1,5 +1,5 @@
-import { and, desc, eq, inArray, renders, type Database } from '@cardai/db';
-import { QUEUES, VIDEO_FORMATS, type CreateRenderInput, type RenderDto, type RenderJobData } from '@cardai/shared';
+import { and, desc, eq, inArray, ne, renders, sql, type Database } from '@cardai/db';
+import { FREE_IMAGE_FORMATS, FREE_PLAN, FREE_VIDEO_FORMATS, QUEUES, VIDEO_FORMATS, type CreateRenderInput, type RenderDto, type RenderJobData } from '@cardai/shared';
 import { InjectQueue } from '@nestjs/bullmq';
 import { ForbiddenException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import type { Queue } from 'bullmq';
@@ -58,11 +58,20 @@ export class RendersService {
       .where(and(eq(renders.eventId, event.id), eq(renders.inputHash, inputHash), inArray(renders.status, ['queued', 'processing', 'completed'])))
       .orderBy(desc(renders.createdAt))
       .limit(1);
-    if (existing) return this.toDto(existing);
+    const counts = watermark && !input.auto && user.role !== 'admin';
+    if (existing) {
+      // The automatic cover becomes a real download: it uses a free image now.
+      if (counts && !existing.freeCounted) {
+        await this.checkFreeAllowance(user.id, event.id, input.format);
+        await this.db.update(renders).set({ freeCounted: true }).where(eq(renders.id, existing.id));
+      }
+      return this.toDto(existing);
+    }
+    if (counts) await this.checkFreeAllowance(user.id, event.id, input.format);
 
     const [row] = await this.db
       .insert(renders)
-      .values({ eventId: event.id, userId: user.id, format: input.format, watermark, inputHash, notify: notify ?? null })
+      .values({ eventId: event.id, userId: user.id, format: input.format, watermark, inputHash, notify: notify ?? null, freeCounted: !input.auto })
       .returning();
 
     await this.queue.add(
@@ -75,6 +84,59 @@ export class RendersService {
       },
     );
     return this.toDto(row!);
+  }
+
+  /**
+   * Free accounts: FREE_PLAN.images watermarked images, and one video invitation that can be
+   * re-made FREE_PLAN.videoRedos times. Re-downloading an identical render never gets here
+   * (it is returned above), failed renders don't count, and countdown Status clips are free.
+   */
+  private async checkFreeAllowance(userId: string, eventId: string, format: CreateRenderInput['format']): Promise<void> {
+    const isImage = (FREE_IMAGE_FORMATS as readonly string[]).includes(format);
+    const isVideo = (FREE_VIDEO_FORMATS as readonly string[]).includes(format);
+    if (!isImage && !isVideo) return;
+    const formats = isImage ? [...FREE_IMAGE_FORMATS] : [...FREE_VIDEO_FORMATS];
+    const rows = await this.db
+      .select({ eventId: renders.eventId, n: sql<number>`count(*)::int` })
+      .from(renders)
+      .where(and(eq(renders.userId, userId), eq(renders.watermark, true), eq(renders.freeCounted, true), inArray(renders.format, formats), ne(renders.status, 'failed')))
+      .groupBy(renders.eventId);
+    const total = rows.reduce((t, r) => t + r.n, 0);
+    if (isImage) {
+      if (total >= FREE_PLAN.images) {
+        throw new ForbiddenException({
+          message: `The free plan includes ${FREE_PLAN.images} image downloads and you have used them. Upgrade this invitation for unlimited HD images without the watermark.`,
+          details: { feature: 'image_hd', limit: 'free_images', used: total, max: FREE_PLAN.images },
+        });
+      }
+      return;
+    }
+    // Videos: one invitation, plus a few redos of that same invitation after edits.
+    const others = rows.filter((r) => r.eventId !== eventId).length;
+    const here = rows.find((r) => r.eventId === eventId)?.n ?? 0;
+    if (others >= FREE_PLAN.videos || here >= 1 + FREE_PLAN.videoRedos) {
+      throw new ForbiddenException({
+        message:
+          others >= FREE_PLAN.videos
+            ? 'The free plan includes one video invitation, already made for another invitation. Upgrade this invitation for an HD video without the watermark.'
+            : `You have re-made this free video ${FREE_PLAN.videoRedos} times. Upgrade for unlimited HD videos without the watermark.`,
+        details: { feature: 'video_hd', limit: 'free_videos', used: total, max: FREE_PLAN.videos },
+      });
+    }
+  }
+
+  /** What a free account has used, for the meters next to the download buttons. */
+  async freeUsage(userId: string): Promise<{ images: { used: number; max: number }; videos: { used: number; max: number; redos: number } }> {
+    const rows = await this.db
+      .select({ format: renders.format, eventId: renders.eventId })
+      .from(renders)
+      .where(and(eq(renders.userId, userId), eq(renders.watermark, true), eq(renders.freeCounted, true), inArray(renders.format, [...FREE_IMAGE_FORMATS, ...FREE_VIDEO_FORMATS]), ne(renders.status, 'failed')));
+    const images = rows.filter((r) => (FREE_IMAGE_FORMATS as readonly string[]).includes(r.format)).length;
+    const videos = rows.filter((r) => (FREE_VIDEO_FORMATS as readonly string[]).includes(r.format));
+    return {
+      images: { used: images, max: FREE_PLAN.images },
+      videos: { used: new Set(videos.map((v) => v.eventId)).size, max: FREE_PLAN.videos, redos: Math.max(0, videos.length - 1) },
+    };
   }
 
   async get(user: AuthUser, id: string): Promise<RenderDto> {
@@ -119,6 +181,7 @@ export class RendersService {
       status: r.status,
       progress: r.progress,
       watermark: r.watermark,
+      freeCounted: r.freeCounted,
       outputs: r.outputs.map((o) => ({ url: this.storage.publicUrl(o.key), contentType: o.contentType, bytes: o.bytes })),
       error: r.error,
       createdAt: r.createdAt.toISOString(),

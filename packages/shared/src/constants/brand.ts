@@ -7,5 +7,6 @@ export const BRAND = {
   tagline: 'Card, video & website invitations in 2 minutes',
   supportEmail: 'support@noyta.in',
   supportWhatsApp: '+910000000000',
-  watermarkText: 'Made with Noyta',
+  /** On free images and videos: the address tells everyone a card is forwarded to where to make one. */
+  watermarkText: 'Made with Noyta · noyta.in',
 } as const;

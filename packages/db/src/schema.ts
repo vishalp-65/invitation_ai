@@ -163,6 +163,8 @@ export const events = pgTable(
     /** Random short-link code, e.g. inv.to/k7Qp2. */
     shortCode: text(),
     viewCount: integer().notNull().default(0),
+    /** Unique people who opened the website (see `siteVisitors`); free sites are capped on it. */
+    visitorCount: integer().notNull().default(0),
     publishedAt: timestamp({ withTimezone: true }),
     /** Taken down by an admin: the public site, links and short codes stop working until restored. */
     suspendedAt: timestamp({ withTimezone: true }),
@@ -258,6 +260,8 @@ export const renders = pgTable(
     status: jobStatus().notNull().default('queued'),
     progress: integer().notNull().default(0),
     watermark: boolean().notNull(),
+    /** Counts toward the free-plan allowance (false for the automatic link-preview cover until downloaded). */
+    freeCounted: boolean().notNull().default(true),
     /** Hash of everything that affects pixels; identical requests reuse the output. */
     inputHash: text().notNull(),
     outputs: jsonb().$type<RenderOutput[]>().notNull().default([]),
@@ -268,7 +272,13 @@ export const renders = pgTable(
     completedAt: timestamp({ withTimezone: true }),
   },
   // BRIN on created_at: the 10-minute health check and admin reports filter by time (append-only, tiny index).
-  (t) => [index().on(t.eventId, t.format, t.createdAt), index().on(t.inputHash), index('renders_created_brin').using('brin', t.createdAt)],
+  (t) => [
+    index().on(t.eventId, t.format, t.createdAt),
+    index().on(t.inputHash),
+    index('renders_created_brin').using('brin', t.createdAt),
+    // Free-plan allowance: a user's watermarked renders by format.
+    index('renders_user_free_idx').on(t.userId, t.format).where(sql`${t.watermark} = true and ${t.freeCounted} = true`),
+  ],
 );
 
 export const aiGenerations = pgTable(
@@ -855,6 +865,24 @@ export const visitorAttribution = pgTable(
     index('visitor_attr_time_idx').on(t.firstSeenAt),
     index('visitor_attr_campaign_idx').on(t.utmCampaign).where(sql`${t.utmCampaign} is not null`),
   ],
+);
+
+/**
+ * One row per person who opened an invitation website: a personal-link guest (`g:<token>`) or an
+ * anonymous first-party browser id (`b:<id>`). `n` is their arrival order, so the first people
+ * of a free website keep full access after the limit.
+ */
+export const siteVisitors = pgTable(
+  'site_visitors',
+  {
+    eventId: uuid()
+      .notNull()
+      .references(() => events.id, { onDelete: 'cascade' }),
+    visitorId: text().notNull(),
+    n: integer().notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [primaryKey({ columns: [t.eventId, t.visitorId] })],
 );
 
 /** Guest side of an invitation per day: opens, personal-link opens, WhatsApp opens. */

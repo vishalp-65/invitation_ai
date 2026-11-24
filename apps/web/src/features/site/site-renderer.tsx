@@ -1,9 +1,10 @@
 'use client';
 
-import { BRAND, getLanguage, getSiteDesign, RTL_LANGUAGES, siteMusicUrl, type LanguageCode, type PublicSiteDto, type SiteDoc } from '@cardai/shared';
+import { getLanguage, getSiteDesign, RTL_LANGUAGES, siteMusicUrl, type LanguageCode, type PublicSiteDto, type SiteDoc } from '@cardai/shared';
 import { Ambient, Divider } from '@cardai/templates/scenes';
 import { CalendarHeart, Languages, MapPin, Music2, Pause, Share2 } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { BrandBar, BrandFooter, CappedNote } from './brand';
 import { safeHref, SiteProvider } from './context';
 import { EntryPass, SaveTheDateRibbon } from './interactive';
 import { MotionContext, Petals, useEffectiveMotion } from './motion';
@@ -119,6 +120,7 @@ export function SiteRenderer({
     else await navigator.clipboard.writeText(url).catch(() => undefined);
   }
 
+  const branding = data.features.branding;
   const motionClass = level === 'off' ? 'inv-motion-off' : level === 'subtle' ? 'inv-subtle' : '';
   const petalColors = [doc.look.accent ?? data.template.theme.palette.accent, '#F28C0F', '#E8577D'];
 
@@ -129,7 +131,7 @@ export function SiteRenderer({
         <div
           key={replayKey}
           className={`inv-root min-h-svh ${motionClass}`}
-          style={vars}
+          style={{ ...vars, ['--inv-dock' as string]: branding === 'bar' ? '38px' : '0px' }}
           lang={lang.code}
           dir={RTL_LANGUAGES.has(lang.code as LanguageCode) ? 'rtl' : 'ltr'}
         >
@@ -186,16 +188,12 @@ export function SiteRenderer({
             });
           })()}
 
+          {data.capped && <CappedNote slug={data.event.slug} language={language} />}
+
           <EntryPass />
 
-          {data.features.showBranding && (
-            <footer className="pb-28 text-center text-sm opacity-75">
-              {/* Word of mouth: tagged so the landing page and sign-up know which invitation sent them. */}
-              <a href={`/?utm_source=invite&utm_medium=badge&utm_campaign=${encodeURIComponent(data.event.slug)}`} className="underline underline-offset-4">
-                {BRAND.watermarkText} — make yours free
-              </a>
-            </footer>
-          )}
+          {/* Word of mouth: Premium credits Noyta once at the end; free sites carry the docked bar below. */}
+          {branding === 'footer' ? <BrandFooter slug={data.event.slug} language={language} /> : <div className={branding === 'bar' ? 'pb-36' : 'pb-24'} />}
 
           {/* Floating controls */}
           <div className="fixed right-3 top-3 z-40 flex flex-col gap-2">
@@ -231,11 +229,12 @@ export function SiteRenderer({
             )}
           </div>
 
-          {/* Bottom action bar (thumb zone) */}
+          {/* Bottom dock (thumb zone): quick actions, and on free sites the Noyta bar under them. */}
+          <div className="fixed inset-x-3 bottom-[max(env(safe-area-inset-bottom),12px)] z-40 flex flex-col gap-1.5">
           {started && (
             <nav
               aria-label="Quick actions"
-              className="fixed inset-x-3 bottom-3 z-40 mx-auto flex max-w-md items-center justify-around gap-1 rounded-full bg-[var(--inv-primary)] p-1.5 text-[var(--inv-on-primary)] shadow-[0_12px_30px_-12px_rgb(0_0_0/0.6)]"
+              className="mx-auto flex w-full max-w-md items-center justify-around gap-1 rounded-full bg-[var(--inv-primary)] p-1.5 text-[var(--inv-on-primary)] shadow-[0_12px_30px_-12px_rgb(0_0_0/0.6)]"
             >
               {has('rsvp') && data.features.rsvp && (
                 <a href="#rsvp" className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-full text-sm font-semibold hover:bg-white/10">
@@ -257,6 +256,8 @@ export function SiteRenderer({
               </button>
             </nav>
           )}
+          {branding === 'bar' && <BrandBar slug={data.event.slug} language={language} />}
+          </div>
         </div>
       </SiteProvider>
     </MotionContext.Provider>

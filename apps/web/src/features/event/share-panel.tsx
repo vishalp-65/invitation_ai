@@ -1,6 +1,6 @@
 'use client';
 
-import { whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
+import { FREE_PLAN, whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles, Timer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -52,12 +52,27 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
   const [copied, setCopied] = useState(false);
   const [publishing, setPublishing] = useState(false);
 
-  async function make(format: RenderDto['format']) {
+  // Free plan: how many of the account's watermarked images / videos are used (paid invitations skip it).
+  const paid = event.features.includes('image_hd') && event.features.includes('video_hd');
+  const usage = useQuery({
+    queryKey: ['free-usage'],
+    queryFn: () => api<{ images: { used: number; max: number }; videos: { used: number; max: number; redos: number } }>('/renders/free-usage'),
+    enabled: !paid,
+    staleTime: 30_000,
+  });
+
+  async function make(format: RenderDto['format']): Promise<RenderDto | null> {
     try {
-      await create.mutateAsync(format);
+      const r = await create.mutateAsync(format);
+      void qc.invalidateQueries({ queryKey: ['free-usage'] });
+      return r;
     } catch (err) {
-      if (err instanceof ApiError && err.requiredFeature) onUpgrade();
-      else toast.error(err instanceof ApiError ? err.message : t('startFailed'));
+      // The API says why (e.g. the free plan's images are used up); show it next to the upgrade.
+      if (err instanceof ApiError && err.requiredFeature) {
+        toast.error(err.message);
+        onUpgrade();
+      } else toast.error(err instanceof ApiError ? err.message : t('startFailed'));
+      return null;
     }
   }
 
@@ -83,8 +98,11 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
   const img = renders?.find((x) => x.format === 'image');
   const vid = renders?.filter((x) => x.format === 'video' || x.format === 'site_video').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
   const stateOf = (r?: RenderDto) => (!r ? 'none' : r.status === 'completed' ? 'ready' : r.status === 'failed' ? 'none' : 'busy');
-  const shareOut = (r: RenderDto) => {
-    const o = r.outputs[0];
+  const shareOut = async (r0: RenderDto) => {
+    // The automatic link-preview cover uses a free image only once it is actually shared.
+    const r = r0.watermark && !r0.freeCounted ? await make(r0.format) : r0;
+    const o = r?.outputs[0];
+    if (!r) return;
     if (!o) return;
     const ext = o.contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'bin';
     void shareFile(o.url, `${event.slug}-${r.format}.${ext}`, o.contentType, event.id);
@@ -96,6 +114,14 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
       <section aria-labelledby="hub-h">
         <h2 id="hub-h" className="text-xl">{t('hubTitle')}</h2>
         <p className="mt-1 text-sm text-ink-soft">{t('hubBody')}</p>
+        {usage.data && (
+          <p className="mt-2 text-xs text-ink-soft">
+            {t('freeUsage', { images: usage.data.images.used, maxImages: usage.data.images.max, videos: usage.data.videos.used, maxVideos: usage.data.videos.max })}{' '}
+            <button type="button" onClick={onUpgrade} className="font-semibold text-ink underline underline-offset-4">
+              {t('freeUsageUpgrade')}
+            </button>
+          </p>
+        )}
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <OutputTile
             icon={ImageIcon}
@@ -106,7 +132,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
             thumb={img?.status === 'completed' ? img.outputs[0]?.url : undefined}
           >
             {img?.status === 'completed' ? (
-              <Button size="sm" className="w-full" onClick={() => shareOut(img)}>
+              <Button size="sm" className="w-full" onClick={() => void shareOut(img)}>
                 <Share2 className="size-4" /> {t('hubShareFile')}
               </Button>
             ) : (
@@ -123,7 +149,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
             tone={stateOf(vid) === 'ready' ? 'leaf' : 'muted'}
           >
             {vid?.status === 'completed' ? (
-              <Button size="sm" className="w-full" onClick={() => shareOut(vid)}>
+              <Button size="sm" className="w-full" onClick={() => void shareOut(vid)}>
                 <Share2 className="size-4" /> {t('hubShareFile')}
               </Button>
             ) : (
@@ -143,6 +169,17 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                 </ButtonLink>
               )}
             </div>
+            {/* Free websites open in full for the first FREE_PLAN.siteVisitors people. */}
+            {live && site.data?.tier === 'free' && (
+              <p className={`mt-2 text-xs ${site.data.visitors >= FREE_PLAN.siteVisitors ? 'font-semibold text-sindoor' : 'text-ink-soft'}`}>
+                {site.data.visitors >= FREE_PLAN.siteVisitors
+                  ? t('siteVisitorsFull', { max: FREE_PLAN.siteVisitors })
+                  : t('siteVisitors', { n: site.data.visitors, max: FREE_PLAN.siteVisitors })}{' '}
+                <button type="button" onClick={onUpgrade} className="font-semibold text-ink underline underline-offset-4">
+                  {t('freeUsageUpgrade')}
+                </button>
+              </p>
+            )}
           </OutputTile>
         </div>
       </section>

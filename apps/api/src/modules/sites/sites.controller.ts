@@ -12,12 +12,17 @@ import {
   type SubmitRsvpInput,
   type WishInput,
 } from '@cardai/shared';
+import { randomBytes } from 'node:crypto';
 import { Controller, Get, Header, HttpCode, NotFoundException, Param, Post, Query, Req, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { z } from 'zod';
 import { Public, RateLimit, type AuthedRequest } from '../../common/auth.decorators.js';
 import { UuidParam, ZBody } from '../../common/zod.js';
 import { SitesService } from './sites.service.js';
+
+/** Name of the first-party browser id cookie; the web page forwards it as `?v=` when it renders. */
+const VISITOR_COOKIE = 'nv_v';
+const visitorId = (v: string | undefined) => (v && /^[A-Za-z0-9_-]{8,40}$/.test(v) ? v : undefined);
 
 @Public()
 @Controller('public/events')
@@ -34,10 +39,13 @@ export class SitesController {
     @Res({ passthrough: true }) reply: FastifyReply,
     @Query('g') guestToken?: string,
     @Query('k') key?: string,
+    @Query('v') visitor?: string,
   ) {
-    const site = await this.sites.getSite(slug, guestToken, key);
-    const personal = Boolean(guestToken || key) || 'locked' in site || site.site.access.mode !== 'link';
-    reply.header('Cache-Control', personal ? 'private, no-store' : 'public, max-age=30, stale-while-revalidate=300');
+    const site = await this.sites.getSite(slug, guestToken, key, visitorId(visitor));
+    const personal = Boolean(guestToken || key || visitor) || 'locked' in site || site.site.access.mode !== 'link' || Boolean(site.capped);
+    // Free sites change with their visitor count, so shared caches don't keep them stale for long.
+    const shared = 'locked' in site || site.tier !== 'free' ? 'public, max-age=30, stale-while-revalidate=300' : 'public, max-age=15';
+    reply.header('Cache-Control', personal ? 'private, no-store' : shared);
     return site;
   }
 
@@ -87,10 +95,17 @@ export class SitesController {
   @HttpCode(200)
   @RateLimit({ limit: 60, windowSec: 60, by: 'ip' })
   async view(@Param('slug') slug: string, @Req() req: AuthedRequest, @Res({ passthrough: true }) reply: FastifyReply, @ZBody(trackViewSchema) body: z.infer<typeof trackViewSchema>) {
-    const r = await this.sites.trackView(slug, req.clientIp ?? req.ip, body.g, req.headers['user-agent']);
+    // First-party browser id (1 year): counts unique people on a website, never shared elsewhere.
+    const cookies = (req.cookies ?? {}) as Record<string, string | undefined>;
+    let visitor = visitorId(cookies[VISITOR_COOKIE]);
+    if (!visitor) {
+      visitor = randomBytes(12).toString('base64url');
+      reply.setCookie(VISITOR_COOKIE, visitor, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 365 * 24 * 3600 });
+    }
+    const r = await this.sites.trackView(slug, req.clientIp ?? req.ip, body.g, req.headers['user-agent'], { visitor, userId: req.user?.id });
     // Remembers (30 days, first-party) that this browser was a guest of this invitation, so a
     // guest who later makes their own invitation is counted as word of mouth.
-    if (!(req.cookies as Record<string, string | undefined>)?.cai_ref) {
+    if (!cookies.cai_ref) {
       reply.setCookie('cai_ref', r.eventId, { path: '/', httpOnly: true, sameSite: 'lax', secure: process.env.NODE_ENV === 'production', maxAge: 30 * 24 * 3600 });
     }
     return { ok: true };

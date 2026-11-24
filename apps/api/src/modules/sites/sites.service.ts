@@ -1,6 +1,7 @@
 import {
   and,
   desc,
+  eventMembers,
   eq,
   events,
   guests,
@@ -12,6 +13,7 @@ import {
   rsvps,
   siteGifts,
   siteUpdates,
+  siteVisitors,
   siteWishes,
   sql,
   type Database,
@@ -19,9 +21,12 @@ import {
 import {
   applySiteTier,
   BRAND,
+  CAPPED_SITE_SECTIONS,
   defaultSiteDoc,
   ensureDesign,
   findBuiltinTemplate,
+  FREE_PLAN,
+  siteBranding,
   siteDocSchema,
   siteExpiresAt,
   siteTier,
@@ -50,6 +55,7 @@ import { MediaService } from '../media/media.service.js';
 import { presignUpload } from '../media/upload-signer.js';
 import { RendersService } from '../renders/renders.service.js';
 import { ShortLinksService } from '../short-links/short-links.service.js';
+import { MailService } from '../mail/mail.service.js';
 import { TemplatesService } from '../templates/templates.service.js';
 
 export type EventRow = typeof events.$inferSelect;
@@ -95,6 +101,7 @@ export class SitesService {
     private readonly renders: RendersService,
     private readonly entitlements: EntitlementsService,
     private readonly links: ShortLinksService,
+    private readonly mail: MailService,
   ) {}
 
   // ---------------- helpers shared with the builder ----------------
@@ -108,10 +115,10 @@ export class SitesService {
     return ensureDesign(parsed.success ? parsed.data : event.site, opts);
   }
 
-  async planOf(eventId: string): Promise<{ tier: SiteTier; features: Set<Feature>; extraYears: number }> {
+  async planOf(eventId: string): Promise<{ tier: SiteTier; features: Set<Feature>; extraYears: number; premiumSince: Date | null }> {
     const ent = await this.entitlements.forEvent(eventId);
     // `site_extra_year` credits are never spent: each one bought is one more year.
-    return { tier: siteTier(ent.features), features: ent.features, extraYears: ent.credits.site_extra_year ?? 0 };
+    return { tier: siteTier(ent.features), features: ent.features, extraYears: ent.credits.site_extra_year ?? 0, premiumSince: ent.since.website_premium ?? null };
   }
 
   expiry(fns: FunctionRow[], tier: SiteTier, extraYears: number): Date | null {
@@ -240,7 +247,7 @@ export class SitesService {
             stay: (royale || owner) && travel?.type === 'travel' && travel.showGuestStay ? (guest.stay ?? null) : null,
           }
         : null,
-      features: { rsvp: (plan.features.has('rsvp') || owner) && s.rsvpEnabled && !teaser, showBranding: !premium, gifts: has('gifts') },
+      features: { rsvp: (plan.features.has('rsvp') || owner) && s.rsvpEnabled && !teaser, branding: siteBranding(plan.tier, plan.premiumSince), gifts: has('gifts') },
       site,
       tier: plan.tier,
       shortUrl,
@@ -303,18 +310,85 @@ export class SitesService {
     await this.redis.del(SitesService.cacheKey(slug)).catch(() => undefined);
   }
 
-  async getSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
+  /**
+   * `visitor` is the browser's first-party id (cookie set by the view call), so the first people
+   * of a free website keep the full page after its visitor limit.
+   */
+  async getSite(slug: string, guestToken?: string, key?: string, visitor?: string): Promise<PublicSiteResponse> {
     const anonymous = !guestToken && !key;
+    let built: PublicSiteResponse | null = null;
     if (anonymous) {
       const hit = await this.redis.get(SitesService.cacheKey(slug)).catch(() => null);
-      if (hit) return JSON.parse(hit) as PublicSiteResponse;
+      if (hit) built = JSON.parse(hit) as PublicSiteResponse;
     }
-    const built = await this.buildSite(slug, guestToken, key);
-    // Only open pages are shared; locked screens and private modes are never cached here.
-    if (anonymous && !('locked' in built) && built.site.access.mode === 'link') {
-      await this.redis.set(SitesService.cacheKey(slug), JSON.stringify(built), 'EX', 30).catch(() => undefined);
+    if (!built) {
+      built = await this.buildSite(slug, guestToken, key);
+      // Only open pages are shared; locked screens and private modes are never cached here.
+      if (anonymous && !('locked' in built) && built.site.access.mode === 'link') {
+        await this.redis.set(SitesService.cacheKey(slug), JSON.stringify(built), 'EX', 30).catch(() => undefined);
+      }
     }
-    return built;
+    if ('locked' in built || built.tier !== 'free') return built;
+    return (await this.overVisitorLimit(built.event.id, guestToken ? `g:${guestToken}` : visitor ? `b:${visitor}` : null)) ? capSite(built) : built;
+  }
+
+  /**
+   * Free website past its limit, for this visitor: true unless they were among the first
+   * FREE_PLAN.siteVisitors people. One small read, and only for free sites.
+   */
+  private async overVisitorLimit(eventId: string, visitorId: string | null): Promise<boolean> {
+    const [row] = await this.db
+      .select({
+        count: events.visitorCount,
+        n: visitorId
+          ? sql<number | null>`(select ${siteVisitors.n} from ${siteVisitors} where ${siteVisitors.eventId} = ${events.id} and ${siteVisitors.visitorId} = ${visitorId})`
+          : sql<number | null>`null`,
+      })
+      .from(events)
+      .where(eq(events.id, eventId));
+    if (!row || row.count < FREE_PLAN.siteVisitors) return false;
+    return row.n === null || Number(row.n) > FREE_PLAN.siteVisitors;
+  }
+
+  /**
+   * Counts one person (once ever) per website. Personal links count by guest; everyone else by
+   * the browser id. The family's own previews never count. Emails the owner of a free site as
+   * it nears and reaches the limit.
+   */
+  private async countVisitor(event: EventRow, visitorId: string, userId?: string): Promise<void> {
+    if (userId && (userId === event.userId || (await this.isMember(event.id, userId)))) return;
+    // Bumps the counter only for a new person and records their arrival order, in one statement.
+    const { rows } = await this.db.execute<{ n: number }>(sql`
+      with bump as (
+        update events set visitor_count = visitor_count + 1
+        where id = ${event.id}
+          and not exists (select 1 from site_visitors where event_id = ${event.id} and visitor_id = ${visitorId})
+        returning visitor_count
+      )
+      insert into site_visitors (event_id, visitor_id, n)
+      select ${event.id}, ${visitorId}, visitor_count from bump
+      on conflict do nothing
+      returning n`);
+    const n = Number(rows[0]?.n ?? 0);
+    if (n !== FREE_PLAN.siteVisitorsWarnAt && n !== FREE_PLAN.siteVisitors) return;
+    const plan = await this.planOf(event.id);
+    if (plan.tier !== 'free') return;
+    const reached = n === FREE_PLAN.siteVisitors;
+    await this.mail.toUser(
+      event.userId,
+      'site.visitor_limit',
+      (u) => ({ name: u.name, eventTitle: event.title, eventId: event.id, visitors: n, limit: FREE_PLAN.siteVisitors, reached }),
+      { key: `${event.id}-${reached ? 'reached' : 'warn'}` },
+    );
+  }
+
+  private async isMember(eventId: string, userId: string): Promise<boolean> {
+    const [row] = await this.db
+      .select({ id: eventMembers.id })
+      .from(eventMembers)
+      .where(and(eq(eventMembers.eventId, eventId), eq(eventMembers.userId, userId)))
+      .limit(1);
+    return Boolean(row);
   }
 
   private async buildSite(slug: string, guestToken?: string, key?: string): Promise<PublicSiteResponse> {
@@ -532,8 +606,17 @@ export class SitesService {
   }
 
   /** Counts a view at most once per IP per hour per event/guest to keep numbers honest. */
-  async trackView(slug: string, ip: string, guestToken?: string, userAgent?: string): Promise<{ ok: true; eventId: string }> {
+  async trackView(
+    slug: string,
+    ip: string,
+    guestToken?: string,
+    userAgent?: string,
+    who: { visitor?: string; userId?: string } = {},
+  ): Promise<{ ok: true; eventId: string }> {
     const event = await this.publishedBySlug(slug);
+    // Unique people first: friends on one wedding Wi-Fi share an IP, so this can't wait for the IP dedupe below.
+    const visitorId = guestToken ? `g:${guestToken}` : who.visitor ? `b:${who.visitor}` : null;
+    if (visitorId) await this.countVisitor(event, visitorId, who.userId).catch(() => undefined);
     const dedupeKey = `view:${event.id}:${guestToken ?? '-'}:${ip}`;
     if (!(await this.redis.set(dedupeKey, '1', 'EX', 3600, 'NX'))) return { ok: true, eventId: event.id };
 
@@ -640,4 +723,18 @@ export class SitesService {
     lines.push('END:VCALENDAR');
     return lines.join('\r\n');
   }
+}
+
+/** The basics of a free website past its visitor limit: who, when and where, nothing else. */
+export function capSite(site: PublicSiteDto): PublicSiteDto {
+  return {
+    ...site,
+    capped: true,
+    site: { ...site.site, sections: site.site.sections.filter((x) => CAPPED_SITE_SECTIONS.has(x.type)) },
+    media: { ...site.media, gallery: [], videoUrl: null, musicUrl: null },
+    features: { ...site.features, rsvp: false, gifts: false },
+    updates: [],
+    wishes: [],
+    album: [],
+  };
 }

@@ -20,10 +20,14 @@ export type LoadedInvite = { kind: 'ok'; site: PublicSiteResponse; key?: string 
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? BRAND.url).replace(/\/+$/, '');
 
 export async function loadInvite(slug: string, g?: string | null): Promise<LoadedInvite> {
-  const key = (await cookies()).get(`inv_k_${slug}`)?.value;
+  const jar = await cookies();
+  const key = jar.get(`inv_k_${slug}`)?.value;
+  // First-party browser id (set by the view call): free websites keep the full page for their first visitors.
+  const visitor = jar.get('nv_v')?.value;
   const qs = new URLSearchParams();
   if (g) qs.set('g', g);
   if (key) qs.set('k', key);
+  if (visitor) qs.set('v', visitor);
   try {
     // Personal / unlocked pages are never cached; the open page for 15 s (edits show up fast).
     const site = await serverApi<PublicSiteResponse>(`/public/events/${encodeURIComponent(slug)}${qs.size ? `?${qs}` : ''}`, qs.size ? 0 : 15);

@@ -335,6 +335,8 @@ export interface SiteSettingsDto {
   hasPassword: boolean;
   expiresAt: string | null;
   updatedAt: string | null;
+  /** Unique people who have opened the website (free sites show it against FREE_PLAN.siteVisitors). */
+  visitors: number;
 }
 
 // ---------------- AI draft ----------------

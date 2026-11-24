@@ -1,11 +1,11 @@
 /**
  * Features unlocked per event by purchasing a product.
- * Free tier: watermarked image + basic website link, no RSVP.
+ * Free tier: FREE_PLAN (5 watermarked images, 1 video, a website in full for 50 people), no RSVP.
  */
 export const FEATURES = [
   'image_hd', // watermark-free, full-resolution image card + PDF
   'video_hd', // watermark-free 1080p video invite
-  'website_premium', // Site Premium: all themes, animations, characters, no branding, custom link, gallery, music
+  'website_premium', // Site Premium: all themes, animations, characters, unlimited visitors, footer credit only, custom link, gallery, music
   'website_royale', // Site Royale: travel & stay, live updates, guest album, languages, private access, guest-only sections
   'site_extra_year', // keeps the website online one more year per credit
   'rsvp', // RSVP per function + guest management
@@ -63,7 +63,7 @@ export const PRODUCTS: Record<ProductCode, Product> = {
   website: {
     code: 'website',
     name: 'Site Premium',
-    description: 'Animated invitation website: every theme, opening and character, RSVP, guest links, gallery, music, your own short link, online 1 year',
+    description: 'Animated invitation website: every theme, opening and character, RSVP, guest links, gallery, music, your own short link, unlimited visitors, online 1 year',
     pricePaise: 59900,
     mrpPaise: 149900,
     features: ['website_premium', 'rsvp', 'personalized_links'],
@@ -71,7 +71,7 @@ export const PRODUCTS: Record<ProductCode, Product> = {
   website_royale: {
     code: 'website_royale',
     name: 'Site Royale',
-    description: 'Everything in Premium + travel & stay per guest, live updates, guest photo album, second language, private access, sections for chosen guests, online 2 years',
+    description: 'Everything in Premium + travel & stay per guest, live updates, guest photo album, second language, private access, sections for chosen guests, no Noyta branding, online 2 years',
     pricePaise: 149900,
     mrpPaise: 399900,
     features: ['website_premium', 'website_royale', 'rsvp', 'personalized_links'],

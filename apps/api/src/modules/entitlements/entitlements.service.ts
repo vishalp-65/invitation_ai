@@ -23,9 +23,9 @@ export class EntitlementsService {
    * Features and credits of an event in ONE round trip: the owner's role and every entitlement
    * row come back together (this runs on nearly every paid action and every website open).
    */
-  async forEvent(eventId: string): Promise<{ features: Set<Feature>; credits: Partial<Record<Feature, number>> }> {
+  async forEvent(eventId: string): Promise<{ features: Set<Feature>; credits: Partial<Record<Feature, number>>; since: Partial<Record<Feature, Date>> }> {
     const rows = await this.db
-      .select({ role: users.role, feature: entitlements.feature, credits: entitlements.credits })
+      .select({ role: users.role, feature: entitlements.feature, credits: entitlements.credits, at: entitlements.createdAt })
       .from(events)
       .innerJoin(users, eq(users.id, events.userId))
       .leftJoin(entitlements, eq(entitlements.eventId, events.id))
@@ -33,12 +33,14 @@ export class EntitlementsService {
     if (rows[0]?.role === 'admin') {
       // `site_extra_year` credits are years bought, so they stay 0 (royale already gives the longest base life).
       const credits = Object.fromEntries(FEATURES.filter((f) => f !== 'site_extra_year').map((f) => [f, 9999]));
-      return { features: new Set<Feature>(FEATURES), credits };
+      return { features: new Set<Feature>(FEATURES), credits, since: {} };
     }
-    const owned = rows.filter((r): r is { role: typeof r.role; feature: Feature; credits: number } => r.feature !== null);
+    const owned = rows.filter((r): r is { role: typeof r.role; feature: Feature; credits: number; at: Date } => r.feature !== null);
     return {
       features: new Set(owned.map((r) => r.feature)),
       credits: Object.fromEntries(owned.filter((r) => r.credits > 0).map((r) => [r.feature, r.credits])),
+      // When each feature was first bought (Premium sites sold before the footer keep "no branding").
+      since: Object.fromEntries(owned.map((r) => [r.feature, r.at])),
     };
   }
 

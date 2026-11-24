@@ -9,6 +9,11 @@ import { phoneSchema, webUrl } from './common.js';
 export const createRenderSchema = z.object({
   eventId: z.uuid(),
   format: z.enum(RENDER_FORMATS),
+  /**
+   * Made by the app, not asked for by the user (the link-preview cover on Finish). Doesn't use a
+   * free-plan image until the user downloads it.
+   */
+  auto: z.boolean().optional(),
 });
 export type CreateRenderInput = z.infer<typeof createRenderSchema>;
 
@@ -19,6 +24,8 @@ export interface RenderDto {
   status: 'queued' | 'processing' | 'completed' | 'failed';
   progress: number;
   watermark: boolean;
+  /** False for the automatic link-preview cover until the user downloads it (free-plan count). */
+  freeCounted: boolean;
   outputs: Array<{ url: string; contentType: string; bytes: number }>;
   error: string | null;
   createdAt: string;

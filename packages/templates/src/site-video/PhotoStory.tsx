@@ -1,6 +1,7 @@
 import { artAspect, artSrc, getLanguage, getPhotoLook, layerBox, PAINTED_MASKS, photoBlock, type ArtId, type EventContent, type LookLayer, type PhotoLook } from '@cardai/shared';
 import type { CSSProperties, ReactNode } from 'react';
 import { AbsoluteFill, Audio, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
+import { BrandOutro } from '../components/BrandOutro';
 
 /**
  * Photo storybook video (9:16) for the painted photo looks, after the reference clip the
@@ -370,6 +371,7 @@ export function PhotoStory(props: PhotoStoryProps) {
           <div style={{ padding: '12px 32px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontFamily: 'sans-serif', fontSize: 32 }}>{props.watermarkText}</div>
         </AbsoluteFill>
       )}
+      {props.watermark && <BrandOutro />}
       {props.musicUrl && <Audio src={props.musicUrl} volume={(f) => interpolate(f, [0, fps, durationInFrames - fps * 1.5, durationInFrames], [0, 0.8, 0.8, 0], clamp)} />}
     </AbsoluteFill>
   );
