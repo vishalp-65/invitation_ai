@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { BRAND, SHOWCASE } from '@cardai/shared';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -19,6 +20,7 @@ export function useNextTarget() {
  * with a serif line underneath. Always dark: it sits on video.
  */
 function Showcase() {
+  const L = useL();
   // The panel only shows on large screens: start the (small) video there, and not for reduced motion.
   const video = useRef<HTMLVideoElement>(null);
   useEffect(() => {
@@ -56,8 +58,8 @@ function Showcase() {
           ))}
         </div>
         <div className="relative mt-16 max-w-md text-center">
-          <p className="font-display text-4xl leading-[1.05]">One form. A card, a video and a website.</p>
-          <p className="mt-4 font-mono text-xs leading-relaxed text-white/55">140+ designs · 12 Indian languages · RSVP on WhatsApp</p>
+          <p className="font-display text-4xl leading-[1.05]">{L('One form. A card, a video and a website.')}</p>
+          <p className="mt-4 font-mono text-xs leading-relaxed text-white/55">{L('140+ designs · 12 Indian languages · RSVP on WhatsApp')}</p>
         </div>
       </div>
     </aside>
@@ -65,6 +67,7 @@ function Showcase() {
 }
 
 function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
+  const L = useL();
   const router = useRouter();
   const search = useSearchParams();
   const target = useNextTarget();
@@ -87,9 +90,9 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
         <div className="flex h-16 items-center justify-between px-5 sm:px-8 lg:px-12">
           <Logo />
           <p className="text-sm text-ink-soft">
-            <span className="max-sm:hidden">{signup ? 'Already have an account?' : `New to ${BRAND.name}?`} </span>
+            <span className="max-sm:hidden">{signup ? 'Already have an account?' : L('New to {brand}?', { brand: BRAND.name })} </span>
             <Link href={switchHref} className="font-medium text-ink underline decoration-hairline underline-offset-4 transition-colors hover:decoration-ink">
-              {signup ? 'Log in' : 'Sign up'}
+              {signup ? L('Log in') : L('Sign up')}
             </Link>
           </p>
         </div>
@@ -106,7 +109,7 @@ function AuthInner({ mode }: { mode: 'login' | 'signup' }) {
         </div>
 
         <p className="px-5 pb-6 text-center text-xs leading-relaxed text-ink-soft sm:px-8">
-          By continuing, you agree to the {BRAND.name} Terms of Service and Privacy Policy.
+          {L('By continuing, you agree to the {brand} Terms of Service and Privacy Policy.', { brand: BRAND.name })}
         </p>
       </section>
 

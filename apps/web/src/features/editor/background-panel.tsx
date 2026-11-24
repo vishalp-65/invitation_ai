@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { formatINR, PALETTES, PATTERNS, type EventDto, type MediaAssetDto, type PageBackground } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
@@ -36,6 +37,7 @@ interface Quota {
 }
 
 function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: string) => void }) {
+  const L = useL();
   const qc = useQueryClient();
   const pack = usePrice('ai_backgrounds');
   const [prompt, setPrompt] = useState('');
@@ -50,13 +52,13 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
     try {
       const asset = await api<MediaAssetDto>('/ai/images', { method: 'POST', json: { eventId: event.id, kind: 'background', prompt: prompt.trim() || undefined } });
       onImage(asset.url);
-      toast.success('AI background added', { description: 'Use Undo if you prefer the old one.' });
+      toast.success(L('AI background added'), { description: L('Use Undo if you prefer the old one.') });
       void qc.invalidateQueries({ queryKey: ['ai-quota', event.id] });
       void qc.invalidateQueries({ queryKey: ['events', event.id, 'media'] });
     } catch (e) {
       const err = e instanceof ApiError ? e : null;
       if (err?.status === 402) void qc.invalidateQueries({ queryKey: ['ai-quota', event.id] });
-      toast.error(err?.message ?? 'Could not make a background. Try again.');
+      toast.error(err?.message ?? L('Could not make a background. Try again.'));
     } finally {
       setBusy(false);
     }
@@ -78,35 +80,35 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
   }
 
   const q = quota?.background;
-  const badge = !q ? null : q.credits > 0 && q.used >= q.included ? `${q.remaining} pack credits` : q.upgraded ? `${q.remaining} left` : `${q.remaining} of ${q.included} free`;
+  const badge = !q ? null : q.credits > 0 && q.used >= q.included ? L('{n} pack credits', { n: q.remaining }) : q.upgraded ? L('{n} left', { n: q.remaining }) : L('{n} of {total} free', { n: q.remaining, total: q.included });
 
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-ink/10 bg-[linear-gradient(135deg,color-mix(in_srgb,var(--color-accent)_10%,var(--color-surface)),var(--color-surface))] p-3.5">
       <div className="flex items-center justify-between">
         <p className="flex items-center gap-1.5 font-medium">
-          <Sparkles className="size-4 text-marigold" /> AI background
+          <Sparkles className="size-4 text-marigold" /> {L('AI background')}
         </p>
-        {badge && <span className={clsx('rounded-md px-2 py-0.5 text-xs font-medium', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? 'None left' : badge}</span>}
+        {badge && <span className={clsx('rounded-md px-2 py-0.5 text-xs font-medium', out ? 'bg-sindoor/10 text-sindoor' : 'bg-mist text-ink-soft')}>{out ? L('None left') : badge}</span>}
       </div>
       <textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value.slice(0, 400))}
         rows={2}
-        placeholder="Describe a scene, e.g. lake palace at sunset with lanterns"
+        placeholder={L('Describe a scene, e.g. lake palace at sunset with lanterns')}
         className={`${controlClass} w-full resize-none p-2.5 text-sm leading-snug`}
-        aria-label="Describe the background"
+        aria-label={L('Describe the background')}
       />
       <div className="-mx-3.5 overflow-x-auto px-3.5 [scrollbar-width:none]">
         <div className="flex w-max gap-1.5">
           {STYLES.map((s) => (
             <button
-              key={s.label}
+              key={L(s.label)}
               type="button"
               onClick={() => setPrompt(s.prompt)}
               aria-pressed={prompt === s.prompt}
               className="h-8 shrink-0 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-xs font-medium transition-colors hover:border-ink/40 aria-pressed:border-primary aria-pressed:tint-primary"
             >
-              {s.label}
+              {L(s.label)}
             </button>
           ))}
         </div>
@@ -119,17 +121,18 @@ function AiBackground({ event, onImage }: { event: EventDto; onImage: (url: stri
       ) : (
         <button type="button" onClick={generate} disabled={busy || quota?.configured === false} className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-50">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <Wand2 className="size-4" />}
-          {busy ? 'Painting your background…' : 'Generate background'}
+          {busy ? L('Painting your background…') : L('Generate background')}
         </button>
       )}
-      {quota?.configured === false && <p className="text-xs text-ink-soft">AI isn&apos;t set up on this server yet.</p>}
-      {out && <p className="text-xs text-ink-soft">One-time payment for this invitation. UPI, card or wallet.</p>}
-      <p className="text-xs text-ink-soft">Matches your design&apos;s colours. Takes about 15 seconds; it won&apos;t use a credit if it fails.</p>
+      {quota?.configured === false && <p className="text-xs text-ink-soft">{L('AI isn’t set up on this server yet.')}</p>}
+      {out && <p className="text-xs text-ink-soft">{L('One-time payment for this invitation. UPI, card or wallet.')}</p>}
+      <p className="text-xs text-ink-soft">{L('Matches your design’s colours. Takes about 15 seconds; it won’t use a credit if it fails.')}</p>
     </div>
   );
 }
 
 export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickImage: () => Promise<string | null> }) {
+  const L = useL();
   const page = useEditor((s) => currentPage(s));
   // Multi-page designs often give each page its own background: only default to "every page" when they already match.
   const [all, setAll] = useState(() => {
@@ -147,7 +150,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
   return (
     <div className="flex flex-col">
       <label className="flex items-center justify-between gap-2 px-4 pt-4 text-sm font-medium">
-        Apply to every page
+        {L('Apply to every page')}
         <input type="checkbox" role="switch" checked={all} onChange={(e) => setAll(e.target.checked)} className="switch" />
       </label>
 
@@ -155,7 +158,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
         <AiBackground event={event} onImage={setImage} />
       </div>
 
-      <Section title="Background image">
+      <Section title={L('Background image')}>
         <button
           type="button"
           onClick={async () => {
@@ -164,7 +167,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
           }}
           className="flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium hover:border-ink/40"
         >
-          <ImagePlus className="size-4" /> Upload your own
+          <ImagePlus className="size-4" /> {L('Upload your own')}
         </button>
         {library.length > 0 && (
           <ul className="grid grid-cols-4 gap-1.5">
@@ -174,7 +177,7 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
                   type="button"
                   onClick={() => setImage(m.url)}
                   aria-pressed={bg.image === m.url}
-                  {...tip(m.kind === 'ai_image' ? 'AI background' : 'Your photo')}
+                  {...tip(m.kind === 'ai_image' ? L('AI background') : L('Your photo'))}
                   className="relative block aspect-[9/16] w-full overflow-hidden rounded-lg bg-mist ring-offset-2 ring-offset-surface aria-pressed:ring-2 aria-pressed:ring-primary"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element -- our storage */}
@@ -187,18 +190,18 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
         )}
         {bg.image && (
           <div className="flex flex-col gap-4 rounded-lg bg-mist/60 p-3">
-            <Slider label="Image strength" min={0} max={100} value={Math.round((bg.imageOpacity ?? 1) * 100)} suffix="%" onChange={(v) => set({ imageOpacity: v / 100 })} />
-            <Slider label="Blur" min={0} max={30} value={bg.imageBlur ?? 0} onChange={(v) => set({ imageBlur: v })} />
-            <Slider label="Colour wash" min={0} max={90} value={Math.round((bg.overlayOpacity ?? 0) * 100)} suffix="%" onChange={(v) => set({ overlayOpacity: v / 100, overlay: bg.overlay ?? '#000000' })} />
+            <Slider label={L('Image strength')} min={0} max={100} value={Math.round((bg.imageOpacity ?? 1) * 100)} suffix="%" onChange={(v) => set({ imageOpacity: v / 100 })} />
+            <Slider label={L('Blur')} min={0} max={30} value={bg.imageBlur ?? 0} onChange={(v) => set({ imageBlur: v })} />
+            <Slider label={L('Colour wash')} min={0} max={90} value={Math.round((bg.overlayOpacity ?? 0) * 100)} suffix="%" onChange={(v) => set({ overlayOpacity: v / 100, overlay: bg.overlay ?? '#000000' })} />
             {(bg.overlayOpacity ?? 0) > 0 && <ColorPicker value={bg.overlay ?? '#000000'} onChange={(c) => set({ overlay: c })} />}
             <button type="button" onClick={() => set({ image: null })} className="flex items-center gap-1.5 self-start text-sm font-medium text-sindoor">
-              <Trash2 className="size-4" /> Remove image
+              <Trash2 className="size-4" /> {L('Remove image')}
             </button>
           </div>
         )}
       </Section>
 
-      <Section title="Colour themes">
+      <Section title={L('Colour themes')}>
         <div className="grid grid-cols-8 gap-1.5">
           {Object.entries(PALETTES).map(([k, p]) => (
             <button
@@ -212,19 +215,19 @@ export function BackgroundPanel({ event, pickImage }: { event: EventDto; pickIma
           ))}
         </div>
       </Section>
-      <Section title="Main colour">
+      <Section title={L('Main colour')}>
         <ColorPicker value={bg.color} onChange={(c) => set({ color: c })} />
       </Section>
-      <Section title="Blend">
-        <Seg label="Blend" value={bg.gradient} onChange={(v) => set({ gradient: v, color2: bg.color2 ?? bg.color })} options={[{ v: 'none', label: 'Solid' }, { v: 'radial', label: 'Glow' }, { v: 'linear', label: 'Fade' }]} />
-        {bg.gradient === 'linear' && <Slider label="Direction" min={0} max={360} step={5} value={bg.angle ?? 180} suffix="°" onChange={(v) => set({ angle: v })} />}
+      <Section title={L('Blend')}>
+        <Seg label={L('Blend')} value={bg.gradient} onChange={(v) => set({ gradient: v, color2: bg.color2 ?? bg.color })} options={[{ v: 'none', label: 'Solid' }, { v: 'radial', label: 'Glow' }, { v: 'linear', label: 'Fade' }]} />
+        {bg.gradient === 'linear' && <Slider label={L('Direction')} min={0} max={360} step={5} value={bg.angle ?? 180} suffix="°" onChange={(v) => set({ angle: v })} />}
         {bg.gradient !== 'none' && <ColorPicker value={bg.color2 ?? bg.color} onChange={(c) => set({ color2: c })} />}
       </Section>
-      <Section title="Pattern">
-        <Seg label="Pattern" value={bg.pattern} onChange={(v) => set({ pattern: v })} options={PATTERNS.map((p) => ({ v: p, label: p === 'none' ? 'None' : `${p[0]!.toUpperCase()}${p.slice(1)}` }))} />
+      <Section title={L('Pattern')}>
+        <Seg label={L('Pattern')} value={bg.pattern} onChange={(v) => set({ pattern: v })} options={PATTERNS.map((p) => ({ v: p, label: L(p === 'none' ? 'None' : `${p[0]!.toUpperCase()}${p.slice(1)}`) }))} />
         {bg.pattern !== 'none' && (
           <>
-            <Slider label="Pattern strength" min={0} max={100} value={Math.round(bg.patternOpacity * 100)} suffix="%" onChange={(v) => set({ patternOpacity: v / 100 })} />
+            <Slider label={L('Pattern strength')} min={0} max={100} value={Math.round(bg.patternOpacity * 100)} suffix="%" onChange={(v) => set({ patternOpacity: v / 100 })} />
             <ColorPicker value={bg.patternColor ?? '#C9973F'} onChange={(c) => set({ patternColor: c })} />
           </>
         )}

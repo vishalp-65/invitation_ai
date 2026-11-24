@@ -8,6 +8,8 @@ import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Textarea } from '@/components/ui/field';
+import { DatePicker, todayYmd } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
 import { splitIso } from '@/features/editor/use-event-data';
@@ -184,8 +186,8 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
               <div className="grid gap-3 sm:grid-cols-2" lang={event.language}>
                 <Field label={t('name')}>{(id) => <Input id={id} value={f.name} placeholder={t('namePh')} onChange={(e) => upFn(f.key, { name: e.target.value })} />}</Field>
                 <div className="grid grid-cols-[1.35fr_1fr] gap-3">
-                  <Field label={t('date')}>{(id) => <Input id={id} type="date" value={f.date} onChange={(e) => upFn(f.key, { date: e.target.value })} />}</Field>
-                  <Field label={t('time')}>{(id) => <Input id={id} type="time" value={f.time} onChange={(e) => upFn(f.key, { time: e.target.value })} />}</Field>
+                  <Field label={t('date')}>{(id) => <DatePicker id={id} value={f.date} onChange={(v) => upFn(f.key, { date: v })} />}</Field>
+                  <Field label={t('time')}>{(id) => <TimePicker id={id} value={f.time} onChange={(v) => upFn(f.key, { time: v })} />}</Field>
                 </div>
                 <Field label={t('venue')}>{(id) => <Input id={id} value={f.venueName} onChange={(e) => upFn(f.key, { venueName: e.target.value })} />}</Field>
                 <Field label={t('address')}>{(id) => <Input id={id} value={f.venueAddress} onChange={(e) => upFn(f.key, { venueAddress: e.target.value })} />}</Field>
@@ -267,7 +269,7 @@ export function CardDetailsPanel({ event, onUpgrade }: { event: EventDto; onUpgr
           ))}
         </div>
         <Field label={t('rsvpBy')} hint={t('rsvpByHint')}>
-          {(id, desc) => <Input id={id} aria-describedby={desc} type="date" className="max-w-56" value={rsvpBy} onChange={(e) => setRsvpBy(e.target.value)} />}
+          {(id, desc) => <DatePicker id={id} aria-describedby={desc} className="max-w-64" clearable min={todayYmd()} value={rsvpBy} onChange={setRsvpBy} />}
         </Field>
       </div>
 

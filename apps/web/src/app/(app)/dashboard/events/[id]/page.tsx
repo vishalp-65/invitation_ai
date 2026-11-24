@@ -1,19 +1,19 @@
 'use client';
 
 import { getEventType, getLanguage, whatsappShareUrl, type SiteSettingsDto } from '@cardai/shared';
-import { useQuery } from '@tanstack/react-query';
-import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Brush, CalendarDays, Check, Film, Image as ImageIcon, Loader2, ChevronDown, ChevronLeft, Crown, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { Suspense, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { buttonClass } from '@/components/ui/button';
 import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { PageSkeleton } from '@/components/ui/skeletons';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { EventDesignPreview } from '@/features/event/design-preview';
-import { useEvent } from '@/lib/hooks';
+import { qk, useEvent, useRenders } from '@/lib/hooks';
 import { api } from '@/lib/api';
 import { track } from '@/lib/track';
 
@@ -39,6 +39,9 @@ const TABS = [
   { id: 'upgrade', label: 'Upgrade', icon: Crown, edit: true },
   { id: 'print', label: 'Print', icon: Printer, edit: true },
 ] as const;
+
+/** Always visible; the rest (Shagun, Co-hosts, Upgrade, Print) sit under "More". */
+const PRIMARY_TABS = new Set<string>(['share', 'edit', 'guests', 'rsvp']);
 
 const dayMs = 86_400_000;
 /** Whole calendar days from today to `iso` (negative once passed). */
@@ -85,20 +88,7 @@ function EventWorkspace() {
         {t('back')}
       </Link>
 
-      {justCreated && (
-        <div className="mt-5 flex animate-fade-up items-start gap-4 border border-ink/10 border-l-2 border-l-gold bg-ink/[0.02] p-4 sm:p-5" role="status">
-          <span className="grid size-9 shrink-0 place-items-center border border-ink/15">
-            <PartyPopper className="size-4" strokeWidth={1.6} aria-hidden />
-          </span>
-          <div className="flex-1">
-            <p className="text-ink">{t('createdTitle')}</p>
-            <p className="mt-0.5 text-sm text-ink-soft">{t('createdBody')}</p>
-          </div>
-          <button type="button" className="font-mono text-xs text-ink-soft underline underline-offset-4 hover:text-ink" onClick={() => router.replace(`/dashboard/events/${id}`)}>
-            {t('dismiss')}
-          </button>
-        </div>
-      )}
+      {justCreated && <ReadyBanner eventId={id} onDismiss={() => router.replace(`/dashboard/events/${id}`)} />}
 
       <div className="mt-5 grid gap-8 lg:grid-cols-[1fr_300px] lg:gap-10">
         <div className="min-w-0">
@@ -106,8 +96,8 @@ function EventWorkspace() {
 
           {/* Underline tabs on a solid strip: sticky under the header, no blur. */}
           <div className="sticky top-14 z-10 lg:top-16 -mx-4 mt-8 border-b border-ink/10 bg-ivory/90 px-4 backdrop-blur-xl sm:-mx-6 sm:px-6 lg:mx-0 lg:px-0">
-            <div role="tablist" aria-label="Invitation tools" className="-mb-px flex gap-6 overflow-x-auto [scrollbar-width:none] sm:gap-7">
-              {tabs.map((tb) => (
+            <div role="tablist" aria-label="Invitation tools" className="-mb-px flex gap-6 sm:gap-7">
+              {tabs.filter((tb) => PRIMARY_TABS.has(tb.id)).map((tb) => (
                 <button
                   key={tb.id}
                   type="button"
@@ -116,10 +106,11 @@ function EventWorkspace() {
                   onClick={() => setTab(tb.id)}
                   className="inline-flex h-12 shrink-0 items-center gap-2 border-b border-transparent text-sm text-ink-soft transition-colors hover:text-ink aria-selected:border-ink aria-selected:text-ink"
                 >
-                  <tb.icon className="size-[0.95rem]" strokeWidth={1.6} aria-hidden />
+                  <tb.icon className="size-[0.95rem] max-[420px]:hidden" strokeWidth={1.6} aria-hidden />
                   {t(`tabs.${tb.id}`)}
                 </button>
               ))}
+              <MoreTabs tabs={tabs.filter((tb) => !PRIMARY_TABS.has(tb.id))} current={current} onPick={setTab} />
             </div>
           </div>
 
@@ -184,10 +175,44 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
   const tShare = useTranslations('share');
   // The same link as the Share tab (short or custom link when there is one).
   const site = useQuery({ queryKey: ['site', event.id], queryFn: () => api<SiteSettingsDto>(`/events/${event.id}/site`), enabled: live });
-  const share = () => {
+  // Phones: share the card image with the link in one go (people open a picture far more than a
+  // bare link). The file is fetched ahead so the share sheet opens within the tap.
+  const { data: renders } = useRenders(event.id);
+  const img = renders?.find((r) => r.format === 'image' && r.status === 'completed' && !r.stale);
+  const [file, setFile] = useState<File | null>(null);
+  useEffect(() => {
+    const o = img?.outputs[0];
+    // Touch devices only: on a computer the button opens WhatsApp Web with the link as before.
+    if (!o || typeof navigator === 'undefined' || !navigator.canShare || !matchMedia('(pointer: coarse)').matches) return;
+    let alive = true;
+    fetch(o.url)
+      .then((r) => r.blob())
+      .then((b) => {
+        const f = new File([b], `${event.slug}.${o.contentType.split('/')[1]?.replace('jpeg', 'jpg') ?? 'png'}`, { type: o.contentType });
+        if (alive && navigator.canShare({ files: [f] })) setFile(f);
+      })
+      .catch(() => undefined);
+    return () => {
+      alive = false;
+    };
+  }, [img, event.slug]);
+  const share = async () => {
     const url = site.data?.vanityUrl ?? site.data?.shortUrl ?? `${window.location.origin}/i/${event.slug}`;
+    const text = tShare('invited', { title: event.title, url });
+    if (file && img) {
+      try {
+        // Counts the free image now that it is really shared (same file: no new render).
+        await api('/renders', { method: 'POST', json: { eventId: event.id, format: 'image' } });
+        await navigator.share({ files: [file], text });
+        track('share', { props: { kind: 'file+link', eventId: event.id } });
+        return;
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') return; // closed the share sheet
+        // Free images used up or sharing failed: fall back to the link.
+      }
+    }
     track('share', { props: { kind: 'link', eventId: event.id } });
-    window.open(whatsappShareUrl(tShare('invited', { title: event.title, url })), '_blank', 'noopener');
+    window.open(whatsappShareUrl(text), '_blank', 'noopener');
   };
 
   return (
@@ -247,7 +272,7 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
       </div>
       <div className="mt-5 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
         {live && (
-          <button type="button" onClick={share} className={buttonClass('primary', 'md', 'press col-span-2')}>
+          <button type="button" onClick={() => void share()} className={buttonClass('primary', 'md', 'press col-span-2')}>
             <WhatsAppIcon className="size-4" />
             {t('shareWhatsapp')}
           </button>
@@ -266,6 +291,126 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
         )}
       </div>
     </section>
+  );
+}
+
+/** The less-used tabs in one menu; shows the open one's name when it is one of them. */
+function MoreTabs({ tabs, current, onPick }: { tabs: ReadonlyArray<(typeof TABS)[number]>; current: TabId; onPick: (id: TabId) => void }) {
+  const t = useTranslations('event');
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  const active = tabs.find((tb) => tb.id === current);
+  useEffect(() => {
+    if (!open) return;
+    const away = (e: PointerEvent) => !ref.current?.contains(e.target as Node) && setOpen(false);
+    const key = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false);
+    window.addEventListener('pointerdown', away, true);
+    window.addEventListener('keydown', key);
+    return () => {
+      window.removeEventListener('pointerdown', away, true);
+      window.removeEventListener('keydown', key);
+    };
+  }, [open]);
+  if (!tabs.length) return null;
+  return (
+    <div ref={ref} className="relative ml-auto shrink-0 sm:ml-0">
+      <button
+        type="button"
+        role="tab"
+        aria-selected={Boolean(active)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className="inline-flex h-12 items-center gap-1.5 border-b border-transparent text-sm text-ink-soft transition-colors hover:text-ink aria-selected:border-ink aria-selected:text-ink"
+      >
+        {active ? t(`tabs.${active.id}`) : t('tabs.more')}
+        <ChevronDown className={`size-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden />
+      </button>
+      {open && (
+        <div role="menu" className="menu absolute right-0 top-full z-30 mt-1 w-52 origin-top-right animate-[pop-in_0.1s_ease-out] sm:left-0 sm:right-auto">
+          {tabs.map((tb) => (
+            <button
+              key={tb.id}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                onPick(tb.id);
+                setOpen(false);
+              }}
+              className="menu-item"
+            >
+              <tb.icon className="size-4 opacity-80" strokeWidth={1.6} aria-hidden />
+              <span className="flex-1">{t(`tabs.${tb.id}`)}</span>
+              {tb.id === current && <Check className="size-4" aria-hidden />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** After Create: what is ready and what is still being made, live (renders poll while busy). */
+function ReadyBanner({ eventId, onDismiss }: { eventId: string; onDismiss: () => void }) {
+  const t = useTranslations('event');
+  const ts = useTranslations('share');
+  const qc = useQueryClient();
+  const { data: renders, isSuccess } = useRenders(eventId);
+  const state = (formats: string[]) => {
+    const r = renders?.find((x) => formats.includes(x.format));
+    return !r ? 'none' : r.stale && r.status !== 'failed' ? 'busy' : r.status === 'completed' ? 'ready' : r.status === 'failed' ? 'none' : 'busy';
+  };
+  // The video starts once the new invitation is actually opened here (not at Create), so
+  // invitations nobody comes back to cost no video time. `auto`: no free video used until shared.
+  const started = useRef(false);
+  useEffect(() => {
+    if (!isSuccess || started.current || renders?.some((r) => r.format === 'video' || r.format === 'site_video')) return;
+    started.current = true;
+    void api('/renders', { method: 'POST', json: { eventId, format: 'video', auto: true } })
+      .then(() => qc.invalidateQueries({ queryKey: qk.renders(eventId) }))
+      .catch(() => undefined);
+  }, [isSuccess, renders, eventId, qc]);
+  const items = [
+    { icon: Globe, label: ts('hubSite'), state: 'ready' as const, text: ts('hubLive') },
+    { icon: ImageIcon, label: ts('hubImage'), state: state(['image']) },
+    { icon: Film, label: ts('hubVideo'), state: state(['video', 'site_video']) },
+  ];
+  return (
+    <div className="mt-5 animate-fade-up rounded-[var(--radius-card)] border border-ink/10 border-l-2 border-l-gold bg-ink/[0.02] p-4 sm:p-5" role="status">
+      <div className="flex items-start gap-4">
+        <span className="grid size-9 shrink-0 place-items-center border border-ink/15">
+          <PartyPopper className="size-4" strokeWidth={1.6} aria-hidden />
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-ink">{t('createdTitle')}</p>
+          <p className="mt-0.5 text-sm text-ink-soft">{t('createdBody')}</p>
+        </div>
+        <button type="button" className="font-mono text-xs text-ink-soft underline underline-offset-4 hover:text-ink" onClick={onDismiss}>
+          {t('dismiss')}
+        </button>
+      </div>
+      <ul className="mt-4 grid gap-2 sm:grid-cols-3 sm:pl-[3.25rem]">
+        {items.map((it) => (
+          <li key={it.label} className="flex items-center gap-2.5 rounded-[var(--radius-control)] border border-ink/10 px-3 py-2 text-sm">
+            <it.icon className="size-4 shrink-0 text-ink-soft" strokeWidth={1.6} aria-hidden />
+            <span className="min-w-0 flex-1 truncate">{it.label}</span>
+            {it.state === 'ready' ? (
+              <span className="inline-flex items-center gap-1 text-xs text-leaf">
+                <Check className="size-3.5" strokeWidth={2.5} aria-hidden />
+                {it.text ?? ts('hubReady')}
+              </span>
+            ) : it.state === 'busy' ? (
+              <span className="inline-flex items-center gap-1 text-xs text-ink-soft">
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                {ts('hubMaking')}
+              </span>
+            ) : (
+              <span className="text-xs text-ink-soft">{ts('hubNotYet')}</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
 

@@ -6,7 +6,7 @@ import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Imag
 import { useTranslations } from 'next-intl';
 import { EventPhotos } from './event-photos';
 import { QrSettingsCard } from './qr-settings';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
 import { api, ApiError } from '@/lib/api';
@@ -96,10 +96,28 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
 
   const img = renders?.find((x) => x.format === 'image');
   const vid = renders?.filter((x) => x.format === 'video' || x.format === 'site_video').sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
-  const stateOf = (r?: RenderDto) => (!r ? 'none' : r.status === 'completed' ? 'ready' : r.status === 'failed' ? 'none' : 'busy');
+  // An out-of-date file counts as "being made": it is remade automatically (below), never shared as is.
+  const stateOf = (r?: RenderDto) => (!r ? 'none' : r.stale && r.status !== 'failed' ? 'busy' : r.status === 'completed' ? 'ready' : r.status === 'failed' ? 'none' : 'busy');
+
+  // After edits (editor, details, design), remake the card image and video that were already made.
+  // `auto`: like the first cover, it uses no free image/video until it is actually shared.
+  const refreshed = useRef(new Set<string>());
+  useEffect(() => {
+    for (const r of [img, vid]) {
+      if (!r?.stale || r.status === 'queued' || r.status === 'processing' || refreshed.current.has(r.id)) continue;
+      refreshed.current.add(r.id);
+      void api<RenderDto>('/renders', { method: 'POST', json: { eventId: event.id, format: r.format, auto: true } })
+        .then(() => qc.invalidateQueries({ queryKey: qk.renders(event.id) }))
+        .catch(() => undefined);
+    }
+  }, [img, vid, event.id, qc]);
   const shareOut = async (r0: RenderDto) => {
     // The automatic link-preview cover uses a free image only once it is actually shared.
-    const r = r0.watermark && !r0.freeCounted ? await make(r0.format) : r0;
+    const r = (r0.watermark && !r0.freeCounted) || r0.stale ? await make(r0.format) : r0;
+    if (r && r.status !== 'completed') {
+      toast(t('updating'));
+      return;
+    }
     const o = r?.outputs[0];
     if (!r) return;
     if (!o) return;
@@ -241,6 +259,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                       <h3 className="text-[1.0625rem]">{label}</h3>
                       {done && <StatusPill tone="leaf">{t('ready')}</StatusPill>}
                       {r?.watermark && done && <StatusPill tone="muted">{t('watermark')}</StatusPill>}
+                      {r?.stale && done && <StatusPill tone="gold">{t('outdated')}</StatusPill>}
                       {locked && <StatusPill tone="gold">{t('paid')}</StatusPill>}
                     </div>
                     <p className="mt-0.5 text-sm text-ink-soft">{help}</p>

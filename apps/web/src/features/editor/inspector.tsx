@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import {
   ATTIRES,
   bindingInfo,
@@ -122,6 +123,7 @@ const up = (id: string, patch: Partial<DesignElement>) => useEditor.getState().u
 // ---------------------------------------------------------------- text
 
 function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
+  const L = useL();
   const shown = displayText(el, ctx.data);
   const [value, setValue] = useState(shown);
   const [prevShown, setPrevShown] = useState(shown);
@@ -156,7 +158,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
             rows={Math.min(6, Math.max(2, value.split('\n').length + 1))}
             dir="auto"
             className="w-full rounded-lg border border-ink/10 bg-ink/[0.02] p-3 text-base leading-snug focus:border-ink focus:outline-none"
-            aria-label="Text"
+            aria-label={L('Text')}
           />
           <button
             type="button"
@@ -164,7 +166,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
             onClick={() => ctx.commitText(el, value)}
             className="h-11 rounded-lg bg-primary font-medium text-on-primary disabled:opacity-40"
           >
-            Update text
+            {L('Update text')}
           </button>
         </>
       )}
@@ -174,7 +176,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
           className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft underline-offset-4 hover:underline"
           onClick={() => up(el.id, { bind: undefined, text: shown } as Partial<TextElement>)}
         >
-          <Link2Off className="size-4" /> Unlink and type your own
+          <Link2Off className="size-4" /> {L('Unlink and type your own')}
         </button>
       )}
     </div>
@@ -184,6 +186,7 @@ function EditText({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
 const GROUP_LABEL: Record<string, string> = { script: 'Calligraphy', serif: 'Elegant serif', display: 'Display', sans: 'Clean sans', fun: 'Playful', indic: 'Indian scripts' };
 
 function FontRow({ family, selected, supported, onPick }: { family: string; selected: boolean; supported: boolean; onPick: () => void }) {
+  const L = useL();
   const [ready, setReady] = useState(false);
   const ref = useOnVisible<HTMLButtonElement>(() => {
     void loadFamily(family).then(() => setReady(true));
@@ -199,12 +202,13 @@ function FontRow({ family, selected, supported, onPick }: { family: string; sele
       <span style={{ fontFamily: ready ? `"${family}"` : undefined, fontSize: 20 }} className="truncate">
         {family}
       </span>
-      {selected ? <Check className="size-4 shrink-0" /> : !supported ? <span className="shrink-0 text-xs">Latin only</span> : null}
+      {selected ? <Check className="size-4 shrink-0" /> : !supported ? <span className="shrink-0 text-xs">{L('Latin only')}</span> : null}
     </button>
   );
 }
 
 function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
+  const L = useL();
   const [q, setQ] = useState('');
   const script = detectScript(displayText(el, ctx.data));
   const fonts = EDITOR_FONTS.filter((f) => f.family.toLowerCase().includes(q.toLowerCase()));
@@ -212,10 +216,10 @@ function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
   const groups = [...new Set(fonts.map((f) => f.group))].sort((a, b) => (script !== 'Latn' ? (a === 'indic' ? -1 : b === 'indic' ? 1 : 0) : 0));
   return (
     <div className="flex flex-col gap-3">
-      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search fonts" className={`${controlClass} h-10 px-3`} aria-label="Search fonts" />
+      <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={L('Search fonts')} className={`${controlClass} h-10 px-3`} aria-label={L('Search fonts')} />
       {groups.map((g) => (
         <div key={g}>
-          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-soft">{GROUP_LABEL[g]}</p>
+          <p className="mb-1 text-xs font-medium uppercase tracking-wide text-ink-soft">{L(GROUP_LABEL[g])}</p>
           {fonts
             .filter((f) => f.group === g)
             .map((f) => (
@@ -228,19 +232,21 @@ function FontPicker({ el, ctx }: { el: TextElement; ctx: InspectorCtx }) {
 }
 
 function TextSize({ el }: { el: TextElement }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-4">
-      <Slider label="Size" min={8} max={300} value={Math.round(el.size)} onChange={(v) => up(el.id, { size: v, fit: false } as Partial<TextElement>)} />
-      <Slider label="Line spacing" min={0.7} max={2.4} step={0.05} value={el.lh} onChange={(v) => up(el.id, { lh: v })} />
-      <Slider label="Letter spacing" min={-0.1} max={0.6} step={0.01} value={el.ls} onChange={(v) => up(el.id, { ls: v })} />
+      <Slider label={L('Size')} min={8} max={300} value={Math.round(el.size)} onChange={(v) => up(el.id, { size: v, fit: false } as Partial<TextElement>)} />
+      <Slider label={L('Line spacing')} min={0.7} max={2.4} step={0.05} value={el.lh} onChange={(v) => up(el.id, { lh: v })} />
+      <Slider label={L('Letter spacing')} min={-0.1} max={0.6} step={0.01} value={el.ls} onChange={(v) => up(el.id, { ls: v })} />
     </div>
   );
 }
 
 function TextFormat({ el }: { el: TextElement }) {
+  const L = useL();
   const toggle = (on: boolean, patch: Partial<TextElement>, off: Partial<TextElement>) => up(el.id, on ? off : patch);
   const btn = (active: boolean, label: string, icon: ReactNode, onClick: () => void) => (
-    <button type="button" aria-pressed={active} {...tip(label)} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-lg border transition-colors', active ? 'border-primary tint-primary' : 'border-ink/10 bg-surface hover:border-ink/40')}>
+    <button type="button" aria-pressed={active} {...tip(L(label))} onClick={onClick} className={clsx('grid size-11 place-items-center rounded-lg border transition-colors', active ? 'border-primary tint-primary' : 'border-ink/10 bg-surface hover:border-ink/40')}>
       {icon}
     </button>
   );
@@ -258,10 +264,11 @@ function TextFormat({ el }: { el: TextElement }) {
 }
 
 function TextEffects({ el, colors }: { el: TextElement; colors: string[] }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-4">
       <Seg
-        label="Effect"
+        label={L('Effect')}
         value={el.effect}
         onChange={(v) => up(el.id, { effect: v })}
         options={[
@@ -278,6 +285,7 @@ function TextEffects({ el, colors }: { el: TextElement; colors: string[] }) {
 }
 
 function TextCurve({ el }: { el: TextElement }) {
+  const L = useL();
   const set = (v: number) => {
     if (!v) return up(el.id, { curve: undefined, fit: false } as Partial<TextElement>);
     // Curved text is one line in a fixed box sized to the arc.
@@ -286,9 +294,9 @@ function TextCurve({ el }: { el: TextElement }) {
   };
   return (
     <div className="flex flex-col gap-3">
-      <Slider label="Curve" min={-100} max={100} value={el.curve ?? 0} onChange={set} />
+      <Slider label={L('Curve')} min={-100} max={100} value={el.curve ?? 0} onChange={set} />
       <Seg
-        label="Curve presets"
+        label={L('Curve presets')}
         value={String(el.curve ?? 0)}
         onChange={(v) => set(Number(v))}
         options={[
@@ -298,7 +306,7 @@ function TextCurve({ el }: { el: TextElement }) {
           { v: '-35', label: 'Smile' },
         ]}
       />
-      {el.curve ? <p className="text-xs text-ink-soft">Curved text stays on one line. Widen the box to open the curve.</p> : null}
+      {el.curve ? <p className="text-xs text-ink-soft">{L('Curved text stays on one line. Widen the box to open the curve.')}</p> : null}
     </div>
   );
 }
@@ -328,18 +336,19 @@ const OPTION_CHOICES: Record<string, Record<string, string[]>> = {
 const nice = (s: string) => ({ watercolor: 'Painted', caricature: 'Cute', lineart: 'Line art', north: 'North Indian', south: 'South Indian', muslim: 'Nikah', christian: 'Church' })[s] ?? `${s[0]!.toUpperCase()}${s.slice(1)}`;
 
 function ArtOptions({ el }: { el: ArtElement }) {
+  const L = useL();
   const choices = OPTION_CHOICES[el.asset];
   if (!choices) return null;
   return (
     <div className="flex flex-col gap-4">
       {Object.entries(choices).map(([key, values]) => (
         <div key={key}>
-          <p className="mb-1.5 text-sm font-medium text-ink-soft">{nice(key)}</p>
+          <p className="mb-1.5 text-sm font-medium text-ink-soft">{L(nice(key))}</p>
           <Seg
             label={key}
             value={String(el.opts?.[key] ?? values[0])}
             onChange={(v) => up(el.id, { opts: { ...el.opts, [key]: v } })}
-            options={values.map((v) => ({ v, label: nice(v) }))}
+            options={values.map((v) => ({ v, label: L(nice(v)) }))}
           />
         </div>
       ))}
@@ -348,10 +357,11 @@ function ArtOptions({ el }: { el: ArtElement }) {
 }
 
 function ArtColors({ el, colors }: { el: ArtElement; colors: string[] }) {
+  const L = useL();
   const def = ASSETS[el.asset];
   const slots = el.colors.length ? el.colors : (def?.colors ?? []);
   const [active, setActive] = useState(0);
-  if (!slots.length) return <p className="text-sm text-ink-soft">This artwork keeps its painted colours.</p>;
+  if (!slots.length) return <p className="text-sm text-ink-soft">{L('This artwork keeps its painted colours.')}</p>;
   return (
     <div className="flex flex-col gap-3">
       <div className="flex gap-2">
@@ -360,7 +370,7 @@ function ArtColors({ el, colors }: { el: ArtElement; colors: string[] }) {
             key={i}
             type="button"
             onClick={() => setActive(i)}
-            aria-label={`Colour ${i + 1}`}
+            aria-label={L('Colour {n}', { n: i + 1 })}
             aria-pressed={i === active}
             className="size-10 rounded-lg border border-black/10 aria-pressed:ring-2 aria-pressed:ring-ink aria-pressed:ring-offset-2"
             style={{ background: c }}
@@ -381,6 +391,7 @@ function ArtColors({ el, colors }: { el: ArtElement; colors: string[] }) {
 }
 
 function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) {
+  const L = useL();
   const qc = useQueryClient();
   const { data: media } = useEventMedia(ctx.eventId);
   const [busy, setBusy] = useState(false);
@@ -391,17 +402,17 @@ function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) 
     <button
       type="button"
       disabled={busy || !asset}
-      {...tip(asset ? 'Cut out the person, remove the background' : 'Works on photos uploaded to this invitation')}
+      {...tip(asset ? L('Cut out the person, remove the background') : L('Works on photos uploaded to this invitation'))}
       onClick={async () => {
         if (!asset) return;
         setBusy(true);
         try {
           const out = await api<MediaAssetDto>('/ai/images', { method: 'POST', json: { eventId: ctx.eventId, kind: 'portrait', sourceAssetId: asset.id } });
           up(el.id, { src: out.url, bind: undefined, borderW: 0 } as Partial<ImageElement>);
-          toast.success('Background removed', { description: 'Undo brings the original back.' });
+          toast.success(L('Background removed'), { description: L('Undo brings the original back.') });
           void qc.invalidateQueries({ queryKey: ['events', ctx.eventId, 'media'] });
         } catch (e) {
-          toast.error(e instanceof ApiError ? e.message : 'Could not remove the background. Try again.');
+          toast.error(e instanceof ApiError ? e.message : L('Could not remove the background. Try again.'));
         } finally {
           setBusy(false);
         }
@@ -409,12 +420,13 @@ function RemoveBackground({ el, ctx }: { el: ImageElement; ctx: InspectorCtx }) 
       className="flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium transition-colors hover:border-ink/40 disabled:opacity-50"
     >
       {busy ? <Loader2 className="size-4 animate-spin" /> : <Eraser className="size-4" />}
-      {busy ? 'Removing background…' : 'Remove background'}
+      {busy ? L('Removing background…') : L('Remove background')}
     </button>
   );
 }
 
 function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; colors: string[] }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-4">
       <button
@@ -425,11 +437,11 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
         }}
         className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary"
       >
-        <ImageUp className="size-4" /> {el.src || el.bind ? 'Replace photo' : 'Add photo'}
+        <ImageUp className="size-4" /> {el.src || el.bind ? L('Replace photo') : L('Add photo')}
       </button>
       <RemoveBackground el={el} ctx={ctx} />
-      <Seg label="Shape" value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'oval', label: 'Oval' }, { v: 'arch', label: 'Arch' }]} />
-      <Slider label="Border" min={0} max={40} value={el.borderW} onChange={(v) => up(el.id, { borderW: v })} />
+      <Seg label={L('Shape')} value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'oval', label: 'Oval' }, { v: 'arch', label: 'Arch' }]} />
+      <Slider label={L('Border')} min={0} max={40} value={el.borderW} onChange={(v) => up(el.id, { borderW: v })} />
       {el.borderW > 0 && <ColorPicker value={el.border ?? '#FFFFFF'} onChange={(c) => up(el.id, { border: c })} docColors={colors} />}
     </div>
   );
@@ -461,15 +473,16 @@ function ImageFilters({ el }: { el: ImageElement }) {
 }
 
 function ImageAdjust({ el }: { el: ImageElement }) {
+  const L = useL();
   const touched = (el.bright ?? 1) !== 1 || (el.contrast ?? 1) !== 1 || (el.sat ?? 1) !== 1;
   return (
     <div className="flex flex-col gap-4">
-      <Slider label="Brightness" min={-80} max={80} value={Math.round(((el.bright ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { bright: 1 + v / 100 } as Partial<ImageElement>)} />
-      <Slider label="Contrast" min={-80} max={80} value={Math.round(((el.contrast ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { contrast: 1 + v / 100 } as Partial<ImageElement>)} />
-      <Slider label="Saturation" min={-100} max={150} value={Math.round(((el.sat ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { sat: 1 + v / 100 } as Partial<ImageElement>)} />
+      <Slider label={L('Brightness')} min={-80} max={80} value={Math.round(((el.bright ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { bright: 1 + v / 100 } as Partial<ImageElement>)} />
+      <Slider label={L('Contrast')} min={-80} max={80} value={Math.round(((el.contrast ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { contrast: 1 + v / 100 } as Partial<ImageElement>)} />
+      <Slider label={L('Saturation')} min={-100} max={150} value={Math.round(((el.sat ?? 1) - 1) * 100)} onChange={(v) => up(el.id, { sat: 1 + v / 100 } as Partial<ImageElement>)} />
       {touched && (
         <button type="button" className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft hover:text-ink" onClick={() => up(el.id, { bright: 1, contrast: 1, sat: 1 } as Partial<ImageElement>)}>
-          <RotateCcw className="size-4" /> Reset adjustments
+          <RotateCcw className="size-4" /> {L('Reset adjustments')}
         </button>
       )}
     </div>
@@ -477,17 +490,18 @@ function ImageAdjust({ el }: { el: ImageElement }) {
 }
 
 function ImageCrop({ el }: { el: ImageElement }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-4">
-      <Slider label="Zoom" min={100} max={400} value={Math.round((el.zoom ?? 1) * 100)} suffix="%" onChange={(v) => up(el.id, { zoom: v / 100 } as Partial<ImageElement>)} />
-      <Slider label="Left – right" min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
-      <Slider label="Up – down" min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
+      <Slider label={L('Zoom')} min={100} max={400} value={Math.round((el.zoom ?? 1) * 100)} suffix="%" onChange={(v) => up(el.id, { zoom: v / 100 } as Partial<ImageElement>)} />
+      <Slider label={L('Left – right')} min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
+      <Slider label={L('Up – down')} min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
       <div className="flex gap-2">
         <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40" onClick={() => up(el.id, { flipX: !el.flipX } as Partial<ImageElement>)}>
-          <FlipHorizontal2 className="size-4" /> Mirror
+          <FlipHorizontal2 className="size-4" /> {L('Mirror')}
         </button>
         <button type="button" className="flex h-10 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40" onClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50, flipX: false } as Partial<ImageElement>)}>
-          <RotateCcw className="size-4" /> Reset
+          <RotateCcw className="size-4" /> {L('Reset')}
         </button>
       </div>
     </div>
@@ -495,16 +509,17 @@ function ImageCrop({ el }: { el: ImageElement }) {
 }
 
 function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-sm font-medium text-ink-soft">Fill</p>
+      <p className="text-sm font-medium text-ink-soft">{L('Fill')}</p>
       <ColorPicker value={el.fill ?? '#FFFFFF'} onChange={(c) => up(el.id, { fill: c })} docColors={colors} />
       {el.shape !== 'line' && (
         <>
-          <Slider label="Fill strength" min={0} max={1} step={0.05} value={el.fillOpacity} onChange={(v) => up(el.id, { fillOpacity: v })} />
-          <Slider label="Border" min={0} max={30} value={el.strokeW} onChange={(v) => up(el.id, { strokeW: v, stroke: el.stroke ?? '#C9973F' })} />
+          <Slider label={L('Fill strength')} min={0} max={1} step={0.05} value={el.fillOpacity} onChange={(v) => up(el.id, { fillOpacity: v })} />
+          <Slider label={L('Border')} min={0} max={30} value={el.strokeW} onChange={(v) => up(el.id, { strokeW: v, stroke: el.stroke ?? '#C9973F' })} />
           {el.strokeW > 0 && <ColorPicker value={el.stroke ?? '#C9973F'} onChange={(c) => up(el.id, { stroke: c })} docColors={colors} />}
-          {el.shape === 'rect' && <Slider label="Corners" min={0} max={300} value={el.radius} onChange={(v) => up(el.id, { radius: v })} />}
+          {el.shape === 'rect' && <Slider label={L('Corners')} min={0} max={300} value={el.radius} onChange={(v) => up(el.id, { radius: v })} />}
         </>
       )}
     </div>
@@ -514,25 +529,26 @@ function ShapeStyle({ el, colors }: { el: ShapeElement; colors: string[] }) {
 // ---------------------------------------------------------------- common
 
 function Arrange({ el }: { el: DesignElement }) {
+  const L = useL();
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void) => (
     <button type="button" onClick={onClick} className="flex h-11 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
       {icon}
-      {label}
+      {L(label)}
     </button>
   );
   const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
-    <button type="button" disabled={el.locked} onClick={() => s().align(el.id, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40 disabled:opacity-40">
+    <button type="button" disabled={el.locked} onClick={() => s().align(el.id, to)} {...tip(L(label))} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40 disabled:opacity-40">
       <Icon className="size-[1.1rem]" />
     </button>
   );
   const num = (label: string, key: 'x' | 'y' | 'w' | 'h', min: number) => (
-    <NumberField label={label} value={Math.round(el[key])} min={min} disabled={el.locked} onChange={(v) => up(el.id, { [key]: v, ...(key === 'h' && el.type === 'text' ? { fit: true } : {}) } as Partial<DesignElement>)} />
+    <NumberField label={L(label)} value={Math.round(el[key])} min={min} disabled={el.locked} onChange={(v) => up(el.id, { [key]: v, ...(key === 'h' && el.type === 'text' ? { fit: true } : {}) } as Partial<DesignElement>)} />
   );
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-1.5 text-sm font-medium text-ink-soft">Align to page</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">{L('Align to page')}</p>
         <div className="grid grid-cols-6 gap-1.5">
           {al('left', 'Align left', AlignStartVertical)}
           {al('hcenter', 'Align centre', AlignCenterVertical)}
@@ -553,20 +569,21 @@ function Arrange({ el }: { el: DesignElement }) {
         {btn('Backward', <ChevronDown className="size-4" />, () => s().arrange(el.id, 'backward'))}
         {btn('To front', <ArrowUpToLine className="size-4" />, () => s().arrange(el.id, 'front'))}
         {btn('To back', <ArrowDownToLine className="size-4" />, () => s().arrange(el.id, 'back'))}
-        {btn(el.locked ? 'Unlock' : 'Lock', el.locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => up(el.id, { locked: !el.locked }))}
+        {btn(el.locked ? L('Unlock') : L('Lock'), el.locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => up(el.id, { locked: !el.locked }))}
       </div>
-      <Slider label="Transparency" min={0} max={100} value={Math.round((1 - el.opacity) * 100)} suffix="%" onChange={(v) => up(el.id, { opacity: 1 - v / 100 })} />
-      <Slider label="Rotation" min={-180} max={180} value={Math.round(el.rot)} suffix="°" onChange={(v) => up(el.id, { rot: v })} />
+      <Slider label={L('Transparency')} min={0} max={100} value={Math.round((1 - el.opacity) * 100)} suffix="%" onChange={(v) => up(el.id, { opacity: 1 - v / 100 })} />
+      <Slider label={L('Rotation')} min={-180} max={180} value={Math.round(el.rot)} suffix="°" onChange={(v) => up(el.id, { rot: v })} />
     </div>
   );
 }
 
 function Animate({ el }: { el: DesignElement }) {
+  const L = useL();
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-sm text-ink-soft">How this appears in your video invite.</p>
+      <p className="text-sm text-ink-soft">{L('How this appears in your video invite.')}</p>
       <Seg
-        label="Animation"
+        label={L('Animation')}
         value={el.anim ?? 'auto'}
         onChange={(v) => up(el.id, { anim: v })}
         options={[
@@ -584,6 +601,7 @@ function Animate({ el }: { el: DesignElement }) {
 
 /** Property groups for the selected layer (mobile shows them as tool buttons, desktop stacks them). */
 export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
+  const L = useL();
   const el = useEditor((s) => currentPage(s)?.elements.find((e) => e.id === s.selected) ?? null);
   const colors = useDocColors();
   if (!el) return [];
@@ -614,10 +632,10 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
           render: () => (
             <div className="flex gap-2">
               <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium" onClick={() => up(el.id, { flipX: !el.flipX })}>
-                <FlipHorizontal2 className="size-4" /> Left–right
+                <FlipHorizontal2 className="size-4" /> {L('Left–right')}
               </button>
               <button type="button" className="flex h-11 flex-1 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] font-medium" onClick={() => up(el.id, { flipY: !el.flipY })}>
-                <FlipVertical2 className="size-4" /> Up–down
+                <FlipVertical2 className="size-4" /> {L('Up–down')}
               </button>
             </div>
           ),
@@ -639,6 +657,7 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
 
 /** Desktop inspector: every section stacked; each can be collapsed (remembered per section). */
 export function InspectorPanel({ sections, title, onClose }: { sections: InspectorSection[]; title: string; onClose?: () => void }) {
+  const L = useL();
   const [closed, setClosed] = useState<Set<string>>(() => {
     try {
       return new Set(JSON.parse(localStorage.getItem('cardai-inspector-closed') ?? '[]') as string[]);
@@ -662,13 +681,13 @@ export function InspectorPanel({ sections, title, onClose }: { sections: Inspect
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-ink/10 bg-ivory/95 px-4 py-3 backdrop-blur">
         <p className="kicker !text-ink">{title}</p>
         {onClose && (
-          <button type="button" onClick={onClose} className="grid size-9 place-items-center border border-transparent text-ink-soft transition-colors hover:border-ink/15 hover:text-ink" {...tip('Deselect', 'Esc', 'left')}>
+          <button type="button" onClick={onClose} className="grid size-9 place-items-center border border-transparent text-ink-soft transition-colors hover:border-ink/15 hover:text-ink" {...tip(L('Deselect'), L('Esc'), 'left')}>
             <X className="size-4" />
           </button>
         )}
       </div>
       {sections.map((s) => (
-        <Section key={s.id} title={s.label} collapsed={closed.has(s.id)} onToggle={() => toggle(s.id)}>
+        <Section key={s.id} title={L(s.label)} collapsed={closed.has(s.id)} onToggle={() => toggle(s.id)}>
           {s.render()}
         </Section>
       ))}
@@ -680,16 +699,17 @@ export function InspectorPanel({ sections, title, onClose }: { sections: Inspect
 // ---------------------------------------------------------------- multi-selection
 
 function MultiArrange({ ids }: { ids: string[] }) {
+  const L = useL();
   const s = useEditor.getState;
   const al = (to: AlignTo, label: string, Icon: LucideIcon) => (
-    <button type="button" onClick={() => s().alignMany(ids, to)} {...tip(label)} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40">
+    <button type="button" onClick={() => s().alignMany(ids, to)} {...tip(L(label))} className="grid h-10 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40">
       <Icon className="size-[1.1rem]" />
     </button>
   );
   return (
     <div className="flex flex-col gap-4">
       <div>
-        <p className="mb-1.5 text-sm font-medium text-ink-soft">Align to each other</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">{L('Align to each other')}</p>
         <div className="grid grid-cols-6 gap-1.5">
           {al('left', 'Align left edges', AlignStartVertical)}
           {al('hcenter', 'Align centres', AlignCenterVertical)}
@@ -700,23 +720,23 @@ function MultiArrange({ ids }: { ids: string[] }) {
         </div>
       </div>
       <div>
-        <p className="mb-1.5 text-sm font-medium text-ink-soft">Space evenly</p>
+        <p className="mb-1.5 text-sm font-medium text-ink-soft">{L('Space evenly')}</p>
         <div className="grid grid-cols-2 gap-2">
           <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'x')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40 disabled:opacity-40">
-            <AlignHorizontalSpaceAround className="size-4" /> Across
+            <AlignHorizontalSpaceAround className="size-4" /> {L('Across')}
           </button>
           <button type="button" disabled={ids.length < 3} onClick={() => s().distribute(ids, 'y')} className="flex h-10 items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-sm font-medium hover:border-ink/40 disabled:opacity-40">
-            <AlignVerticalSpaceAround className="size-4" /> Down
+            <AlignVerticalSpaceAround className="size-4" /> {L('Down')}
           </button>
         </div>
-        {ids.length < 3 && <p className="mt-1.5 text-xs text-ink-soft">Select 3 or more to space them evenly.</p>}
+        {ids.length < 3 && <p className="mt-1.5 text-xs text-ink-soft">{L('Select 3 or more to space them evenly.')}</p>}
       </div>
       <div className="grid grid-cols-2 gap-2">
         <button type="button" onClick={() => s().arrangeMany(ids, 'front')} className="flex h-10 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
-          <ArrowUpToLine className="size-4" /> To front
+          <ArrowUpToLine className="size-4" /> {L('To front')}
         </button>
         <button type="button" onClick={() => s().arrangeMany(ids, 'back')} className="flex h-10 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40">
-          <ArrowDownToLine className="size-4" /> To back
+          <ArrowDownToLine className="size-4" /> {L('To back')}
         </button>
       </div>
     </div>
@@ -724,18 +744,19 @@ function MultiArrange({ ids }: { ids: string[] }) {
 }
 
 function MultiActions({ ids, grouped, locked }: { ids: string[]; grouped: boolean; locked: boolean }) {
+  const L = useL();
   const s = useEditor.getState;
   const btn = (label: string, icon: ReactNode, onClick: () => void, danger = false) => (
     <button type="button" onClick={onClick} className={clsx('flex h-11 items-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 text-sm font-medium hover:border-ink/40', danger && 'text-sindoor')}>
       {icon}
-      {label}
+      {L(label)}
     </button>
   );
   return (
     <div className="grid grid-cols-2 gap-2">
       {grouped ? btn('Ungroup', <Ungroup className="size-4" />, () => s().ungroup(ids)) : btn('Group', <Group className="size-4" />, () => s().group(ids))}
       {btn('Duplicate', <Copy className="size-4" />, () => s().duplicateMany(ids))}
-      {btn(locked ? 'Unlock all' : 'Lock all', locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => s().updateMany(Object.fromEntries(ids.map((id) => [id, { locked: !locked }]))))}
+      {btn(locked ? L('Unlock all') : L('Lock all'), locked ? <Unlock className="size-4" /> : <Lock className="size-4" />, () => s().updateMany(Object.fromEntries(ids.map((id) => [id, { locked: !locked }]))))}
       {btn('Delete', <Trash2 className="size-4" />, () => s().removeMany(ids), true)}
     </div>
   );
@@ -743,6 +764,7 @@ function MultiActions({ ids, grouped, locked }: { ids: string[]; grouped: boolea
 
 /** Sections shown when several layers are selected. */
 export function useMultiSections(): { sections: InspectorSection[]; count: number; grouped: boolean } {
+  const L = useL();
   const selection = useEditor((s) => s.selection);
   const doc = useEditor((s) => s.doc);
   const page = useEditor((s) => s.page);
@@ -755,7 +777,7 @@ export function useMultiSections(): { sections: InspectorSection[]; count: numbe
     count: els.length,
     grouped,
     sections: [
-      { id: 'group', label: grouped ? 'Group' : 'Selection', icon: Group, render: () => <MultiActions ids={ids} grouped={grouped} locked={locked} /> },
+      { id: 'group', label: grouped ? L('Group') : L('Selection'), icon: Group, render: () => <MultiActions ids={ids} grouped={grouped} locked={locked} /> },
       { id: 'arrange', label: 'Arrange', icon: Layers, render: () => <MultiArrange ids={ids} /> },
     ],
   };

@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { Dialog } from '@/components/ui/dialog';
 
 const MOD = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
@@ -48,16 +49,17 @@ const GROUPS: Array<{ title: string; items: Array<[string, string[]]> }> = [
 ];
 
 export function ShortcutsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const L = useL();
   return (
-    <Dialog open={open} onClose={onClose} title="Keyboard shortcuts">
+    <Dialog open={open} onClose={onClose} title={L('Keyboard shortcuts')}>
       <div className="flex flex-col gap-5 pb-2">
         {GROUPS.map((g) => (
-          <section key={g.title}>
-            <h3 className="mb-2 font-sans text-xs font-medium uppercase tracking-wide text-ink-soft">{g.title}</h3>
+          <section key={L(g.title)}>
+            <h3 className="mb-2 font-sans text-xs font-medium uppercase tracking-wide text-ink-soft">{L(g.title)}</h3>
             <ul className="flex flex-col">
               {g.items.map(([label, keys]) => (
                 <li key={label} className="flex items-center justify-between gap-3 border-b border-ink/10 py-2 text-sm last:border-0">
-                  <span>{label}</span>
+                  <span>{L(label)}</span>
                   <span className="flex gap-1">
                     {keys.map((k) => (
                       <kbd key={k} className="rounded-md border border-ink/10 bg-mist px-1.5 py-0.5 font-sans text-xs font-medium">

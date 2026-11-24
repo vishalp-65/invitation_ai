@@ -29,6 +29,8 @@ export interface RenderDto {
   outputs: Array<{ url: string; contentType: string; bytes: number }>;
   error: string | null;
   createdAt: string;
+  /** Event list only: the invitation changed since this was made, so it no longer matches the card. */
+  stale?: boolean;
 }
 
 // ---------- Media ----------

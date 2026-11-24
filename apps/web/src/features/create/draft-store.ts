@@ -36,6 +36,8 @@ export interface Draft {
   /** True while the wording is our auto-filled default (safe to regenerate). */
   contentIsDefault: boolean;
   functions: DraftFunction[];
+  /** The occasion the functions were set up for; a different occasion starts them afresh. */
+  fnType?: EventTypeId;
   templateId: string;
   /** How the user started: the form, or a photo of their printed card (changes the step order). */
   source: 'form' | 'scan';

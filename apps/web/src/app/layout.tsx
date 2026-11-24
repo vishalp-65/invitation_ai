@@ -1,6 +1,6 @@
 import { BRAND } from '@cardai/shared';
 import type { Metadata, Viewport } from 'next';
-import { getLocale } from 'next-intl/server';
+import { getLocale, getTranslations } from 'next-intl/server';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { Instrument_Sans, JetBrains_Mono, Noto_Sans_Devanagari } from 'next/font/google';
@@ -59,6 +59,7 @@ export const viewport: Viewport = {
 
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const locale = await getLocale();
+  const tCommon = await getTranslations('common');
   return (
     <html lang={locale} dir={locale === 'ur' ? 'rtl' : 'ltr'} className={`${instrument.variable} ${deva.variable} ${mono.variable}`} data-theme="dark" suppressHydrationWarning>
       <head>
@@ -72,7 +73,7 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
           href="#main"
           className="fixed left-3 top-3 z-[100] -translate-y-20 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-on-primary transition-transform focus:translate-y-0"
         >
-          Skip to content
+          {tCommon('skipToContent')}
         </a>
         {/*
           Lean on purpose: guest pages (invitation websites, short links, builder preview) render

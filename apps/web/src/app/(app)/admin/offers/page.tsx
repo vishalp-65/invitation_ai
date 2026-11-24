@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
 import { Chip, Field, Input, Select, Textarea } from '@/components/ui/field';
+import { DateTimePicker } from '@/components/ui/time-picker';
 import { ago, Badge, BulkBar, compactINR, Empty, fromLocalInput, inr, num, PageHeader, Segmented, shortDate, Skeleton, Table, toDate, toLocalInput, Toggle } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { confirmDialog } from '@/components/ui/confirm';
@@ -142,8 +143,8 @@ function ProductPicker({ value, onChange }: { value: ProductCode[]; onChange: (v
 function DateRange({ start, end, onStart, onEnd, required }: { start: string; end: string; onStart: (v: string) => void; onEnd: (v: string) => void; required?: boolean }) {
   return (
     <div className="grid gap-3 sm:grid-cols-2">
-      <Field label={required ? 'Starts' : 'Starts (optional)'}>{(id) => <Input id={id} type="datetime-local" value={start} onChange={(e) => onStart(e.target.value)} required={required} />}</Field>
-      <Field label={required ? 'Ends' : 'Ends (optional)'}>{(id) => <Input id={id} type="datetime-local" value={end} onChange={(e) => onEnd(e.target.value)} required={required} />}</Field>
+      <Field label={required ? 'Starts' : 'Starts (optional)'}>{(id) => <DateTimePicker id={id} value={start} onChange={onStart} required={required} clearable={!required} />}</Field>
+      <Field label={required ? 'Ends' : 'Ends (optional)'}>{(id) => <DateTimePicker id={id} value={end} onChange={onEnd} required={required} clearable={!required} />}</Field>
     </div>
   );
 }
@@ -372,7 +373,7 @@ function BulkCouponDialog({ onClose, onSaved }: { onClose: () => void; onSaved: 
           <Field label="Uses per code">{(id) => <Input id={id} type="number" min={1} max={1000} value={uses} onChange={(e) => setUses(e.target.value)} />}</Field>
         </div>
         <ProductPicker value={products} onChange={setProducts} />
-        <Field label="Ends (optional)">{(id) => <Input id={id} type="datetime-local" value={end} onChange={(e) => setEnd(e.target.value)} />}</Field>
+        <Field label="Ends (optional)">{(id) => <DateTimePicker id={id} value={end} onChange={setEnd} clearable />}</Field>
         <Field label="Note (optional)" hint="Shown to the customer when the code is applied">
           {(id, d) => <Input id={id} aria-describedby={d} value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} />}
         </Field>

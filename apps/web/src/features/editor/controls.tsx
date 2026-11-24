@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { clsx } from 'clsx';
 import { ChevronDown, Pipette, Plus } from 'lucide-react';
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react';
@@ -87,6 +88,7 @@ export function NumberField({ label, value, onChange, min = -Infinity, max = Inf
 }
 
 export function Seg<T extends string>({ options, value, onChange, label, scroll = false }: { options: Array<{ v: T; label: ReactNode; title?: string }>; value: T; onChange: (v: T) => void; label?: string; scroll?: boolean }) {
+  const L = useL();
   return (
     <div role="radiogroup" aria-label={label} className={clsx('flex gap-1.5', scroll ? 'w-max' : 'flex-wrap')}>
       {options.map((o) => (
@@ -102,7 +104,7 @@ export function Seg<T extends string>({ options, value, onChange, label, scroll 
             o.v === value ? 'border-ink bg-ink text-ivory' : 'border-ink/10 bg-transparent text-ink hover:border-ink/40',
           )}
         >
-          {o.label}
+          {L(o.label)}
         </button>
       ))}
     </div>
@@ -170,6 +172,7 @@ const HEX = /^#?[0-9a-fA-F]{6}$/;
 
 /** Swatches (design colours, recents, presets) + hex input + native picker + eyedropper. */
 export function ColorPicker({ value, onChange, docColors = [] }: { value: string; onChange: (c: string) => void; docColors?: string[] }) {
+  const L = useL();
   const s = useEditor.getState;
   const ref = useRef<HTMLInputElement>(null);
   const rec = useRecent();
@@ -199,7 +202,7 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-center gap-2">
-        <button type="button" onClick={() => ref.current?.click()} {...tip('Custom colour')} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-ink/10 touch:size-11" style={{ background: value }}>
+        <button type="button" onClick={() => ref.current?.click()} {...tip(L('Custom colour'))} className="relative size-9 shrink-0 overflow-hidden rounded-lg border border-ink/10 touch:size-11" style={{ background: value }}>
           <input
             ref={ref}
             type="color"
@@ -226,13 +229,13 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
             }}
             spellCheck={false}
             className="w-full min-w-0 bg-transparent font-mono text-sm uppercase outline-none touch:h-full touch:text-base"
-            aria-label="Hex colour"
+            aria-label={L('Hex colour')}
           />
         </label>
         {hasDropper && (
           <button
             type="button"
-            {...tip('Pick a colour from screen')}
+            {...tip(L('Pick a colour from screen'))}
             className="grid size-9 shrink-0 place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] hover:border-ink/40 touch:size-11"
             onClick={async () => {
               try {
@@ -249,19 +252,19 @@ export function ColorPicker({ value, onChange, docColors = [] }: { value: string
       </div>
       {uniq.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-medium text-ink-soft">In this design</p>
+          <p className="mb-1.5 text-xs font-medium text-ink-soft">{L('In this design')}</p>
           <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{uniq.map(sw)}</div>
         </div>
       )}
       {rec.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-medium text-ink-soft">Recent</p>
+          <p className="mb-1.5 text-xs font-medium text-ink-soft">{L('Recent')}</p>
           <div className="flex flex-wrap gap-1.5 touch:gap-2.5">{rec.map(sw)}</div>
         </div>
       )}
       <div className="flex flex-wrap gap-1.5 touch:gap-2.5">
         {PRESETS.map(sw)}
-        <button type="button" onClick={() => ref.current?.click()} {...tip('More colours')} className="grid size-7 place-items-center rounded-full border border-dashed touch:size-9 border-ink/30 text-ink-soft hover:border-ink/60">
+        <button type="button" onClick={() => ref.current?.click()} {...tip(L('More colours'))} className="grid size-7 place-items-center rounded-full border border-dashed touch:size-9 border-ink/30 text-ink-soft hover:border-ink/60">
           <Plus className="size-3.5" />
         </button>
       </div>

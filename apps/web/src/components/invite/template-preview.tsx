@@ -115,9 +115,9 @@ export function TemplatePreview({
     >
       {t && sample && (
         <>
-          <div className="grid gap-6 sm:grid-cols-[minmax(0,340px)_minmax(0,1fr)] sm:gap-8">
-            {/* Pages */}
-            <div className="mx-auto w-full max-w-[340px]">
+          <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8">
+            {/* Pages — on desktop the 9:16 card shrinks with the window height so it fits without scrolling. */}
+            <div className="mx-auto w-full max-w-[340px] sm:w-[min(340px,max(10rem,calc((100dvh-19rem)*0.5625)))]">
               <div className="relative">
                 <DesignView
                   key={`${t.id}-${current}`}

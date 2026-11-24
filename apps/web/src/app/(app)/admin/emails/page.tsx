@@ -19,6 +19,7 @@ import { Suspense, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Field, Input, Select, Textarea } from '@/components/ui/field';
+import { DateTimePicker } from '@/components/ui/time-picker';
 import { Badge, dateTime, Empty, fromLocalInput, num, PageHeader, pct, Segmented, shortDate, Skeleton, Table, toLocalInput } from '@/features/admin/ui';
 import { api, ApiError } from '@/lib/api';
 import { confirmDialog } from '@/components/ui/confirm';
@@ -638,7 +639,7 @@ function Composer({
               />
               {when === 'later' && (
                 <Field label="Send at" hint="Your local time. Evenings (7–9 pm) usually get the most opens.">
-                  {(id) => <Input id={id} type="datetime-local" value={at} onChange={(e) => setAt(e.target.value)} />}
+                  {(id) => <DateTimePicker id={id} value={at} onChange={setAt} />}
                 </Field>
               )}
             </Group>

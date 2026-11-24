@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { DESIGN_H, DESIGN_W, displayText, type DesignData, type DesignElement, type TextElement } from '@cardai/shared';
 import { DesignPage, fontStack } from '@cardai/templates';
 import { clsx } from 'clsx';
@@ -755,6 +756,7 @@ function MultiFrame({
   onScale: (e: RPointerEvent, h: Handle) => void;
   above: boolean;
 }) {
+  const L = useL();
   const s = useEditor.getState;
   const ids = els.map((e) => e.id);
   const grouped = els.every((e) => e.group && e.group === els[0]!.group);
@@ -774,7 +776,7 @@ function MultiFrame({
         <div className={clsx('absolute inset-0 rounded-[2px] outline outline-2 outline-offset-2 outline-[#F2A900]', !grouped && '[outline-style:dashed]')} />
         {!anyLocked &&
           corners.map(([h, pos]) => (
-            <button key={h} type="button" aria-label={`Scale ${h}`} onPointerDown={(e) => e.button === 0 && onScale(e, h)} className={`pointer-events-auto absolute grid size-8 place-items-center touch:size-11 ${pos}`}>
+            <button key={h} type="button" aria-label={L('Resize from corner')} onPointerDown={(e) => e.button === 0 && onScale(e, h)} className={`pointer-events-auto absolute grid size-8 place-items-center touch:size-11 ${pos}`}>
               <span className="block size-3.5 rounded-full border-2 border-[#F2A900] bg-white touch:size-4" />
             </button>
           ))}
@@ -784,18 +786,18 @@ function MultiFrame({
         >
           <span className="whitespace-nowrap px-2 text-xs font-medium text-ink-soft">{els.length} items</span>
           {grouped ? (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip('Ungroup', 'Ctrl+Shift+G', 'top')} onClick={() => s().ungroup(ids)}>
-              <Ungroup className="size-4" /> Ungroup
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip(L('Ungroup'), L('Ctrl+Shift+G'), 'top')} onClick={() => s().ungroup(ids)}>
+              <Ungroup className="size-4" /> {L('Ungroup')}
             </button>
           ) : (
-            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip('Group', 'Ctrl+G', 'top')} onClick={() => s().group(ids)}>
-              <Group className="size-4" /> Group
+            <button type="button" className="flex h-8 items-center gap-1 whitespace-nowrap rounded-lg touch:h-10 px-2.5 text-sm font-medium hover:bg-ink/[0.04]" {...tip(L('Group'), L('Ctrl+G'), 'top')} onClick={() => s().group(ids)}>
+              <Group className="size-4" /> {L('Group')}
             </button>
           )}
-          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicateMany(ids)}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip(L('Duplicate'), L('Ctrl+D'), 'top')} onClick={() => s().duplicateMany(ids)}>
             <Copy className="size-4" />
           </button>
-          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().removeMany(ids)}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip(L('Delete'), L('Del'), 'top')} onClick={() => s().removeMany(ids)}>
             <Trash2 className="size-4" />
           </button>
         </div>
@@ -821,6 +823,7 @@ function SelectionFrame({
   onEdit?: () => void;
   above: boolean;
 }) {
+  const L = useL();
   const s = useEditor.getState;
   const handles: Handle[] = el.locked ? [] : el.type === 'text' ? ['nw', 'ne', 'sw', 'se', 'e', 'w'] : el.type === 'art' ? ['nw', 'ne', 'sw', 'se'] : ['nw', 'ne', 'sw', 'se', 'e', 'w', 'n', 's'];
   const pos: Record<Handle, string> = {
@@ -843,7 +846,7 @@ function SelectionFrame({
       {handles.map((h) => {
         const side = h.length === 1;
         return (
-          <button key={h} type="button" aria-label={`Resize ${h}`} onPointerDown={(e) => e.button === 0 && onHandle(e, h)} className={`absolute grid size-8 place-items-center touch:size-11 ${pos[h]}`}>
+          <button key={h} type="button" aria-label={L('Resize')} onPointerDown={(e) => e.button === 0 && onHandle(e, h)} className={`absolute grid size-8 place-items-center touch:size-11 ${pos[h]}`}>
             <span className={`block border-2 border-[#F2A900] bg-white ${side ? (h === 'e' || h === 'w' ? 'h-5 w-2 rounded-full touch:h-6' : 'h-2 w-5 rounded-full touch:w-6') : 'size-3.5 rounded-full touch:size-4'}`} />
           </button>
         );
@@ -851,7 +854,7 @@ function SelectionFrame({
       {!el.locked && (
         <button
           type="button"
-          {...tip('Rotate', 'Shift: 15° steps')}
+          {...tip(L('Rotate'), L('Shift: 15° steps'))}
           onPointerDown={(e) => e.button === 0 && onRotate(e)}
           className="absolute left-1/2 top-full mt-3 grid size-8 -translate-x-1/2 touch:mt-4 touch:size-10 cursor-grab place-items-center rounded-lg border border-ink/10 bg-ink/[0.02] text-ink"
         >
@@ -865,20 +868,20 @@ function SelectionFrame({
         onPointerDown={(e) => e.stopPropagation()}
       >
         {onEdit && (
-          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Edit text', 'Enter', 'top')} onClick={onEdit}>
+          <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip(L('Edit text'), L('Enter'), 'top')} onClick={onEdit}>
             <PencilLine className="size-4" />
           </button>
         )}
         {el.locked ? (
           <button type="button" className="flex h-8 items-center gap-1 rounded-lg px-2.5 touch:h-10 text-sm font-medium hover:bg-ink/[0.04]" onClick={() => s().update(el.id, { locked: false })}>
-            <Lock className="size-4" /> Unlock
+            <Lock className="size-4" /> {L('Unlock')}
           </button>
         ) : (
           <>
-            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip('Duplicate', 'Ctrl+D', 'top')} onClick={() => s().duplicate(el.id)}>
+            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 hover:bg-ink/[0.04]" {...tip(L('Duplicate'), L('Ctrl+D'), 'top')} onClick={() => s().duplicate(el.id)}>
               <Copy className="size-4" />
             </button>
-            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip('Delete', 'Del', 'top')} onClick={() => s().remove(el.id)}>
+            <button type="button" className="grid size-8 place-items-center rounded-lg touch:size-10 text-sindoor hover:bg-sindoor/10" {...tip(L('Delete'), L('Del'), 'top')} onClick={() => s().remove(el.id)}>
               <Trash2 className="size-4" />
             </button>
           </>

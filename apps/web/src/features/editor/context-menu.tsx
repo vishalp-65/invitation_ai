@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import type { TextElement } from '@cardai/shared';
 import { clsx } from 'clsx';
 import {
@@ -39,6 +40,7 @@ type Item = { label: string; icon: LucideIcon; kbd?: string; run: () => void; da
 
 /** Right-click menu for the canvas (keyboard-navigable, closes on outside click / Esc / scroll). */
 export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; onClose: () => void; onEditText: (el: TextElement) => void }) {
+  const L = useL();
   const ref = useRef<HTMLDivElement>(null);
   const [pos, setPos] = useState({ x: state.x, y: state.y });
   const s = useEditor.getState();
@@ -114,7 +116,7 @@ export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; 
         { label: 'Centre on page', icon: AlignCenterVertical, run: () => s.align(el.id, 'hcenter'), disabled: el.locked },
         { label: 'Middle of page', icon: AlignCenterHorizontal, run: () => s.align(el.id, 'vcenter'), disabled: el.locked },
         'sep',
-        { label: el.locked ? 'Unlock' : 'Lock', icon: el.locked ? Unlock : Lock, kbd: `${MOD}⇧L`, run: () => s.update(el.id, { locked: !el.locked }) },
+        { label: el.locked ? L('Unlock') : L('Lock'), icon: el.locked ? Unlock : Lock, kbd: `${MOD}⇧L`, run: () => s.update(el.id, { locked: !el.locked }) },
         { label: 'Hide', icon: Eye, run: () => s.update(el.id, { hidden: true }) },
         { label: 'Delete', icon: Trash2, kbd: 'Del', run: () => s.remove(el.id), danger: true, disabled: el.locked },
       ]
@@ -137,7 +139,7 @@ export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; 
           <div key={`sep${i}`} className="menu-sep" role="separator" />
         ) : (
           <button
-            key={it.label}
+            key={L(it.label)}
             type="button"
             role="menuitem"
             disabled={it.disabled}
@@ -151,7 +153,7 @@ export function ContextMenu({ state, onClose, onEditText }: { state: MenuState; 
             )}
           >
             <it.icon className="size-4 shrink-0 opacity-80" />
-            <span className="flex-1">{it.label}</span>
+            <span className="flex-1">{L(it.label)}</span>
             {it.kbd && <kbd className="font-sans text-xs text-ink-soft">{it.kbd}</kbd>}
           </button>
         ),

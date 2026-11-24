@@ -5,6 +5,7 @@ import { clsx } from 'clsx';
 import { Search, SlidersHorizontal, X } from 'lucide-react';
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Select } from '@/components/ui/select';
+import { useL } from '@/lib/use-l';
 
 export type TemplateSearchState = Required<Pick<TemplateFilters, 'q' | 'styles' | 'colors'>> & { community: string };
 
@@ -53,7 +54,6 @@ const toggle = (list: string[], v: string) => (list.includes(v) ? list.filter((x
 export function TemplateSearchBar({
   state,
   onChange,
-  hi = false,
   compact = false,
   count,
 }: {
@@ -63,6 +63,7 @@ export function TemplateSearchBar({
   compact?: boolean;
   count?: number;
 }) {
+  const L = useL();
   const [open, setOpen] = useState(!compact);
   const nFilters = state.styles.length + state.colors.length + (state.community ? 1 : 0);
   const chip = (selected: boolean) =>
@@ -75,18 +76,18 @@ export function TemplateSearchBar({
     <div className="flex flex-col gap-3">
       <div className="flex gap-2">
         <label className="relative flex-1">
-          <span className="sr-only">{hi ? 'डिज़ाइन खोजें' : 'Search designs'}</span>
+          <span className="sr-only">{L('Search designs')}</span>
           <Search className="pointer-events-none absolute left-4 top-1/2 size-[18px] -translate-y-1/2 text-ink-soft" aria-hidden />
           <input
             type="search"
             value={state.q}
             onChange={(e) => onChange({ ...state, q: e.target.value })}
-            placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search: shaadi, ganesha, maroon, floral, nikah…'}
+            placeholder={L('Search: shaadi, ganesha, maroon, floral, nikah…')}
             className="h-12 w-full border border-ink/15 bg-transparent pl-11 pr-10 text-[0.95rem] text-ink outline-none transition-colors placeholder:text-ink-soft/70 hover:border-ink/30 focus-visible:border-ink"
             enterKeyHint="search"
           />
           {state.q && (
-            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-soft hover:bg-ink/[0.04]" aria-label={hi ? 'साफ़ करें' : 'Clear search'}>
+            <button type="button" onClick={() => onChange({ ...state, q: '' })} className="absolute right-2 top-1/2 grid size-8 -translate-y-1/2 place-items-center rounded-lg text-ink-soft hover:bg-ink/[0.04]" aria-label={L('Clear search')}>
               <X className="size-4" />
             </button>
           )}
@@ -94,50 +95,50 @@ export function TemplateSearchBar({
         {compact && (
           <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className={chip(nFilters > 0) + ' h-12'}>
             <SlidersHorizontal className="size-4" aria-hidden />
-            {nFilters ? nFilters : hi ? 'फ़िल्टर' : 'Filters'}
+            {nFilters ? nFilters : L('Filters')}
           </button>
         )}
       </div>
 
       {open && (
         <div className="flex flex-col gap-2.5">
-          <div className={clsx('flex gap-1.5', compact ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5 [scrollbar-width:none]')} role="group" aria-label={hi ? 'रंग' : 'Colour'}>
+          <div className={clsx('flex gap-1.5', compact ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5 [scrollbar-width:none]')} role="group" aria-label={L('Colour')}>
             {COLOR_FILTERS.map((c) => (
               <button key={c.id} type="button" aria-pressed={state.colors.includes(c.id)} onClick={() => onChange({ ...state, colors: toggle(state.colors, c.id) })} className={chip(state.colors.includes(c.id))}>
                 <span className="size-4 rounded-full border border-black/10" style={{ background: c.swatch }} aria-hidden />
-                {hi ? c.labelHi : c.label}
+                {L(c.label)}
               </button>
             ))}
           </div>
-          <div className={clsx('flex gap-1.5', compact ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5 [scrollbar-width:none]')} role="group" aria-label={hi ? 'शैली' : 'Style'}>
+          <div className={clsx('flex gap-1.5', compact ? 'flex-wrap' : '-mx-5 overflow-x-auto px-5 [scrollbar-width:none]')} role="group" aria-label={L('Style')}>
             {STYLE_FILTERS.map((s) => (
               <button key={s.id} type="button" aria-pressed={state.styles.includes(s.id)} onClick={() => onChange({ ...state, styles: toggle(state.styles, s.id) })} className={chip(state.styles.includes(s.id))}>
-                {hi ? s.labelHi : s.label}
+                {L(s.label)}
               </button>
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <label className="flex items-center gap-2 text-sm text-ink-soft">
-              {hi ? 'परंपरा' : 'Tradition'}
+              {L('Tradition')}
               <Select
                 value={state.community}
                 onChange={(e) => onChange({ ...state, community: e.target.value })}
                 className="h-9 w-auto min-w-36 text-sm"
               >
-                <option value="">{hi ? 'सभी' : 'Any'}</option>
+                <option value="">{L('Any')}</option>
                 {COMMUNITIES.map((c) => (
                   <option key={c} value={c}>
-                    {COMMUNITY_LABEL[c]?.[hi ? 1 : 0] ?? c}
+                    {L(COMMUNITY_LABEL[c]?.[0] ?? c)}
                   </option>
                 ))}
               </Select>
             </label>
             {(nFilters > 0 || state.q) && (
               <button type="button" onClick={() => onChange(EMPTY)} className="text-sm font-medium underline underline-offset-4">
-                {hi ? 'सब हटाएँ' : 'Clear all'}
+                {L('Clear all')}
               </button>
             )}
-            {count !== undefined && (nFilters > 0 || state.q) && <span className="text-sm text-ink-soft">{hi ? `${count} डिज़ाइन मिले` : `${count} found`}</span>}
+            {count !== undefined && (nFilters > 0 || state.q) && <span className="text-sm text-ink-soft">{L('{n} found', { n: count })}</span>}
           </div>
         </div>
       )}
@@ -146,13 +147,14 @@ export function TemplateSearchBar({
 }
 
 /** Empty state when nothing matches. */
-export function NoTemplates({ hi = false, onReset }: { hi?: boolean; onReset: () => void }) {
+export function NoTemplates({ onReset }: { hi?: boolean; onReset: () => void }) {
+  const L = useL();
   return (
     <div className="border border-dashed border-ink/15 px-6 py-14 text-center">
-      <p className="text-2xl">{hi ? 'कोई डिज़ाइन नहीं मिला' : 'No designs match'}</p>
-      <p className="mt-1 text-sm text-ink-soft">{hi ? 'कम शब्द या दूसरा रंग आज़माएँ।' : 'Try fewer words or another colour.'}</p>
+      <p className="text-2xl">{L('No designs match')}</p>
+      <p className="mt-1 text-sm text-ink-soft">{L('Try fewer words or another colour.')}</p>
       <button type="button" onClick={onReset} className="mt-3 text-sm font-medium underline underline-offset-4">
-        {hi ? 'फ़िल्टर हटाएँ' : 'Clear filters'}
+        {L('Clear filters')}
       </button>
     </div>
   );

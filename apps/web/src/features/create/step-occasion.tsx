@@ -95,7 +95,7 @@ export function StepOccasion({ onPicked, onScanned }: { onPicked: () => void; on
             <OccasionArt id={art?.id ?? ''} emoji={e.emoji} />
             {on ? (
               <span className="absolute right-3 top-3 grid size-7 animate-pop place-items-center rounded-full bg-ink text-ivory">
-                <Check className="size-4" strokeWidth={2.5} aria-label={t('selected')} />
+                <Check className="size-4" strokeWidth={2.5} aria-hidden />
               </span>
             ) : (
               <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-white/90 text-black opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden>

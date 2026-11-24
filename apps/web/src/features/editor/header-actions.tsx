@@ -1,5 +1,7 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
+import { useTranslations } from 'next-intl';
 import { formatINR, type EventDto, type RenderDto, type UserTemplateDto } from '@cardai/shared';
 import { useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
@@ -18,6 +20,7 @@ import { usePrice } from '@/lib/offers';
 // ---------------------------------------------------------------- More menu
 
 export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate, onPublish, onDownload }: { onVideo: () => void; onShortcuts: () => void; onSaveTemplate: () => void; onPublish?: () => void; onDownload?: () => void }) {
+  const te = useTranslations('editor');
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -48,20 +51,20 @@ export function MoreMenu({ onVideo, onShortcuts, onSaveTemplate, onPublish, onDo
   );
   return (
     <div ref={ref} className="relative">
-      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-9 place-items-center rounded-lg hover:bg-ink/[0.04]" {...tip('More')}>
+      <button type="button" onClick={() => setOpen((o) => !o)} aria-expanded={open} aria-haspopup="menu" className="grid size-9 place-items-center rounded-lg hover:bg-ink/[0.04]" {...tip(te('more'))}>
         <MoreHorizontal className="size-5" />
       </button>
       {open && (
         <div role="menu" className="absolute right-0 top-full z-50 mt-2 w-64 origin-top-right animate-[pop-in_0.1s_ease-out] menu">
           {/* Phones keep the header for the title: Download lives here instead. */}
-          {onDownload && item('Download', Download, onDownload, undefined, 'sm:hidden')}
-          {item('Preview video invite', Play, onVideo, undefined, 'lg:hidden')}
-          {item('Save as my template', BookmarkPlus, onSaveTemplate)}
-          {onPublish && item('Publish to catalogue', Store, onPublish, 'Admin', 'text-marigold-deep')}
-          {item('Keyboard shortcuts', Keyboard, onShortcuts, '?', 'max-md:hidden')}
+          {onDownload && item(te('download'), Download, onDownload, undefined, 'sm:hidden')}
+          {item(te('previewVideo'), Play, onVideo, undefined, 'lg:hidden')}
+          {item(te('saveTemplate'), BookmarkPlus, onSaveTemplate)}
+          {onPublish && item(te('publishCatalogue'), Store, onPublish, 'Admin', 'text-marigold-deep')}
+          {item(te('shortcuts'), Keyboard, onShortcuts, '?', 'max-md:hidden')}
           <div className="menu-sep" />
           <div className="px-3 pb-2 pt-1">
-            <p className="mb-1.5 text-xs font-medium text-ink-soft">Theme</p>
+            <p className="mb-1.5 text-xs font-medium text-ink-soft">{te('theme')}</p>
             <ThemeSegmented />
           </div>
         </div>
@@ -82,6 +85,7 @@ const FORMATS: Array<{ id: Format; label: string; hint: string; icon: typeof Fil
 const kb = (n: number) => (n > 1_000_000 ? `${(n / 1_000_000).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1000))} KB`);
 
 export function DownloadDialog({ open, onClose, event, flush }: { open: boolean; onClose: () => void; event: EventDto; flush: () => Promise<void> }) {
+  const te = useTranslations('editor');
   const [format, setFormat] = useState<Format>('image');
   const cardPrice = usePrice('card').pricePaise;
   const [render, setRender] = useState<RenderDto | null>(null);
@@ -117,10 +121,10 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
       }
       if (me !== run.current) return;
       setRender(r);
-      if (r.status === 'failed') toast.error(r.error ?? 'Could not make your file. Try again.');
-      else if (r.status !== 'completed') toast.error('This is taking longer than usual. We’ll keep working on it; check Share on your invitation page.');
+      if (r.status === 'failed') toast.error(r.error ?? te('renderFailed'));
+      else if (r.status !== 'completed') toast.error(te('renderSlow'));
     } catch (e) {
-      if (me === run.current) toast.error(e instanceof ApiError ? e.message : 'Could not start the download. Check your connection.');
+      if (me === run.current) toast.error(e instanceof ApiError ? e.message : te('downloadFailed'));
     } finally {
       if (me === run.current) setBusy(false);
     }
@@ -130,10 +134,10 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
   const pct = render ? Math.max(4, render.progress) : 0;
 
   return (
-    <Dialog open={open} onClose={onClose} title="Download">
+    <Dialog open={open} onClose={onClose} title={te('download')}>
       <div className="flex flex-col gap-4 pb-2">
         {!done && (
-          <div role="radiogroup" aria-label="File type" className="flex flex-col gap-2">
+          <div role="radiogroup" aria-label={te('fileType')} className="flex flex-col gap-2">
             {FORMATS.map((f) => {
               const locked = f.feature && !event.features.includes(f.feature);
               return (
@@ -149,10 +153,10 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
                   <f.icon className="mt-0.5 size-5 shrink-0" />
                   <span className="flex-1">
                     <span className="flex items-center gap-1.5 font-medium">
-                      {f.label}
+                      {te(`fmt_${f.id}`)}
                       {locked && <Lock className="size-3.5 text-ink-soft" />}
                     </span>
-                    <span className="block text-sm text-ink-soft">{f.hint}</span>
+                    <span className="block text-sm text-ink-soft">{te(`fmt_${f.id}Hint`)}</span>
                   </span>
                   {format === f.id && <Check className="size-5 shrink-0" />}
                 </button>
@@ -166,21 +170,21 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
             <div className="h-2 overflow-hidden rounded-full bg-mist">
               <div className="h-full rounded-full bg-marigold transition-[width] duration-500" style={{ width: `${pct}%` }} />
             </div>
-            <p className="mt-1.5 text-sm text-ink-soft">{render.status === 'queued' ? 'Waiting for a free slot…' : `Making your file… ${render.progress}%`}</p>
+            <p className="mt-1.5 text-sm text-ink-soft">{render.status === 'queued' ? te('waitingSlot') : te('makingFile', { p: render.progress })}</p>
           </div>
         )}
 
         {done && render && (
           <div className="flex flex-col gap-3">
             <p className="flex items-center gap-2 font-medium text-leaf">
-              <Check className="size-5" /> Ready
+              <Check className="size-5" /> {te('ready')}
             </p>
             <ul className="flex flex-col gap-2">
               {render.outputs.map((o, i) => (
                 <li key={o.url}>
                   <a href={o.url} download target="_blank" rel="noreferrer" className="flex h-12 items-center gap-3 rounded-lg border border-ink/10 bg-ink/[0.02] px-3 font-medium hover:border-ink/40">
                     <Download className="size-4" />
-                    <span className="flex-1">{render.outputs.length > 1 ? `Page ${i + 1}` : format === 'image' ? 'Your card' : 'Your PDF'}</span>
+                    <span className="flex-1">{render.outputs.length > 1 ? te('page', { n: i + 1 }) : format === 'image' ? te('yourCard') : te('yourPdf')}</span>
                     <span className="text-sm font-normal text-ink-soft">{kb(o.bytes)}</span>
                   </a>
                 </li>
@@ -188,14 +192,14 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
             </ul>
             {render.watermark && (
               <p className="rounded-lg bg-mist p-3 text-sm">
-                Free downloads carry a small watermark.{' '}
+                {te('watermarkNote')}{' '}
                 <Link href={`/dashboard/events/${event.id}?upgrade=card`} className="font-medium underline underline-offset-4">
-                  Remove it from {formatINR(cardPrice)}
+                  {te('removeFrom', { price: formatINR(cardPrice) })}
                 </Link>
               </p>
             )}
             <button type="button" onClick={() => setRender(null)} className="flex items-center gap-1.5 self-start text-sm font-medium text-ink-soft hover:text-ink">
-              <RotateCcw className="size-4" /> Choose another format
+              <RotateCcw className="size-4" /> {te('anotherFormat')}
             </button>
           </div>
         )}
@@ -203,7 +207,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
         {!done && (
           <button type="button" onClick={start} disabled={busy} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover disabled:opacity-60">
             {busy ? <Loader2 className="size-4 animate-spin" /> : <Download className="size-4" />}
-            {busy ? 'Preparing…' : 'Download'}
+            {busy ? te('preparing') : te('download')}
           </button>
         )}
       </div>
@@ -216,6 +220,7 @@ export function DownloadDialog({ open, onClose, event, flush }: { open: boolean;
 export const MY_TEMPLATES_KEY = ['me', 'templates'] as const;
 
 export function SaveTemplateDialog({ open, onClose, event }: { open: boolean; onClose: () => void; event: EventDto }) {
+  const L = useL();
   const qc = useQueryClient();
   const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
@@ -234,26 +239,26 @@ export function SaveTemplateDialog({ open, onClose, event }: { open: boolean; on
       const t = await api<UserTemplateDto>('/me/templates', { method: 'POST', json: { name: name.trim(), design, eventType: event.type } });
       qc.setQueryData<{ items: UserTemplateDto[] }>(MY_TEMPLATES_KEY, (cur) => (cur ? { items: [t, ...cur.items] } : cur));
       void qc.invalidateQueries({ queryKey: MY_TEMPLATES_KEY });
-      toast.success('Saved to My templates', { description: 'Find it under Designs → Mine in any invitation.' });
+      toast.success(L('Saved to My templates'), { description: L('Find it under Designs → Mine in any invitation.') });
       onClose();
     } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Could not save the template. Try again.');
+      toast.error(err instanceof ApiError ? err.message : L('Could not save the template. Try again.'));
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <Dialog open={open} onClose={onClose} title="Save as my template">
+    <Dialog open={open} onClose={onClose} title={L('Save as my template')}>
       <form onSubmit={save} className="flex flex-col gap-4 pb-2">
         <label className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium text-ink-soft">Template name</span>
+          <span className="text-sm font-medium text-ink-soft">{L('Template name')}</span>
           <input value={name} onChange={(e) => setName(e.target.value.slice(0, 60))} required className={`${controlClass} h-10 px-3`} />
         </label>
-        <p className="text-sm text-ink-soft">Keeps your layout, fonts, colours and backgrounds. Names, dates and venues fill in from whichever invitation you use it in. Photos aren&apos;t copied.</p>
+        <p className="text-sm text-ink-soft">{L('Keeps your layout, fonts, colours and backgrounds. Names, dates and venues fill in from whichever invitation you use it in. Photos aren’t copied.')}</p>
         <button type="submit" disabled={busy || !name.trim()} className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary hover:bg-primary-hover disabled:opacity-60">
           {busy ? <Loader2 className="size-4 animate-spin" /> : <BookmarkPlus className="size-4" />}
-          Save template
+          {L('Save template')}
         </button>
       </form>
     </Dialog>

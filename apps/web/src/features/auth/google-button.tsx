@@ -16,7 +16,8 @@ declare global {
 const SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
 let scriptPromise: Promise<void> | null = null;
 
-function loadGoogleScript(): Promise<void> {
+/** Loads Google Identity Services once (also used to warm it up before a sign-in dialog opens). */
+export function loadGoogleScript(): Promise<void> {
   if (window.google?.accounts) return Promise.resolve();
   scriptPromise ??= new Promise<void>((resolve, reject) => {
     const s = document.createElement('script');

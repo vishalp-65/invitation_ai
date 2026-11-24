@@ -37,20 +37,7 @@ export class RendersService {
     }
     const isVideo = VIDEO_FORMATS.has(input.format);
     if (isVideo && user.role !== 'admin') await this.flags.require('video_render', 'Video rendering is paused for a short while. Your card and website still work.');
-    const watermark = isVideo ? !features.has('video_hd') : input.format === 'print_pdf' ? false : !features.has('image_hd');
-
-    const inputHash = hashJson({
-      v: 1,
-      format: input.format,
-      watermark,
-      eventUpdatedAt: event.updatedAt.toISOString(),
-      templateId: event.templateId,
-      website: features.has('website_premium'),
-      // The cinematic video follows the website's design, music and words.
-      site: input.format === 'site_video' || input.format === 'status_video' ? (event.site ?? null) : undefined,
-      // The countdown clip says "N days to go", so a new day means a new clip.
-      day: input.format === 'status_video' ? new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10) : undefined,
-    });
+    const { watermark, inputHash } = this.inputFor(event, features, input.format);
 
     const [existing] = await this.db
       .select()
@@ -152,13 +139,38 @@ export class RendersService {
     return row;
   }
 
-  /** Latest render per format for the event dashboard. */
+  /**
+   * What a render of `format` would be made from right now: the watermark and the hash of
+   * everything that changes pixels. A render whose hash differs is out of date.
+   */
+  private inputFor(event: { updatedAt: Date; templateId: string | null; site?: unknown }, features: Set<string>, format: RenderRow['format']) {
+    const isVideo = VIDEO_FORMATS.has(format);
+    const watermark = isVideo ? !features.has('video_hd') : format === 'print_pdf' ? false : !features.has('image_hd');
+    const inputHash = hashJson({
+      v: 1,
+      format,
+      watermark,
+      eventUpdatedAt: event.updatedAt.toISOString(),
+      templateId: event.templateId,
+      website: features.has('website_premium'),
+      // The cinematic video follows the website's design, music and words.
+      site: format === 'site_video' || format === 'status_video' ? (event.site ?? null) : undefined,
+      // The countdown clip says "N days to go", so a new day means a new clip.
+      day: format === 'status_video' ? new Date(Date.now() + 330 * 60_000).toISOString().slice(0, 10) : undefined,
+    });
+    return { watermark, inputHash };
+  }
+
+  /** Latest render per format for the event dashboard, each flagged `stale` once the invitation changed. */
   async latestForEvent(user: AuthUser, eventId: string): Promise<{ items: RenderDto[] }> {
-    await this.events.getOwned(user, eventId, 'view');
-    const rows = await this.db.select().from(renders).where(eq(renders.eventId, eventId)).orderBy(desc(renders.createdAt)).limit(40);
+    const event = await this.events.getOwned(user, eventId, 'view');
+    const [rows, { features }] = await Promise.all([
+      this.db.select().from(renders).where(eq(renders.eventId, eventId)).orderBy(desc(renders.createdAt)).limit(40),
+      this.entitlements.forEvent(event.id),
+    ]);
     const seen = new Set<string>();
     const items = rows.filter((r) => (seen.has(r.format) ? false : (seen.add(r.format), true)));
-    return { items: items.map((r) => this.toDto(r)) };
+    return { items: items.map((r) => ({ ...this.toDto(r), stale: r.inputHash !== this.inputFor(event, features, r.format).inputHash })) };
   }
 
   /** Public cover image for link previews (OG image) — first page of the newest completed image render. */

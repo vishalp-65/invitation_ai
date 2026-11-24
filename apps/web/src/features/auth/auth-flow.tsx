@@ -1,5 +1,6 @@
 'use client';
 
+import { useL } from '@/lib/use-l';
 import { formatPhone, toE164, type MeResponse, type OtpReceipt } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
@@ -87,6 +88,7 @@ function GoogleLogo() {
 
 /** Full-page OAuth redirect: our own button, the API does the code exchange and sets the session. */
 function GoogleRedirectButton({ mode, next }: { mode: Mode; next: string }) {
+  const L = useL();
   const [busy, setBusy] = useState(false);
   return (
     <a
@@ -96,7 +98,7 @@ function GoogleRedirectButton({ mode, next }: { mode: Mode; next: string }) {
       className="press flex h-11 w-full items-center justify-center gap-2.5 rounded-lg border border-ink/10 bg-ink/[0.02] text-[0.95rem] font-medium text-ink transition-[border-color,background-color] duration-200 hover:border-ink/25 hover:bg-ink/[0.04] aria-busy:pointer-events-none aria-busy:opacity-70"
     >
       {busy ? <span className="size-5 animate-spin rounded-full border-2 border-ink/20 border-t-ink" aria-hidden /> : <GoogleLogo />}
-      {mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
+      {mode === 'signup' ? L('Sign up with Google') : L('Continue with Google')}
     </a>
   );
 }
@@ -190,6 +192,7 @@ function CodeStep({
   onSubmit: (code: string) => Promise<void>;
   onBack: () => void;
 }) {
+  const L = useL();
   const [code, setCode] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
@@ -207,12 +210,12 @@ function CodeStep({
       try {
         await onSubmit(value);
       } catch (e) {
-        setError(errMsg(e, 'Could not verify the code. Check your connection and try again.'));
+        setError(errMsg(e, L('Could not verify the code. Check your connection and try again.')));
         setCode('');
         setBusy(false);
       }
     },
-    [busy, onSubmit],
+    [busy, onSubmit, L],
   );
 
   async function resend() {
@@ -222,15 +225,15 @@ function CodeStep({
       const r = await api<OtpReceipt>('/auth/otp/request', { method: 'POST', json: contact });
       setCooldown(r.resendInSec);
       setCode('');
-      setInfo('A new code is on its way.');
+      setInfo(L('A new code is on its way.'));
     } catch (e) {
-      setError(errMsg(e, 'Could not resend the code.'));
+      setError(errMsg(e, L('Could not resend the code.')));
     }
   }
 
   const sentTo = (
     <>
-      {email ? 'Enter the 6-digit code we emailed to' : 'Enter the 6-digit code we sent on WhatsApp to'}
+      {email ? L('Enter the 6-digit code we emailed to') : L('Enter the 6-digit code we sent on WhatsApp to')}
       <strong className="mt-0.5 block font-medium text-ink [overflow-wrap:anywhere]">{shown(contact)}</strong>
     </>
   );
@@ -240,7 +243,7 @@ function CodeStep({
       {showHeading ? (
         <Heading
           icon={email ? <MailCheck className="size-6" aria-hidden /> : <MessageCircle className="size-6" aria-hidden />}
-          title={email ? 'Check your email' : 'Check WhatsApp'}
+          title={email ? L('Check your email') : L('Check WhatsApp')}
           subtitle={sentTo}
         />
       ) : (
@@ -262,7 +265,7 @@ function CodeStep({
         </div>
 
         <Button type="submit" variant="solid" size="lg" loading={busy} disabled={code.length !== 6} className="h-11 w-full text-[0.95rem]">
-          {busy ? 'Please wait…' : 'Continue'}
+          {busy ? L('Please wait…') : L('Continue')}
         </Button>
 
         {inbox && (
@@ -273,7 +276,7 @@ function CodeStep({
             className="press flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-ink/10 bg-ink/[0.02] text-[0.95rem] font-medium text-ink transition-colors hover:border-ink/25 hover:bg-ink/[0.04]"
           >
             <Mail className="size-4" aria-hidden />
-            {inbox.label}
+            {L(inbox.label)}
           </a>
         )}
       </form>
@@ -281,20 +284,19 @@ function CodeStep({
       <div className="mt-6 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 whitespace-nowrap text-sm">
         <button type="button" onClick={onBack} className="inline-flex items-center gap-1.5 font-medium text-ink-soft transition-colors hover:text-ink">
           <ArrowLeft className="size-4" aria-hidden />
-          {email ? 'Use a different email' : 'Use a different number'}
+          {email ? L('Use a different email') : L('Use a different number')}
         </button>
         {cooldown > 0 ? (
           <span className="tabular-nums text-ink-soft">Resend in {cooldown}s</span>
         ) : (
           <button type="button" onClick={() => void resend()} className="font-medium text-ink underline decoration-ink/30 underline-offset-4 hover:decoration-ink">
-            Resend code
+            {L('Resend code')}
           </button>
         )}
       </div>
       <p className="mt-5 text-xs leading-relaxed text-ink-soft/80">
         {email
-          ? 'Can’t find it? Check your spam or promotions folder. The code is valid for 10 minutes.'
-          : 'The code arrives as a WhatsApp message and is valid for 10 minutes. Not there? Check the number, or use your email instead.'}
+          ? L('Can’t find it? Check your spam or promotions folder. The code is valid for 10 minutes.') : L('The code arrives as a WhatsApp message and is valid for 10 minutes. Not there? Check the number, or use your email instead.')}
       </p>
     </>
   );
@@ -302,6 +304,7 @@ function CodeStep({
 
 /** Only for a brand-new account: a name, and (for email accounts) the offers opt-in. Skippable. */
 function NameStep({ user, onDone }: { user: MeResponse; onDone: (u?: MeResponse) => void }) {
+  const L = useL();
   const qc = useQueryClient();
   const [name, setName] = useState('');
   /** Offers need explicit consent, so this starts unticked. */
@@ -317,31 +320,31 @@ function NameStep({ user, onDone }: { user: MeResponse; onDone: (u?: MeResponse)
       qc.setQueryData(qk.me, u);
       onDone(u);
     } catch (err) {
-      setError(errMsg(err, 'Could not save your name.'));
+      setError(errMsg(err, L('Could not save your name.')));
       setBusy(false);
     }
   }
 
   return (
     <>
-      <Heading icon={<User className="size-6" aria-hidden />} title="Welcome aboard" subtitle="Your account is ready. What should we call you?" />
+      <Heading icon={<User className="size-6" aria-hidden />} title={L('Welcome aboard')} subtitle={L('Your account is ready. What should we call you?')} />
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          if (!name.trim()) return setError('Enter your name');
+          if (!name.trim()) return setError(L('Enter your name'));
           void save({ name: name.trim(), ...(marketingOptIn ? { marketingEmails: true } : {}) });
         }}
         className="flex flex-col gap-4"
         noValidate
       >
-        <FieldBlock id="auth-name" label="Full name" error={error}>
+        <FieldBlock id="auth-name" label={L('Full name')} error={error}>
           <IconInput
             id="auth-name"
             icon={<User className="size-[18px]" aria-hidden />}
             invalid={Boolean(error)}
             describedBy={error ? 'auth-name-err' : undefined}
             autoComplete="name"
-            placeholder="Your full name"
+            placeholder={L('Your full name')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             maxLength={80}
@@ -356,11 +359,11 @@ function NameStep({ user, onDone }: { user: MeResponse; onDone: (u?: MeResponse)
               onChange={(e) => setMarketingOptIn(e.target.checked)}
               className="mt-[3px] size-4 shrink-0 cursor-pointer accent-[var(--color-ink)]"
             />
-            <span>Email me occasional offers and new designs. You can unsubscribe any time.</span>
+            <span>{L('Email me occasional offers and new designs. You can unsubscribe any time.')}</span>
           </label>
         )}
         <Button type="submit" variant="solid" size="lg" loading={busy} className="h-11 w-full text-[0.95rem]">
-          Get started
+          {L('Get started')}
         </Button>
         <button
           type="button"
@@ -368,7 +371,7 @@ function NameStep({ user, onDone }: { user: MeResponse; onDone: (u?: MeResponse)
           onClick={() => (marketingOptIn ? void save({ marketingEmails: true }) : onDone())}
           className="text-center text-sm font-medium text-ink-soft hover:text-ink"
         >
-          Skip for now
+          {L('Skip for now')}
         </button>
       </form>
     </>
@@ -396,6 +399,7 @@ export function AuthFlow({
   initialError?: string | null;
   onDone: (user: MeResponse) => void;
 }) {
+  const L = useL();
   const qc = useQueryClient();
   const { data: providers, isLoading: providersLoading } = useQuery({
     queryKey: ['auth-providers'],
@@ -435,7 +439,7 @@ export function AuthFlow({
       track('otp_requested', { props: { channel: parsed.channel, mode } });
       setPending({ contact: parsed, resendInSec: r.resendInSec });
     } catch (err) {
-      setError(errMsg(err, 'Could not send the code. Check your connection and try again.'));
+      setError(errMsg(err, L('Could not send the code. Check your connection and try again.')));
     } finally {
       setBusy(false);
     }
@@ -448,7 +452,7 @@ export function AuthFlow({
         const { user, isNew } = await api<{ user: MeResponse; isNew: boolean }>('/auth/google', { method: 'POST', json: { credential } });
         signedIn(user, isNew);
       } catch (err) {
-        setError(errMsg(err, 'Google sign-in failed. Please try again.'));
+        setError(errMsg(err, L('Google sign-in failed. Please try again.')));
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -484,12 +488,11 @@ export function AuthFlow({
   }
 
   const phoneTyped = whatsapp && value.trim().length > 0 && looksLikePhone(value);
-  const title = signup ? 'Create your account' : 'Welcome back';
+  const title = signup ? L('Create your account') : L('Welcome back');
   const subtitle = signup
-    ? 'Design your first invitation in minutes. We’ll send a code to confirm it’s you.'
+    ? L('Design your first invitation in minutes. We’ll send a code to confirm it’s you.')
     : whatsapp
-      ? 'Sign in with a one-time code on email or WhatsApp. No password needed.'
-      : 'Sign in with a one-time code sent to your email. No password needed.';
+      ? L('Sign in with a one-time code on email or WhatsApp. No password needed.') : L('Sign in with a one-time code sent to your email. No password needed.');
 
   return (
     <div key="form" className={returned ? 'animate-step-back' : undefined}>
@@ -516,9 +519,9 @@ export function AuthFlow({
       <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
         <FieldBlock
           id="auth-contact"
-          label={whatsapp ? 'Email or WhatsApp number' : 'Email address'}
-          error={fieldError}
-          hint={phoneTyped ? 'We’ll send the code on WhatsApp.' : undefined}
+          label={whatsapp ? L('Email or WhatsApp number') : L('Email address')}
+          error={L(fieldError)}
+          hint={phoneTyped ? L('We’ll send the code on WhatsApp.') : undefined}
         >
           <IconInput
             id="auth-contact"
@@ -537,16 +540,16 @@ export function AuthFlow({
           />
         </FieldBlock>
 
-        {error && <Alert>{error}</Alert>}
+        {error && <Alert>{L(error)}</Alert>}
 
         <Button type="submit" variant="solid" size="lg" loading={busy} disabled={providersLoading} className="mt-1 h-11 w-full text-[0.95rem]">
-          {busy ? 'Sending code…' : 'Send code'}
+          {busy ? L('Sending code…') : L('Send code')}
         </Button>
       </form>
 
       <p className="mt-6 flex items-start gap-2 text-[0.8125rem] leading-relaxed text-ink-soft">
         <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-        <span>No password to remember. Each time you sign in, we send a fresh code that works once, for 10 minutes.</span>
+        <span>{L('No password to remember. Each time you sign in, we send a fresh code that works once, for 10 minutes.')}</span>
       </p>
     </div>
   );

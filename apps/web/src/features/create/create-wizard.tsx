@@ -5,11 +5,14 @@ import { clsx } from 'clsx';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useLocale, useTranslations } from 'next-intl';
-import { useEffect, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Dialog } from '@/components/ui/dialog';
+import { loadGoogleScript } from '@/features/auth/google-button';
 import { useRequireLogin } from '@/features/auth/use-require-login';
+import { useMe } from '@/lib/hooks';
 import { api, ApiError } from '@/lib/api';
 import { track } from '@/lib/track';
 import { findTemplate } from '@/lib/template-hooks';
@@ -22,6 +25,8 @@ import { StepOccasion } from './step-occasion';
 import { detailsProblem, StepQuick } from './step-quick';
 
 type StepId = 'occasion' | 'details' | 'design';
+/** sessionStorage flag: Create was tapped and is waiting for sign-in. */
+const PENDING_CREATE = 'cardai-create-pending';
 /**
  * Occasion → details → design → the ready page. Details come before the design so every design is
  * shown with the user's own names, and the design step ends in "Create". A card scan follows the
@@ -84,6 +89,27 @@ function Wizard() {
   const ev = getEventType(d.type);
   const template = findTemplate(d.templateId);
 
+  // Back from a sign-in that left the page (Google redirect): carry on creating, no second tap.
+  const { data: me } = useMe();
+  const resumed = useRef(false);
+  useEffect(() => {
+    const at = Number(sessionStorage.getItem(PENDING_CREATE));
+    // Only a fresh tap (10 min), and only from the design step: never a surprise invitation later.
+    if (!me || resumed.current || !at || Date.now() - at > 10 * 60_000 || id !== 'design') return;
+    resumed.current = true;
+    sessionStorage.removeItem(PENDING_CREATE);
+    void create();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the user appears
+  }, [me]);
+
+  // On the last step, warm up sign-in (providers + Google's script) so the dialog opens instantly.
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (id !== 'design' || me) return;
+    void qc.prefetchQuery({ queryKey: ['auth-providers'], queryFn: () => api('/auth/providers'), staleTime: 60 * 60_000 });
+    void loadGoogleScript().catch(() => undefined);
+  }, [id, me, qc]);
+
   // Funnel: which step people reach (admin dashboard → conversion funnel).
   useEffect(() => {
     track('create_step', { props: { step: id, source: scan ? 'scan' : 'form' } });
@@ -103,7 +129,14 @@ function Wizard() {
       if (step !== 1) go(1);
       return;
     }
-    if (!(await ensureLogin())) return;
+    // Google may sign in by leaving the page: remember the tap so Create resumes on return.
+    sessionStorage.setItem(PENDING_CREATE, String(Date.now()));
+    const ok = await ensureLogin();
+    if (!ok) {
+      sessionStorage.removeItem(PENDING_CREATE);
+      return;
+    }
+    sessionStorage.removeItem(PENDING_CREATE);
     setCreating(true);
     try {
       const title = d.names.filter(Boolean).join(' & ') || ev.label;
@@ -128,11 +161,9 @@ function Wizard() {
       track('event_created', { templateId: d.templateId, props: { type: d.type, language: d.language, source: d.source } });
       // Publish right away so the website link works when shared; the user can unpublish.
       await api(`/events/${event.id}/publish`, { method: 'POST' });
-      // Start the card image and the video now, so both are ready (or nearly) on the next page.
-      // `auto`: neither uses a free-plan image/video until the user actually shares or downloads it.
-      await Promise.allSettled(
-        (['image', 'video'] as const).map((format) => api('/renders', { method: 'POST', json: { eventId: event.id, format, auto: true } })),
-      );
+      // Start the card image now so it is ready on the next page (the video starts there, once opened).
+      // `auto`: it uses no free-plan image until the user actually shares or downloads it.
+      await api('/renders', { method: 'POST', json: { eventId: event.id, format: 'image', auto: true } }).catch(() => undefined);
       d.reset();
       router.push(`/dashboard/events/${event.id}?created=1`);
     } catch (err) {
@@ -151,19 +182,19 @@ function Wizard() {
     <div className="min-h-dvh bg-ivory pb-32 sm:pb-36">
       {dialog}
 
-      {/* Step header: numbered stepper, then the question for this step in display type. */}
+      {/* Step header: a compact stepper, then the question for this step. Short on phones so the form starts above the fold. */}
       <section className="border-b border-ink/10">
-        <div className="mx-auto max-w-[1400px] px-5 pb-8 pt-6 sm:px-6 sm:pb-10 sm:pt-8 lg:px-12">
+        <div className="mx-auto max-w-[1400px] px-5 pb-6 pt-5 sm:px-6 sm:pb-8 sm:pt-7 lg:px-12">
           <Stepper labels={STEPS.map(stepLabel)} step={step} onJump={go} />
-          <div key={step} className={clsx('mt-8 sm:mt-10', back ? 'animate-step-back' : 'animate-step-in')}>
-            <span className="kicker page-title-kicker mb-5">{t('stepOf', { n: String(step + 1).padStart(2, '0'), total: String(STEPS.length).padStart(2, '0') })}</span>
+          <div key={step} className={clsx('mt-6 sm:mt-8', back ? 'animate-step-back' : 'animate-step-in')}>
+            <span className="kicker page-title-kicker mb-4 max-sm:!hidden">{t('stepOf', { n: String(step + 1).padStart(2, '0'), total: String(STEPS.length).padStart(2, '0') })}</span>
             <h1 className="page-title">{title}</h1>
-            <p className="mt-2 max-w-xl text-ink-soft">{sub}</p>
+            <p className="mt-2 max-w-xl text-[0.95rem] text-ink-soft sm:text-base">{sub}</p>
           </div>
         </div>
       </section>
 
-      <div key={step} className={clsx('mx-auto max-w-[1400px] px-5 pt-8 sm:px-6 sm:pt-12 lg:px-12', back ? 'animate-step-back' : 'animate-step-in')}>
+      <div key={step} className={clsx('mx-auto max-w-[1400px] px-5 pt-6 sm:px-6 sm:pt-10 lg:px-12', back ? 'animate-step-back' : 'animate-step-in')}>
         {id === 'occasion' && (
           <StepOccasion
             onPicked={() => {
@@ -247,9 +278,12 @@ function Wizard() {
       </div>
 
       <Dialog open={previewOpen} onClose={() => setPreviewOpen(false)} title={t('yourCard')}>
-        <div className="mx-auto max-w-[300px]">
-          <DraftPreview />
-        </div>
+        {/* Only while open: a closed dialog still mounts its children (and would fetch card fonts). */}
+        {previewOpen && (
+          <div className="mx-auto max-w-[300px]">
+            <DraftPreview />
+          </div>
+        )}
       </Dialog>
     </div>
   );

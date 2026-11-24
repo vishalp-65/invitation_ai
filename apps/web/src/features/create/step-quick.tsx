@@ -2,32 +2,28 @@
 
 import { COMMUNITIES, getEventType, getLanguage, localizeFunctionName, type Community, type EventContent, type LanguageCode, type ScanField } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { CalendarDays, Check, Languages, MapPin, Sparkles, Users } from 'lucide-react';
+import { CalendarDays, Check, Languages, MapPin, Plus, Sparkles, Users } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { Field, Input, Select } from '@/components/ui/field';
+import { Chip, Field, Input, Select } from '@/components/ui/field';
+import { DatePicker, todayYmd, useRelativeDays } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { useRequireLogin } from '@/features/auth/use-require-login';
 import { api, ApiError } from '@/lib/api';
 import { defaultWording } from './default-wording';
 import { DraftPreview } from './draft-preview';
-import { emptyFunction, useDraft, type Draft } from './draft-store';
+import { emptyFunction, useDraft } from './draft-store';
+import { MapLinkField } from './map-link-field';
+
+export { detailsProblem } from './validate';
 import { CheckBadge, FLAGGED, FunctionList, resolveScanField, ScanReview } from './scan/scan-review';
 
 /** The function shown on the card: the ceremony itself for weddings, else the first one. */
 export function mainFunctionName(type: Parameters<typeof getEventType>[0], language: LanguageCode = 'en'): string {
   const fns = getEventType(type).defaultFunctions as readonly string[];
   return localizeFunctionName(fns.find((f) => /wedding|nikah|anand karaj|matrimony/i.test(f)) ?? fns[0] ?? 'Event', language);
-}
-
-/** What still blocks "Create", as a `create.*` message key, or null. */
-export function detailsProblem(d: Pick<Draft, 'type' | 'names' | 'functions'>): 'errNames' | 'errName' | 'errDate' | 'errVenue' | null {
-  const people = getEventType(d.type).primaryPeople;
-  if (d.names.slice(0, people).some((n) => !n.trim())) return people === 2 ? 'errNames' : 'errName';
-  if (d.functions.some((f) => !f.date)) return 'errDate';
-  if (d.functions.some((f) => !f.venueName.trim())) return 'errVenue';
-  return null;
 }
 
 /** Occasions where the tradition changes the blessing line and which designs come first. */
@@ -47,22 +43,43 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
   const fn = d.functions[0];
   const [converting, setConverting] = useState(false);
   const [writing, setWriting] = useState(false);
+  // The optional section stays folded until wanted (open when it already has something in it).
+  const [moreOpen, setMoreOpen] = useState(() => d.source === 'scan' || Boolean(d.hosts.trim()) || !d.contentIsDefault);
+  const relDays = useRelativeDays();
   const { ensureLogin, dialog } = useRequireLogin(t('loginAi'));
   const latinNames = d.language !== 'en' && d.names.some((n) => /[a-z]/i.test(n));
   const scanned = d.source === 'scan';
   /** Fields the card scan was unsure about, until the user edits them. */
   const check = (f: ScanField) => scanned && Boolean(d.scan?.uncertain.includes(f));
 
-  // One function to start with (more are added in the editor); untouched drafts get the main one.
+  // One function to start with (the main one); more are added with the chips below. Only a new
+  // occasion starts the list afresh, so functions the user added survive going back and forth.
   useEffect(() => {
     const s = useDraft.getState();
-    if (s.source === 'scan') return; // every function read off the card is kept
+    if (s.source === 'scan' || s.fnType === s.type) return; // every function read off the card is kept
     const name = mainFunctionName(s.type, s.language);
-    if (s.functions.length !== 1 || (!s.functions[0]!.venueName && s.functions[0]!.name !== name)) {
-      const keep = s.functions.find((f) => f.venueName) ?? emptyFunction(name);
-      s.set({ functions: [{ ...keep, name: keep.venueName ? keep.name : name }] });
-    }
+    const keep = s.functions.find((f) => f.venueName) ?? emptyFunction(name);
+    s.set({ functions: [{ ...keep, name: keep.venueName ? keep.name : name }], fnType: s.type });
   }, [d.type]);
+
+  /** Other functions of this occasion not on the list yet (e.g. Haldi, Mehendi, Sangeet for a wedding). */
+  const suggestions = (ev.defaultFunctions as readonly string[])
+    .map((f) => localizeFunctionName(f, d.language))
+    .filter((name) => !d.functions.some((f) => f.name.trim().toLowerCase() === name.toLowerCase()));
+  const addFunction = (name: string) => {
+    const s = useDraft.getState();
+    const main = s.functions[0];
+    const order = (n: string) => (ev.defaultFunctions as readonly string[]).findIndex((f) => localizeFunctionName(f, s.language).toLowerCase() === n.toLowerCase());
+    // Same day and venue as the main function to start with: usually right, always editable.
+    const next = { ...emptyFunction(name), date: main?.date ?? '', time: '', venueName: main?.venueName ?? '', venueAddress: main?.venueAddress ?? '', mapUrl: main?.mapUrl ?? '' };
+    const list = [...s.functions, next];
+    // Keep the occasion's usual order (Haldi → Mehendi → Sangeet → Wedding → Reception); custom ones last.
+    list.sort((a, b) => {
+      const oa = order(a.name), ob = order(b.name);
+      return (oa < 0 ? 99 : oa) - (ob < 0 ? 99 : ob);
+    });
+    s.set({ functions: list, fnType: s.type });
+  };
 
   const setName = (i: number, v: string) => {
     const names = [...d.names] as [string, string];
@@ -193,14 +210,19 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
           >
             <FunctionList hi={hi} showErrors={showErrors} check={check} />
           </Section>
+        ) : d.functions.length > 1 ? (
+          <Section n={++n} done={d.functions.every((f) => f.date && f.venueName.trim())} icon={<CalendarDays className="size-4" />} title={t('functions')} sub={t('functionsSub')}>
+            <FunctionList hi={hi} showErrors={showErrors} check={check} addButton={false} />
+            <FunctionChips names={suggestions} onAdd={addFunction} />
+          </Section>
         ) : (
           fn && (
             <Section n={++n} done={whenDone} icon={<CalendarDays className="size-4" />} title={t('whenWhere')} sub={t('whenWhereSub', { name: fn.name })}>
               <div className="grid gap-4 sm:grid-cols-2">
-                <Field label={t('date')} error={err(!fn.date)}>
-                  {(id) => <Input id={id} type="date" value={fn.date} onChange={(e) => d.updateFunction(fn.key, { date: e.target.value })} />}
+                <Field label={t('date')} error={err(!fn.date)} hint={fn.date ? relDays(fn.date) : undefined}>
+                  {(id, desc) => <DatePicker id={id} aria-describedby={desc} aria-invalid={Boolean(err(!fn.date))} min={todayYmd()} value={fn.date} onChange={(v) => d.updateFunction(fn.key, { date: v })} />}
                 </Field>
-                <Field label={t('time')}>{(id) => <Input id={id} type="time" value={fn.time} onChange={(e) => d.updateFunction(fn.key, { time: e.target.value })} />}</Field>
+                <Field label={t('time')}>{(id) => <TimePicker id={id} value={fn.time} onChange={(v) => d.updateFunction(fn.key, { time: v })} />}</Field>
                 <Field label={t('venue')} error={err(!fn.venueName.trim())}>
                   {(id, desc) => (
                     <div className="relative">
@@ -212,35 +234,56 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
                 <Field label={t('address')}>
                   {(id) => <Input id={id} value={fn.venueAddress} lang={d.language} placeholder={t('addressPh')} onChange={(e) => d.updateFunction(fn.key, { venueAddress: e.target.value })} />}
                 </Field>
+                <MapLinkField value={fn.mapUrl} onChange={(mapUrl) => d.updateFunction(fn.key, { mapUrl })} />
               </div>
+              <FunctionChips names={suggestions} onAdd={addFunction} />
               {people === 0 && tradition && <div className="mt-4 sm:max-w-xs">{tradition}</div>}
             </Section>
           )
         )}
 
-        <Section n={n + 1} optional flag={check('hosts') || check('wording')} done={Boolean(d.hosts.trim())} icon={<Sparkles className="size-4" />} title={t('hostsTitle')} sub={t('hostsSub')}>
-          <Field label={t('whoInviting')}>
-            {(id) => (
-              <Input
-                id={id}
-                value={d.hosts}
-                placeholder={t('hostsPh')}
-                onChange={(e) => {
-                  const s = useDraft.getState();
-                  resolveScanField('hosts');
-                  d.set({ hosts: e.target.value, ...(s.contentIsDefault ? { content: { ...defaultWording(s.type, s.language, s.names, e.target.value, s.community), primaryNames: s.names.filter(Boolean) } } : {}) });
-                }}
-              />
-            )}
-          </Field>
-          <div className="mt-5 flex flex-col gap-3 border border-dashed border-ink/15 p-4 sm:flex-row sm:items-center">
-            <p className="flex-1 text-[0.95rem] text-ink-soft">{scanned ? t('wordingScanned') : d.contentIsDefault ? t('wordingDefault') : t('wordingAi')}</p>
-            <Button variant="line" onClick={writeWithAi} loading={writing} className="shrink-0">
-              <Sparkles className="size-4" />
-              {scanned ? t('rewriteAi') : t('writeAi', { language: lang.nativeName })}
-            </Button>
-          </div>
-        </Section>
+        {moreOpen ? (
+          <Section n={n + 1} optional flag={check('hosts') || check('wording')} done={Boolean(d.hosts.trim())} icon={<Sparkles className="size-4" />} title={t('hostsTitle')} sub={t('hostsSub')}>
+            <Field label={t('whoInviting')}>
+              {(id) => (
+                <Input
+                  id={id}
+                  value={d.hosts}
+                  placeholder={t('hostsPh')}
+                  onChange={(e) => {
+                    const s = useDraft.getState();
+                    resolveScanField('hosts');
+                    d.set({ hosts: e.target.value, ...(s.contentIsDefault ? { content: { ...defaultWording(s.type, s.language, s.names, e.target.value, s.community), primaryNames: s.names.filter(Boolean) } } : {}) });
+                  }}
+                />
+              )}
+            </Field>
+            <div className="mt-5 flex flex-col gap-3 border border-dashed border-ink/15 p-4 sm:flex-row sm:items-center">
+              <p className="flex-1 text-[0.95rem] text-ink-soft">{scanned ? t('wordingScanned') : d.contentIsDefault ? t('wordingDefault') : t('wordingAi')}</p>
+              <Button variant="line" onClick={writeWithAi} loading={writing} className="shrink-0">
+                <Sparkles className="size-4" />
+                {scanned ? t('rewriteAi') : t('writeAi', { language: lang.nativeName })}
+              </Button>
+            </div>
+          </Section>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setMoreOpen(true)}
+            className="press flex w-full items-center gap-4 rounded-[var(--radius-card)] border border-dashed border-ink/15 p-4 text-left transition-colors hover:border-ink/40 sm:p-5"
+          >
+            <span className="grid size-10 shrink-0 place-items-center border border-ink/15 text-ink-soft">
+              <Plus className="size-4" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="flex flex-wrap items-center gap-2.5">
+                {t('hostsTitle')}
+                <span className="border border-ink/15 px-2 py-0.5 font-mono text-[0.625rem] uppercase tracking-wider text-ink-soft">{t('optional')}</span>
+              </span>
+              <span className="mt-0.5 block text-sm text-ink-soft">{t('hostsSub')}</span>
+            </span>
+          </button>
+        )}
       </div>
 
       {/* Live preview: sticky beside the form on desktop (phones get the thumbnail in the dock). */}
@@ -258,6 +301,26 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
           </div>
         </div>
       </aside>
+    </div>
+  );
+}
+
+/** One tap adds a function (pre-filled with the main day and venue); "Other" adds a blank one. */
+function FunctionChips({ names, onAdd }: { names: string[]; onAdd: (name: string) => void }) {
+  const t = useTranslations('create');
+  return (
+    <div className="mt-5 flex flex-wrap items-center gap-2 border-t border-ink/10 pt-4">
+      <span className="mr-1 text-sm text-ink-soft">{t('addFunction')}</span>
+      {names.map((name) => (
+        <Chip key={name} onClick={() => onAdd(name)} className="h-9 gap-1.5">
+          <Plus className="size-3.5" aria-hidden />
+          {name}
+        </Chip>
+      ))}
+      <Chip onClick={() => onAdd('')} className="h-9 gap-1.5">
+        <Plus className="size-3.5" aria-hidden />
+        {t('otherFunction')}
+      </Chip>
     </div>
   );
 }
