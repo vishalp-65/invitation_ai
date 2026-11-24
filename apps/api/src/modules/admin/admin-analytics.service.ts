@@ -161,6 +161,9 @@ export class AdminAnalyticsService {
       select
         count(distinct visitor_id) filter (where name = 'page_view') as visited,
         count(distinct visitor_id) filter (where name = 'template_view') as "viewedTemplate",
+        count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'occasion') as "startedCreate",
+        count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'details') as "reachedDetails",
+        count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'design') as "reachedDesign",
         count(distinct visitor_id) filter (where name in ('signup_start', 'otp_requested')) as "startedSignup",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'signup') as "signedUp",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'event_created') as "createdInvite",
@@ -170,6 +173,9 @@ export class AdminAnalyticsService {
     const steps: Array<[string, string]> = [
       ['visited', 'Visited the site'],
       ['viewedTemplate', 'Viewed a template'],
+      ['startedCreate', 'Opened the create wizard'],
+      ['reachedDetails', 'Reached details'],
+      ['reachedDesign', 'Reached design'],
       ['startedSignup', 'Opened sign-up'],
       ['signedUp', 'Signed up'],
       ['createdInvite', 'Created an invitation'],

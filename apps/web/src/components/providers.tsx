@@ -1,7 +1,7 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Toaster } from 'sonner';
 import { ErrorReporter } from '@/components/error-reporter';
 import { SystemBars } from '@/components/layout/system-bars';
@@ -9,7 +9,8 @@ import { Tracker } from '@/components/tracker';
 import { ConfirmLayer } from '@/components/ui/confirm';
 import { TooltipLayer } from '@/components/ui/tooltip';
 import { ValidationLayer } from '@/components/ui/validation-layer';
-import { ApiError } from '@/lib/api';
+import { ApiError, startSessionKeeper } from '@/lib/api';
+import { qk } from '@/lib/hooks';
 import { ThemeSync } from '@/lib/theme';
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -25,6 +26,7 @@ export function Providers({ children }: { children: ReactNode }) {
         },
       }),
   );
+  useEffect(() => startSessionKeeper(() => !!client.getQueryData(qk.me)), [client]);
   return (
     <QueryClientProvider client={client}>
       <ThemeSync />

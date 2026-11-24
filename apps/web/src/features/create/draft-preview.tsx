@@ -50,6 +50,17 @@ export function DraftPreview({ templateId, language, className }: { templateId?:
   );
 }
 
+/** The draft's cover as a small live thumbnail (the wizard's dock on phones). */
+export function DraftThumb({ className }: { className?: string }) {
+  const d = useDraft();
+  const { doc, data } = useDraftDesign(d);
+  return (
+    <div className={className}>
+      <DesignView page={doc.pages[coverPageIndex(doc)] ?? doc.pages[0]!} data={data} language={d.language} className="overflow-hidden rounded-[4px]" />
+    </div>
+  );
+}
+
 function PageArrow({ side, disabled, onClick }: { side: 'left' | 'right'; disabled: boolean; onClick: () => void }) {
   const Icon = side === 'left' ? ChevronLeft : ChevronRight;
   return (

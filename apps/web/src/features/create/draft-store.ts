@@ -1,6 +1,7 @@
 'use client';
 
 import { BUILTIN_TEMPLATES, getEventType, SHOWCASE, templateSampleLanguage, templateSupportsEvent, type Community, type ScanField, type EventContent, type EventTypeId, type LanguageCode, type WordingTone } from '@cardai/shared';
+import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { findTemplate } from '@/lib/template-hooks';
@@ -22,6 +23,8 @@ export interface Draft {
   language: LanguageCode;
   /** The language was chosen (by the user, or by the design they picked), not just our default. */
   languageSet?: boolean;
+  /** The user picked the language themselves: a design picked later keeps it. */
+  languageByUser?: boolean;
   community?: Community;
   tone: WordingTone;
   names: [string, string];
@@ -45,8 +48,8 @@ interface DraftStore extends Draft {
   setContent: (patch: Partial<EventContent>) => void;
   setType: (type: EventTypeId) => void;
   /** Switch the card language: our ready-made wording and function names follow, user text stays. */
-  setLanguage: (language: LanguageCode) => void;
-  /** Pick a design: the card takes the language that design was shown in. */
+  setLanguage: (language: LanguageCode, byUser?: boolean) => void;
+  /** Pick a design: the card takes the language that design was shown in, unless the user chose one. */
   pickTemplate: (templateId: string) => void;
   updateFunction: (key: string, patch: Partial<DraftFunction>) => void;
   addFunction: () => void;
@@ -102,11 +105,11 @@ export const useDraft = create<DraftStore>()(
       ...initial(),
       set: (patch) => set(patch),
       setContent: (patch) => set((s) => ({ content: { ...s.content, ...patch }, contentIsDefault: false })),
-      setLanguage: (language) => set((s) => ({ language, languageSet: true, ...inLanguage(s, language) })),
+      setLanguage: (language, byUser = true) => set((s) => ({ language, languageSet: true, languageByUser: s.languageByUser || byUser, ...inLanguage(s, language) })),
       pickTemplate: (templateId) =>
         set((s) => {
           const t = findTemplate(templateId);
-          const language = t ? templateSampleLanguage(t) : s.language;
+          const language = t && !s.languageByUser ? templateSampleLanguage(t) : s.language;
           return { templateId, language, languageSet: true, ...inLanguage(s, language) };
         }),
       setType: (type) =>
@@ -135,6 +138,16 @@ export const useDraft = create<DraftStore>()(
     { name: 'cardai-draft-v1', storage: createJSONStorage(() => localStorage) },
   ),
 );
+
+/** True once the saved draft is loaded, so nothing reads (or overwrites) the defaults first. */
+export function useDraftHydrated(): boolean {
+  const [done, setDone] = useState(false);
+  useEffect(() => {
+    if (useDraft.persist.hasHydrated()) setDone(true);
+    return useDraft.persist.onFinishHydration(() => setDone(true));
+  }, []);
+  return done;
+}
 
 export function toIso(date: string, time: string) {
   return `${date}T${time || '18:00'}:00+05:30`;

@@ -25,6 +25,8 @@ import { ACCESS_TTL_SEC, REFRESH_TTL_SEC, TokenService, type IssuedTokens } from
 
 const REFRESH_COOKIE = 'cai_rt';
 const REFRESH_PATH = '/api/auth';
+/** Readable by the web proxy (path /); keep the name in sync with apps/web/src/proxy.ts. */
+const SESSION_MARKER_COOKIE = 'cai_s';
 /** Binds the Google round trip to this browser (login-CSRF protection). */
 const GOOGLE_STATE_COOKIE = 'cai_gs';
 const GOOGLE_PATH = '/api/auth/google';
@@ -220,6 +222,7 @@ export class AuthController {
     for (const domain of domains) {
       reply.clearCookie(ACCESS_COOKIE, { path: '/', domain });
       reply.clearCookie(REFRESH_COOKIE, { path: REFRESH_PATH, domain });
+      reply.clearCookie(SESSION_MARKER_COOKIE, { path: '/', domain });
     }
   }
 
@@ -267,6 +270,9 @@ export class AuthController {
     }
     reply.setCookie(ACCESS_COOKIE, tokens.accessToken, { ...base, path: '/', maxAge: ACCESS_TTL_SEC });
     reply.setCookie(REFRESH_COOKIE, tokens.refreshToken, { ...base, path: REFRESH_PATH, maxAge: REFRESH_TTL_SEC });
+    // Holds no secret: tells the edge proxy a refreshable session exists (cai_rt is invisible to it),
+    // so an expired access token is renewed in the background instead of bouncing to /login.
+    reply.setCookie(SESSION_MARKER_COOKIE, '1', { ...base, path: '/', maxAge: REFRESH_TTL_SEC });
   }
 }
 

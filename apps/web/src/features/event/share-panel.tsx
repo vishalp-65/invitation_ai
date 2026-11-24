@@ -1,6 +1,6 @@
 'use client';
 
-import { FREE_PLAN, whatsappShareUrl, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
+import { FREE_PLAN, type EventDto, type RenderDto, type SiteSettingsDto } from '@cardai/shared';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Image as ImageIcon, Printer, RefreshCw, Share2, Sparkles, Timer } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -9,7 +9,6 @@ import { QrSettingsCard } from './qr-settings';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
-import { WhatsAppIcon } from '@/components/ui/whatsapp-icon';
 import { api, ApiError } from '@/lib/api';
 import { qk, useCreateRender, useRenders } from '@/lib/hooks';
 import { track } from '@/lib/track';
@@ -207,26 +206,11 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
                 <span className="max-sm:hidden">{copied ? t('copied') : t('copy')}</span>
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-              <ButtonLink
-                href={whatsappShareUrl(t('invited', { title: event.title, url: siteUrl }))}
-                target="_blank"
-                rel="noopener"
-                className="col-span-2"
-                onClick={() => track('share', { props: { kind: 'link', eventId: event.id } })}
-              >
-                <WhatsAppIcon className="size-4" />
-                {t('shareWhatsapp')}
-              </ButtonLink>
-              <ButtonLink href={siteUrl} target="_blank" variant="line">
-                <ExternalLink className="size-4" aria-hidden />
-                {t('open')}
-              </ButtonLink>
-              <ButtonLink href={`/builder/${event.id}`} variant="line">
-                <Globe className="size-4" aria-hidden />
-                {t('design')}
-              </ButtonLink>
-            </div>
+            {/* Sharing on WhatsApp sits in the page header; here: open the page as guests see it. */}
+            <ButtonLink href={siteUrl} target="_blank" variant="line" className="self-start">
+              <ExternalLink className="size-4" aria-hidden />
+              {t('open')}
+            </ButtonLink>
           </div>
         ) : (
           <div className="flex flex-col gap-3 rounded-xl border border-dashed border-ink/20 p-4 sm:flex-row sm:items-center sm:justify-between">

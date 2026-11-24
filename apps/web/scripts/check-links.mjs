@@ -17,7 +17,9 @@ const routes = files
   .map((f) => relative(join(src, 'app'), f).replace(/\\/g, '/'))
   .filter((f) => !f.startsWith('..') && /(^|\/)(page\.tsx|route\.tsx?)$/.test(f))
   .map((f) => '/' + f.replace(/(^|\/)(page\.tsx|route\.tsx?)$/, '').replace(/\/$/, ''))
-  .map((r) => (r === '/' ? '/' : r.replace(/\/$/, '')));
+  // Route groups like (app) and parallel/private folders don't appear in the URL.
+  .map((r) => r.split('/').filter((s) => !/^\(.*\)$/.test(s) && !s.startsWith('@')).join('/'))
+  .map((r) => (r === '' || r === '/' ? '/' : r.replace(/\/$/, '')));
 const toRe = (r) => new RegExp('^' + r.replace(/\[[^\]]+\]/g, '[^/]+').replace(/\./g, '\\.') + '$');
 // /[occasion] only serves the known occasion slugs, so it must not swallow every one-segment path.
 const routeRes = routes.filter((r) => r !== '/[occasion]').map(toRe);

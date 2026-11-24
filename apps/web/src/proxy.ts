@@ -108,7 +108,9 @@ export function proxy(req: NextRequest) {
   }
 
   if (PROTECTED.some((p) => path === p || path.startsWith(`${p}/`))) {
-    const hasSession = req.cookies.has('cai_at') || req.cookies.has('cai_rt');
+    // cai_at lives 15 min; cai_s (set with the refresh cookie, which the proxy can't see) lives 30
+    // days. With only cai_s the page loads and the client renews the token silently on its first 401.
+    const hasSession = req.cookies.has('cai_at') || req.cookies.has('cai_s');
     if (!hasSession) {
       const url = req.nextUrl.clone();
       url.pathname = '/login';

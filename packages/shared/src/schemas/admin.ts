@@ -15,6 +15,7 @@ export const TRACK_EVENTS = [
   'template_view', // opened / previewed a template
   'template_select', // chose a template for an invitation
   'card_scanned', // read a photo of a printed card in /create
+  'create_step', // reached a /create wizard step (props.step: occasion | details | design)
   'event_created',
   'editor_open',
   'render_download',

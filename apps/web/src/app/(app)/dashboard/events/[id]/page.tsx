@@ -1,7 +1,8 @@
 'use client';
 
-import { getEventType, getLanguage } from '@cardai/shared';
-import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, ExternalLink, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
+import { getEventType, getLanguage, whatsappShareUrl, type SiteSettingsDto } from '@cardai/shared';
+import { useQuery } from '@tanstack/react-query';
+import { Brush, CalendarDays, ChevronDown, ChevronLeft, Crown, Eye, Gift, Globe, HeartHandshake, MapPin, MessageSquareReply, PartyPopper, Pencil, Printer, Send, Users } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
@@ -13,6 +14,8 @@ import { PageSkeleton } from '@/components/ui/skeletons';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { EventDesignPreview } from '@/features/event/design-preview';
 import { useEvent } from '@/lib/hooks';
+import { api } from '@/lib/api';
+import { track } from '@/lib/track';
 
 /** Only the open tab is shown, so each panel is its own chunk, fetched when its tab is first opened. */
 const panelLoading = () => <PageSkeleton variant="form" />;
@@ -88,11 +91,11 @@ function EventWorkspace() {
             <PartyPopper className="size-4" strokeWidth={1.6} aria-hidden />
           </span>
           <div className="flex-1">
-            <p className="text-ink">Your invitation is ready.</p>
-            <p className="mt-0.5 text-sm text-ink-soft">The image card is being made now. Share the website link right away, and make the video when you like.</p>
+            <p className="text-ink">{t('createdTitle')}</p>
+            <p className="mt-0.5 text-sm text-ink-soft">{t('createdBody')}</p>
           </div>
           <button type="button" className="font-mono text-xs text-ink-soft underline underline-offset-4 hover:text-ink" onClick={() => router.replace(`/dashboard/events/${id}`)}>
-            Dismiss
+            {t('dismiss')}
           </button>
         </div>
       )}
@@ -178,9 +181,13 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
   const live = event.status === 'published';
   const first = [...event.functions].sort((a, b) => a.startsAt.localeCompare(b.startsAt))[0];
   const days = first ? daysTo(first.startsAt) : null;
+  const tShare = useTranslations('share');
+  // The same link as the Share tab (short or custom link when there is one).
+  const site = useQuery({ queryKey: ['site', event.id], queryFn: () => api<SiteSettingsDto>(`/events/${event.id}/site`), enabled: live });
   const share = () => {
-    const url = `${window.location.origin}/i/${event.slug}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(`${event.title}\n${url}`)}`, '_blank', 'noopener');
+    const url = site.data?.vanityUrl ?? site.data?.shortUrl ?? `${window.location.origin}/i/${event.slug}`;
+    track('share', { props: { kind: 'link', eventId: event.id } });
+    window.open(whatsappShareUrl(tShare('invited', { title: event.title, url })), '_blank', 'noopener');
   };
 
   return (
@@ -256,12 +263,6 @@ function EventHeader({ event }: { event: NonNullable<ReturnType<typeof useEvent>
               {t('editSite')}
             </Link>
           </>
-        )}
-        {live && (
-          <a href={`/i/${event.slug}`} target="_blank" rel="noopener" className={buttonClass('quiet', 'md', 'col-span-2 text-ink-soft')}>
-            <ExternalLink className="size-4" aria-hidden />
-            {t('openSite')}
-          </a>
         )}
       </div>
     </section>

@@ -1,38 +1,18 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, COMMUNITIES, type Community, EVENT_CATEGORIES, EVENT_TYPES, type EventCategory, faithOf, LANGUAGES, showcaseRank, templateFaithClash } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_CATEGORIES, EVENT_TYPES, type EventTypeId, faithOf, LANGUAGES, type LanguageCode, showcaseRank, templateFaithClash } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowUpRight, Check } from 'lucide-react';
+import { ArrowUpRight, Check, ChevronDown, ImagePlus, X } from 'lucide-react';
 import Image from 'next/image';
-import { useLocale } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { Select } from '@/components/ui/field';
 import { useDraft } from './draft-store';
 import { CardUpload } from './scan/card-upload';
+import { useScanPhotos } from './scan/scan-photos';
 
-const COMMUNITY_LABELS: Record<Community, string> = {
-  'hindu-north': 'Hindu (North)',
-  'hindu-south': 'Hindu (South)',
-  marwari: 'Marwari',
-  gujarati: 'Gujarati',
-  marathi: 'Marathi',
-  bengali: 'Bengali',
-  punjabi: 'Punjabi',
-  sikh: 'Sikh',
-  muslim: 'Muslim',
-  christian: 'Christian',
-  jain: 'Jain',
-  buddhist: 'Buddhist',
-  modern: 'Modern / no tradition',
-};
-
-const CATEGORY_LABEL: Record<EventCategory, [string, string]> = {
-  wedding: ['Weddings', 'विवाह'],
-  family: ['Baby & family', 'परिवार व बच्चे'],
-  religious: ['Puja & sanskar', 'पूजा व संस्कार'],
-  celebration: ['Celebrations', 'उत्सव'],
-  business: ['Business', 'व्यापार'],
-};
+/** What most people make: shown first, the rest one tap away. */
+const POPULAR: EventTypeId[] = ['wedding', 'engagement', 'birthday', 'griha-pravesh', 'baby-shower', 'naming-ceremony', 'puja', 'anniversary'];
 
 /**
  * A real design for each occasion, chosen once at load:
@@ -81,134 +61,135 @@ function OccasionArt({ id, emoji }: { id: string; emoji: string }) {
   );
 }
 
-/** Language + tradition first (they shape the designs), then one tap on an occasion moves on. */
+/**
+ * Step 1: one tap on an occasion moves on. The card language sits beside the heading (it starts in
+ * the site's language), and a printed card can be scanned instead from a one-line opener.
+ */
 export function StepOccasion({ onPicked, onScanned }: { onPicked: () => void; onScanned: () => void }) {
   const d = useDraft();
-  const hi = useLocale() === 'hi';
+  const t = useTranslations('create');
+  const hasPhotos = useScanPhotos((s) => s.photos.length > 0);
+  const [scanOpen, setScanOpen] = useState(hasPhotos);
+  // A draft for a less common occasion opens with the full list, so its tile is visible.
+  const [all, setAll] = useState(!POPULAR.includes(d.type) && d.step > 0);
 
-  let n = 0;
-  return (
-    <div className="flex flex-col gap-10 sm:gap-12">
-      {/* Two ways in: a photo of the printed card, or the occasion + form below. */}
-      <CardUpload onDone={onScanned} />
-      <div className="flex items-center gap-4" role="separator">
-        <span className="h-px flex-1 bg-ink/10" />
-        <span className="font-mono text-[0.6875rem] uppercase tracking-wider text-ink-soft">{hi ? 'या खुद जानकारी भरिए' : 'Or fill in the details yourself'}</span>
-        <span className="h-px flex-1 bg-ink/10" />
-      </div>
-
-      {/* Language + tradition: they shape the wording and which designs come first. */}
-      <section className="grid gap-6 border border-ink/10 bg-ink/[0.02] p-5 sm:p-8 lg:grid-cols-[1fr_300px] lg:items-end lg:gap-10">
-        <div className="min-w-0">
-          <span className="kicker mb-4">{hi ? 'कार्ड की भाषा' : 'Card language'}</span>
-          <div className="-mx-5 overflow-x-auto px-5 [scrollbar-width:none] sm:mx-0 sm:px-0">
-            <div className="flex w-max gap-2 sm:w-auto sm:flex-wrap" role="group" aria-label={hi ? 'कार्ड की भाषा' : 'Card language'}>
-              {LANGUAGES.map((l) => {
-                const on = d.language === l.code;
-                return (
-                  <button
-                    key={l.code}
-                    type="button"
-                    lang={l.code}
-                    aria-pressed={on}
-                    onClick={() => d.setLanguage(l.code)}
-                    className={clsx(
-                      'press h-11 shrink-0 border px-4 text-[0.95rem] transition-colors duration-200',
-                      on ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink hover:border-ink/30 hover:bg-ink/[0.04]',
-                    )}
-                  >
-                    {l.nativeName}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-        <label className="flex flex-col gap-3">
-          <span className="kicker">
-            {hi ? 'परंपरा' : 'Tradition'} <span className="text-ink-soft/60">({hi ? 'वैकल्पिक' : 'optional'})</span>
-          </span>
-          <Select
-            value={d.community ?? ''}
-            className="h-11"
-            onChange={(e) =>
-              d.set({
-                community: (e.target.value || undefined) as Community | undefined,
-                // Untouched wording is rewritten for the new tradition (its blessing line changes).
-                ...(d.contentIsDefault ? { content: { ...d.content, headline: '' } } : {}),
-              })
-            }
-          >
-            <option value="">{hi ? 'कोई भी' : 'Any tradition'}</option>
-            {COMMUNITIES.map((c) => (
-              <option key={c} value={c}>
-                {COMMUNITY_LABELS[c]}
-              </option>
-            ))}
-          </Select>
-        </label>
-      </section>
-
-      {EVENT_CATEGORIES.map((cat) => {
-        const items = EVENT_TYPES.filter((e) => e.category === cat);
-        if (!items.length) return null;
-        return (
-          <section key={cat} aria-labelledby={`cat-${cat}`}>
-            <div className="mb-5 flex items-end justify-between gap-4 border-b border-ink/10 pb-4">
-              <h2 id={`cat-${cat}`} className="text-lg sm:text-xl">
-                {CATEGORY_LABEL[cat][hi ? 1 : 0]}
-              </h2>
-              <span className="font-mono text-xs text-ink-soft">
-                {items.length} {hi ? 'अवसर' : items.length === 1 ? 'occasion' : 'occasions'}
+  const tile = (id: EventTypeId) => {
+    const e = EVENT_TYPES.find((x) => x.id === id)!;
+    const on = d.type === e.id;
+    const art = OCCASION_ART.get(e.id);
+    return (
+      <li key={e.id}>
+        <button
+          type="button"
+          aria-pressed={on}
+          onClick={() => {
+            d.setType(e.id);
+            onPicked();
+          }}
+          className={clsx(
+            'group relative flex h-full w-full flex-col overflow-clip border text-left transition-[border-color,background-color] duration-300 active:scale-[0.99]',
+            on ? 'border-ink bg-ink/[0.04]' : 'border-ink/10 hover:border-ink/40',
+          )}
+        >
+          <span className="relative block aspect-[4/5] overflow-clip bg-ink/[0.04]">
+            <OccasionArt id={art?.id ?? ''} emoji={e.emoji} />
+            {on ? (
+              <span className="absolute right-3 top-3 grid size-7 animate-pop place-items-center rounded-full bg-ink text-ivory">
+                <Check className="size-4" strokeWidth={2.5} aria-label={t('selected')} />
               </span>
-            </div>
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">
-              {items.map((e) => {
-                const on = d.type === e.id;
-                const art = OCCASION_ART.get(e.id);
-                const idx = ++n;
-                return (
-                  <li key={e.id}>
-                    <button
-                      type="button"
-                      aria-pressed={on}
-                      onClick={() => {
-                        d.setType(e.id);
-                        onPicked();
-                      }}
-                      className={clsx(
-                        'group relative flex h-full w-full flex-col overflow-clip border text-left transition-[border-color,background-color] duration-300 active:scale-[0.99]',
-                        on ? 'border-ink bg-ink/[0.04]' : 'border-ink/10 hover:border-ink/40',
-                      )}
-                    >
-                      <span className="relative block aspect-[4/5] overflow-clip bg-ink/[0.04]">
-                        <OccasionArt id={art?.id ?? ''} emoji={e.emoji} />
-                        <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/45 to-transparent" />
-                        <span className="absolute left-3 top-3 bg-black/55 px-1.5 py-0.5 font-mono text-[0.625rem] text-white backdrop-blur">{String(idx).padStart(2, '0')}</span>
-                        {on ? (
-                          <span className="absolute right-3 top-3 grid size-7 animate-pop place-items-center rounded-full bg-ink text-ivory">
-                            <Check className="size-4" strokeWidth={2.5} aria-label={hi ? 'चुना गया' : 'Selected'} />
-                          </span>
-                        ) : (
-                          <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-white/90 text-black opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden>
-                            <ArrowUpRight className="size-4" />
-                          </span>
-                        )}
-                      </span>
-                      <span className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
-                        <span className="text-[0.95rem] leading-snug">{hi ? e.labelHi : e.label.split(' / ')[0]}</span>
-                        <span className="font-mono text-[0.6875rem] text-ink-soft">
-                          {art?.count ?? 0} {hi ? 'डिज़ाइन' : 'designs'}
-                        </span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </section>
-        );
-      })}
+            ) : (
+              <span className="absolute right-3 top-3 grid size-7 place-items-center rounded-full bg-white/90 text-black opacity-0 transition-opacity duration-300 group-hover:opacity-100" aria-hidden>
+                <ArrowUpRight className="size-4" />
+              </span>
+            )}
+          </span>
+          <span className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+            <span className="text-[0.95rem] leading-snug">{t(`occ.${e.id}`)}</span>
+            <span className="font-mono text-[0.6875rem] text-ink-soft">{t('designCount', { n: art?.count ?? 0 })}</span>
+          </span>
+        </button>
+      </li>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-8 sm:gap-10">
+      {/* A printed card fills in everything: one line until it is wanted. */}
+      {scanOpen ? (
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setScanOpen(false)}
+            className="absolute right-3 top-3 z-10 grid size-9 place-items-center rounded-full border border-ink/15 bg-ivory hover:border-ink/40"
+            aria-label={t('scanClose')}
+          >
+            <X className="size-4" />
+          </button>
+          <CardUpload onDone={onScanned} />
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setScanOpen(true)}
+          className="press flex w-full items-center gap-4 border border-dashed border-ink/20 p-4 text-left transition-colors hover:border-ink/45 hover:bg-ink/[0.02] sm:p-5"
+        >
+          <span className="grid size-11 shrink-0 place-items-center rounded-full border border-ink/15">
+            <ImagePlus className="size-5" aria-hidden />
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block">{t('scanTitle')}</span>
+            <span className="mt-0.5 block text-sm text-ink-soft">{t('scanBody')}</span>
+          </span>
+          <span className="shrink-0 text-sm underline underline-offset-4 max-sm:hidden">{t('scanCta')}</span>
+        </button>
+      )}
+
+      <section aria-labelledby="occ-h">
+        <div className="mb-5 flex flex-wrap items-end justify-between gap-4 border-b border-ink/10 pb-4">
+          <h2 id="occ-h" className="text-lg sm:text-xl">
+            {all ? t('allOccasions') : t('popular')}
+          </h2>
+          <label className="flex items-center gap-3">
+            <span className="text-sm text-ink-soft">{t('cardLanguage')}</span>
+            <Select value={d.language} className="h-10 min-w-[9rem]" onChange={(e) => d.setLanguage(e.target.value as LanguageCode)} lang={d.language}>
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code} lang={l.code}>
+                  {l.nativeName}
+                </option>
+              ))}
+            </Select>
+          </label>
+        </div>
+
+        {all ? (
+          <div className="flex flex-col gap-10">
+            {EVENT_CATEGORIES.map((cat) => {
+              const items = EVENT_TYPES.filter((e) => e.category === cat);
+              if (!items.length) return null;
+              return (
+                <section key={cat} aria-labelledby={`cat-${cat}`}>
+                  <h3 id={`cat-${cat}`} className="mb-4 font-mono text-xs uppercase tracking-wider text-ink-soft">
+                    {t(`cat.${cat}`)}
+                  </h3>
+                  <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-5">{items.map((e) => tile(e.id))}</ul>
+                </section>
+              );
+            })}
+          </div>
+        ) : (
+          <>
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">{POPULAR.map(tile)}</ul>
+            <button
+              type="button"
+              onClick={() => setAll(true)}
+              className="press mt-5 flex h-12 w-full items-center justify-center gap-2 border border-ink/15 text-sm transition-colors hover:border-ink/40"
+            >
+              {t('moreOccasions', { n: EVENT_TYPES.length - POPULAR.length })}
+              <ChevronDown className="size-4" aria-hidden />
+            </button>
+          </>
+        )}
+      </section>
     </div>
   );
 }

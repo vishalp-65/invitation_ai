@@ -3,7 +3,7 @@
 import { SCAN_MAX_IMAGES } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { AlertCircle, Camera, Check, ImagePlus, Lock, ScanText, X } from 'lucide-react';
-import { useLocale } from 'next-intl';
+import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState, type DragEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { useRequireLogin } from '@/features/auth/use-require-login';
@@ -36,7 +36,8 @@ export function CardUpload({ onDone }: { onDone: () => void }) {
   const [over, setOver] = useState(false);
   const browse = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
-  const { ensureLogin, dialog } = useRequireLogin(hi ? 'कार्ड पढ़ने के लिए ईमेल सत्यापित करें' : 'Verify your email to read your card');
+  const t = useTranslations('create');
+  const { ensureLogin, dialog } = useRequireLogin(t('loginScan'));
   const working = phase.kind === 'working';
   const full = photos.length >= SCAN_MAX_IMAGES;
 

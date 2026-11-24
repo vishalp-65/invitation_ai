@@ -17,14 +17,38 @@ export class ApiError extends Error {
 }
 
 let refreshing: Promise<boolean> | null = null;
+let lastRefreshAt = Date.now();
+/** Access tokens last 15 min; renew with a margin so a request never has to hit a 401 first. */
+const RENEW_AFTER_MS = 10 * 60_000;
 
 async function refreshSession(): Promise<boolean> {
   refreshing ??= fetch('/api/auth/refresh', { method: 'POST', credentials: 'include' })
-    .then((r) => r.ok)
+    .then((r) => {
+      if (r.ok) lastRefreshAt = Date.now();
+      return r.ok;
+    })
     .finally(() => {
       refreshing = null;
     });
   return refreshing;
+}
+
+/**
+ * Keeps a signed-in session fresh in the background: renews the access token shortly before it
+ * lapses, and straight away when a long-idle tab comes back (timers are throttled while hidden).
+ * Silent; failures are ignored (the next real request falls back to refresh-on-401).
+ * Returns a cleanup function.
+ */
+export function startSessionKeeper(isSignedIn: () => boolean): () => void {
+  const tick = () => {
+    if (document.visibilityState === 'visible' && isSignedIn() && Date.now() - lastRefreshAt >= RENEW_AFTER_MS) void refreshSession().catch(() => {});
+  };
+  const timer = setInterval(tick, 60_000);
+  document.addEventListener('visibilitychange', tick);
+  return () => {
+    clearInterval(timer);
+    document.removeEventListener('visibilitychange', tick);
+  };
 }
 
 /**
