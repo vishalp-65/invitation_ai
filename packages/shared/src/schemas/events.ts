@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { COMMUNITIES, EVENT_TYPE_IDS } from '../constants/event-types.js';
 import { LANGUAGE_CODES } from '../constants/languages.js';
+import { PHOTO_BG_BLENDS, PHOTO_BG_DEFAULT, PHOTO_BG_FADES, PHOTO_BG_POSITIONS, PHOTO_BG_SHAPES } from '../constants/photo-bg.js';
 import { slugSchema, webUrl } from './common.js';
 import { designDocSchema, type DesignDoc } from '../design/schema.js';
 
@@ -73,6 +74,23 @@ export const qrSettingsSchema = z.object({
 });
 export type QrSettings = z.infer<typeof qrSettingsSchema>;
 
+/** Background photo behind the design (card, video, website). See constants/photo-bg.ts. */
+export const photoBgSchema = z.object({
+  photo: z.number().int().min(0).max(5).default(PHOTO_BG_DEFAULT.photo),
+  position: z.enum(PHOTO_BG_POSITIONS).default(PHOTO_BG_DEFAULT.position),
+  size: z.number().min(30).max(100).default(PHOTO_BG_DEFAULT.size),
+  dx: z.number().min(-60).max(60).default(0),
+  dy: z.number().min(-60).max(60).default(0),
+  fade: z.enum(PHOTO_BG_FADES).default(PHOTO_BG_DEFAULT.fade),
+  blend: z.enum(PHOTO_BG_BLENDS).default(PHOTO_BG_DEFAULT.blend),
+  opacity: z.number().min(0.15).max(1).default(1),
+  duotone: z.boolean().default(false),
+  shape: z.enum(PHOTO_BG_SHAPES).default(PHOTO_BG_DEFAULT.shape),
+  image: z.boolean().default(true),
+  video: z.boolean().default(true),
+  site: z.boolean().default(true),
+});
+
 export const eventSettingsSchema = z.object({
   timezone: z.string().default('Asia/Kolkata'),
   rsvpEnabled: z.boolean().default(true),
@@ -89,6 +107,7 @@ export const eventSettingsSchema = z.object({
   /** Save-the-date mode: the site shows only names, date and city until the full invite is released. */
   saveTheDate: z.boolean().default(false),
   qr: qrSettingsSchema.optional(),
+  photoBg: photoBgSchema.optional(),
 });
 export type EventSettings = z.infer<typeof eventSettingsSchema>;
 
@@ -128,6 +147,7 @@ export const eventSettingsPatchSchema = z.object({
   followUps: followUpsSchema.nullable().optional(),
   saveTheDate: z.boolean().optional(),
   qr: qrSettingsSchema.nullable().optional(),
+  photoBg: photoBgSchema.nullable().optional(),
 });
 export type EventSettingsPatch = z.infer<typeof eventSettingsPatchSchema>;
 

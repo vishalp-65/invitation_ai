@@ -3,6 +3,7 @@
 import { heroInk, type SiteDesign } from '@cardai/shared';
 import { Ambient, SceneLayer } from '@cardai/templates/scenes';
 import '@/features/site/scenes.css';
+import { LayoutPoster } from './layout-poster';
 
 const LAYERS = ['sky', 'far', 'mid', 'near'] as const;
 
@@ -12,6 +13,8 @@ const LAYERS = ['sky', 'far', 'mid', 'near'] as const;
  * full preview animates them and adds the design's ambient particles.
  */
 export function DesignPoster({ design, still = false, names = ['Abhishek', 'Kanika'] }: { design: SiteDesign; still?: boolean; names?: [string, string] }) {
+  // Layout designs (stories, premiere, chat, scrapbook) show a mock of their first screen.
+  if (design.layout) return <LayoutPoster design={design} names={names} />;
   const night = design.scene.night;
   const ink = heroInk(design); // the design's own cover colour (e.g. cream on a maroon arch)
   const c = design.scene.colors;

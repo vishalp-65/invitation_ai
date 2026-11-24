@@ -12,6 +12,11 @@ import { Opening } from './opening';
 import { BandArt } from './photo-look';
 import { LiveBar } from './extras';
 import { SectionView } from './sections';
+import { LAYOUT_COVERS } from './layouts/covers';
+import dynamic from 'next/dynamic';
+
+// Layout designs (stories, premiere, chat, scrapbook) load only on pages that use one.
+const LayoutView = dynamic(() => import('./layouts').then((m) => m.LayoutView));
 import { bandVars, googleFontsHref, siteVars } from './theme';
 import './scenes.css';
 import './site.css';
@@ -162,8 +167,20 @@ export function SiteRenderer({
 
           {(() => {
             let band = 0;
+            const layout = design?.layout;
+            const covered = layout ? LAYOUT_COVERS[layout] : null;
+            // "Scroll down" lands on the first section after the cover.
+            const mainIdx = doc.sections.findIndex((x, i) => i > 0 && !covered?.has(x.type));
             return doc.sections.map((s, i) => {
-              const anchor = i === 1 ? 'main' : undefined;
+              const anchor = i === mainIdx ? 'main' : undefined;
+              if (layout && s.type === 'hero') {
+                return (
+                  <div key={s.id} data-section={s.id}>
+                    <LayoutView layout={layout} doc={doc} started={started} />
+                  </div>
+                );
+              }
+              if (covered?.has(s.type)) return null;
               if (!design || s.type === 'hero') {
                 return (
                   <div key={s.id} id={anchor} data-section={s.id}>

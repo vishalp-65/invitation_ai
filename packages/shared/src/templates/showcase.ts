@@ -10,6 +10,8 @@ import type { TemplateDefinition } from './types.js';
 
 /** Families from the modern collections, best first (also used to rank automatic picks). */
 export const MODERN_FAMILY_IDS = [
+  // Layout designs (design/families-layout.ts)
+  'chat-story', 'insta-stories', 'premiere', 'scrapbook',
   // Painted photo collection (art/looks.ts)
   'gulab-bagh', 'kahani', 'jharokha', 'mahal-maroon', 'gulabi-syahi', 'genda', 'herbarium', 'harit', 'kamal', 'roshni',
   // Atelier

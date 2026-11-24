@@ -59,6 +59,10 @@ export const EDITOR_FONTS: EditorFont[] = [
   { family: 'Didact Gothic', group: 'sans', scripts: L },
   { family: 'Poppins', group: 'sans', scripts: D },
   { family: 'Inter', group: 'sans', scripts: L },
+  { family: 'DM Sans', group: 'sans', scripts: L },
+  { family: 'Bebas Neue', group: 'display', scripts: L },
+  { family: 'Special Elite', group: 'display', scripts: L },
+  { family: 'Caveat', group: 'script', scripts: L },
   // Playful
   { family: 'Fredoka', group: 'fun', scripts: L },
   { family: 'Pacifico', group: 'fun', scripts: L },

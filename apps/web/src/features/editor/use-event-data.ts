@@ -1,6 +1,6 @@
 'use client';
 
-import { BRAND, coverPageIndex, designDataFrom, qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, writeBinding, type DesignData, type DesignDoc, type EventDto, type EventFunctionInput } from '@cardai/shared';
+import { BRAND, coverPageIndex, designDataFrom, photoBgFor, qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, writeBinding, type DesignData, type DesignDoc, type EventDto, type EventFunctionInput } from '@cardai/shared';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { toast } from 'sonner';
@@ -22,18 +22,32 @@ export function useDesignData(event: EventDto | undefined, photos: string[] = []
       ? qrTargetUrl(qr.target, { mapUrl: venueMapsUrl(event.functions[base.mainFunction] ?? event.functions[0]), siteUrl: event.status === 'published' ? `${APP_URL}/i/${event.slug}` : null })
       : null;
   const src = useQrDataUrl(target?.url);
+  const photoBg = event?.settings.photoBg;
   return useMemo(() => {
-    if (!base || !event || !src || !target || !qr) return base;
-    return { ...base, qr: { src, label: qrLabel(target.target, event.language), corner: qr.corner, page: 'cover' } };
+    if (!base || !event) return base;
+    // The host's background photo behind the cover (same setting as the website and video).
+    const bg = photoBgFor({ photoBg }, base.photos, output);
+    const withBg = bg ? { ...base, photoBg: { ...bg, page: 'cover' } } : base;
+    if (!src || !target || !qr) return withBg;
+    return { ...withBg, qr: { src, label: qrLabel(target.target, event.language), corner: qr.corner, page: 'cover' } };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- target/qr derive from event
-  }, [base, src, event?.language, qr?.corner, target?.target]);
+  }, [base, src, event?.language, qr?.corner, target?.target, photoBg, output]);
 }
 
 /** Puts the QR on the design's main page when it isn't called `cover` (older saved designs). */
 export function qrOnCover(data: DesignData | null, doc: DesignDoc | null): DesignData | null {
-  if (!data?.qr || !doc) return data;
-  const id = doc.pages[coverPageIndex(doc)]?.id;
-  return id && id !== data.qr.page ? { ...data, qr: { ...data.qr, page: id } } : data;
+  return doc ? onCoverPage(data, doc.pages[coverPageIndex(doc)]?.id ?? null) : data;
+}
+
+/** Same, given the cover page's id. */
+export function onCoverPage(data: DesignData | null, id: string | null): DesignData | null {
+  if (!data || !id || (!data.qr && !data.photoBg)) return data;
+  // The QR and the background photo both belong on the cover.
+  return {
+    ...data,
+    qr: data.qr && data.qr.page !== id ? { ...data.qr, page: id } : data.qr,
+    photoBg: data.photoBg && data.photoBg.page !== id ? { ...data.photoBg, page: id } : data.photoBg,
+  };
 }
 
 function useBaseDesignData(event: EventDto | undefined, photos: string[]): DesignData | null {

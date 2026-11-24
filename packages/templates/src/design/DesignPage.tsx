@@ -22,6 +22,7 @@ import { Pattern } from '../components/Pattern';
 import { withAlpha } from '../utils/color';
 import { ASSETS } from './assets';
 import { elementMotion } from './motion';
+import { PhotoBackdrop, photoTones } from '../photo/PhotoBackdrop';
 
 /** Lets Remotion hold a frame until text has been measured (stills/video). No-op in the browser. */
 export interface RenderGate {
@@ -250,6 +251,13 @@ function TextLayer({ el, data, language, gate, onMeasure, fontsReady }: { el: Te
   );
 }
 
+const IMAGE_FADES = {
+  soft: 'radial-gradient(closest-side, #000 58%, transparent 100%)',
+  bottom: 'linear-gradient(to bottom, #000 50%, transparent 100%)',
+  top: 'linear-gradient(to top, #000 50%, transparent 100%)',
+  sides: 'linear-gradient(to right, transparent 0%, #000 22%, #000 78%, transparent 100%)',
+} as const;
+
 function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: DesignData | null; placeholders?: boolean }) {
   const src = resolveArtUrl(el.src) ?? (el.bind && data ? resolveBinding(el.bind, data) : null);
   // A circle stays a true circle whatever the frame's proportions (centred, cropped to fit).
@@ -308,8 +316,10 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
       </div>
     );
   }
+  // Soft edges / one-side fade (a gradient mask). Painted masks already have soft edges.
+  const fade = el.fade && el.fade !== 'none' && !painted ? IMAGE_FADES[el.fade] : null;
   return (
-    <div style={frame}>
+    <div style={{ ...frame, ...(fade ? { WebkitMaskImage: fade, maskImage: fade } : {}) }}>
       <img
         src={src}
         alt=""
@@ -376,6 +386,8 @@ const Layer = memo(function Layer(props: { el: DesignElement; index: number; tot
       style={{
         position: 'absolute',
         left: el.x,
+        // Image layers can blend with the design under them.
+        mixBlendMode: el.type === 'image' && el.blend && el.blend !== 'normal' ? el.blend : undefined,
         top: el.y,
         width: el.w,
         height: el.h,
@@ -432,6 +444,10 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
             <Pattern pattern={bg.pattern} color={bg.patternColor ?? '#C9973F'} accent={bg.patternAccent ?? bg.patternColor ?? '#C9973F'} opacity={bg.patternOpacity} width={DESIGN_W} height={DESIGN_H} seed={page.id} />
           </div>
         )}
+        {/* The host's background photo sits on the paper, under every layer. */}
+        {data?.photoBg && data.photoBg.page === page.id && (
+          <PhotoBackdrop spec={data.photoBg.spec} src={data.photoBg.src} tones={photoTones(bg.color2 ?? darkTone(bg.color), bg.color)} canvasAspect={DESIGN_H / DESIGN_W} zoom={zoom} ink={coverInk(page)} />
+        )}
         {visible.map((el, i) => (
           <Layer key={el.id} el={el} index={i} total={visible.length} data={data} t={t} language={language} gate={gate} placeholders={placeholders} onMeasure={onMeasure} fontsReady={fontsReady} />
         ))}
@@ -440,6 +456,17 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
     </div>
   );
 });
+
+/** Colour of the page's biggest text (names), for the full-background photo's wash. */
+function coverInk(page: Page): string | undefined {
+  const texts = page.elements.filter((e): e is TextElement => e.type === 'text' && !e.hidden);
+  return texts.sort((a, b) => b.size - a.size)[0]?.color;
+}
+
+/** A deep shade of a colour (duotone's dark tone when the page has one colour). */
+function darkTone(hex: string) {
+  return darken(hex, 0.75);
+}
 
 const QR_SIZE = 176;
 

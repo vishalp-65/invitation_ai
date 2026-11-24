@@ -78,6 +78,11 @@ export const FREE_FALLBACK_DESIGN: SiteDesignId = 'gulab-ring';
 
 /** Cinematic design packs: two are free, the painted royal ones need Premium. */
 export const DESIGN_TIER: Record<SiteDesignId, SiteTier> = {
+  // Layout designs: the chat spreads on WhatsApp (free, with the free bar); the rest are Premium.
+  'chat-story': 'free',
+  'insta-stories': 'premium',
+  premiere: 'premium',
+  scrapbook: 'premium',
   // Painted photo collection: two free, the rest Premium.
   'gulabi-syahi': 'free',
   herbarium: 'free',

@@ -12,6 +12,7 @@ export * from './constants/auth.js';
 export * from './constants/guests.js';
 export * from './constants/links.js';
 export * from './constants/qr.js';
+export * from './constants/photo-bg.js';
 export * from './constants/ceremonies.js';
 export * from './constants/free-plan.js';
 export * from './art/library.js';

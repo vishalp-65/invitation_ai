@@ -223,6 +223,7 @@ export class SitesService {
           askAccommodation: s.askAccommodation,
           saveTheDate: teaser,
           qr: event.settings.qr,
+          photoBg: event.settings.photoBg,
         },
       },
       template: { id: template.id, layout: template.layout, theme: template.theme },

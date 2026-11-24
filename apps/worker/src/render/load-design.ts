@@ -1,4 +1,4 @@
-import { BRAND, buildDesign, coverPageIndex, designDataFrom, DESIGN_H, DESIGN_W, qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, type DesignData, type DesignDoc, type LanguageCode } from '@cardai/shared';
+import { BRAND, buildDesign, coverPageIndex, photoBgFor, designDataFrom, DESIGN_H, DESIGN_W, qrLabel, qrSettingsOf, qrTargetUrl, venueMapsUrl, type DesignData, type DesignDoc, type LanguageCode } from '@cardai/shared';
 import QRCode from 'qrcode';
 import type { WorkerContext } from '../context.js';
 import { loadEventRows, loadInviteProps } from './load-props.js';
@@ -60,6 +60,9 @@ export async function loadDesignProps(ctx: WorkerContext, eventId: string, opts:
   // Corner QR on the cover (image and video), from the host's QR setting.
   const qr = await cornerQr(event, fns, data.mainFunction, ctx.env.APP_URL, opts.output);
   if (qr) data.qr = { src: qr.src, label: qr.label, corner: qr.corner, page: design.pages[coverPageIndex(design)]!.id };
+  // The host's background photo behind the cover's layers.
+  const bg = photoBgFor(event.settings, data.photos, opts.output);
+  if (bg) data.photoBg = { ...bg, page: design.pages[coverPageIndex(design)]!.id };
 
   // PDFs carry a QR code to the invitation website on the last page.
   // (Skipped when the corner QR already sits on that same page.)

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { PATTERNS } from '../templates/types.js';
 import { ELEMENT_ANIMS, IMAGE_FILTERS, IMAGE_MASKS, SHAPES, TEXT_EFFECTS } from './constants.js';
+import { PHOTO_BG_BLENDS, PHOTO_BG_FADES } from '../constants/photo-bg.js';
 
 export { DESIGN_H, DESIGN_W, ELEMENT_ANIMS, IMAGE_FILTERS, IMAGE_MASKS, SHAPES, TEXT_EFFECTS, curvedTextPath, imageFilterCss, type ElementAnim, type ImageFilter, type TextEffect } from './constants.js';
 
@@ -95,6 +96,10 @@ export const imageElementSchema = z.object({
    * so the frame keeps its exact place, crop and roundness and the card still looks finished.
    */
   empty: z.object({ bg: hex, ink: hex, font: z.string().max(60) }).optional(),
+  /** Melt the photo into the design: soft edges or a fade at one side. */
+  fade: z.enum(PHOTO_BG_FADES).optional(),
+  /** Blend with what is under it (multiply, screen, soft light…). */
+  blend: z.enum(PHOTO_BG_BLENDS).optional(),
 });
 
 export const shapeElementSchema = z.object({

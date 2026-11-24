@@ -1,0 +1,59 @@
+/* Layout designs (Story Mode, Premiere Night, Chat Story, Scrapbook Diary).
+   Transform / opacity animations only, so they stay smooth on low-end phones. */
+
+/* ---------- Chat ---------- */
+.inv-chat-in { animation: inv-chat-in 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+@keyframes inv-chat-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+.inv-typing { display: inline-flex; gap: 4px; }
+.inv-typing i { width: 7px; height: 7px; border-radius: 50%; background: #8696a0; animation: inv-typing 1s infinite ease-in-out; }
+.inv-typing i:nth-child(2) { animation-delay: 0.15s; }
+.inv-typing i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes inv-typing { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+/* Doodle wallpaper: hearts, rings and dots in a soft tile. */
+.inv-chat-wall {
+  background-color: #efeae2;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120' viewBox='0 0 120 120' fill='none' stroke='%23d6cfc4' stroke-width='1.4'%3E%3Cpath d='M20 26c-4-4-10-1-10 4 0 5 10 11 10 11s10-6 10-11c0-5-6-8-10-4z'/%3E%3Ccircle cx='86' cy='30' r='9'/%3E%3Ccircle cx='92' cy='26' r='9'/%3E%3Cpath d='M30 88l6-10 6 10-6 10z'/%3E%3Ccircle cx='88' cy='92' r='3'/%3E%3Ccircle cx='60' cy='60' r='2'/%3E%3C/svg%3E");
+}
+/* A drawn map tile: blocks, roads and a river. */
+.inv-chat-map {
+  background:
+    linear-gradient(90deg, transparent 46%, #fff 46% 52%, transparent 52%),
+    linear-gradient(0deg, transparent 40%, #fff 40% 47%, transparent 47%),
+    linear-gradient(35deg, transparent 62%, #aadaff 62% 70%, transparent 70%),
+    repeating-linear-gradient(90deg, #e8eee0 0 28px, #dfe7d6 28px 30px),
+    #e8eee0;
+}
+
+/* ---------- Stories ---------- */
+@keyframes inv-story-bar { from { width: 0; } to { width: 100%; } }
+.inv-story-photo { animation: inv-story-zoom 6s ease-out both; }
+@keyframes inv-story-zoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+.inv-story-in { animation: inv-story-in 0.45s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes inv-story-in { from { opacity: 0; transform: translateY(14px) scale(0.98); } to { opacity: 1; transform: none; } }
+
+/* ---------- Movie ---------- */
+.inv-movie-backdrop { animation: inv-movie-push 14s ease-out both; }
+@keyframes inv-movie-push { from { transform: scale(1.12); } to { transform: scale(1); } }
+
+/* ---------- Scrapbook ---------- */
+.inv-kraft {
+  background-color: #efe3cf;
+  background-image:
+    radial-gradient(rgba(120, 90, 50, 0.08) 1px, transparent 1.2px),
+    radial-gradient(rgba(255, 255, 255, 0.35) 1px, transparent 1.4px);
+  background-size: 7px 7px, 11px 11px;
+  background-position: 0 0, 3px 5px;
+}
+.inv-tape { opacity: 0.85; mix-blend-mode: multiply; clip-path: polygon(3% 0, 97% 4%, 100% 50%, 96% 100%, 2% 96%, 0 50%); }
+.inv-lined { background-image: repeating-linear-gradient(to bottom, transparent 0 2.15rem, rgba(70, 110, 160, 0.18) 2.15rem calc(2.15rem + 1px)); }
+.inv-torn { clip-path: polygon(0 2%, 6% 0, 13% 2%, 21% 0, 30% 2%, 38% 0, 47% 2%, 55% 0, 63% 2%, 72% 0, 80% 2%, 88% 0, 95% 2%, 100% 0, 100% 98%, 94% 100%, 86% 98%, 78% 100%, 70% 98%, 61% 100%, 53% 98%, 44% 100%, 36% 98%, 27% 100%, 19% 98%, 10% 100%, 3% 98%, 0 100%); }
+.inv-ticket { -webkit-mask: radial-gradient(circle 10px at calc(100% - 6rem) 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 10px at calc(100% - 6rem) 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; mask: radial-gradient(circle 10px at calc(100% - 6rem) 0, transparent 98%, #000) top / 100% 51% no-repeat, radial-gradient(circle 10px at calc(100% - 6rem) 100%, transparent 98%, #000) bottom / 100% 51% no-repeat; }
+.inv-barcode { background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 3px, #000 3px 4px, transparent 4px 7px, #000 7px 10px, transparent 10px 11px); }
+.inv-scrap-in { animation: inv-scrap-in 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.15) both; }
+@keyframes inv-scrap-in { from { opacity: 0; transform: translateY(24px) rotate(calc(var(--tilt, 0deg) * -2)) scale(0.94); } to { opacity: 1; transform: rotate(var(--tilt, 0deg)); } }
+
+.inv-motion-off .inv-chat-in,
+.inv-motion-off .inv-story-photo,
+.inv-motion-off .inv-story-in,
+.inv-motion-off .inv-movie-backdrop,
+.inv-motion-off .inv-scrap-in { animation: none; }

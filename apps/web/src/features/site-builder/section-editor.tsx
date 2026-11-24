@@ -25,6 +25,10 @@ export interface EditorCtx {
   tier: SiteTier;
   groups: string[];
   onUpgrade: () => void;
+  /** The invitation's main names (couple, birthday person…), for sections not filled in yet. */
+  names: string[];
+  /** How many photos the invitation has (people without their own photo use these in order). */
+  photoCount: number;
 }
 
 const MOTION_LABEL: Record<(typeof SECTION_MOTIONS)[number], string> = {
@@ -240,17 +244,23 @@ function TypeFields({ section, set, ctx }: { section: SiteSection; set: (patch: 
     case 'couple':
       return (
         <ListEditor
-          items={section.people}
+          // Not filled in yet: start from the invitation's names, so each person has an "Add photo" right away.
+          items={section.people.length ? section.people : ctx.names.map((name) => ({ name, role: '', bio: '', photoAssetId: undefined }))}
           onChange={(people) => set({ people })}
           blank={{ name: '', role: '', bio: '' }}
           max={4}
           addLabel="Add person"
-          render={(p, s) => (
+          render={(p, s, i) => (
             <>
+              <PhotoField label="Photo" value={p.photoAssetId} onChange={(photoAssetId) => s({ photoAssetId })} ctx={ctx} />
+              {!p.photoAssetId && (
+                <p className="-mt-1 text-sm text-ink-soft">
+                  {i < ctx.photoCount ? `Until you add one, guests see photo ${i + 1} from your invitation.` : 'No photo yet: guests see the first letter of the name.'}
+                </p>
+              )}
               <TextF label="Name" value={p.name} onChange={(name) => s({ name })} max={60} />
               <TextF label="Role" value={p.role} onChange={(role) => s({ role })} max={60} placeholder="The groom, The bride, Birthday girl…" />
               <AreaF label="About" value={p.bio} onChange={(bio) => s({ bio })} max={400} rows={3} />
-              <PhotoField label="Photo" value={p.photoAssetId} onChange={(photoAssetId) => s({ photoAssetId })} ctx={ctx} />
             </>
           )}
         />

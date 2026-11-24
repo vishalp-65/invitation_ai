@@ -89,7 +89,8 @@ for (const d of SITE_DESIGNS.filter((x) => !only || only.includes(x.id))) {
   const n = composition.durationInFrames;
   // Photo storybook designs: one frame near the end of each scene; others: cover, middle, closing.
   const fps = composition.fps;
-  const frames = d.look ? [3.4, 8.6, 13.2, 16.4, 24].map((s) => Math.min(n - 1, Math.round(s * fps))) : [Math.round(fps * 6), Math.round(n * 0.5), n - Math.round(fps * 1.5)];
+  // Layout designs: five frames spread across the video.
+  const frames = d.layout ? [0.1, 0.3, 0.5, 0.72, 0.94].map((f) => Math.round(n * f)) : d.look ? [3.4, 8.6, 13.2, 16.4, 24].map((s) => Math.min(n - 1, Math.round(s * fps))) : [Math.round(fps * 6), Math.round(n * 0.5), n - Math.round(fps * 1.5)];
   for (const [i, frame] of frames.entries()) {
     await renderStill({ composition, serveUrl, inputProps: props, puppeteerInstance: browser, frame, output: `${out}/${d.id}-${i + 1}.jpg`, imageFormat: 'jpeg', jpegQuality: 80, scale: 0.35 });
   }

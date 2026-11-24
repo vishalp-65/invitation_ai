@@ -268,3 +268,8 @@
 @keyframes inv-live-dot { 50% { opacity: 0.35; transform: scale(0.8); } }
 .inv-motion-off .inv-live-dot { animation: none; }
 .inv-live-bar { animation: inv-enter 0.8s var(--ease-out) both; }
+
+/* Background photo on the cover: settles in once, then stays still (no loops on low-end phones). */
+.inv-photo-bg { animation: inv-photo-in 1.8s cubic-bezier(0.16, 1, 0.3, 1) both; }
+@keyframes inv-photo-in { from { opacity: 0; transform: scale(1.04); } to { opacity: 1; transform: none; } }
+.inv-motion-off .inv-photo-bg { animation: none; }

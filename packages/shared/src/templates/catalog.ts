@@ -46,6 +46,11 @@ export const PALETTES = {
   mauve: { background: '#8A6A66', backgroundAlt: '#6E5350', surface: '#F5EBDD', primary: '#B98A3E', accent: '#E58E6E', text: '#2E2523', muted: '#6B5A55' },
   parchment: { background: '#F4EEE3', backgroundAlt: '#EAE0D0', surface: '#FCF9F3', primary: '#8C7A5B', accent: '#B98F8A', text: '#4A4440', muted: '#6E6660' },
   iceBlue: { background: '#E6F4FC', backgroundAlt: '#C4E3F5', surface: '#FFFFFF', primary: '#2F7FA8', accent: '#5FB3D9', text: '#163444', muted: '#466879' },
+  // Layout designs (design/families-layout.ts): chat, story, premiere, scrapbook.
+  chat: { background: '#EFE7DD', backgroundAlt: '#E3D9CB', surface: '#FFFFFF', primary: '#0B7A66', accent: '#25D366', text: '#1F2C34', muted: '#5E6E76' },
+  storyPink: { background: '#DD2A7B', backgroundAlt: '#8134AF', surface: '#FFFFFF', primary: '#FFFFFF', accent: '#FFE7A3', text: '#FFFFFF', muted: '#FBD7EA' },
+  premiere: { background: '#0B0B0F', backgroundAlt: '#000000', surface: '#16161D', primary: '#E2363E', accent: '#E7C27D', text: '#F4F1EA', muted: '#A9A39A' },
+  kraft: { background: '#EFE3CF', backgroundAlt: '#E2D1B5', surface: '#FFFDF3', primary: '#B8402B', accent: '#E0A93B', text: '#2B2622', muted: '#6B5E52' },
   // Painted photo looks (design/families-painted.ts): colours taken from each look's paper and ink.
   ...(Object.fromEntries(
     PHOTO_LOOKS.map((l) => [
@@ -65,6 +70,7 @@ const VARIANT_NAMES: Record<PaletteKey, string> = {
   cream: 'Cream', babyBlue: 'Baby Blue', babyPink: 'Baby Pink', butter: 'Butter', kumkum: 'Kumkum', forest: 'Forest',
   linen: 'Linen', dustyRose: 'Dusty Rose', dustyBlue: 'Dusty Blue', champagne: 'Champagne',
   mauve: 'Mauve', parchment: 'Parchment', iceBlue: 'Ice Blue',
+  chat: 'Chat', storyPink: 'Story', premiere: 'Premiere', kraft: 'Kraft',
   ...(Object.fromEntries(PHOTO_LOOKS.map((l) => [`look:${l.id}`, 'Painted'])) as Record<`look:${PhotoLookId}`, string>),
 };
 

@@ -2,6 +2,7 @@
 
 import { PhotoWall } from './photo-wall';
 import { LookThumb } from '@/features/site/photo-look';
+import { LayoutPoster } from '@/components/invite/layout-poster';
 import {
   applyDesign,
   ATTIRES,
@@ -249,7 +250,9 @@ function DesignThumb({
       aria-pressed={selected}
       className={`group relative aspect-[3/4] overflow-hidden rounded-[var(--radius-card)] border text-left ${selected ? 'border-2 border-accent' : 'border-ink/10'}`}
     >
-      {d.look ? (
+      {d.layout ? (
+        <LayoutPoster design={d} />
+      ) : d.look ? (
         <LookThumb lookId={d.look} />
       ) : (
         (['sky', 'far', 'mid', 'near'] as const).map((l) => <SceneLayer key={l} design={d} layer={l} lite time={0} />)

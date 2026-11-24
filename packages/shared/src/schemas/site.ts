@@ -32,7 +32,7 @@ export interface PublicSiteDto {
     content: EventContent;
     settings: Pick<
       EventSettings,
-      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation' | 'saveTheDate' | 'qr'
+      'timezone' | 'showCountdown' | 'rsvpEnabled' | 'rsvpDeadline' | 'askMealPreference' | 'askAccommodation' | 'saveTheDate' | 'qr' | 'photoBg'
     >;
   };
   template: { id: string; layout: LayoutId; theme: Theme };

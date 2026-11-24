@@ -1,5 +1,5 @@
 import { eq, inArray, mediaAssets, musicTracks } from '@cardai/db';
-import { BRAND, designTrackId, findBuiltinTemplate, getSiteDesign, siteDocSchema, type EventContent } from '@cardai/shared';
+import { BRAND, designTrackId, findBuiltinTemplate, getSiteDesign, photoBgFor, siteDocSchema, type EventContent, type PhotoBg } from '@cardai/shared';
 import type { WorkerContext } from '../context.js';
 import { cornerQr } from './load-design.js';
 import { loadEventRows } from './load-props.js';
@@ -20,6 +20,8 @@ export interface SiteVideoRenderProps {
   photos: string[];
   qr: { src: string; label: string; corner: 'br' | 'bl' | 'tr' | 'tl' } | null;
   artOrigin: string | null;
+  photoBg: { spec: PhotoBg; src: string } | null;
+  eventType: string;
 }
 
 /**
@@ -66,5 +68,7 @@ export async function loadSiteVideoProps(ctx: WorkerContext, eventId: string, op
     photos,
     qr: qr ? { src: qr.src, label: qr.label, corner: qr.corner } : null,
     artOrigin: ctx.env.APP_URL,
+    photoBg: photoBgFor(event.settings, photos, 'video'),
+    eventType: event.type,
   };
 }

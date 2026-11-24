@@ -19,6 +19,7 @@ import {
 import { ChevronDown, ImagePlus } from 'lucide-react';
 import { useEffect, useRef, type CSSProperties } from 'react';
 import { useSite } from './context';
+import { HeroPhotoBg } from './photo-bg';
 import { MiniCountdown } from './design-sections';
 import { Letters } from './motion';
 import './photo-look.css';
@@ -210,6 +211,7 @@ export function PhotoHero({ section, doc, started }: { section: SiteSectionOf<'h
       {look.layers.map((l, i) => (
         <HeroLayer key={`${l.art}-${i}`} l={l} i={i} />
       ))}
+      <HeroPhotoBg z={4} />
 
       <div className="relative z-[5] flex w-full max-w-xl flex-1 flex-col items-center justify-center px-6 pb-[9svh] pt-[8svh]" style={{ paddingTop: pad.top, paddingBottom: pad.bottom }}>
         {greeting && (

@@ -1,6 +1,6 @@
 'use client';
 
-import { applyDesign, CAPPED_SITE_SECTIONS, SITE_DESIGNS, SITE_OPENINGS, type SiteBranding, type SiteDesignId, type SiteOpening } from '@cardai/shared';
+import { applyDesign, CAPPED_SITE_SECTIONS, PHOTO_BG_DEFAULT, SITE_DESIGNS, SITE_OPENINGS, type PhotoBg, type SiteBranding, type SiteDesignId, type SiteOpening } from '@cardai/shared';
 import { sampleSiteData } from '@/features/site/sample-site';
 import { useMemo, useState } from 'react';
 import { SiteRenderer } from '@/features/site/site-renderer';
@@ -17,6 +17,7 @@ export function SiteGallery({
   only,
   branding = 'none',
   capped = false,
+  photoBg,
 }: {
   initial: string;
   skipOpening?: boolean;
@@ -26,15 +27,21 @@ export function SiteGallery({
   only?: string[];
   branding?: SiteBranding;
   capped?: boolean;
+  /** `?bg=position,size,shape,fade,blend[,duo]` e.g. `tr,55,heart,soft,multiply` (QA of the background photo). */
+  photoBg?: string;
 }) {
   const [id, setId] = useState<SiteDesignId>((SITE_DESIGNS.find((d) => d.id === initial)?.id ?? 'rose-seal') as SiteDesignId);
   // `?open=0` skips the opening (used to capture landing-page screenshots).
   const [replay, setReplay] = useState(skipOpening ? 0 : 1);
   const data = useMemo(() => {
-    const d = sampleSiteData(photos, branding);
+    const d0 = sampleSiteData(photos, branding);
+    const [position, size, shape, fade, blend, duo] = (photoBg ?? '').split(',');
+    const d = photoBg
+      ? { ...d0, event: { ...d0.event, settings: { ...d0.event.settings, photoBg: { ...PHOTO_BG_DEFAULT, position: position as PhotoBg['position'], size: Number(size) || 60, shape: (shape || 'none') as PhotoBg['shape'], fade: (fade || 'soft') as PhotoBg['fade'], blend: (blend || 'normal') as PhotoBg['blend'], duotone: duo === 'duo' } } } }
+      : d0;
     // `?cap=1`: a free site past its visitor limit (basics only).
     return capped ? { ...d, capped: true, site: { ...d.site, sections: d.site.sections.filter((x) => CAPPED_SITE_SECTIONS.has(x.type)) } } : d;
-  }, [photos, branding, capped]);
+  }, [photos, branding, capped, photoBg]);
   const [kind, setKind] = useState<SiteOpening | ''>((SITE_OPENINGS as readonly string[]).includes(opening ?? '') ? (opening as SiteOpening) : '');
   const doc = useMemo(() => {
     const d0 = applyDesign(data.site, id);

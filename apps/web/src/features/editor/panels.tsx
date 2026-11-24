@@ -1,6 +1,7 @@
 'use client';
 
 import { useL } from '@/lib/use-l';
+import { PhotoBgCard } from '@/features/event/photo-bg-settings';
 import { cropFor, rememberFocus, usePhotoPool, type PickImage } from './photo-pool';
 import {
   bindingChoices,
@@ -421,6 +422,18 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
       ) : (
         <p className="text-sm text-ink-soft">{L('Photos of the couple, the baby or your new home look lovely in an arch or circle frame.')}</p>
       )}
+      <div className="border-t border-ink/10 pt-4">
+        <PhotoBgCard
+          compact
+          event={event}
+          photos={event.settings.photoAssetIds.map((id) => media?.find((m) => m.id === id)?.url).filter((u): u is string => Boolean(u))}
+          onAddPhoto={async () => {
+            const before = event.settings.photoAssetIds.length;
+            const url = await pickImage();
+            if (url) addPhoto(url, before);
+          }}
+        />
+      </div>
     </div>
   );
 }

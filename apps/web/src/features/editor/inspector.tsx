@@ -447,6 +447,38 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
       </button>
       <RemoveBackground el={el} ctx={ctx} />
       <Seg label={L('Shape')} value={el.mask} onChange={(v) => up(el.id, { mask: v })} options={[{ v: 'rect', label: 'Square' }, { v: 'rounded', label: 'Rounded' }, { v: 'circle', label: 'Circle' }, { v: 'oval', label: 'Oval' }, { v: 'arch', label: 'Arch' }]} />
+      {/* Melt the photo into the design and blend it with what is under it. */}
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-medium uppercase tracking-[0.08em] text-ink-soft">{L('Edges')}</p>
+        <Seg
+          label={L('Edges')}
+          value={el.fade ?? 'none'}
+          onChange={(v) => up(el.id, { fade: v === 'none' ? undefined : v } as Partial<ImageElement>)}
+          options={[
+            { v: 'none', label: 'Sharp edges' },
+            { v: 'soft', label: 'Soft edges' },
+            { v: 'bottom', label: 'Fade bottom' },
+            { v: 'top', label: 'Fade top' },
+            { v: 'sides', label: 'Fade sides' },
+          ]}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <p className="text-xs font-medium uppercase tracking-[0.08em] text-ink-soft">{L('Blend with the design')}</p>
+        <Seg
+          label={L('Blend with the design')}
+          value={el.blend ?? 'normal'}
+          onChange={(v) => up(el.id, { blend: v === 'normal' ? undefined : v } as Partial<ImageElement>)}
+          options={[
+            { v: 'normal', label: 'Normal' },
+            { v: 'multiply', label: 'Ink (multiply)' },
+            { v: 'screen', label: 'Glow (screen)' },
+            { v: 'soft-light', label: 'Soft light' },
+            { v: 'overlay', label: 'Overlay' },
+            { v: 'luminosity', label: 'Tinted (luminosity)' },
+          ]}
+        />
+      </div>
       <Slider label={L('Border')} min={0} max={40} value={el.borderW} onChange={(v) => up(el.id, { borderW: v })} />
       {el.borderW > 0 && <ColorPicker value={el.border ?? '#FFFFFF'} onChange={(c) => up(el.id, { border: c })} docColors={colors} />}
     </div>

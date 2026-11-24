@@ -1,8 +1,10 @@
-import { getLanguage, getSiteDesign, heroInk, setArtOrigin, type EventContent, type SiteDesign } from '@cardai/shared';
+import { getLanguage, getSiteDesign, heroInk, setArtOrigin, type EventContent, type PhotoBg, type SiteDesign } from '@cardai/shared';
+import { PhotoBackdrop, photoTones } from '../photo/PhotoBackdrop';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
 import { planPhotoStory, PhotoStory } from './PhotoStory';
+import { LayoutVideo, planLayoutVideo } from './LayoutVideo';
 import { Ambient, Divider, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal, type ImgLike } from '../scenes';
 import { BrandOutro } from '../components/BrandOutro';
 
@@ -40,10 +42,16 @@ export interface SiteVideoProps {
   qr?: { src: string; label: string; corner: 'br' | 'bl' | 'tr' | 'tl' } | null;
   /** Where the painted art (`/art/...`) is served; the renderer runs on another origin. */
   artOrigin?: string | null;
+  /** The host's background photo on the cover scene (same setting as the card and website). */
+  photoBg?: { spec: PhotoBg; src: string } | null;
+  /** Occasion (wording in layout videos: "Countdown to the Birthday"). */
+  eventType?: string;
 }
 
 /** Length of the video for these props (photo storybook for painted photo designs). */
 export function siteVideoFrames(props: Pick<SiteVideoProps, 'designId' | 'functions' | 'style'>, fps: number): number {
+  const layout = getSiteDesign(props.designId)?.layout;
+  if (layout) return planLayoutVideo(layout, props.functions.length, fps).durationInFrames;
   return getSiteDesign(props.designId)?.look ? planPhotoStory(props.functions.length, fps).durationInFrames : planSiteVideo(props.functions.length, fps, props.style ?? 'cinematic').durationInFrames;
 }
 
@@ -196,7 +204,7 @@ function Opening({ d, t, monogram, names, connector, scriptFont, serifFont }: { 
   );
 }
 
-function Cover({ d, t, c, date, scriptFont, serifFont }: { d: SiteDesign; t: number; c: EventContent; date: string | null; scriptFont: string; serifFont: string }) {
+function Cover({ d, t, c, date, scriptFont, serifFont, bg }: { d: SiteDesign; t: number; c: EventContent; date: string | null; scriptFont: string; serifFont: string; bg?: SiteVideoProps['photoBg'] }) {
   const names = c.primaryNames.filter(Boolean);
   const ink = heroInk(d);
   // Slow camera push: back layers move less than front ones (depth).
@@ -208,6 +216,11 @@ function Cover({ d, t, c, date, scriptFont, serifFont }: { d: SiteDesign; t: num
           <SceneLayer design={d} layer={l} time={t} Img={RImg} />
         </AbsoluteFill>
       ))}
+      {bg && (
+        <AbsoluteFill style={{ opacity: interpolate(t, [0, 0.8], [0, 1], clamp) }}>
+          <PhotoBackdrop spec={bg.spec} src={bg.src} tones={photoTones(d.palette.primary, d.palette.background)} canvasAspect={16 / 9} Img={RImg} zoom={1 + interpolate(t, [0, SITE_VIDEO.cover], [0.06, 0], clamp)} ink={heroInk(d)} />
+        </AbsoluteFill>
+      )}
       <Ambient kind={d.ambient} colors={d.scene.colors.bloom} glow={d.scene.colors.glow} time={t + 8} density={1.4} />
       <AbsoluteFill style={{ alignItems: 'center', paddingTop: 220, color: ink, textAlign: 'center' }}>
         <In t={t} at={0.3}>
@@ -276,6 +289,35 @@ export function SiteVideo(props: SiteVideoProps) {
   const bodyFont = latin ? d.fonts.body : lang.fonts.body;
   useFonts([...new Set([scriptFont, serifFont, bodyFont])]);
 
+  // Layout designs (stories, premiere, chat, scrapbook) play their own video.
+  if (d.layout) {
+    return (
+      <AbsoluteFill>
+        <LayoutVideo
+          design={d}
+          layout={d.layout}
+          language={props.language}
+          timezone={props.timezone}
+          content={props.content}
+          functions={props.functions}
+          photos={props.photos ?? []}
+          link={props.link}
+          eventType={props.eventType}
+          scriptFont={scriptFont}
+          serifFont={serifFont}
+          bodyFont={bodyFont}
+        />
+        {props.watermark && (
+          <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 40, pointerEvents: 'none' }}>
+            <div style={{ padding: '12px 32px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontFamily: 'sans-serif', fontSize: 32 }}>{props.watermarkText}</div>
+          </AbsoluteFill>
+        )}
+        {props.watermark && <BrandOutro />}
+        {props.musicUrl && <Audio src={props.musicUrl} volume={(f) => interpolate(f, [0, fps, durationInFrames - fps * 1.5, durationInFrames], [0, 0.8, 0.8, 0], clamp)} />}
+      </AbsoluteFill>
+    );
+  }
+
   // Painted photo designs play the photo storybook (same paper, art and fonts as the website).
   if (d.look) {
     return (
@@ -315,7 +357,7 @@ export function SiteVideo(props: SiteVideoProps) {
       case 'opening':
         return <Opening d={d} t={t} monogram={monogram} names={names} connector={c.connector || '&'} scriptFont={scriptFont} serifFont={serifFont} />;
       case 'cover':
-        return <Cover d={d} t={t} c={c} date={short} scriptFont={scriptFont} serifFont={serifFont} />;
+        return <Cover d={d} t={t} c={c} date={short} scriptFont={scriptFont} serifFont={serifFont} bg={props.photoBg} />;
       case 'invite': {
         const b = d.bands[0]!;
         return (

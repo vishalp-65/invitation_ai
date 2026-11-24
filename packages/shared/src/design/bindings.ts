@@ -1,4 +1,5 @@
 import { faithOf, resolveInvocation } from '../constants/faith.js';
+import type { PhotoBg } from '../constants/photo-bg.js';
 import { getLanguage, type LanguageCode } from '../constants/languages.js';
 import type { EventContent, EventFunctionInput } from '../schemas/events.js';
 import { formatFunctionDate, mainFunctionIndex, type InviteFunction } from '../invite/build-invite-props.js';
@@ -15,6 +16,8 @@ export interface DesignData {
   rsvpBy?: string | null;
   /** Corner QR code (venue map or website) drawn on page `page` (a page id, usually the cover). */
   qr?: { src: string; corner: 'br' | 'bl' | 'tr' | 'tl'; label: string; page: string } | null;
+  /** The host's background photo, drawn behind the layers of page `page` (the cover). */
+  photoBg?: { spec: PhotoBg; src: string; page: string } | null;
 }
 
 /**

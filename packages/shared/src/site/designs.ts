@@ -62,6 +62,11 @@ export const SITE_DESIGN_IDS = [
   'mogra',
   'kesariya',
   'chandni',
+  // Layout designs (Nov 2026): a different page structure, not just new art.
+  'insta-stories',
+  'premiere',
+  'chat-story',
+  'scrapbook',
 ] as const;
 export type SiteDesignId = (typeof SITE_DESIGN_IDS)[number];
 
@@ -147,6 +152,14 @@ export interface ScenePalette {
 export const MUSIC_MOODS = ['shehnai', 'sitar', 'santoor', 'flute', 'piano', 'strings', 'qawwali', 'acoustic', 'dhol', 'ambient'] as const;
 export type MusicMood = (typeof MUSIC_MOODS)[number];
 
+/**
+ * Page structures beyond the scrolling invitation: tap-through stories with a profile page,
+ * a streaming-show premiere, a chat that types itself, and a scrapbook with a magazine cover.
+ * The website, the video and the matching card all follow the layout.
+ */
+export const SITE_LAYOUTS = ['stories', 'movie', 'chat', 'scrapbook'] as const;
+export type SiteLayout = (typeof SITE_LAYOUTS)[number];
+
 export interface SiteDesign {
   id: SiteDesignId;
   name: string;
@@ -172,7 +185,8 @@ export interface SiteDesign {
   bands: DesignBand[];
   /** Latin-script fonts. Other scripts keep their language fonts. */
   fonts: { script: string; serif: string; body: string };
-  opening: 'seal' | 'lanterns' | 'doors' | 'curtain' | 'envelope' | 'petals' | 'scroll';
+  /** `none`: the page opens straight away (stories and chat layouts start themselves). */
+  opening: 'seal' | 'lanterns' | 'doors' | 'curtain' | 'envelope' | 'petals' | 'scroll' | 'none';
   ambient: AmbientKind;
   divider: DividerKind;
   marker: MarkerKind;
@@ -181,6 +195,8 @@ export interface SiteDesign {
   paint: Partial<Record<PaintSlot, string>>;
   /** Photo-first pack: the hero is the host's photo in this painted look (no drawn scene). */
   look?: PhotoLookId;
+  /** Layout design: the page (and video) take this structure instead of the scrolling bands. */
+  layout?: SiteLayout;
 }
 
 const paper = (bg: string, ink: string, primary: string): DesignBand => ({ bg, ink, primary });
@@ -210,7 +226,100 @@ function photoPack(id: PhotoLookId, o: Pick<SiteDesign, 'region' | 'opening' | '
   };
 }
 
+/** A layout design: plain modern scene (used only for small previews), its own palette and fonts. */
+function layoutPack(
+  o: Pick<SiteDesign, 'id' | 'name' | 'blurb' | 'layout' | 'opening' | 'music' | 'fonts'> & { night: boolean; primary: string; accent: string; bg: string; alt: string; ink: string },
+): SiteDesign {
+  return {
+    id: o.id,
+    name: o.name,
+    blurb: o.blurb,
+    region: 'Pan-India',
+    faith: null,
+    isNew: true,
+    layout: o.layout,
+    palette: { primary: o.primary, accent: o.accent, background: o.bg, surface: o.alt, text: o.ink },
+    scene: {
+      kind: 'minimal-arch',
+      night: o.night,
+      style: 'modern',
+      ink: o.ink,
+      colors: { skyTop: o.bg, skyBottom: o.alt, glow: o.accent, far: o.alt, mid: o.alt, midShade: o.alt, trim: o.accent, near: o.primary, bloom: [o.primary, o.accent, o.alt, o.bg], water: o.alt },
+    },
+    bands: [paper(o.bg, o.ink, o.primary), paper(o.alt, o.ink, o.primary), paper(o.bg, o.ink, o.primary)],
+    fonts: o.fonts,
+    opening: o.opening,
+    ambient: 'none',
+    divider: 'line',
+    marker: 'dot',
+    music: o.music,
+    paint: {},
+  };
+}
+
 export const SITE_DESIGNS: readonly SiteDesign[] = [
+  // ---------------- Layout designs (Nov 2026): new page structures ----------------
+  layoutPack({
+    id: 'chat-story',
+    name: 'Chat Story',
+    blurb: 'Your invitation as a chat that types itself as guests scroll, RSVP as a reply',
+    layout: 'chat',
+    opening: 'none',
+    music: 'acoustic',
+    fonts: { script: 'Dancing Script', serif: 'DM Serif Display', body: 'Inter' },
+    night: false,
+    primary: '#0B7A66',
+    accent: '#25D366',
+    bg: '#EFE7DD',
+    alt: '#F7F3EE',
+    ink: '#1F2C34',
+  }),
+  layoutPack({
+    id: 'insta-stories',
+    name: 'Story Mode',
+    blurb: 'Tap-through full-screen stories, then a profile page with highlights and a photo grid',
+    layout: 'stories',
+    opening: 'none',
+    music: 'piano',
+    fonts: { script: 'Dancing Script', serif: 'DM Serif Display', body: 'DM Sans' },
+    night: false,
+    primary: '#C1356F',
+    accent: '#F58529',
+    bg: '#FFFFFF',
+    alt: '#FAF5F8',
+    ink: '#161616',
+  }),
+  layoutPack({
+    id: 'premiere',
+    name: 'Premiere Night',
+    blurb: 'A streaming-show premiere: your names as the title, functions as episodes, family as the cast',
+    layout: 'movie',
+    opening: 'curtain',
+    music: 'strings',
+    fonts: { script: 'Great Vibes', serif: 'Bebas Neue', body: 'Inter' },
+    night: true,
+    primary: '#E2363E',
+    accent: '#E7C27D',
+    bg: '#0B0B0F',
+    alt: '#16161D',
+    ink: '#F4F1EA',
+  }),
+  layoutPack({
+    id: 'scrapbook',
+    name: 'Scrapbook Diary',
+    blurb: 'A magazine cover, then polaroids, washi tape and handwritten notes on kraft paper',
+    layout: 'scrapbook',
+    opening: 'envelope',
+    music: 'acoustic',
+    fonts: { script: 'Caveat', serif: 'Abril Fatface', body: 'Special Elite' },
+    night: false,
+    primary: '#B8402B',
+    accent: '#E0A93B',
+    bg: '#EFE3CF',
+    alt: '#F7F0E2',
+    ink: '#2B2622',
+  }),
+
   // ---------------- Painted photo collection (Nov 2026): your photo inside painted art ----------------
   photoPack('gulab-bagh', { region: 'Pan-India', opening: 'seal', ambient: 'petals', divider: 'scallop', marker: 'rose', music: 'piano' }),
   photoPack('kahani', { region: 'Pan-India', opening: 'seal', ambient: 'petals', divider: 'torn', marker: 'leaf', music: 'acoustic' }),

@@ -6,6 +6,7 @@ import { Check, Copy, Crown, Download, ExternalLink, FileText, Film, Globe, Imag
 import { useTranslations } from 'next-intl';
 import { EventPhotos } from './event-photos';
 import { QrSettingsCard } from './qr-settings';
+import { PhotoBgForEvent } from './photo-bg-settings';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Button, ButtonLink } from '@/components/ui/button';
@@ -205,6 +206,7 @@ export function SharePanel({ event, onUpgrade }: { event: EventDto; onUpgrade: (
       <div className="grid gap-4 lg:grid-cols-2">
         <EventPhotos event={event} onUpgrade={onUpgrade} />
         <QrSettingsCard event={event} />
+        <PhotoBgForEvent event={event} />
       </div>
 
       {/* ---------------- The link ---------------- */}

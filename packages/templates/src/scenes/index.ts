@@ -2,3 +2,4 @@
 export { SceneLayer, SceneStill, type ImgLike } from './Scene';
 export { Ambient, Divider, DressFigures, Marker, VintageCar, WaxSeal } from './Ornaments';
 export { loop, rnd } from './anim';
+export { PhotoBackdrop, photoTones } from '../photo/PhotoBackdrop';

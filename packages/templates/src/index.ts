@@ -7,6 +7,7 @@ export { INVITE_FONT_FAMILIES, loadFamily } from './fonts';
 export { useInviteFonts } from './fonts-remotion';
 export { skinFor } from './layouts/skin';
 export { DesignPage, fontsForPages, fontStack, type RenderGate } from './design/DesignPage';
+export { PhotoBackdrop, photoTones } from './photo/PhotoBackdrop';
 export { ASSETS, STICKERS, type AssetDef, type Sticker, type StickerCategory } from './design/assets';
 export { DesignCard, DesignVideo, planDesignVideo, useDesignFonts, DESIGN_VIDEO, type DesignRenderProps } from './design/compositions';
 export { elementMotion, entranceDelay } from './design/motion';

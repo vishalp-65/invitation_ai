@@ -2,7 +2,7 @@
 
 import { useL } from '@/lib/use-l';
 import { useTranslations } from 'next-intl';
-import { bindingInfo, buildDesign, displayText, type DesignData, type DesignDoc, type DesignPage as Page, type EventDto, type TextElement } from '@cardai/shared';
+import { bindingInfo, buildDesign, coverPageIndex, displayText, type DesignData, type DesignDoc, type DesignPage as Page, type EventDto, type TextElement } from '@cardai/shared';
 import { clsx } from 'clsx';
 import {
   Check,
@@ -55,7 +55,7 @@ import { DownloadDialog, MoreMenu, SaveTemplateDialog } from './header-actions';
 import { ToolPanel, type ToolId } from './panels';
 import { ShortcutsDialog } from './shortcuts';
 import { currentPage, useEditor, ZOOM_MAX, ZOOM_MIN, zoomBy, zoomTo } from './store';
-import { splitIso, useDesignData, useEventWriter } from './use-event-data';
+import { onCoverPage, splitIso, useDesignData, useEventWriter } from './use-event-data';
 import { track } from '@/lib/track';
 
 /** Admin-only: never downloaded for regular users. */
@@ -308,7 +308,10 @@ export function Editor({ eventId }: { eventId: string }) {
     () => (event?.settings.photoAssetIds ?? []).map((id) => media?.find((m) => m.id === id)?.url).filter((u): u is string => Boolean(u)),
     [event?.settings.photoAssetIds, media],
   );
-  const data = useDesignData(event, photos);
+  const rawData = useDesignData(event, photos);
+  // The QR and the background photo go on the design's cover page (whatever its id).
+  const coverId = useEditor((s) => (s.doc ? (s.doc.pages[coverPageIndex(s.doc)]?.id ?? null) : null));
+  const data = useMemo(() => onCoverPage(rawData, coverId), [rawData, coverId]);
   const writer = useEventWriter(event);
   // Narrow subscriptions only: the shell must not re-render on every document change (drags, typing).
   const hasDoc = useEditor((s) => s.doc !== null);

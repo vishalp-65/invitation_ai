@@ -50,6 +50,7 @@ import { useTemplate } from '@/lib/template-hooks';
 import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
 import { PublishCard } from './publish-card';
 import { EventPhotos } from '@/features/event/event-photos';
+import { PhotoBgForEvent } from '@/features/event/photo-bg-settings';
 import { QrSettingsCard } from '@/features/event/qr-settings';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
@@ -206,8 +207,10 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
       tier,
       groups,
       onUpgrade,
+      names: event?.content.primaryNames.filter(Boolean) ?? [],
+      photoCount: event?.settings.photoAssetIds.length ?? 0,
     }),
-    [eventId, event?.functions, assets, tier, groups, onUpgrade],
+    [eventId, event?.functions, assets, tier, groups, onUpgrade, event?.content.primaryNames, event?.settings.photoAssetIds.length],
   );
   const previewData = useMemo(() => (preview.data ? { ...preview.data, media: { ...preview.data.media, assets } } : null), [preview.data, assets]);
 
@@ -322,6 +325,7 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
             </div>
           )}
           <EventPhotos event={event} compact onChange={() => void preview.refetch()} onUpgrade={onUpgrade} />
+          <PhotoBgForEvent event={event} onChange={() => void preview.refetch()} />
           <LookPanel part="design" doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />
           <Button onClick={() => setTab('content')} className="self-end">
             Next: content

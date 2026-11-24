@@ -11,6 +11,11 @@ interface FontModule {
  */
 const FONT_LOADERS: Record<string, () => Promise<FontModule>> = {
   'Playfair Display': () => import('@remotion/google-fonts/PlayfairDisplay') as Promise<FontModule>,
+  'Bebas Neue': () => import('@remotion/google-fonts/BebasNeue') as Promise<FontModule>,
+  Caveat: () => import('@remotion/google-fonts/Caveat') as Promise<FontModule>,
+  'Special Elite': () => import('@remotion/google-fonts/SpecialElite') as Promise<FontModule>,
+  'Permanent Marker': () => import('@remotion/google-fonts/PermanentMarker') as Promise<FontModule>,
+  'DM Sans': () => import('@remotion/google-fonts/DMSans') as Promise<FontModule>,
   Poppins: () => import('@remotion/google-fonts/Poppins') as Promise<FontModule>,
   'Cormorant Garamond': () => import('@remotion/google-fonts/CormorantGaramond') as Promise<FontModule>,
   'Great Vibes': () => import('@remotion/google-fonts/GreatVibes') as Promise<FontModule>,

@@ -6,6 +6,7 @@ import { Character, SceneStill } from './lazy-art';
 import { BedDouble, Bus, CalendarPlus, ChevronDown, Clock, Hotel, MapPin, Phone, Shirt } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 import { safeHref, useSite } from './context';
+import { HeroPhotoBg } from './photo-bg';
 import { mapsUrl, useCountdown } from './utils';
 import { VenueMap } from './venue-map';
 import { lookOf, PhotoHero, PhotoMask } from './photo-look';
@@ -174,6 +175,7 @@ function Hero({ section, doc, started }: { section: SiteSectionOf<'hero'>; doc: 
         )}
       </div>
       <HeroOrnament doc={doc} primary={primary} accent={accent} />
+      <HeroPhotoBg z={1} />
 
       <div className="relative z-10 flex w-full max-w-2xl flex-col items-center">
         {greeting && (
@@ -274,7 +276,7 @@ function Welcome({ section }: { section: SiteSectionOf<'welcome'> }) {
 }
 
 function Couple({ section }: { section: SiteSectionOf<'couple'> }) {
-  const { asset, content, design } = useSite();
+  const { asset, content, design, data } = useSite();
   const look = lookOf(design?.look);
   const people = section.people.length ? section.people : content.primaryNames.filter(Boolean).map((name) => ({ name, role: '', bio: '', photoAssetId: undefined }));
   if (!people.length) return null;
@@ -282,7 +284,8 @@ function Couple({ section }: { section: SiteSectionOf<'couple'> }) {
     <Shell section={section} tone="alt">
       <div className={`grid gap-8 ${people.length > 1 ? 'sm:grid-cols-2' : ''}`}>
         {people.map((p, i) => {
-          const src = asset(p.photoAssetId);
+          // Their own photo, else the invitation's photos in order (first person, first photo).
+          const src = asset(p.photoAssetId) ?? data.media.photos[i];
           return (
             <Reveal key={i} motion={section.motion === 'slide' ? (i % 2 ? 'slide-r' : 'slide') : section.motion} delay={i + 1} className="flex flex-col items-center text-center">
               <div className="relative">

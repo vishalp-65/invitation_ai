@@ -6,6 +6,7 @@ import { DressFigures, SceneLayer, SceneStill, VintageCar } from './lazy-art';
 import { AtSign, BedDouble, Baby, CalendarPlus, Camera, ChevronDown, CloudSun, Gift, Hash, Info, MapPin, Phone, SquareParking, UtensilsCrossed, type LucideIcon } from 'lucide-react';
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { safeHref, useSite } from './context';
+import { HeroPhotoBg } from './photo-bg';
 import { mapsUrl, useCountdown } from './utils';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { RsvpForm } from './rsvp-form';
@@ -181,6 +182,7 @@ export function SceneHero({ section, doc, started }: { section: SiteSectionOf<'h
         </div>
       ))}
 
+      <HeroPhotoBg z={3} />
       <div ref={text} className="relative z-[4] flex w-full max-w-xl flex-1 flex-col items-center px-8 pb-[40svh] pt-[8svh]" style={{ color: ink }}>
         {greeting && (
           <p className="inv-enter mb-4 rounded-full border border-current/40 px-4 py-1 text-base italic" style={delay(200)}>
