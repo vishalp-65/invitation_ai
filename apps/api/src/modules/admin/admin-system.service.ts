@@ -185,7 +185,7 @@ export class AdminSystemService {
     if (!(def.accept as readonly string[]).includes(contentType)) throw new BadRequestException(`Use ${def.accept.join(', ')}`);
     if (bytes > def.maxMb * 1024 * 1024) throw new BadRequestException(`Keep it under ${def.maxMb} MB so it loads fast on mobile data.`);
     const key = `site/${slot.replace('.', '-')}/${randomBytes(6).toString('hex')}.${EXT[contentType] ?? 'bin'}`;
-    return { key, ...presignUpload(this.env, key, contentType, bytes) };
+    return { key, ...(await presignUpload(this.storage, this.env, key, contentType, bytes)) };
   }
 
   async saveMedia(admin: AuthUser, slot: MediaSlot, key: string) {
@@ -226,7 +226,7 @@ export class AdminSystemService {
     if (!AUDIO_TYPES.includes(contentType)) throw new BadRequestException('Use MP3, M4A, AAC or OGG audio.');
     if (bytes > 15 * 1024 * 1024) throw new BadRequestException('Keep songs under 15 MB.');
     const key = `music/${randomBytes(6).toString('hex')}.${EXT[contentType] ?? 'mp3'}`;
-    return { key, ...presignUpload(this.env, key, contentType, bytes) };
+    return { key, ...(await presignUpload(this.storage, this.env, key, contentType, bytes)) };
   }
 
   async saveTrack(admin: AuthUser, input: TrackData) {

@@ -2,13 +2,15 @@
 
 import { sampleInviteProps, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowRight, Check, Crown, Eye } from 'lucide-react';
+import { ArrowRight, Check, Crown, Eye, Film } from 'lucide-react';
 import Image from 'next/image';
 import { coverOf, TemplateCover } from './template-cover';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { InviteThumb } from './lazy-player';
 import { track } from '@/lib/track';
+import { siteDesignOfCard } from '@/lib/design-match';
+import { useL } from '@/lib/use-l';
 
 interface Props {
   name: string;
@@ -41,6 +43,9 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
 
   const t = variants[active] ?? variants[0]!;
   const isSelected = selectedIdx >= 0;
+  const L = useL();
+  // Gallery: say when this card has a video and website in the same art (others get a suggested one).
+  const matched = meta && siteDesignOfCard(t);
 
   const art = (
     <div
@@ -67,6 +72,11 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
       {t.premium && (
         <span className="absolute right-2 top-2 flex items-center gap-1 bg-black/70 px-2 py-1 font-mono text-[0.625rem] uppercase tracking-wider text-white backdrop-blur">
           <Crown className="size-3 text-amber" /> Premium
+        </span>
+      )}
+      {matched && !isSelected && (
+        <span className="absolute left-2 top-2 flex items-center gap-1 bg-black/60 px-2 py-1 font-mono text-[0.625rem] uppercase tracking-wider text-white backdrop-blur" title={L('Matching video and website')}>
+          <Film className="size-3" aria-hidden /> {L('+ Video & site')}
         </span>
       )}
       {isSelected && (

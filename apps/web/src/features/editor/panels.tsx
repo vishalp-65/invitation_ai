@@ -1,6 +1,7 @@
 'use client';
 
 import { useL } from '@/lib/use-l';
+import { cropFor, rememberFocus, usePhotoPool, type PickImage } from './photo-pool';
 import {
   bindingChoices,
   buildDesign,
@@ -14,13 +15,14 @@ import {
   type DesignData,
   type DesignElement,
   type EventDto,
+  type MediaAssetDto,
   type TemplateDefinition,
   type UserTemplateDto,
 } from '@cardai/shared';
 import { ASSETS, STICKERS, type Sticker, type StickerCategory } from '@cardai/templates';
 import { clsx } from 'clsx';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowDown, ArrowUp, BookmarkPlus, Copy, Eye, EyeOff, Group, ImagePlus, Lock, Plus, Trash2, Unlock } from 'lucide-react';
+import { ArrowDown, ArrowUp, BookmarkPlus, Check, Copy, Eye, EyeOff, Group, ImagePlus, Lock, Plus, Trash2, Unlock, X } from 'lucide-react';
 import Image from 'next/image';
 import { coverOf, TemplateCover } from '@/components/invite/template-cover';
 import { useMemo, useState, type ReactNode } from 'react';
@@ -46,7 +48,7 @@ interface PanelProps {
   event: EventDto;
   data: DesignData | null;
   writer: ReturnType<typeof useEventWriter>;
-  pickImage: () => Promise<string | null>;
+  pickImage: PickImage;
   close: () => void;
 }
 
@@ -353,12 +355,26 @@ function ElementsPanel({ close }: PanelProps) {
 function PhotosPanel({ event, pickImage, close }: PanelProps) {
   const L = useL();
   const { data: media } = useEventMedia(event.id);
+  const pool = usePhotoPool(event);
   const photos = (media ?? []).filter((m) => m.contentType.startsWith('image/'));
-  const addPhoto = (src: string) => {
+  const onCard = new Set(event.settings.photoAssetIds);
+  /**
+   * Puts a photo on the card. `poolBefore` is how many photos the invitation had before this one,
+   * so an empty template frame (bound to the next photo slot) can be told apart: it fills by
+   * itself once the photo joins the pool, and no extra layer is needed.
+   */
+  const addPhoto = (src: string, poolBefore: number, asset?: MediaAssetDto) => {
     const st = useEditor.getState();
     const sel = currentPage(st)?.elements.find((e) => e.id === st.selected);
-    if (sel?.type === 'image') st.update(sel.id, { src, bind: undefined } as Partial<DesignElement>);
-    else place({ id: newId('i'), type: 'image', src, x: 240, y: 520, w: 600, h: 750, rot: 0, opacity: 1, mask: 'arch', border: '#FFFFFF', borderW: 10 } as DesignElement);
+    const isNew = !asset || !onCard.has(asset.id);
+    if (asset) {
+      rememberFocus(src, asset.focus);
+      void pool.add(asset.id);
+    }
+    const emptyFrame = st.doc?.pages.some((p) => p.elements.some((e) => e.type === 'image' && e.bind && /^photo[.][0-9]$/.test(e.bind) && Number(e.bind.slice(6)) >= poolBefore));
+    if (sel?.type === 'image') st.update(sel.id, { src, bind: undefined, ...cropFor(src) } as Partial<DesignElement>);
+    else if (isNew && emptyFrame) toast.success(L('Photo added to the empty frame'));
+    else place({ id: newId('i'), type: 'image', src, x: 240, y: 520, w: 600, h: 750, rot: 0, opacity: 1, mask: 'arch', border: '#FFFFFF', borderW: 10, ...cropFor(src) } as DesignElement);
     close();
   };
   return (
@@ -366,24 +382,42 @@ function PhotosPanel({ event, pickImage, close }: PanelProps) {
       <button
         type="button"
         onClick={async () => {
+          // The editor adds an uploaded photo to the pool itself; here it only has to be placed.
+          const before = event.settings.photoAssetIds.length;
           const url = await pickImage();
-          if (url) addPhoto(url);
+          if (url) addPhoto(url, before);
         }}
         className="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary"
       >
         <ImagePlus className="size-5" /> {L('Upload a photo')}
       </button>
       {photos.length > 0 ? (
-        <ul className="grid grid-cols-3 gap-2">
-          {photos.map((m) => (
-            <li key={m.id}>
-              <button type="button" onClick={() => addPhoto(m.url)} className="block aspect-square w-full overflow-hidden rounded-lg bg-mist">
-                {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our storage */}
-                <img src={m.url} alt="" loading="lazy" className="skeleton size-full object-cover" />
-              </button>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="grid grid-cols-3 gap-2">
+            {photos.map((m) => {
+              const on = onCard.has(m.id);
+              return (
+                <li key={m.id} className="relative">
+                  <button type="button" onClick={() => addPhoto(m.url, event.settings.photoAssetIds.length, m)} aria-label={on ? L('Place this photo again') : L('Use this photo')} className="block aspect-square w-full overflow-hidden rounded-lg bg-mist">
+                    {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our storage */}
+                    <img src={m.thumbUrl ?? m.url} alt="" loading="lazy" decoding="async" className="skeleton size-full object-cover" />
+                  </button>
+                  {on && (
+                    <>
+                      <span className="pointer-events-none absolute left-1 top-1 flex items-center gap-1 rounded-md bg-primary px-1.5 py-0.5 text-[0.65rem] font-semibold text-on-primary">
+                        <Check className="size-3" /> {L('On card')}
+                      </span>
+                      <button type="button" onClick={() => void pool.remove(m.id)} {...tip(L('Remove from the card (keeps it here)'), undefined, 'top')} className="absolute right-1 top-1 grid size-6 place-items-center rounded-md bg-ink/70 text-white hover:bg-ink">
+                        <X className="size-3.5" />
+                      </button>
+                    </>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+          <p className="text-xs text-ink-soft">{L('Photos marked “On card” fill the photo frames in every design. You can keep up to 6 there; the rest wait here.')}</p>
+        </>
       ) : (
         <p className="text-sm text-ink-soft">{L('Photos of the couple, the baby or your new home look lovely in an arch or circle frame.')}</p>
       )}

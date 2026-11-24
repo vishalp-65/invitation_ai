@@ -1,6 +1,7 @@
 import { BRAND } from '@cardai/shared';
 import { POSTS, postHref, type Block } from '@/features/blog';
 import { faqSections } from '@/features/faq/content';
+import { MAKER_PAGES, makerHref } from '@/features/makers/content';
 import { OCCASION_PAGES } from '@/features/occasions/content';
 import { loadOffers } from '@/lib/offers-server';
 
@@ -50,6 +51,11 @@ export async function GET() {
       `### ${o.h1.en}\n\nURL: ${base}/${o.slug} · Make one: ${base}/create?type=${o.type}\n\n${o.intro.en}\n\n${o.faq.map((f) => `**${f.q.en}**\n${f.a.en}`).join('\n\n')}`,
   ).join('\n\n');
 
+  const makers = MAKER_PAGES.map(
+    (m) =>
+      `### ${m.h1}\n\nURL: ${base}${makerHref(m.slug)}\n\n${m.intro}\n\n${m.sections.map((x) => `${x.h2}: ${x.paras.join(' ')}`).join('\n\n')}\n\n${m.faq.map(([q, a]) => `**${q}**\n${a}`).join('\n\n')}`,
+  ).join('\n\n');
+
   const guides = POSTS.map(
     (p) =>
       `## ${p.h1}\n\nURL: ${base}${postHref(p)} · Updated ${p.updated}\n\n${p.excerpt}\n\n${p.body.map(md).join('\n\n')}${
@@ -68,6 +74,10 @@ ${faq}
 ## Invitations by occasion
 
 ${occasions}
+
+## Invitation makers by format
+
+${makers}
 
 # Guides and wording samples
 

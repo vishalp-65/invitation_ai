@@ -1,5 +1,7 @@
 import { and, asc, desc, eq, eventFunctions, eventMembers, events, guests, inArray, isNotNull, isNull, ne, or, rsvps, sql, users, type Database } from '@cardai/db';
 import {
+  defaultSiteDoc,
+  getSiteDesign,
   eventSettingsSchema,
   getEventType,
   mergeSettings,
@@ -121,6 +123,11 @@ export class EventsService {
           settings,
           // Admin-published templates are finished editor layouts: the invitation starts from that design.
           design: input.design ? { ...input.design, templateId: template.id } : template.doc ? structuredClone(template.doc) : null,
+          // A video/website design picked in the gallery starts the page in that design. Without
+          // one the page stays unsaved and follows the card's design until the host edits it.
+          site: getSiteDesign(input.siteDesign)
+            ? defaultSiteDoc({ eventType: input.type, community: input.community, primaryNames: input.content.primaryNames, design: input.siteDesign })
+            : undefined,
         })
         .returning({ id: events.id });
       await tx.insert(eventFunctions).values(input.functions.map((f, i) => toFunctionRow(event!.id, f, i)));

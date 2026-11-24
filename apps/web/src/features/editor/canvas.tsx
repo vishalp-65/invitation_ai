@@ -8,6 +8,7 @@ import { Copy, Group, Lock, PencilLine, RotateCw, Trash2, Ungroup } from 'lucide
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type PointerEvent as RPointerEvent } from 'react';
 import { tip } from '@/components/ui/tooltip';
 import { ContextMenu, type MenuState } from './context-menu';
+import { CropOverlay } from './crop-overlay';
 import { bounds, clampZoom, currentPage, selectedElements, unionBounds, useEditor, zoomBy, type ElementPatch } from './store';
 
 type Handle = 'nw' | 'ne' | 'sw' | 'se' | 'e' | 'w' | 'n' | 's';
@@ -133,6 +134,9 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
   const spaceDown = useRef(false);
   const [panning, setPanning] = useState(false);
   const [menu, setMenu] = useState<MenuState | null>(null);
+  /** The photo frame being cropped right on the card (double-click a photo). */
+  const [cropId, setCropId] = useState<string | null>(null);
+  const endCrop = useCallback(() => setCropId(null), []);
   const [marquee, setMarquee] = useState<Marquee | null>(null);
   const marqueeRef = useRef<Marquee | null>(null);
   const [guides, setGuides] = useState<{ x: number[]; y: number[] }>({ x: [], y: [] });
@@ -682,6 +686,7 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
                     // Double-click enters a group: picks the single layer (and edits text).
                     st().select(el.id, { solo: true });
                     if (el.type === 'text') onEditText(el);
+                    if (el.type === 'image') setCropId(el.id);
                   }}
                   aria-label={el.type === 'text' ? displayText(el, data) : el.type}
                 />
@@ -695,14 +700,14 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
               <div key={`gy${y}`} className="pointer-events-none absolute left-0 h-px w-full bg-sindoor-soft" style={{ top: y * scale }} />
             ))}
 
-            {sel && !editingEl && multi.length === 0 && (
+            {sel && !editingEl && multi.length === 0 && cropId !== sel.id && (
               <SelectionFrame
                 el={sel}
                 style={boxStyle(sel)}
                 onHandle={(e, h) => startGesture(e, sel, 'resize', h, true)}
                 onRotate={(e) => startGesture(e, sel, 'rotate', undefined, true)}
                 onMove={(e) => startGesture(e, sel, 'move', undefined, true)}
-                onEdit={sel.type === 'text' && !sel.locked ? () => onEditText(sel) : undefined}
+                onEdit={sel.locked ? undefined : sel.type === 'text' ? () => onEditText(sel) : sel.type === 'image' ? () => setCropId(sel.id) : undefined}
                 above={sel.y * scale + stageTop > 56}
               />
             )}
@@ -717,6 +722,8 @@ export function EditorCanvas({ data, language, fontsReady, onEditText, onCommitT
                 above={mb.y * scale + stageTop > 56}
               />
             )}
+
+            {sel && sel.type === 'image' && cropId === sel.id && !sel.locked && <CropOverlay id={sel.id} style={boxStyle(sel)} above={sel.y * scale + stageTop > 56} onDone={endCrop} />}
 
             {marquee?.moved && (
               <div

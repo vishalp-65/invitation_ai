@@ -771,7 +771,14 @@
     "useLocation": "Use my location",
     "locateFailed": "Couldn’t get your location. Paste a Maps link instead.",
     "mapBad": "Paste a link from Google Maps or Apple Maps.",
-    "mapHint": "Guests get one-tap directions on the website."
+    "mapHint": "Guests get one-tap directions on the website.",
+    "vsTitle": "Video & website",
+    "vsMatches": "Same art as your card",
+    "vsPicked": "Your choice",
+    "vsSuggested": "Suggested for {occasion}",
+    "vsUseCard": "Use the matching card too",
+    "vsChange": "Change",
+    "vsBody": "Your video and invitation website use this design. Your card stays as it is."
   },
   "picker": {
     "chooseDate": "Choose a date",

@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { findTemplate } from '@/lib/template-hooks';
+import { cardForSiteDesign } from '@/lib/design-match';
 import { localizeFunctions, rewordForLanguage } from './default-wording';
 
 export interface DraftFunction {
@@ -39,6 +40,11 @@ export interface Draft {
   /** The occasion the functions were set up for; a different occasion starts them afresh. */
   fnType?: EventTypeId;
   templateId: string;
+  /**
+   * Video + website design the user picked (gallery or design step). Unset = the card's matching
+   * design, else the best one for the occasion — decided by the server.
+   */
+  siteDesign?: string;
   /** How the user started: the form, or a photo of their printed card (changes the step order). */
   source: 'form' | 'scan';
   /** Set after a card scan: which fields to double-check and how it was read. */
@@ -53,6 +59,8 @@ interface DraftStore extends Draft {
   setLanguage: (language: LanguageCode, byUser?: boolean) => void;
   /** Pick a design: the card takes the language that design was shown in, unless the user chose one. */
   pickTemplate: (templateId: string) => void;
+  /** Pick the video + website design; with `withCard`, also the card in the same art (if it suits the occasion). */
+  pickSiteDesign: (id: string | undefined, withCard?: boolean) => void;
   updateFunction: (key: string, patch: Partial<DraftFunction>) => void;
   addFunction: () => void;
   removeFunction: (key: string) => void;
@@ -86,6 +94,7 @@ const initial = (type: EventTypeId = 'wedding'): Draft => ({
   contentIsDefault: true,
   functions: getEventType(type).defaultFunctions.slice(0, 3).map((n) => emptyFunction(n)),
   templateId: SHOWCASE.defaultTemplate,
+  siteDesign: undefined, // explicit, so reset() clears an earlier pick
   source: 'form',
   scan: undefined,
 });
@@ -114,13 +123,21 @@ export const useDraft = create<DraftStore>()(
           const language = t && !s.languageByUser ? templateSampleLanguage(t) : s.language;
           return { templateId, language, languageSet: true, ...inLanguage(s, language) };
         }),
+      pickSiteDesign: (id, withCard = false) =>
+        set((s) => {
+          const card = id && withCard ? cardForSiteDesign(id, s.type) : undefined;
+          if (!card) return { siteDesign: id };
+          const language = !s.languageByUser ? templateSampleLanguage(card) : s.language;
+          return { siteDesign: id, templateId: card.id, language, languageSet: true, ...inLanguage(s, language) };
+        }),
       setType: (type) =>
         set((s) => {
           const current = findTemplate(s.templateId);
+          // The card stays if it suits the new occasion; otherwise the picked video design's matching card, then any.
           const templateId =
             current && templateSupportsEvent(current, type)
               ? s.templateId
-              : (BUILTIN_TEMPLATES.find((t) => templateSupportsEvent(t, type))?.id ?? s.templateId);
+              : ((s.siteDesign && cardForSiteDesign(s.siteDesign, type)?.id) ?? BUILTIN_TEMPLATES.find((t) => templateSupportsEvent(t, type))?.id ?? s.templateId);
           return {
             type,
             templateId,

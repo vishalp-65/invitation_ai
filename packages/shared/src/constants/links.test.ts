@@ -20,6 +20,7 @@ describe('custom link rules', () => {
   it('reserves occasion landing pages', () => {
     expect(isReservedLink('wedding-invitation')).toBe(true);
     expect(isReservedLink('church-wedding-invitation')).toBe(true);
+    expect(isReservedLink('shadi-card-maker')).toBe(true);
   });
   it('accepts 2-character names and rejects bad ones', () => {
     expect(aliasProblem('rp')).toBeNull();

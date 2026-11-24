@@ -104,6 +104,8 @@ export const createEventSchema = z.object({
   settings: eventSettingsSchema.partial().optional(),
   /** Card design made in the editor before saving (optional). */
   design: designDocSchema.optional(),
+  /** Video + website design picked in the gallery (a SITE_DESIGNS id); unknown ids are ignored. */
+  siteDesign: z.string().min(2).max(64).optional(),
 });
 export type CreateEventInput = z.infer<typeof createEventSchema>;
 

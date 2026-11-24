@@ -50,6 +50,10 @@ export interface MediaAssetDto {
   kind: string;
   url: string;
   contentType: string;
+  /** ~480 px copy for lists and previews (photos uploaded after thumbnails were added). */
+  thumbUrl?: string;
+  /** Where the subject sits in the picture, in % (object-position), for cropping into frames. */
+  focus?: { x: number; y: number };
   width: number | null;
   height: number | null;
   createdAt: string;

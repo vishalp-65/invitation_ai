@@ -75,6 +75,7 @@ Spaces holds user uploads (photos, logos, card scans), the guest photo album, re
 1. DigitalOcean → **Spaces Object Storage → Create Bucket**: region **BLR1** (same as the droplet), **CDN on**, name `noyta-media`, file listing **Restricted**.
 2. **Spaces Object Storage → Access Keys → Create Access Key**: Limited access, scoped to `noyta-media`, Read/Write/Delete. Put the key and secret in `.env.production` (`S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`). The secret is shown only once.
 3. **CORS** so the browser can PUT uploads: Bucket → Settings → CORS Configurations → origin `https://noyta.in` (and `https://www.noyta.in`), methods GET/PUT/HEAD, allowed header `*`, max age 3600. (Same rules as `infra/storage/cors.prod.json`.)
+   Spaces rejects CORS, ACLs and policies on some buckets (S3 `NotImplemented` / `UnsupportedAclConfiguration`); if so, create a fresh bucket and test with `s3cmd setcors infra/storage/cors.prod.xml s3://<bucket>` (the same rules in s3cmd's XML form). Set `STORAGE_PUBLIC_URL` to the bucket's **CDN** endpoint (`https://<bucket>.<region>.cdn.digitaloceanspaces.com`) so images load from the edge, and keep `S3_PUBLIC_READ_ACL=true`. Uploads go browser → bucket (`UPLOAD_MODE=direct`, the default); if a bucket cannot take CORS, set `UPLOAD_MODE=proxy` and `API_PUBLIC_URL=https://api.noyta.in` and uploads pass through the API instead.
 4. In `.env.production`:
 
    ```

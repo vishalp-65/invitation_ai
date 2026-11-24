@@ -27,7 +27,14 @@ export const metadata: Metadata = {
   description:
     'Create premium wedding, griha pravesh, birthday and puja invitations in minutes: a designer card, WhatsApp video and RSVP website in Hindi and 11 more Indian languages. Preview free.',
   applicationName: BRAND.name,
-  keywords: ['wedding invitation maker', 'invitation card maker', 'Hindi wedding card', 'WhatsApp video invitation', 'RSVP website', 'e-invite India', 'digital invitation'],
+  keywords: [
+    'Noyta', 'Nyota', 'invitation card maker', 'card invitation making', 'invite card making', 'invitation card maker free',
+    'invitation card image free', 'invitation video free', 'video invitation maker', 'wedding card maker', 'wedding invitation maker',
+    'shaadi card', 'shadi card maker', 'shaadi video invitation', 'birthday invitation card', 'birthday invitation video',
+    'griha pravesh invitation card', 'e invite', 'e invitation card', 'digital invitation', 'wedding website', 'RSVP website',
+    'Hindi wedding card', 'WhatsApp video invitation',
+  ],
+  category: 'design',
   // Google wants favicons in multiples of 48px; listing them explicitly (plus the SVG) beats relying on auto-discovery.
   icons: {
     icon: [

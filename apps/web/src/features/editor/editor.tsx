@@ -47,6 +47,7 @@ import { qk, useEvent, useMe } from '@/lib/hooks';
 import { useTemplate, useTemplates } from '@/lib/template-hooks';
 import { ThemeToggle } from '@/lib/theme';
 import { uploadPhoto } from '@/lib/upload';
+import { rememberFocus, usePhotoPool, type PickImage } from './photo-pool';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { EditorCanvas } from './canvas';
 import { InspectorPanel, useInspectorSections, useMultiSections, type InspectorCtx } from './inspector';
@@ -387,25 +388,49 @@ export function Editor({ eventId }: { eventId: string }) {
   // ---- image picking (hidden input, promise-based)
   const fileInput = useRef<HTMLInputElement>(null);
   const pickResolve = useRef<((url: string | null) => void) | null>(null);
-  const pickImage = useCallback(
-    () =>
+  /** Photos join the invitation's pool (so other templates reuse them); backgrounds don't. */
+  const pickPool = useRef(true);
+  const qc = useQueryClient();
+  const pool = usePhotoPool(event);
+  const pickImage = useCallback<PickImage>(
+    (opts) =>
       new Promise<string | null>((resolve) => {
         pickResolve.current = resolve;
+        pickPool.current = opts?.pool !== false;
         fileInput.current?.click();
       }),
     [],
   );
-  async function onFile(file: File | undefined) {
+  // The picker closes without a change event when cancelled, so settle the promise then too.
+  useEffect(() => {
+    const input = fileInput.current;
+    if (!input) return;
+    const onCancel = () => {
+      pickResolve.current?.(null);
+      pickResolve.current = null;
+    };
+    input.addEventListener('cancel', onCancel);
+    return () => input.removeEventListener('cancel', onCancel);
+  }, []);
+  async function onFile(file: File | undefined, retried = false) {
     const resolve = pickResolve.current;
     pickResolve.current = null;
     if (!file || !event) return resolve?.(null);
-    const id = toast.loading(L('Uploading photo…'));
+    const id = toast.loading(L('Preparing photo…'));
     try {
-      const asset = await uploadPhoto(event.id, file);
-      toast.success(L('Photo added'), { id });
+      const asset = await uploadPhoto(event.id, file, (s) => {
+        if (s.step === 'preparing') toast.loading(L('Preparing photo…'), { id });
+        else if (s.step === 'saving') toast.loading(L('Saving photo…'), { id });
+        else toast.loading(s.pct ? `${L('Uploading photo…')} ${s.pct}%` : L('Uploading photo…'), { id });
+      });
+      rememberFocus(asset.url, asset.focus);
+      if (pickPool.current) await pool.add(asset.id);
+      void qc.invalidateQueries({ queryKey: ['events', event.id, 'media'] });
+      toast.success(retried ? L('Photo saved. Add it to the card from the Photos tab.') : L('Photo added. It stays with this invitation, even if you change the template.'), { id });
       resolve?.(asset.url);
     } catch (e) {
-      toast.error((e as Error).message, { id });
+      // A retry cannot put the photo back where it was picked for, but it joins the invitation's photos.
+      toast.error((e as Error).message, { id, action: { label: L('Try again'), onClick: () => void onFile(file, true) } });
       resolve?.(null);
     }
   }

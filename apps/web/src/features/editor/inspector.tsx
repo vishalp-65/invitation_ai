@@ -1,6 +1,8 @@
 'use client';
 
 import { useL } from '@/lib/use-l';
+import { CROP_ZOOM_MAX, setCropZoom, useCropGestures } from './crop-gestures';
+import { cropFor, type PickImage } from './photo-pool';
 import {
   ATTIRES,
   bindingInfo,
@@ -11,6 +13,7 @@ import {
   type ImageFilter,
   COUPLE_STYLES,
   displayText,
+  resolveBinding,
   EDITOR_FONTS,
   detectScript,
   fontSupports,
@@ -43,6 +46,8 @@ import {
   RotateCcw,
   Trash2,
   Ungroup,
+  ZoomIn,
+  ZoomOut,
   SlidersHorizontal,
   ArrowDownToLine,
   ArrowUpToLine,
@@ -72,7 +77,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { toast } from 'sonner';
 import { useEventMedia } from '@/features/event/use-event-props';
 import { api, ApiError } from '@/lib/api';
@@ -90,7 +95,7 @@ export interface InspectorCtx {
   /** Opens the date/time picker for a function. */
   editDate: (fnIndex: number) => void;
   /** Uploads a photo and returns its URL. */
-  pickImage: () => Promise<string | null>;
+  pickImage: PickImage;
 }
 
 export interface InspectorSection {
@@ -433,7 +438,8 @@ function ImageShape({ el, ctx, colors }: { el: ImageElement; ctx: InspectorCtx; 
         type="button"
         onClick={async () => {
           const url = await ctx.pickImage();
-          if (url) up(el.id, { src: url, bind: undefined } as Partial<ImageElement>);
+          // A new picture starts uncropped, aimed at its subject.
+          if (url) up(el.id, { src: url, bind: undefined, ...cropFor(url) } as Partial<ImageElement>);
         }}
         className="flex h-11 items-center justify-center gap-2 rounded-lg bg-primary font-medium text-on-primary"
       >
@@ -489,10 +495,62 @@ function ImageAdjust({ el }: { el: ImageElement }) {
   );
 }
 
-function ImageCrop({ el }: { el: ImageElement }) {
+const radiusFor = (mask: ImageElement['mask']) => (mask === 'circle' || mask === 'oval' ? '50%' : mask === 'rounded' ? '12%' : mask === 'arch' || mask === 'soft-arch' ? '50% 50% 0 0 / 38% 38% 0 0' : undefined);
+
+/**
+ * Drag the photo to move it inside its frame; scroll, pinch or the +/− buttons zoom it. Uses the
+ * same CSS as the card itself (object-position + scale about the focal point), so what you see
+ * here is what the card shows.
+ */
+function CropPad({ el, src }: { el: ImageElement; src: string }) {
+  const L = useL();
+  const box = useRef<HTMLDivElement>(null);
+  const gestures = useCropGestures(el.id, box);
+  const zoom = el.zoom ?? 1;
+  const fx = el.fx ?? 50;
+  const fy = el.fy ?? 50;
+  const setZoom = (z: number) => setCropZoom(el.id, z);
+  const aspect = el.w > 0 && el.h > 0 ? el.w / el.h : 1;
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div
+        ref={box}
+        role="img"
+        aria-label={L('Drag the photo to reposition it. Scroll or pinch to zoom.')}
+        className="relative mx-auto w-full max-w-[16rem] cursor-grab touch-none select-none overflow-hidden bg-mist ring-1 ring-ink/10 active:cursor-grabbing"
+        style={{ aspectRatio: String(aspect), borderRadius: radiusFor(el.mask) }}
+        {...gestures}
+        onDoubleClick={() => up(el.id, { zoom: 1, fx: 50, fy: 50 } as Partial<ImageElement>)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element -- live crop preview of the user's photo */}
+        <img
+          src={src}
+          alt=""
+          draggable={false}
+          className="pointer-events-none size-full object-cover"
+          style={{ objectPosition: `${fx}% ${fy}%`, transformOrigin: `${fx}% ${fy}%`, transform: `scale(${el.flipX ? -zoom : zoom}, ${zoom})`, filter: imageFilterCss(el) }}
+        />
+      </div>
+      <div className="flex items-center justify-center gap-2">
+        <button type="button" aria-label={L('Zoom out')} disabled={zoom <= 1} onClick={() => setZoom(zoom - 0.25)} className="grid size-9 place-items-center rounded-lg border border-ink/10 hover:border-ink/40 disabled:opacity-40">
+          <ZoomOut className="size-4" />
+        </button>
+        <span className="w-12 text-center text-sm tabular-nums text-ink-soft">{Math.round(zoom * 100)}%</span>
+        <button type="button" aria-label={L('Zoom in')} disabled={zoom >= CROP_ZOOM_MAX} onClick={() => setZoom(zoom + 0.25)} className="grid size-9 place-items-center rounded-lg border border-ink/10 hover:border-ink/40 disabled:opacity-40">
+          <ZoomIn className="size-4" />
+        </button>
+      </div>
+      <p className="text-center text-xs text-ink-soft">{L('Drag to move · scroll or pinch to zoom · double-click to reset')}</p>
+    </div>
+  );
+}
+
+function ImageCrop({ el, src }: { el: ImageElement; src: string | null }) {
   const L = useL();
   return (
     <div className="flex flex-col gap-4">
+      {src && <CropPad el={el} src={src} />}
       <Slider label={L('Zoom')} min={100} max={400} value={Math.round((el.zoom ?? 1) * 100)} suffix="%" onChange={(v) => up(el.id, { zoom: v / 100 } as Partial<ImageElement>)} />
       <Slider label={L('Left – right')} min={0} max={100} value={Math.round(el.fx ?? 50)} suffix="%" onChange={(v) => up(el.id, { fx: v } as Partial<ImageElement>)} />
       <Slider label={L('Up – down')} min={0} max={100} value={Math.round(el.fy ?? 50)} suffix="%" onChange={(v) => up(el.id, { fy: v } as Partial<ImageElement>)} />
@@ -647,7 +705,7 @@ export function useInspectorSections(ctx: InspectorCtx): InspectorSection[] {
         { id: 'photo', label: 'Photo', icon: ImageUp, render: () => <ImageShape el={el} ctx={ctx} colors={colors} /> },
         { id: 'filters', label: 'Filters', icon: Sparkles, render: () => <ImageFilters el={el} /> },
         { id: 'adjust', label: 'Adjust', icon: SlidersHorizontal, render: () => <ImageAdjust el={el} /> },
-        { id: 'crop', label: 'Crop', icon: Crop, render: () => <ImageCrop el={el} /> },
+        { id: 'crop', label: 'Crop', icon: Crop, render: () => <ImageCrop el={el} src={el.src ?? (el.bind && ctx.data ? resolveBinding(el.bind, ctx.data) : null)} /> },
         ...common,
       ];
     case 'shape':

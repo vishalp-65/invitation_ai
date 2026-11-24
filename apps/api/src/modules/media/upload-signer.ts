@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import type { S3Storage } from '@cardai/infra';
 import type { Env } from '../../config/env.js';
 
 /**
@@ -31,6 +32,18 @@ export function verifyUpload(secret: string, q: { k?: string; t?: string; b?: st
   return { key: q.k, contentType: q.t, bytes };
 }
 
-/** Used by every presign call site, so they all hand the browser the same kind of URL. */
-export const presignUpload = (env: Pick<Env, 'JWT_ACCESS_SECRET' | 'API_PUBLIC_URL'>, key: string, contentType: string, bytes: number) =>
-  signUpload(env.JWT_ACCESS_SECRET, env.API_PUBLIC_URL ?? '', key, contentType, bytes);
+/**
+ * Used by every presign call site, so they all hand the browser the same kind of URL: a presigned
+ * storage URL (direct, cheapest for the API), or a signed link to this API (proxy, for a bucket
+ * without CORS).
+ */
+export async function presignUpload(
+  storage: S3Storage,
+  env: Pick<Env, 'JWT_ACCESS_SECRET' | 'API_PUBLIC_URL' | 'UPLOAD_MODE'>,
+  key: string,
+  contentType: string,
+  bytes: number,
+): Promise<{ uploadUrl: string; headers: Record<string, string> }> {
+  if (env.UPLOAD_MODE === 'proxy') return signUpload(env.JWT_ACCESS_SECRET, env.API_PUBLIC_URL ?? '', key, contentType, bytes);
+  return { uploadUrl: await storage.presignPut(key, contentType, bytes), headers: storage.uploadHeaders(contentType) };
+}

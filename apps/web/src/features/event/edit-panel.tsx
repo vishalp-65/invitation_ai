@@ -21,7 +21,7 @@ import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
 import { useTemplates } from '@/lib/template-hooks';
 import { useEventMedia } from './use-event-props';
-import { uploadPhoto } from '@/lib/upload';
+import { failureSummary, uploadPhotos } from '@/lib/upload';
 import { CardDetailsPanel } from './card-details-panel';
 import { Panel, StatusPill, ToggleRow } from './panel-ui';
 
@@ -59,9 +59,11 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
   async function onPhotos(files: FileList | null) {
     if (!files?.length) return;
     try {
-      const uploaded = await Promise.all([...files].slice(0, 6).map((f) => uploadPhoto(event.id, f)));
+      const { done, failed } = await uploadPhotos(event.id, [...files].slice(0, 6));
+      if (failed.length) toast.error(failureSummary(failed));
+      if (!done.length) return;
       await refreshMedia();
-      save.mutate({ settings: { photoAssetIds: [...event.settings.photoAssetIds, ...uploaded.map((u) => u.id)].slice(0, 6) } });
+      save.mutate({ settings: { photoAssetIds: [...event.settings.photoAssetIds, ...done.map((u) => u.id)].slice(0, 6) } });
     } catch (err) {
       toast.error((err as Error).message);
     }
@@ -224,7 +226,7 @@ export function EditPanel({ event, onUpgrade }: { event: EventDto; onUpgrade: ()
           {photos.map((p) => (
             <div key={p.id} className="flex w-24 flex-col gap-1.5">
               {/* eslint-disable-next-line @next/next/no-img-element -- user uploads on our CDN */}
-              <img src={p.url} alt="" className="size-24 rounded-lg border border-ink/10 object-cover" />
+              <img src={p.thumbUrl ?? p.url} alt="" className="size-24 rounded-lg border border-ink/10 object-cover" />
               <button
                 type="button"
                 className="text-xs font-medium text-primary disabled:opacity-50"

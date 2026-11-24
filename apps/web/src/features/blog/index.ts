@@ -17,12 +17,17 @@ import { post as puja } from './posts/satyanarayan-puja-invitation-message';
 import { post as howTo } from './posts/how-to-make-an-invitation-online';
 import { post as haldiMehndi } from './posts/haldi-mehndi-sangeet-invitation-message';
 import { post as marathi } from './posts/marathi-lagna-patrika-matter';
+import { post as formats } from './posts/card-vs-video-vs-website-invitation';
+import { post as weddingWebsite } from './posts/wedding-website-guide';
+import { post as shaadiDesigns } from './posts/shaadi-card-design-ideas';
+import { post as cardDesigns } from './posts/invitation-card-design-ideas';
+import { post as birthdayCardVideo } from './posts/birthday-invitation-card-and-video';
 import type { BlogPost } from './types';
 
 export type { BlogPost, Block } from './types';
 
 /** Every post, newest first (ties keep this order). Add a post: create it in ./posts and list it here. */
-export const POSTS: BlogPost[] = [howTo, wording, hindiMatter, marriageWhatsapp, roka, naamkaran, godhBharai, nikah, anniversary, mundan, puja, haldiMehndi, marathi, video, rsvp, timeline, grihaPravesh, birthday].sort((a, b) =>
+export const POSTS: BlogPost[] = [formats, cardDesigns, shaadiDesigns, weddingWebsite, birthdayCardVideo, howTo, wording, hindiMatter, marriageWhatsapp, roka, naamkaran, godhBharai, nikah, anniversary, mundan, puja, haldiMehndi, marathi, video, rsvp, timeline, grihaPravesh, birthday].sort((a, b) =>
   b.published.localeCompare(a.published),
 );
 

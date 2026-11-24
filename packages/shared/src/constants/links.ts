@@ -33,8 +33,11 @@ export const RESERVED_LINK_WORDS: ReadonlySet<string> = new Set([
   'checkin', 'rsvp', 'guests', 'events', 'event', 'cards', 'card', 'videos', 'websites', 'website', 'shop', 'store',
 ]);
 
-/** Occasion landing pages are `/<occasion>-invitation`; keep that whole family for them. */
-const OCCASION_PAGE = /-invitations?$/;
+/**
+ * Occasion landing pages are `/<occasion>-invitation`, format landing pages `/<format>-maker`
+ * (invitation-card-maker, shadi-card-maker...); keep both families for them.
+ */
+const OCCASION_PAGE = /-(?:invitations?|maker)$/;
 
 export function isReservedLink(word: string): boolean {
   const w = word.toLowerCase();

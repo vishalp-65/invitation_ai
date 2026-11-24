@@ -46,8 +46,8 @@ export function StudioVideoCarousel({ hi }: { hi: boolean }) {
           title={hi ? 'चित्रित दृश्य,' : 'Painted scenes,'}
           soft={hi ? 'चलते हुए।' : 'in motion.'}
           body={hi ? 'लालटेन, महल, घाट और बगीचे। 9:16 वीडियो जो WhatsApp पर साफ़ चलता है, और वही डिज़ाइन आपकी वेबसाइट पर।' : 'Lanterns, palaces, ghats and gardens. A 9:16 video that plays crisp on WhatsApp, and the same design on your invitation website.'}
-          href="/create?type=wedding"
-          cta={hi ? 'वीडियो निमंत्रण बनाएँ' : 'Make a video invite'}
+          href="/templates?format=video"
+          cta={hi ? 'सभी वीडियो डिज़ाइन देखें' : 'See all video designs'}
         />
       }
     >

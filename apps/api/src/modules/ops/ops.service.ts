@@ -75,12 +75,15 @@ export class OpsService implements OnApplicationBootstrap {
 
   // ---------------- Health checks ----------------
 
-  /** Guest album uploads never confirmed within a day: rows and any partial objects go. */
-  private async purgeStaleAlbumUploads(): Promise<number> {
+  /**
+   * Uploads nobody confirmed within a day (closed tab, lost signal, refused file): the row and any
+   * partial object go. Until then they count against the owner's 2 GB storage quota.
+   */
+  private async purgeStaleUploads(): Promise<number> {
     const rows = await this.rows<{ storage_key: string }>(sql`
       delete from media_assets where id in (
         select id from media_assets
-        where ready = false and meta->>'source' = 'guest_album' and created_at < now() - interval '1 day'
+        where ready = false and created_at < now() - interval '1 day'
         limit 500)
       returning storage_key`);
     await Promise.allSettled(rows.map((r) => this.storage.delete(r.storage_key)));
@@ -88,7 +91,7 @@ export class OpsService implements OnApplicationBootstrap {
   }
 
   async check(): Promise<Alert[]> {
-    await this.purgeStaleAlbumUploads().catch((err: Error) => this.logger.warn(`album cleanup failed: ${err.message}`));
+    await this.purgeStaleUploads().catch((err: Error) => this.logger.warn(`upload cleanup failed: ${err.message}`));
     const [renders, stuck, checkout, signups, ai] = await Promise.all([
       this.rows<{ total: string; failed: string; error: string | null }>(sql`
         select count(*) as total, count(*) filter (where status = 'failed') as failed,

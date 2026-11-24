@@ -3,18 +3,26 @@
 import {
   buildDesign,
   coverPageIndex,
+  defaultDesignFor,
   designDataFrom,
+  getSiteDesign,
   EVENT_TYPES,
   sampleInviteProps,
   type TemplateDefinition,
 } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { ArrowRight, Check, ChevronLeft, ChevronRight, Crown } from 'lucide-react';
+import { ArrowRight, Check, ChevronLeft, ChevronRight, Crown, Film, Globe, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { DesignView } from '@/components/design/design-view';
 import { Dialog } from '@/components/ui/dialog';
 import { track } from '@/lib/track';
+import { DesignPoster } from '@/components/invite/design-poster';
+import { SiteDesignFonts } from '@/components/invite/site-design-grid';
+import { siteDesignOfCard } from '@/lib/design-match';
+import { useL } from '@/lib/use-l';
+
+type View = 'card' | 'video' | 'website';
 
 const PAGE_LABEL: Array<[RegExp, string, string]> = [
   [/^blessing/, 'Blessing', 'आशीर्वाद'],
@@ -74,8 +82,19 @@ export function TemplatePreview({
   const t = family?.variants.find((v) => v.id === activeId) ?? family?.variants[0];
   const sample = useSampleDesign(t, hi);
   const [page, setPage] = useState<number | null>(null);
-  // Open each design on its cover (names + date), not the blessing page.
-  useEffect(() => setPage(null), [family?.name]);
+  const [view, setView] = useState<View>('card');
+  const L = useL();
+  // Open each design on its cover (names + date), not the blessing page, and as the card.
+  useEffect(() => {
+    setPage(null);
+    setView('card');
+  }, [family?.name]);
+  // The video and website this card makes: its own matching design, or the one picked for its occasion.
+  const matched = siteDesignOfCard(t);
+  const site = useMemo(
+    () => matched ?? (t ? getSiteDesign(defaultDesignFor(t.eventTypes === 'all' ? 'wedding' : t.eventTypes[0]!, t.communities[0], t.design)) : null),
+    [matched, t],
+  );
 
   const pages = sample?.doc.pages ?? [];
   const current = sample ? Math.min(page ?? coverPageIndex(sample.doc), pages.length - 1) : 0;
@@ -117,7 +136,49 @@ export function TemplatePreview({
         <>
           <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8">
             {/* Pages — on desktop the 9:16 card shrinks with the window height so it fits without scrolling. */}
-            <div className="mx-auto w-full max-w-[340px] sm:w-[min(340px,max(10rem,calc((100dvh-19rem)*0.5625)))]">
+            <div className="mx-auto w-full max-w-[340px] sm:w-[min(340px,max(10rem,calc((100dvh-22rem)*0.5625)))]">
+              {site && (
+                <div className="mb-3 grid grid-cols-3 border border-ink/15" role="tablist" aria-label={L('Show as')}>
+                  {(
+                    [
+                      ['card', ImageIcon, L('Card')],
+                      ['video', Film, L('Video')],
+                      ['website', Globe, L('Website')],
+                    ] as const
+                  ).map(([v, Icon, label]) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="tab"
+                      aria-selected={view === v}
+                      onClick={() => setView(v)}
+                      className={clsx(
+                        'inline-flex h-10 items-center justify-center gap-1.5 text-sm transition-colors',
+                        view === v ? 'bg-ink text-ivory' : 'text-ink-soft hover:bg-ink/[0.04] hover:text-ink',
+                      )}
+                    >
+                      <Icon className="size-4" aria-hidden />
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {site && view !== 'card' ? (
+                <>
+                  <SiteDesignFonts designs={[site]} />
+                  <div className="relative aspect-[9/16] overflow-hidden rounded-xl border border-ink/10 bg-ink/[0.04]">
+                    {view === 'video' ? (
+                      <DesignPoster key={site.id} design={site} />
+                    ) : (
+                      <iframe key={site.id} src={`/templates/site/${site.id}`} title={`${site.name} — ${L('Sample invitation website')}`} className="absolute inset-0 size-full" loading="lazy" />
+                    )}
+                  </div>
+                  <p className="mt-2 text-center text-xs text-ink-soft">
+                    {matched ? L('Same art as this card: {name}', { name: site.name }) : L('Suggested design: {name}. You can change it.', { name: site.name })}
+                  </p>
+                </>
+              ) : (
+              <>
               <div className="relative">
                 <DesignView
                   key={`${t.id}-${current}`}
@@ -166,6 +227,8 @@ export function TemplatePreview({
                     </button>
                   ))}
                 </div>
+              )}
+              </>
               )}
             </div>
 
@@ -254,7 +317,9 @@ export function TemplatePreview({
 
               <ul className="mt-6 flex flex-col gap-2 text-[0.95rem]">
                 {[
-                  hi ? 'इमेज कार्ड, वीडियो इनवाइट और वेबसाइट' : 'Image card, video invite and website',
+                  matched
+                    ? L('Image card, plus a video and website in the same art')
+                    : L('Image card, plus a video and website in a suggested design'),
                   hi ? 'हर पेज और लेयर बदली जा सकती है' : 'Every page and layer is editable',
                   `${hi ? 'अवसर' : 'For'}: ${occasions.join(', ')}`,
                 ].map((line) => (

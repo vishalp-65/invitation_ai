@@ -31,9 +31,11 @@ import { WHATSAPP_CHAT_URL } from '@/lib/whatsapp';
 
 const WHATSAPP_BOT = WHATSAPP_CHAT_URL;
 
-const TITLE = `Wedding Invitation Maker: Card, Video & Website · ${BRAND.name}`;
+// Broadest intent first ("invitation card maker"), then the two biggest occasions; the brand
+// ends the title so "Noyta" / "Nyota" searches match it too.
+const TITLE = `Invitation Card & Video Maker Free: Wedding, Birthday · ${BRAND.name}`;
 const DESCRIPTION =
-  'Create a premium wedding invitation in 2 minutes: designer card, WhatsApp video and RSVP website with venue map, in Hindi and 11 more languages. Preview every design free.';
+  'Make invitation cards, WhatsApp video invites and RSVP websites free — wedding (shaadi), birthday, griha pravesh, puja and more, in Hindi and 11 languages. Ready in 2 minutes.';
 
 export const metadata: Metadata = {
   // Main search term first; the brand tagline stays the default title for other pages.
@@ -155,11 +157,15 @@ function structuredData(highPrice: number, faq: Array<[string, string]>) {
     '@type': 'Organization',
     '@id': `${BRAND.url}/#org`,
     name: BRAND.name,
-    alternateName: BRAND.domain,
+    // Spellings people actually type for the brand (from न्योता), so they still find us.
+    alternateName: [BRAND.domain, 'Nyota', 'Noyta Invitations', 'न्योता'],
     url: BRAND.url,
     logo,
     image: { '@id': logo['@id'] },
     description: 'Online invitation maker for Indian families: invitation cards, WhatsApp video invites and RSVP websites in 12 Indian languages.',
+    slogan: BRAND.tagline,
+    areaServed: { '@type': 'Country', name: 'India' },
+    knowsAbout: ['Invitation card making', 'Wedding invitations', 'Shaadi card', 'Video invitations', 'E-invites', 'Wedding websites', 'RSVP'],
     email: BRAND.supportEmail,
     contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: BRAND.supportEmail, availableLanguage: ['English', 'Hindi'] },
   };
@@ -168,7 +174,7 @@ function structuredData(highPrice: number, faq: Array<[string, string]>) {
     '@graph': [
       org,
       // WebSite name + alternateName feed the site name Google shows above the result.
-      { '@type': 'WebSite', '@id': `${BRAND.url}/#site`, url: `${BRAND.url}/`, name: BRAND.name, alternateName: [`${BRAND.name} Invitations`, BRAND.domain], inLanguage: ['en-IN', 'hi-IN'], publisher: { '@id': org['@id'] } },
+      { '@type': 'WebSite', '@id': `${BRAND.url}/#site`, url: `${BRAND.url}/`, name: BRAND.name, alternateName: [`${BRAND.name} Invitations`, BRAND.domain, 'Nyota'], inLanguage: ['en-IN', 'hi-IN'], publisher: { '@id': org['@id'] } },
       {
         '@type': 'WebApplication',
         name: BRAND.name,

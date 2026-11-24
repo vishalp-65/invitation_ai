@@ -75,9 +75,9 @@ services:
       BROWSER_IDLE_CLOSE_SEC: ${BROWSER_IDLE_CLOSE_SEC:-300}
     # Chrome uses /dev/shm for frames; it counts against mem_limit, so keep it modest
     shm_size: ${WORKER_SHM:-512m}
-    mem_limit: ${WORKER_MEMORY:-1200m}
-    # Half the default CPU weight: under contention the API and interviewpilot win, idle CPU is still used
-    cpu_shares: 512
+    mem_limit: ${WORKER_MEMORY:-1500m}
+    # CPU weight (default 1024 = equal to other containers; 512 = half). Idle CPU is always usable
+    cpu_shares: ${WORKER_CPU_SHARES:-512}
     # Let an in-flight render finish (or reach a checkpoint) before a deploy kills it
     stop_grace_period: 2m
 

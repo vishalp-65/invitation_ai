@@ -24,12 +24,12 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
           banner && 'pb-24 lg:pb-0',
         )}
       >
-        <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-14 sm:grid-cols-4 lg:grid-cols-6 lg:gap-8 lg:py-20">
-          <div className="col-span-2 sm:col-span-4 lg:col-span-2">
+        <div className="grid grid-cols-2 gap-x-8 gap-y-10 py-14 sm:grid-cols-3 lg:grid-cols-7 lg:gap-8 lg:py-20">
+          <div className="col-span-2 sm:col-span-3 lg:col-span-2">
             <Logo tone="light" />
             <p className="mb-8 mt-6 max-w-xs text-sm leading-relaxed text-white/50">
-              Invitation cards, video invites and invitation websites for every Indian family
-              occasion, in your language.
+              {BRAND.name} (from न्योता, “nyota” — an invitation) makes invitation cards, video
+              invites and invitation websites for every Indian family occasion, in your language.
             </p>
             {WHATSAPP_CHAT_URL && (
               <a
@@ -47,12 +47,14 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
             title="Make"
             links={[
               ['/create', 'Make an invitation'],
+              ['/invitation-card-maker', 'Invitation card maker'],
+              ['/video-invitation-maker', 'Video invitation maker'],
+              ['/invitation-website-maker', 'Wedding website'],
+              ['/free-invitation-maker', 'Free invitation maker'],
+              ['/shadi-card-maker', 'Shadi card maker'],
+              ['/e-invitation-card-maker', 'E-invite maker'],
               ['/templates', 'Designs'],
               ['/pricing', 'Pricing'],
-              ['/invitation-maker/hindi', 'Hindi card maker'],
-              ['/invitation-maker/marathi', 'Marathi card maker'],
-              ['/invitation-maker/gujarati', 'Gujarati card maker'],
-              ['/invitation-maker', 'All languages'],
             ]}
           />
           <FooterCol
@@ -64,6 +66,17 @@ export function SiteFooter({ banner = false }: { banner?: boolean } = {}) {
               ['/birthday-invitation', 'Birthday invitations'],
               ['/nikah-invitation', 'Nikah invitations'],
               ['/puja-invitation', 'Puja invitations'],
+            ]}
+          />
+          <FooterCol
+            title="Languages"
+            links={[
+              ['/invitation-maker/hindi', 'Hindi card maker'],
+              ['/invitation-maker/marathi', 'Marathi card maker'],
+              ['/invitation-maker/gujarati', 'Gujarati card maker'],
+              ['/invitation-maker/tamil', 'Tamil card maker'],
+              ['/invitation-maker/telugu', 'Telugu card maker'],
+              ['/invitation-maker', 'All languages'],
             ]}
           />
           <FooterCol

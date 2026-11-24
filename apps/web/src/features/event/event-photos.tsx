@@ -7,7 +7,7 @@ import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { api, ApiError } from '@/lib/api';
 import { qk } from '@/lib/hooks';
-import { uploadPhoto } from '@/lib/upload';
+import { failureSummary, uploadPhotos } from '@/lib/upload';
 import { useEventMedia } from './use-event-props';
 
 const MAX = 6;
@@ -43,7 +43,9 @@ export function EventPhotos({ event, onChange, onUpgrade, compact = false }: { e
     const list = [...files].slice(0, room);
     setUploading(list.length);
     try {
-      const done = await Promise.all(list.map((f) => uploadPhoto(event.id, f)));
+      const { done, failed } = await uploadPhotos(event.id, list, { onEach: (finished, total) => setUploading(total - finished) });
+      if (failed.length) toast.error(failureSummary(failed));
+      if (!done.length) return;
       await refreshMedia();
       save.mutate([...ids, ...done.map((d) => d.id)].slice(0, MAX));
     } catch (err) {
@@ -99,7 +101,7 @@ export function EventPhotos({ event, onChange, onUpgrade, compact = false }: { e
         {photos.map((p, i) => (
           <li key={p.id} className="group relative aspect-[3/4] overflow-hidden rounded-[8px] bg-ink/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={p.url} alt="" loading="lazy" className="size-full object-cover" />
+            <img src={p.thumbUrl ?? p.url} alt="" loading="lazy" decoding="async" className="size-full object-cover" />
             {i === 0 && <span className="absolute left-1.5 top-1.5 rounded-[6px] bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold text-white">Cover</span>}
             {painting === p.id && (
               <span className="absolute inset-0 grid place-items-center bg-black/45 text-white">

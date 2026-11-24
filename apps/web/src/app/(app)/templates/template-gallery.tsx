@@ -3,7 +3,7 @@
 import { GallerySkeleton } from '@/components/ui/skeletons';
 import { COLOR_FILTERS, COMMUNITIES, EVENT_TYPES, groupByFamily, STYLE_FILTERS, type EventTypeId, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
-import { Check, Search, SlidersHorizontal, X } from 'lucide-react';
+import { Check, Film, Globe, Image as ImageIcon, Search, SlidersHorizontal, X } from 'lucide-react';
 import { useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
@@ -17,6 +17,11 @@ import { designHref } from '@/lib/links';
 import { Dialog } from '@/components/ui/dialog';
 import { useTemplates } from '@/lib/template-hooks';
 import { Select } from '@/components/ui/select';
+import { SiteDesignFonts, SiteDesignPreview, SiteDesignTile, type SiteFormat } from '@/components/invite/site-design-grid';
+import { getSiteDesign, visibleDesigns, type SiteDesign } from '@cardai/shared';
+import { isPremiumSiteDesign, occasionForSiteDesign, siteDesignsForOccasion, siteDesignText } from '@/lib/design-match';
+import { useDesignVisibility } from '@/lib/offers';
+import { useL } from '@/lib/use-l';
 
 const OCCASIONS: Array<EventTypeId | 'all'> = [
   'all', 'wedding', 'engagement', 'reception', 'birthday', 'griha-pravesh', 'puja', 'baby-shower',
@@ -24,6 +29,10 @@ const OCCASIONS: Array<EventTypeId | 'all'> = [
 ];
 
 type Price = 'all' | 'free' | 'premium';
+/** What the visitor wants to make. Cards and cinematic designs are two catalogs; video and website share one. */
+type Format = 'card' | SiteFormat;
+type Look = 'all' | 'painted' | 'modern';
+const FORMATS = ['card', 'video', 'website'] as const;
 type Sort = 'recommended' | 'popular' | 'free' | 'az';
 type Family = { id: string; name: string; variants: TemplateDefinition[] };
 
@@ -70,6 +79,15 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
   const [sort, setSort] = useState<Sort>(() => pick(params.get('sort'), SORTS.map((s) => s[0]), 'recommended'));
   const [previewId, setPreviewId] = useState<string | null>(() => params.get('design'));
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [format, setFormatState] = useState<Format>(() => pick(params.get('format'), FORMATS, 'card'));
+  const [look, setLook] = useState<Look>(() => pick(params.get('look'), ['all', 'painted', 'modern'] as const, 'all'));
+  const L = useL();
+  const siteMode = format !== 'card';
+  // Ids differ between the catalogs, so an open preview closes when the catalog changes.
+  const setFormat = (f: Format) => {
+    if ((f === 'card') !== (format === 'card')) setPreviewId(null);
+    setFormatState(f);
+  };
   const eventType = occasion === 'all' ? undefined : occasion;
   const { data, isLoading } = useTemplates(eventType, initial && initial.eventType === eventType ? initial.items : undefined);
   const search = useTemplateSearch(data, {
@@ -89,10 +107,12 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
     if (state.styles.length) next.set('style', state.styles.join(','));
     if (state.community) next.set('tradition', state.community);
     if (sort !== 'recommended') next.set('sort', sort);
+    if (format !== 'card') next.set('format', format);
+    if (format !== 'card' && look !== 'all') next.set('look', look);
     if (previewId) next.set('design', previewId);
     const qs = next.toString().replaceAll('%2C', ',');
     if (qs !== window.location.search.slice(1)) window.history.replaceState(null, '', qs ? `?${qs}` : window.location.pathname);
-  }, [state, occasion, price, sort, previewId]);
+  }, [state, occasion, price, sort, previewId, format, look]);
 
   const families = useMemo(
     () => sortFamilies(groupByFamily(search.results.filter((t) => price === 'all' || (price === 'premium' ? t.premium : !t.premium))), sort),
@@ -102,20 +122,72 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
     () => (previewId ? (groupByFamily(data ?? []).find((f) => f.variants.some((v) => v.id === previewId)) ?? null) : null),
     [data, previewId],
   );
+  // Video / website designs: the occasion's faith and neutral ones, then search, price and look.
+  const visibility = useDesignVisibility();
+  const siteDesigns = useMemo(() => {
+    if (!siteMode) return [];
+    const words = state.q.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    return visibleDesigns(siteDesignsForOccasion(eventType), visibility, 'picker').filter(
+      (d) =>
+        words.every((w) => siteDesignText(d).includes(w)) &&
+        (price === 'all' || (price === 'premium') === isPremiumSiteDesign(d.id)) &&
+        (look === 'all' || (d.scene.style ?? 'painted') === look),
+    );
+  }, [siteMode, eventType, visibility, state.q, price, look]);
+  const previewSite = siteMode ? getSiteDesign(previewId) : null;
+  const siteHref = (d: SiteDesign) => `/create?type=${occasion === 'all' ? occasionForSiteDesign(d) : occasion}&site=${d.id}`;
   const hrefFor = (t: TemplateDefinition) => (occasion === 'all' ? designHref(t) : `/create?type=${occasion}&template=${t.id}`);
   const colourways = families.reduce((n, f) => n + f.variants.length, 0);
-  const nRefine = state.styles.length + state.colors.length + (state.community ? 1 : 0) + (price !== 'all' ? 1 : 0);
+  const nRefine = siteMode
+    ? (look !== 'all' ? 1 : 0) + (price !== 'all' ? 1 : 0)
+    : state.styles.length + state.colors.length + (state.community ? 1 : 0) + (price !== 'all' ? 1 : 0);
   const resetAll = () => {
     search.reset();
     setPrice('all');
+    setLook('all');
   };
+  const shownCount = siteMode ? siteDesigns.length : families.length;
 
-  const panel = <FilterPanel state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} />;
+  const panel = <FilterPanel state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} site={siteMode} look={look} onLook={setLook} />;
+  const formatHint = {
+    card: L('Every card also makes a video and a website. Pick the card here.'),
+    video: L('An animated 9:16 video for WhatsApp. The same design becomes your invitation website.'),
+    website: L('Your invitation website with RSVP, map and countdown. The same design makes your video.'),
+  }[format];
 
   return (
     <>
+      {/* What to make: the card catalog, or the cinematic designs as a video or a website. */}
+      <div className="mt-10">
+        <div className="grid max-w-md grid-cols-3 border border-ink/15" role="tablist" aria-label={L('What are you making?')}>
+          {(
+            [
+              ['card', ImageIcon, L('Image card')],
+              ['video', Film, L('Video')],
+              ['website', Globe, L('Website')],
+            ] as const
+          ).map(([f, Icon, label]) => (
+            <button
+              key={f}
+              type="button"
+              role="tab"
+              aria-selected={format === f}
+              onClick={() => setFormat(f)}
+              className={clsx(
+                'inline-flex h-12 items-center justify-center gap-2 text-[0.95rem] transition-colors',
+                format === f ? 'bg-ink text-ivory' : 'text-ink-soft hover:bg-ink/[0.04] hover:text-ink',
+              )}
+            >
+              <Icon className="size-4" aria-hidden />
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 max-w-2xl text-sm text-ink-soft">{formatHint}</p>
+      </div>
+
       {/* Search */}
-      <div className="mt-8 flex gap-2">
+      <div className="mt-6 flex gap-2">
         <label className="relative flex-1">
           <span className="sr-only">{hi ? 'डिज़ाइन खोजें' : 'Search designs'}</span>
           <Search className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-ink-soft" aria-hidden />
@@ -123,7 +195,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
             type="search"
             value={state.q}
             onChange={(e) => setState({ ...state, q: e.target.value })}
-            placeholder={hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search shaadi, ganesha, maroon, floral…'}
+            placeholder={siteMode ? L('Search palace, garden, night, floral…') : hi ? 'खोजें: शादी, गणेश, लाल, फूल, निकाह…' : 'Search shaadi, ganesha, maroon, floral…'}
             className="h-14 w-full border border-ink/15 bg-transparent pl-12 pr-11 text-base text-ink outline-none transition-colors placeholder:text-ink-soft/70 hover:border-ink/30 focus-visible:border-ink"
             enterKeyHint="search"
           />
@@ -200,7 +272,9 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
         <section aria-live="polite" aria-busy={isLoading}>
           <div className="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-2">
             <p className="font-mono text-xs text-ink-soft">
-              {isLoading ? (
+              {siteMode ? (
+                format === 'video' ? L('{n} video designs', { n: siteDesigns.length }) : L('{n} website designs', { n: siteDesigns.length })
+              ) : isLoading ? (
                 hi ? 'डिज़ाइन लोड हो रहे हैं…' : 'Loading designs…'
               ) : hi ? (
                 <><span className="text-ink">{families.length}</span> डिज़ाइन · {colourways} रंग</>
@@ -208,8 +282,8 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
                 <><span className="text-ink">{families.length}</span> {families.length === 1 ? 'design' : 'designs'} · {colourways} colourways</>
               )}
             </p>
-            <ActiveChips state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} onReset={resetAll} />
-            <label className="ml-auto flex items-center gap-2 text-sm text-ink-soft">
+            <ActiveChips state={siteMode ? { ...state, colors: [], styles: [], community: '' } : state} onChange={setState} price={price} onPrice={setPrice} hi={hi} onReset={resetAll} />
+            <label className={clsx('ml-auto items-center gap-2 text-sm text-ink-soft', siteMode ? 'hidden' : 'flex')}>
               <span className="hidden font-mono text-xs sm:inline">{hi ? 'क्रम' : 'Sort'}</span>
               <Select
                 value={sort}
@@ -224,7 +298,20 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
             </label>
           </div>
 
-          {isLoading ? (
+          {siteMode ? (
+            siteDesigns.length === 0 ? (
+              <div className="mt-5"><NoTemplates hi={hi} onReset={resetAll} /></div>
+            ) : (
+              <>
+                <SiteDesignFonts designs={siteDesigns} />
+                <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-10 sm:grid-cols-3 sm:gap-x-6 xl:grid-cols-4">
+                  {siteDesigns.map((d) => (
+                    <SiteDesignTile key={d.id} design={d} format={format} onOpen={(x) => setPreviewId(x.id)} href={siteHref} eventType={eventType} />
+                  ))}
+                </ul>
+              </>
+            )
+          ) : isLoading ? (
             <GallerySkeleton />
           ) : families.length === 0 ? (
             <div className="mt-5"><NoTemplates hi={hi} onReset={resetAll} /></div>
@@ -247,7 +334,17 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
         </section>
       </div>
 
-      {previewFamily && <TemplatePreview family={previewFamily} activeId={previewId} onSelect={setPreviewId} onClose={() => setPreviewId(null)} href={hrefFor} hi={hi} />}
+      {siteMode && (
+        <SiteDesignPreview
+          design={previewSite}
+          format={format}
+          onFormat={setFormat}
+          onClose={() => setPreviewId(null)}
+          href={siteHref}
+          eventType={eventType}
+        />
+      )}
+      {!siteMode && previewFamily && <TemplatePreview family={previewFamily} activeId={previewId} onSelect={setPreviewId} onClose={() => setPreviewId(null)} href={hrefFor} hi={hi} />}
 
       {/* Mobile filters */}
       <Dialog focusField={false} open={sheetOpen} onClose={() => setSheetOpen(false)} title={hi ? 'फ़िल्टर' : 'Filters'}>
@@ -257,7 +354,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
             {hi ? 'सब हटाएँ' : 'Reset'}
           </button>
           <button type="button" onClick={() => setSheetOpen(false)} className="press h-12 flex-[2] rounded-full bg-primary font-medium text-on-primary hover:bg-primary-hover">
-            {hi ? `${families.length} डिज़ाइन देखें` : `Show ${families.length} designs`}
+            {hi ? `${shownCount} डिज़ाइन देखें` : `Show ${shownCount} designs`}
           </button>
         </div>
       </Dialog>
@@ -280,13 +377,21 @@ function FilterPanel({
   price,
   onPrice,
   hi,
+  site = false,
+  look = 'all',
+  onLook,
 }: {
   state: TemplateSearchState;
   onChange: (s: TemplateSearchState) => void;
   price: Price;
   onPrice: (p: Price) => void;
   hi: boolean;
+  /** Video / website designs: price and look only (colour, style and tradition are card filters). */
+  site?: boolean;
+  look?: Look;
+  onLook?: (l: Look) => void;
 }) {
+  const L = useL();
   const prices: Array<[Price, string]> = [
     ['all', hi ? 'सभी' : 'All'],
     ['free', hi ? 'मुफ़्त' : 'Free'],
@@ -314,6 +419,33 @@ function FilterPanel({
         </div>
       </Section>
 
+      {site ? (
+        <Section title={L('Look')}>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ['all', L('All')],
+                ['painted', L('Painted')],
+                ['modern', L('Modern')],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={look === id}
+                onClick={() => onLook?.(id)}
+                className={clsx(
+                  'h-9 border px-3 text-sm transition-colors',
+                  look === id ? 'border-ink bg-ink text-ivory' : 'border-ink/10 text-ink hover:border-ink/30',
+                )}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </Section>
+      ) : (
+      <>
       <Section title={hi ? 'रंग' : 'Colour'}>
         <div className="grid grid-cols-7 gap-2">
           {COLOR_FILTERS.map((c) => {
@@ -377,6 +509,8 @@ function FilterPanel({
           ))}
         </Select>
       </Section>
+      </>
+      )}
     </div>
   );
 }

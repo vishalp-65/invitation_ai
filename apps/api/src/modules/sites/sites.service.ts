@@ -528,7 +528,7 @@ export class SitesService {
       // Waits for the family's approval before it shows on the photo wall.
       meta: { source: ALBUM_SOURCE, uploader: input.name, guestId: guest?.id ?? null, approved: false },
     });
-    return { assetId: id, ...presignUpload(this.env, key, input.contentType, input.bytes) };
+    return { assetId: id, ...(await presignUpload(this.storage, this.env, key, input.contentType, input.bytes)) };
   }
 
   /** Guest album step 2: confirm the object exists; it shows once the family approves it. */

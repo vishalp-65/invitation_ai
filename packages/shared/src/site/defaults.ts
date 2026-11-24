@@ -1,7 +1,7 @@
 import { getEventType } from '../constants/event-types.js';
 import { attireFor, faithOf } from '../constants/faith.js';
 import type { Attire } from '../templates/types.js';
-import { defaultDesignFor, getSiteDesign, type SiteDesignId } from './designs.js';
+import { defaultDesignFor, getSiteDesign, isRetiredDesign, type SiteDesignId } from './designs.js';
 import { siteDocSchema, type SiteDoc, type SiteSection, type SiteSectionType } from './schema.js';
 
 type Plan = Array<SiteSectionType | [SiteSectionType, { hidden: true }]>;
@@ -28,7 +28,7 @@ function planFor(eventType: string): Plan {
 const MOTION_CYCLE = ['rise', 'fade', 'zoom', 'slide', 'unfold'] as const;
 
 /** A sensible starting page for any occasion; everything stays editable. */
-export function defaultSiteDoc(opts: { eventType: string; community?: string | null; primaryNames?: string[]; cardDesign?: string | null }): SiteDoc {
+export function defaultSiteDoc(opts: { eventType: string; community?: string | null; primaryNames?: string[]; cardDesign?: string | null; design?: string | null }): SiteDoc {
   const plan = planFor(opts.eventType);
   const sections = plan.map((p, i) => {
     const [type, extra] = Array.isArray(p) ? p : [p, undefined];
@@ -44,7 +44,9 @@ export function defaultSiteDoc(opts: { eventType: string; community?: string | n
     look: { ornament: t.category === 'wedding' ? 'florals' : t.category === 'business' ? 'none' : 'mandala', dark: false },
     sections,
   });
-  const withDesign = applyDesign(base, defaultDesignFor(opts.eventType, opts.community, opts.cardDesign));
+  // A design the host picked wins; otherwise the card's matching design, then the event's faith.
+  const chosen = getSiteDesign(opts.design);
+  const withDesign = applyDesign(base, chosen && !isRetiredDesign(chosen.id) ? chosen.id : defaultDesignFor(opts.eventType, opts.community, opts.cardDesign));
   // Business events open straight onto the page.
   return t.category === 'business' ? { ...withDesign, opening: { ...withDesign.opening, kind: 'none' } } : withDesign;
 }

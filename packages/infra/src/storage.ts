@@ -7,6 +7,9 @@ import {
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 
+/** Object keys never change content, so browsers and the CDN may keep them for a year. */
+const LONG_CACHE = 'public, max-age=31536000, immutable';
+
 export interface StorageConfig {
   endpoint?: string;
   region: string;
@@ -73,7 +76,7 @@ export class S3Storage {
     return `${this.config.publicUrl.replace(/\/$/, '')}/${key}`;
   }
 
-  async put(key: string, body: Buffer | Uint8Array, contentType: string, cacheControl = 'public, max-age=31536000, immutable') {
+  async put(key: string, body: Buffer | Uint8Array, contentType: string, cacheControl = LONG_CACHE) {
     await this.client.send(
       new PutObjectCommand({ Bucket: this.config.bucket, Key: key, Body: body, ContentType: contentType, CacheControl: cacheControl, ACL: this.acl }),
     );
@@ -104,14 +107,14 @@ export class S3Storage {
   presignPut(key: string, contentType: string, bytes: number, expiresIn = 600): Promise<string> {
     return getSignedUrl(
       this.client,
-      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, ContentType: contentType, ContentLength: bytes, ACL: this.acl }),
-      // The ACL is signed as a header, so the browser must send it back (see uploadHeaders).
-      { expiresIn, unhoistableHeaders: this.acl ? new Set(['x-amz-acl']) : undefined },
+      new PutObjectCommand({ Bucket: this.config.bucket, Key: key, ContentType: contentType, ContentLength: bytes, CacheControl: LONG_CACHE, ACL: this.acl }),
+      // These are signed as headers, so the browser must send them back (see uploadHeaders).
+      { expiresIn, unhoistableHeaders: new Set(this.acl ? ['x-amz-acl', 'cache-control'] : ['cache-control']) },
     );
   }
 
   /** Headers the browser must send with the presigned PUT. */
   uploadHeaders(contentType: string): Record<string, string> {
-    return this.acl ? { 'Content-Type': contentType, 'x-amz-acl': this.acl } : { 'Content-Type': contentType };
+    return { 'Content-Type': contentType, 'Cache-Control': LONG_CACHE, ...(this.acl ? { 'x-amz-acl': this.acl } : {}) };
   }
 }

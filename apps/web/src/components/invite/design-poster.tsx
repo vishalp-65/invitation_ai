@@ -1,6 +1,6 @@
 'use client';
 
-import type { SiteDesign } from '@cardai/shared';
+import { heroInk, type SiteDesign } from '@cardai/shared';
 import { Ambient, SceneLayer } from '@cardai/templates/scenes';
 import '@/features/site/scenes.css';
 
@@ -13,7 +13,7 @@ const LAYERS = ['sky', 'far', 'mid', 'near'] as const;
  */
 export function DesignPoster({ design, still = false, names = ['Abhishek', 'Kanika'] }: { design: SiteDesign; still?: boolean; names?: [string, string] }) {
   const night = design.scene.night;
-  const ink = night ? '#FFF8EC' : design.palette.primary;
+  const ink = heroInk(design); // the design's own cover colour (e.g. cream on a maroon arch)
   const c = design.scene.colors;
   return (
     <div

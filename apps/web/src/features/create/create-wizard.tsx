@@ -1,6 +1,6 @@
 'use client';
 
-import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, LANGUAGES, type EventDto, type EventTypeId, type LanguageCode } from '@cardai/shared';
+import { BUILTIN_TEMPLATES, EVENT_TYPE_IDS, getEventType, getSiteDesign, LANGUAGES, type EventDto, type EventTypeId, type LanguageCode } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -52,13 +52,18 @@ function Wizard() {
   const [back, setBack] = useState(false);
   const { ensureLogin, dialog } = useRequireLogin(t('loginSave'));
 
-  // Deep links: /create?type=griha-pravesh, or a design picked on the gallery (&template=…).
+  // Deep links: /create?type=griha-pravesh, or a design picked on the gallery (&template=… for a
+  // card, &site=… for a video / website design).
   useEffect(() => {
     const type = search.get('type');
     const template = search.get('template');
-    if (!type && !template) return;
+    const site = search.get('site');
+    if (!type && !template && !site) return;
     const s = useDraft.getState();
     if (type && (EVENT_TYPE_IDS as readonly string[]).includes(type)) s.setType(type as EventTypeId);
+    // A video design brings its matching card (unless a card was linked too); a card alone lets its video follow it.
+    if (site && getSiteDesign(site)) s.pickSiteDesign(site, !template);
+    else if (template) s.pickSiteDesign(undefined);
     const picked = template && (BUILTIN_TEMPLATES.some((x) => x.id === template) || /^adm-[a-f0-9]{8}$/.test(template));
     if (picked) s.pickTemplate(template);
     // Either way the occasion is known: straight to the details (a picked design stays selected).
@@ -147,6 +152,7 @@ function Wizard() {
           language: d.language,
           community: d.community,
           templateId: d.templateId,
+          siteDesign: d.siteDesign,
           title,
           content: { ...d.content, primaryNames: d.names.filter(Boolean).slice(0, 2), primaryDetails: d.parentage.filter(Boolean) },
           functions: d.functions.map((f) => ({

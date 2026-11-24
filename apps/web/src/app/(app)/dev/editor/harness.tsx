@@ -72,7 +72,7 @@ function installStub() {
     await new Promise((r) => setTimeout(r, 120));
     if (path === `/api/events/${ID}` && method === 'GET') return json(EVENT);
     if (path === `/api/events/${ID}/design` && method === 'PUT') return json({ ok: true });
-    if (path === `/api/events/${ID}/media`) return json({ items: PHOTO_URL ? [{ id: 'p1', url: PHOTO_URL, kind: 'photo' }] : [] });
+    if (path === `/api/events/${ID}/media`) return json({ items: PHOTO_URL ? [{ id: 'p1', url: PHOTO_URL, kind: 'photo', contentType: 'image/png', width: 900, height: 1200, createdAt: new Date().toISOString() }] : [] });
     if (path.startsWith('/api/templates')) return json({ items: BUILTIN_TEMPLATES });
     if (path === `/api/ai/quota/${ID}`) return json({ background: { used: aiUsed, included: 3, credits: packCredits, remaining: 3 - aiUsed + packCredits, upgraded: false }, configured: true });
     if (path === '/api/ai/images') {

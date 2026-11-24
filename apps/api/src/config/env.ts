@@ -46,6 +46,8 @@ const envSchema = z.object({
   STORAGE_PUBLIC_URL: z.url(),
   /** Public origin of this API (e.g. https://api.noyta.in). Browser uploads go straight to it; unset = same-origin /api via the web rewrite. */
   API_PUBLIC_URL: z.url().optional(),
+  /** 'direct': the browser PUTs to storage (needs bucket CORS). 'proxy': it PUTs to this API, which writes to storage. */
+  UPLOAD_MODE: z.enum(['direct', 'proxy']).default('direct'),
 
   JWT_ACCESS_SECRET: z.string().min(32),
   /**

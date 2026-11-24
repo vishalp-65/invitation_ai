@@ -8,6 +8,7 @@ import GlassyCarousel, { type GlassyCarouselItem } from '@/components/ui/glassy-
 import { googleFontsHref } from '@/features/site/theme';
 import { useDesignVisibility } from '@/lib/offers';
 import { designHref } from '@/lib/links';
+import { occasionForSiteDesign } from '@/lib/design-match';
 
 /** Maps the carousel's theme roles onto Noyta's tokens, so it follows light / dark with the site. */
 const THEME = {
@@ -128,7 +129,8 @@ export function VideoDesignCoverflow({ hi, className }: { hi: boolean; className
           : `${d.blurb}. A 9:16 video under 16 MB for WhatsApp, and the same design as your invitation website.`,
         media: <DesignPoster design={d} still />,
         preview: <DesignPoster design={d} />,
-        href: '/create?type=wedding',
+        // Straight into the wizard with this design kept for the video and website.
+        href: `/create?type=${occasionForSiteDesign(d)}&site=${d.id}`,
         linkLabel: hi ? 'वीडियो निमंत्रण बनाएँ' : 'Make a video invite',
         badge: hi ? 'चलाकर देखें' : 'Play preview',
       })),

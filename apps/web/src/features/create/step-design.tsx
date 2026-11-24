@@ -12,6 +12,7 @@ import { Dialog } from '@/components/ui/dialog';
 import { findTemplate, useTemplates } from '@/lib/template-hooks';
 import { DraftPreview } from './draft-preview';
 import { useDraft } from './draft-store';
+import { VideoSitePick } from './video-site-pick';
 
 type Cat = 'all' | NonNullable<TemplateDefinition['category']>;
 
@@ -48,6 +49,8 @@ export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
       <div className="flex min-w-0 flex-col gap-6">
+        {/* The video + website design, kept small: most people pick the card and let it follow. */}
+        <VideoSitePick />
         <div className="border border-ink/10 bg-ink/[0.02] p-4 sm:p-6">
           <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
           {cats.length > 2 && (
