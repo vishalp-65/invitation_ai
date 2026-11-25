@@ -1,6 +1,8 @@
 import type { EventContent } from '../schemas/events.js';
 import { buildInviteProps, type BuildInvitePropsInput, type InviteProps } from './build-invite-props.js';
 import type { TemplateDefinition } from '../templates/types.js';
+import { getEventType } from '../constants/event-types.js';
+import { eventTitle, localizeFunctionName, STOCK_LINES } from '../constants/stock-wording.js';
 
 type Fn = BuildInvitePropsInput['functions'][number];
 interface Sample {
@@ -101,6 +103,34 @@ function occasionSample(t: TemplateDefinition, hi: boolean): Sample | null {
       eventType: first,
       content: { ...base, headline: T(hi, 'शुभारंभ', 'Grand Opening'), hostLine: T(hi, 'आप सादर आमंत्रित हैं', 'You are cordially invited to the opening of'), primaryNames: [T(hi, 'शर्मा ज्वेलर्स', 'Sharma Jewellers')], message: T(hi, 'आपका आशीर्वाद हमारी शुभ शुरुआत है।', 'Your blessings make our new beginning auspicious.') },
       functions: [{ name: T(hi, 'उद्घाटन', 'Inauguration'), startsAt: '2026-12-15T11:00:00+05:30', venueName: T(hi, 'एमजी रोड, इंदौर', 'MG Road, Indore'), venueAddress: T(hi, 'दुकान नं. 12, सिटी सेंटर', 'Shop 12, City Centre') }],
+    };
+  }
+  // Occasions added in Nov 2026 (wedding functions, celebrations, festivals, trips): their own
+  // title, function and people, so a Diwali card never shows a wedding or a katha.
+  const def = getEventType(first);
+  if (def.id === first && ['wedding-functions', 'celebrations', 'festivals', 'trips'].includes(def.group) || first === 'satyanarayan-katha') {
+    const lang = hi ? 'hi' : 'en';
+    const L = STOCK_LINES[lang];
+    const fn = (name: string, day: number, hour: number) => ({ name: localizeFunctionName(name, lang), startsAt: `2026-12-${String(day).padStart(2, '0')}T${String(hour).padStart(2, '0')}:00:00+05:30`, venueName: T(hi, 'शर्मा निवास, जयपुर', 'Sharma Niwas, Jaipur'), venueAddress: T(hi, 'सी-स्कीम, जयपुर', 'C-Scheme, Jaipur') });
+    const functions = def.defaultFunctions.slice(0, 3).map((n, i) => fn(n, 18 + i, i ? 11 : 19));
+    const family = T(hi, 'शर्मा परिवार', 'the Sharma family');
+    if (def.primaryPeople === 2)
+      return {
+        eventType: first,
+        content: { ...base, invocation: undefined, headline: eventTitle(first, lang), hostLine: L.hostLine(T(hi, 'श्रीमती सुनीता एवं श्री रमेश शर्मा', 'Mrs. Sunita & Mr. Ramesh Sharma')), primaryNames: [T(hi, 'राहुल', 'Rahul'), T(hi, 'प्रिया', 'Priya')], connector: '&', message: L.message },
+        functions,
+      };
+    if (def.primaryPeople === 1)
+      return {
+        eventType: first,
+        content: { ...base, invocation: undefined, headline: eventTitle(first, lang), hostLine: L.invited, primaryNames: [first === 'first-birthday' ? T(hi, 'आरव', 'Aarav') : T(hi, 'रिया', 'Riya')], message: L.message },
+        functions,
+      };
+    // Festivals and trips: a family's greeting / party.
+    return {
+      eventType: first,
+      content: { ...base, invocation: undefined, headline: eventTitle(first, lang), hostLine: L.greetFrom(family), primaryNames: [], message: L.greet, familyLines: [], closing: L.greetPlain },
+      functions,
     };
   }
   // Puja / griha pravesh / jagran / bhandara

@@ -679,14 +679,18 @@
       "wedding": "ਵਿਆਹ ਅਤੇ ਸਮਾਗਮ",
       "kids": "ਜਨਮਦਿਨ ਅਤੇ ਬੱਚਾ",
       "religious": "ਘਰ ਅਤੇ ਧਾਰਮਿਕ",
-      "business": "ਕਾਰੋਬਾਰ"
+      "business": "ਕਾਰੋਬਾਰ",
+      "festival": "ਤਿਉਹਾਰ",
+      "travel": "ਸਫ਼ਰ ਅਤੇ ਛੁੱਟੀਆਂ"
     },
     "cat": {
       "wedding": "ਵਿਆਹ",
       "family": "ਬੱਚਾ ਅਤੇ ਪਰਿਵਾਰ",
       "religious": "ਪੂਜਾ ਅਤੇ ਸੰਸਕਾਰ",
       "celebration": "ਜਸ਼ਨ",
-      "business": "ਕਾਰੋਬਾਰ"
+      "business": "ਕਾਰੋਬਾਰ",
+      "festival": "ਤਿਉਹਾਰ",
+      "trip": "ਸਫ਼ਰ ਅਤੇ ਛੁੱਟੀਆਂ"
     },
     "occ": {
       "wedding": "ਸ਼ੁਭ ਵਿਆਹ",
@@ -709,7 +713,41 @@
       "retirement": "ਸੇਵਾਮੁਕਤੀ",
       "shop-opening": "ਦੁਕਾਨ / ਦਫ਼ਤਰ ਉਦਘਾਟਨ",
       "corporate": "ਕਾਰਪੋਰੇਟ ਸਮਾਗਮ",
-      "other": "ਹੋਰ"
+      "other": "ਹੋਰ",
+      "haldi": "ਹਲਦੀ",
+      "mehendi": "ਮਹਿੰਦੀ",
+      "sangeet": "ਸੰਗੀਤ",
+      "ring-ceremony": "ਮੁੰਦਰੀ ਦੀ ਰਸਮ",
+      "tilak": "ਤਿਲਕ",
+      "roka": "ਰੋਕਾ",
+      "cocktail": "ਕਾਕਟੇਲ ਪਾਰਟੀ",
+      "bachelorette": "ਬੈਚਲਰ ਪਾਰਟੀ",
+      "first-birthday": "ਪਹਿਲਾ ਜਨਮਦਿਨ",
+      "milestone-birthday": "50ਵਾਂ / 60ਵਾਂ ਜਨਮਦਿਨ",
+      "kitty-party": "ਕਿੱਟੀ ਪਾਰਟੀ",
+      "graduation": "ਡਿਗਰੀ ਸਮਾਰੋਹ",
+      "farewell": "ਵਿਦਾਇਗੀ",
+      "reunion": "ਮੁੜ ਮਿਲਣੀ",
+      "satyanarayan-katha": "ਸਤਿਆਨਾਰਾਇਣ ਕਥਾ",
+      "diwali": "ਦੀਵਾਲੀ",
+      "holi": "ਹੋਲੀ",
+      "christmas": "ਕ੍ਰਿਸਮਸ",
+      "new-year": "ਨਵਾਂ ਸਾਲ",
+      "raksha-bandhan": "ਰੱਖੜੀ",
+      "bhai-dooj": "ਭਾਈ ਦੂਜ",
+      "eid": "ਈਦ",
+      "navratri": "ਨਵਰਾਤਰੀ",
+      "ganesh-chaturthi": "ਗਣੇਸ਼ ਚਤੁਰਥੀ",
+      "lohri": "ਲੋਹੜੀ",
+      "sankranti": "ਮਾਘੀ / ਲੋਹੜੀ",
+      "onam": "ਓਣਮ",
+      "durga-puja": "ਦੁਰਗਾ ਪੂਜਾ",
+      "karva-chauth": "ਕਰਵਾ ਚੌਥ",
+      "janmashtami": "ਜਨਮ ਅਸ਼ਟਮੀ",
+      "gurpurab": "ਗੁਰਪੁਰਬ",
+      "group-trip": "ਗਰੁੱਪ ਟ੍ਰਿਪ",
+      "family-trip": "ਪਰਿਵਾਰਕ ਸਫ਼ਰ",
+      "holiday-greeting": "ਛੁੱਟੀਆਂ ਦੀ ਵਧਾਈ"
     },
     "community": {
       "hindu-north": "ਹਿੰਦੂ (ਉੱਤਰ)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} ਲਈ ਸੁਝਾਇਆ",
     "vsUseCard": "ਮਿਲਦਾ ਕਾਰਡ ਵੀ ਲਓ",
     "vsChange": "ਬਦਲੋ",
-    "vsBody": "ਤੁਹਾਡਾ ਵੀਡੀਓ ਅਤੇ ਸੱਦਾ ਵੈੱਬਸਾਈਟ ਇਸ ਡਿਜ਼ਾਈਨ ਵਿੱਚ ਹੋਣਗੇ। ਤੁਹਾਡਾ ਕਾਰਡ ਜਿਵੇਂ ਹੈ ਉਵੇਂ ਰਹੇਗਾ।"
+    "vsBody": "ਤੁਹਾਡਾ ਵੀਡੀਓ ਅਤੇ ਸੱਦਾ ਵੈੱਬਸਾਈਟ ਇਸ ਡਿਜ਼ਾਈਨ ਵਿੱਚ ਹੋਣਗੇ। ਤੁਹਾਡਾ ਕਾਰਡ ਜਿਵੇਂ ਹੈ ਉਵੇਂ ਰਹੇਗਾ।",
+    "vsWebsiteOnly": "ਸਿਰਫ਼ ਵੈੱਬਸਾਈਟ · ਤੁਹਾਡਾ ਵੀਡੀਓ {video} ਵਿੱਚ ਬਣੇਗਾ",
+    "editDetails": "ਵੇਰਵੇ ਬਦਲੋ",
+    "newEvent": "ਨਵਾਂ ਸਮਾਗਮ",
+    "exit": "ਬੰਦ ਕਰੋ",
+    "changeDesign": "ਡਿਜ਼ਾਈਨ ਬਦਲੋ",
+    "changeGone": "ਉਹ ਸੱਦਾ ਮਿਟਾ ਦਿੱਤਾ ਗਿਆ ਸੀ। ਨਵਾਂ ਬਣਾਉਣ ਲਈ ਫਿਰ ਟੈਪ ਕਰੋ।",
+    "targetLabel": "ਕਿਸ ਤੇ ਲਾਗੂ ਕਰਨਾ ਹੈ",
+    "targetChange": "“{title}” ਅੱਪਡੇਟ ਕਰੋ",
+    "targetNew": "ਨਵਾਂ ਸੱਦਾ",
+    "useThis": "ਇਹ ਵਰਤੋ",
+    "venueLater": "ਥਾਂ ਅਜੇ ਤੈਅ ਨਹੀਂ",
+    "venueLaterPh": "ਬਾਅਦ ਵਿੱਚ ਜੋੜੋ",
+    "grp": {
+      "weddings": "ਵਿਆਹ",
+      "wedding-functions": "ਵਿਆਹ ਦੀਆਂ ਰਸਮਾਂ",
+      "celebrations": "ਜਸ਼ਨ",
+      "baby-family": "ਬੱਚਾ ਅਤੇ ਪਰਿਵਾਰ",
+      "religious": "ਪੂਜਾ ਅਤੇ ਧਾਰਮਿਕ",
+      "festivals": "ਤਿਉਹਾਰ",
+      "trips": "ਸਫ਼ਰ ਅਤੇ ਛੁੱਟੀਆਂ",
+      "business": "ਕਾਰੋਬਾਰ"
+    },
+    "gMode": "ਤੁਸੀਂ ਕੀ ਬਣਾ ਰਹੇ ਹੋ?",
+    "gGreeting": "ਵਧਾਈ ਕਾਰਡ",
+    "gGreetingHint": "WhatsApp ’ਤੇ ਭੇਜਣ ਲਈ ਵਧਾਈ। ਥਾਂ ਜਾਂ RSVP ਨਹੀਂ।",
+    "gParty": "ਪਾਰਟੀ ਸੱਦਾ",
+    "gPartyHint": "ਸੱਦਾ ਦਿਓ: ਤਾਰੀਖ਼, ਥਾਂ, ਨਕਸ਼ਾ ਅਤੇ RSVP।",
+    "gFrom": "ਕਿਸ ਵੱਲੋਂ (ਪਰਿਵਾਰ ਜਾਂ ਕਾਰੋਬਾਰ)"
   },
   "picker": {
     "chooseDate": "ਤਾਰੀਖ਼ ਚੁਣੋ",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ਫ਼ੋਟੋ ਨੂੰ ਡਿਜ਼ਾਈਨ ਦੇ ਦੋ ਮੁੱਖ ਰੰਗਾਂ ਵਿੱਚ ਰੰਗ ਦਿੰਦਾ ਹੈ",
     "Strength": "ਗੂੜ੍ਹਾਪਨ",
     "Show on": "ਇੱਥੇ ਦਿਖਾਓ",
-    "Card image": "ਕਾਰਡ ਇਮੇਜ"
+    "Card image": "ਕਾਰਡ ਇਮੇਜ",
+    "Interactive": "ਇੰਟਰੈਕਟਿਵ",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp ਉੱਤੇ ਸਾਂਝੀ ਕਰਨ ਲਈ ਬਣੀ ਇੱਕ ਨਿਵੇਕਲੀ ਸੱਦਾ ਵੈੱਬਸਾਈਟ",
+    "RSVP, map and countdown built in": "RSVP, ਨਕਸ਼ਾ ਅਤੇ ਕਾਊਂਟਡਾਊਨ ਨਾਲ",
+    "Website-only design: your card and video keep their own designs": "ਸਿਰਫ਼ ਵੈੱਬਸਾਈਟ ਦਾ ਡਿਜ਼ਾਈਨ: ਤੁਹਾਡਾ ਕਾਰਡ ਅਤੇ ਵੀਡੀਓ ਆਪਣੇ ਡਿਜ਼ਾਈਨ ਵਿੱਚ ਰਹਿਣਗੇ"
   }
 }

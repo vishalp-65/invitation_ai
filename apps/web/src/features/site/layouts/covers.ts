@@ -6,4 +6,10 @@ export const LAYOUT_COVERS: Record<SiteLayout, ReadonlySet<SiteSectionType>> = {
   movie: new Set(['hero', 'couple', 'schedule', 'countdown', 'family']),
   chat: new Set(['hero', 'welcome', 'couple', 'schedule', 'countdown', 'dresscode', 'family']),
   scrapbook: new Set(['hero', 'welcome', 'couple', 'schedule', 'countdown', 'closing']),
+  boarding: new Set(['hero', 'schedule', 'countdown']),
+  newspaper: new Set(['hero', 'welcome', 'schedule', 'countdown']),
+  playlist: new Set(['hero', 'schedule', 'countdown']),
+  arcade: new Set(['hero', 'schedule', 'countdown']),
+  menu: new Set(['hero', 'welcome', 'schedule', 'countdown', 'closing']),
+  calendar: new Set(['hero', 'schedule', 'countdown']),
 };

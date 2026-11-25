@@ -712,14 +712,18 @@
       "wedding": "शादी",
       "kids": "जन्मदिन व बच्चे",
       "religious": "गृह व धार्मिक",
-      "business": "व्यापार"
+      "business": "व्यापार",
+      "festival": "त्योहार",
+      "travel": "यात्रा और छुट्टियाँ"
     },
     "cat": {
       "wedding": "विवाह",
       "family": "परिवार व बच्चे",
       "religious": "पूजा व संस्कार",
       "celebration": "उत्सव",
-      "business": "व्यापार"
+      "business": "व्यापार",
+      "festival": "त्योहार",
+      "trip": "यात्रा और छुट्टियाँ"
     },
     "occ": {
       "wedding": "शुभ विवाह",
@@ -742,7 +746,41 @@
       "retirement": "सेवानिवृत्ति",
       "shop-opening": "शुभारंभ",
       "corporate": "कॉर्पोरेट कार्यक्रम",
-      "other": "अन्य"
+      "other": "अन्य",
+      "haldi": "हल्दी",
+      "mehendi": "मेहंदी",
+      "sangeet": "संगीत",
+      "ring-ceremony": "रिंग सेरेमनी",
+      "tilak": "तिलक",
+      "roka": "रोका",
+      "cocktail": "कॉकटेल पार्टी",
+      "bachelorette": "बैचलर पार्टी",
+      "first-birthday": "पहला जन्मदिन",
+      "milestone-birthday": "षष्टिपूर्ति / ख़ास जन्मदिन",
+      "kitty-party": "किटी पार्टी",
+      "graduation": "दीक्षांत समारोह",
+      "farewell": "विदाई",
+      "reunion": "पुनर्मिलन",
+      "satyanarayan-katha": "सत्यनारायण कथा",
+      "diwali": "दीपावली",
+      "holi": "होली",
+      "christmas": "क्रिसमस",
+      "new-year": "नया साल",
+      "raksha-bandhan": "रक्षा बंधन",
+      "bhai-dooj": "भाई दूज",
+      "eid": "ईद",
+      "navratri": "नवरात्रि / गरबा",
+      "ganesh-chaturthi": "गणेश चतुर्थी",
+      "lohri": "लोहड़ी",
+      "sankranti": "मकर संक्रांति / पोंगल",
+      "onam": "ओणम",
+      "durga-puja": "दुर्गा पूजा",
+      "karva-chauth": "करवा चौथ",
+      "janmashtami": "जन्माष्टमी",
+      "gurpurab": "गुरपुरब",
+      "group-trip": "ग्रुप ट्रिप",
+      "family-trip": "फ़ैमिली ट्रिप",
+      "holiday-greeting": "छुट्टियों की शुभकामना"
     },
     "community": {
       "hindu-north": "हिंदू (उत्तर)",
@@ -778,7 +816,35 @@
     "vsSuggested": "{occasion} के लिए सुझाया गया",
     "vsUseCard": "मिलता-जुलता कार्ड भी लें",
     "vsChange": "बदलें",
-    "vsBody": "आपका वीडियो और निमंत्रण वेबसाइट इसी डिज़ाइन में बनेंगे। आपका कार्ड जैसा है वैसा रहेगा।"
+    "vsBody": "आपका वीडियो और निमंत्रण वेबसाइट इसी डिज़ाइन में बनेंगे। आपका कार्ड जैसा है वैसा रहेगा।",
+    "vsWebsiteOnly": "सिर्फ़ वेबसाइट · आपका वीडियो {video} में बनेगा",
+    "editDetails": "विवरण बदलें",
+    "newEvent": "नया आयोजन",
+    "exit": "बंद करें",
+    "changeDesign": "डिज़ाइन बदलें",
+    "changeGone": "वह निमंत्रण हटा दिया गया था। नया बनाने के लिए फिर से टैप करें।",
+    "targetLabel": "किस पर लागू करें",
+    "targetChange": "“{title}” अपडेट करें",
+    "targetNew": "नया निमंत्रण",
+    "useThis": "यह चुनें",
+    "venueLater": "स्थान अभी तय नहीं",
+    "venueLaterPh": "बाद में जोड़ें",
+    "grp": {
+      "weddings": "शादी",
+      "wedding-functions": "शादी की रस्में",
+      "celebrations": "जश्न",
+      "baby-family": "बच्चे और परिवार",
+      "religious": "पूजा और धार्मिक",
+      "festivals": "त्योहार",
+      "trips": "यात्रा और छुट्टियाँ",
+      "business": "व्यवसाय"
+    },
+    "gMode": "आप क्या बना रहे हैं?",
+    "gGreeting": "शुभकामना कार्ड",
+    "gGreetingHint": "WhatsApp पर भेजने के लिए शुभकामना। स्थान या RSVP नहीं।",
+    "gParty": "पार्टी निमंत्रण",
+    "gPartyHint": "लोगों को बुलाएँ: तारीख़, स्थान, नक्शा और RSVP।",
+    "gFrom": "किसकी ओर से (परिवार या व्यवसाय)"
   },
   "picker": {
     "chooseDate": "तारीख चुनें",
@@ -1580,6 +1646,10 @@
     "Recolours the photo in the two main colours of the design": "फ़ोटो को डिज़ाइन के दो मुख्य रंगों में रंग देता है",
     "Strength": "गहराई",
     "Show on": "यहाँ दिखाएँ",
-    "Card image": "कार्ड इमेज"
+    "Card image": "कार्ड इमेज",
+    "Interactive": "इंटरैक्टिव",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "एक अनोखी निमंत्रण वेबसाइट, WhatsApp पर शेयर करने के लिए बनी",
+    "RSVP, map and countdown built in": "RSVP, नक्शा और काउंटडाउन साथ में",
+    "Website-only design: your card and video keep their own designs": "सिर्फ़ वेबसाइट का डिज़ाइन: आपका कार्ड और वीडियो अपने डिज़ाइन में रहेंगे"
   }
 }

@@ -4,7 +4,7 @@ import { Worker } from 'bullmq';
 import { createAiClipProcessor } from './ai-clip/ai-clip.processor.js';
 import { createContext } from './context.js';
 import { RemotionRuntime } from './remotion.js';
-import { createRenderProcessor } from './render/render.processor.js';
+import { createRenderProcessor, settleFailedRender } from './render/render.processor.js';
 
 const ctx = createContext();
 const remotion = new RemotionRuntime(ctx.log, {
@@ -12,6 +12,8 @@ const remotion = new RemotionRuntime(ctx.log, {
   usePrebuilt: ctx.env.NODE_ENV === 'production',
   idleCloseSec: ctx.env.BROWSER_IDLE_CLOSE_SEC,
 });
+
+const MAX_STALLS = 3;
 
 // Warm up before taking jobs so the first customer does not wait for bundling. With an idle close
 // set, Chrome starts on the first job instead (the headless shell launches in about a second).
@@ -21,6 +23,8 @@ const renderWorker = new Worker<RenderJobData>(QUEUES.render, createRenderProces
   connection: ctx.redis,
   concurrency: ctx.env.RENDER_CONCURRENCY,
   lockDuration: 5 * 60_000,
+  // A deploy that restarts the worker mid-render counts as a stall. The default allows only one.
+  maxStalledCount: MAX_STALLS,
   // Keep finished jobs out of Redis memory; the renders table is the source of truth.
   removeOnComplete: { count: 200 },
   removeOnFail: { count: 500, age: 7 * 24 * 3600 },
@@ -30,8 +34,14 @@ const clipWorker = new Worker<AiClipJobData>(QUEUES.aiClip, createAiClipProcesso
   connection: ctx.redis,
   concurrency: 4,
   lockDuration: 20 * 60_000,
+  maxStalledCount: MAX_STALLS,
   removeOnComplete: { count: 200 },
   removeOnFail: { count: 500, age: 7 * 24 * 3600 },
+});
+
+// A job BullMQ gives up on (stalled too often) fails without reaching the processor.
+renderWorker.on('failed', (job) => {
+  if (job) void settleFailedRender(ctx, job).catch((err: unknown) => ctx.log.error({ err, jobId: job.id }, 'could not mark render failed'));
 });
 
 for (const w of [renderWorker, clipWorker]) {

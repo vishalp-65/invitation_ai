@@ -1,0 +1,30 @@
+/* Layout designs' lower sections (headings from ScriptHeading + section cards). Loaded with the
+   section components so they apply even before the layout's own chunk arrives. */
+
+/* ---------- Lower sections: each layout's headings ---------- */
+.inv-lh { text-align: center; }
+.inv-lh-title { font-family: var(--inv-display); font-size: clamp(1.7rem, 6vw, 2.4rem); line-height: 1.15; color: var(--inv-primary); }
+.inv-lh-chat .inv-lh-title { display: inline-block; font-family: var(--inv-body); font-size: 0.85rem; font-weight: 600; padding: 0.35rem 0.9rem; border-radius: 0.6rem; background: #fff; color: #54656f; box-shadow: 0 1px 1px rgb(0 0 0 / 0.08); }
+.inv-lh-stories .inv-lh-title { font-family: var(--inv-body); font-weight: 800; color: inherit; display: inline-block; padding-bottom: 0.3rem; background: linear-gradient(90deg, #f58529, #dd2a7b, #8134af) bottom / 100% 4px no-repeat; }
+.inv-lh-movie, .inv-lh-playlist { text-align: left; }
+.inv-lh-movie .inv-lh-title { font-family: var(--inv-body); font-weight: 800; color: inherit; border-left: 5px solid var(--inv-primary); padding-left: 0.7rem; }
+.inv-lh-scrapbook .inv-lh-title { font-family: var(--inv-script); font-size: clamp(2.4rem, 9vw, 3.4rem); transform: rotate(-2deg); display: inline-block; padding: 0 0.6rem; background: linear-gradient(transparent 55%, rgb(224 169 59 / 0.45) 55% 90%, transparent 90%); }
+.inv-lh-boarding .inv-lh-title { font-family: var(--inv-body); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.3em; text-transform: uppercase; }
+.inv-lh-boarding .inv-lh-title::before { content: '\2708\00a0\00a0'; }
+.inv-lh-newspaper .inv-lh-title { font-weight: 900; text-transform: uppercase; color: inherit; border-block: 3px double currentColor; padding: 0.4rem 0; }
+.inv-lh-playlist .inv-lh-title { font-family: var(--inv-body); font-weight: 800; color: inherit; }
+.inv-lh-arcade .inv-lh-title { font-family: 'Press Start 2P', monospace; font-size: clamp(0.9rem, 4vw, 1.2rem); line-height: 1.6; color: #ffd84a; text-shadow: 3px 3px 0 #e8336d; }
+.inv-lh-menu .inv-lh-title { font-size: 0.95rem; letter-spacing: 0.45em; text-transform: uppercase; }
+.inv-lh-menu .inv-lh-title::before, .inv-lh-menu .inv-lh-title::after { content: '\2766'; margin: 0 0.8rem; color: var(--inv-accent); letter-spacing: 0; }
+.inv-lh-calendar .inv-lh-title { display: inline-block; font-size: 1.3rem; padding: 0.3rem 1rem; border-radius: 0.5rem 0.5rem 0 0; background: var(--inv-primary); color: #fff; }
+
+/* ---------- Lower sections: cards (sections.tsx `card`) in each layout's material ---------- */
+[data-skin='chat'] [class*='rounded-[22px]'] { border-radius: 18px 18px 18px 4px; box-shadow: 0 1px 1px rgb(0 0 0 / 0.1); }
+[data-skin='stories'] [class*='rounded-[22px]'] { border: 2px solid transparent; background: linear-gradient(var(--inv-surface), var(--inv-surface)) padding-box, linear-gradient(135deg, #f58529, #dd2a7b, #8134af) border-box; }
+[data-skin='movie'] [class*='rounded-[22px]'], [data-skin='playlist'] [class*='rounded-[22px]'] { border-radius: 10px; background: #1b1b22; color: #f4f1ea; box-shadow: none; }
+[data-skin='scrapbook'] [class*='rounded-[22px]'] { border-radius: 2px; background: #fffdf3; transform: rotate(-0.6deg); box-shadow: 0 10px 22px -14px rgb(60 40 20 / 0.45); }
+[data-skin='boarding'] [class*='rounded-[22px]'] { border-radius: 16px; border-left: 5px solid var(--inv-primary); }
+[data-skin='newspaper'] [class*='rounded-[22px]'] { border-radius: 0; border: 1px solid currentColor; box-shadow: none; background: transparent; }
+[data-skin='arcade'] [class*='rounded-[22px]'] { border-radius: 0; background: #151238; color: #f2f2ff; box-shadow: 0 0 0 3px #f2f2ff, 6px 6px 0 3px #e8336d; }
+[data-skin='menu'] [class*='rounded-[22px]'] { border-radius: 0; border: 3px double var(--inv-accent); box-shadow: none; }
+[data-skin='calendar'] [class*='rounded-[22px]'] { border-radius: 14px; border-top: 8px solid var(--inv-primary); }

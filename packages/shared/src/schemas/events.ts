@@ -38,7 +38,8 @@ export const eventFunctionInputSchema = z.object({
   name: text(60).min(1),
   startsAt: z.iso.datetime({ offset: true }),
   endsAt: z.iso.datetime({ offset: true }).optional(),
-  venueName: text(120).min(1),
+  /** Empty only on greeting cards (the wizard asks for it on invitations). */
+  venueName: text(120),
   venueAddress: text(300).optional(),
   mapUrl: webUrl().optional(),
   dressCode: text(80).optional(),
@@ -108,6 +109,8 @@ export const eventSettingsSchema = z.object({
   saveTheDate: z.boolean().default(false),
   qr: qrSettingsSchema.optional(),
   photoBg: photoBgSchema.optional(),
+  /** A greeting card (festival, holiday): no RSVP, venue or website asks. */
+  greeting: z.boolean().default(false),
 });
 export type EventSettings = z.infer<typeof eventSettingsSchema>;
 
@@ -148,6 +151,7 @@ export const eventSettingsPatchSchema = z.object({
   saveTheDate: z.boolean().optional(),
   qr: qrSettingsSchema.nullable().optional(),
   photoBg: photoBgSchema.nullable().optional(),
+  greeting: z.boolean().optional(),
 });
 export type EventSettingsPatch = z.infer<typeof eventSettingsPatchSchema>;
 

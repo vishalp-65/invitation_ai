@@ -2,8 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { MODERN_FAMILY_IDS } from '../templates/showcase.js';
 import { designsFor, heroInk, SITE_DESIGNS } from './designs.js';
 import { DESIGN_TIER } from './tiers.js';
+import { OCCASION_HEADLINERS } from '../design/families-occasions.js';
 
-const modern = SITE_DESIGNS.filter((d) => d.scene.style === 'modern');
+// Occasion packs (Diwali, Haldi, trips…) are listed last on purpose and pair with their own card families.
+const occasion = new Set(Object.values(OCCASION_HEADLINERS));
+const modern = SITE_DESIGNS.filter((d) => d.scene.style === 'modern' && !occasion.has(d.id));
 
 describe('modern website / video packs', () => {
   it('come first and each one matches a modern card family by id', () => {
@@ -13,7 +16,8 @@ describe('modern website / video packs', () => {
     const websiteFirst = new Set(['sheesh-mahal', 'mogra', 'kesariya', 'chandni']);
     for (const d of modern) {
       expect(DESIGN_TIER[d.id], d.id).toBeDefined();
-      if (websiteFirst.has(d.id)) continue;
+      // Layout designs (chat, boarding pass…) are website-only: no card family either.
+      if (websiteFirst.has(d.id) || d.layout) continue;
       expect(MODERN_FAMILY_IDS as readonly string[], d.id).toContain(d.id);
       expect(DESIGN_TIER[d.id], d.id).toBeDefined();
     }

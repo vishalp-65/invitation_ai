@@ -1,6 +1,6 @@
 'use client';
 
-import { ALL_BUILTIN_TEMPLATES, type TemplateDefinition } from '@cardai/shared';
+import { ALL_BUILTIN_TEMPLATES, BUILTIN_TEMPLATES, templateSupportsEvent, type EventTypeId, type TemplateDefinition } from '@cardai/shared';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './api';
 import { qk } from './hooks';
@@ -43,18 +43,24 @@ export function useTemplate(id: string | undefined) {
  * Templates for an occasion (all when unset). `initial` is a server-rendered first page, so the
  * gallery's designs are in the HTML for crawlers and no-JS visitors instead of a loading state.
  */
+type TemplatePage = { items: TemplateDefinition[]; offline?: boolean };
+
 export function useTemplates(eventType?: string, initial?: TemplateDefinition[]) {
   return useQuery({
     queryKey: qk.templates(eventType),
-    queryFn: async () => {
-      const r = await api<{ items: TemplateDefinition[] }>(
-        `/templates${eventType ? `?eventType=${eventType}` : ''}`,
-      );
-      remember(r.items);
-      return r;
+    queryFn: async (): Promise<TemplatePage> => {
+      try {
+        const r = await api<{ items: TemplateDefinition[] }>(`/templates${eventType ? `?eventType=${eventType}` : ''}`);
+        remember(r.items);
+        return r;
+      } catch {
+        // API unreachable: the built-in designs still work (pictures are static files), so show
+        // those instead of an empty "No designs match", and ask again on the next visit.
+        return { items: BUILTIN_TEMPLATES.filter((t) => !eventType || templateSupportsEvent(t, eventType as EventTypeId)), offline: true };
+      }
     },
-    initialData: initial ? () => ({ items: remember(initial) }) : undefined,
-    staleTime: 10 * 60_000,
+    initialData: initial ? (): TemplatePage => ({ items: remember(initial) }) : undefined,
+    staleTime: (q) => (q.state.data?.offline ? 0 : 10 * 60_000),
     select: (d) => d.items,
   });
 }

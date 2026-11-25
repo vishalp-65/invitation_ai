@@ -113,7 +113,7 @@ export type TemplateDefinition = z.infer<typeof templateDefinitionSchema> & {
   /** Layered design family (editor-first templates); absent for the classic catalogue. */
   design?: string;
   /** Gallery group. */
-  category?: 'wedding' | 'kids' | 'religious' | 'business';
+  category?: 'wedding' | 'kids' | 'religious' | 'festival' | 'travel' | 'business';
   /** Declared visual styles for search (more are derived, see templates/search.ts). */
   styles?: string[];
   /** Language of the gallery thumbnail (the sample shown in the picker). */

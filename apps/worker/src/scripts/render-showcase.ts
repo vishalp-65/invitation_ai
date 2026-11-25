@@ -6,7 +6,7 @@
  *   npm run showcase -w @cardai/worker
  *   npm run showcase -w @cardai/worker -- id1,id2 --out=DIR --lang=hi   (review renders)
  */
-import { BRAND, BUILTIN_TEMPLATES, getPhotoLook, getSiteDesign, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, templateSampleLanguage, type DesignData, type TemplateDefinition } from '@cardai/shared';
+import { BRAND, BUILTIN_TEMPLATES, getPhotoLook, buildDesign, COMPOSITION_IDS, coverPageIndex, faithOf, resolveInvocation, sampleInviteProps, templateSampleLanguage, type DesignData, type TemplateDefinition } from '@cardai/shared';
 import { renderStill, selectComposition } from '@remotion/renderer';
 import { existsSync } from 'node:fs';
 import { mkdir } from 'node:fs/promises';
@@ -47,8 +47,8 @@ for (const t of list) {
   const invocation = resolveInvocation(content.invocation, { eventType: sample.eventType, faith, language, community: t.communities[0] });
   const data: DesignData = { content: { ...content, invocation }, functions: sample.functions, mainFunction: sample.mainFunction, salutation: null, photos: [], rsvpBy: allPages ? 'Kindly RSVP by 1 December' : null };
   // Painted photo designs are shown with sample couple photos (fictional people).
-  // Layout designs (chat, story, premiere, scrapbook) are photo-first too.
-  if (getPhotoLook(t.design) || getSiteDesign(t.design)?.layout) data.photos = [`${artOrigin}/art/sample-couple.webp`, `${artOrigin}/art/sample-couple-2.webp`];
+  // Photo-frame designs (painted looks, and new photo cards) show the sample couple photos.
+  if (getPhotoLook(t.design) || (t.tags.includes('photo') && t.tags.includes('new'))) data.photos = [`${artOrigin}/art/sample-couple.webp`, `${artOrigin}/art/sample-couple-2.webp`];
   const design = buildDesign({ template: t, data, language, eventType: sample.eventType, community: t.communities[0] });
   const dir = outArg ? `${outArg.replace(/[/\\]$/, '')}/` : outDir;
   const pages = allPages ? design.pages.map((p, n) => ({ n, file: `${dir}${t.id}-${n + 1}-${p.id}.jpg` })) : [{ n: coverPageIndex(design), file: `${dir}${t.id}.jpg` }];

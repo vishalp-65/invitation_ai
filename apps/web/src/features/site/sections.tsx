@@ -755,7 +755,9 @@ function Closing({ section }: { section: SiteSectionOf<'closing'> }) {
 
 export function SectionView({ section, doc, started }: { section: SiteSection; doc: SiteDoc; started: boolean }) {
   // Design packs swap in their cinematic variants; everything else is shared.
-  if (doc.design) {
+  // Layout designs (chat, boarding pass…) use the plain sections, which their skin restyles
+  // (layouts-more.css); the painted scene stills of the cinematic packs don't suit them.
+  if (doc.design && !getSiteDesign(doc.design)?.layout) {
     // Photo-first packs always open on the host's photo in the painted look.
     if (section.type === 'hero' && getSiteDesign(doc.design)?.look) return <PhotoHero section={section} doc={doc} started={started} />;
     if (section.type === 'hero' && section.variant === 'scene') return <SceneHero section={section} doc={doc} started={started} />;

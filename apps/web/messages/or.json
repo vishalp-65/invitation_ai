@@ -679,14 +679,18 @@
       "wedding": "ବିବାହ ଓ କାର୍ଯ୍ୟକ୍ରମ",
       "kids": "ଜନ୍ମଦିନ ଓ ଶିଶୁ",
       "religious": "ଗୃହ ଓ ଧାର୍ମିକ",
-      "business": "ବ୍ୟବସାୟ"
+      "business": "ବ୍ୟବସାୟ",
+      "festival": "ପର୍ବପର୍ବାଣି",
+      "travel": "ଭ୍ରମଣ ଓ ଛୁଟି"
     },
     "cat": {
       "wedding": "ବିବାହ",
       "family": "ଶିଶୁ ଓ ପରିବାର",
       "religious": "ପୂଜା ଓ ସଂସ୍କାର",
       "celebration": "ଉତ୍ସବ",
-      "business": "ବ୍ୟବସାୟ"
+      "business": "ବ୍ୟବସାୟ",
+      "festival": "ପର୍ବପର୍ବାଣି",
+      "trip": "ଭ୍ରମଣ ଓ ଛୁଟି"
     },
     "occ": {
       "wedding": "ଶୁଭ ବିବାହ",
@@ -709,7 +713,41 @@
       "retirement": "ଅବସର",
       "shop-opening": "ଦୋକାନ / ଅଫିସ୍ ଉଦ୍‌ଘାଟନ",
       "corporate": "କର୍ପୋରେଟ୍ କାର୍ଯ୍ୟକ୍ରମ",
-      "other": "ଅନ୍ୟାନ୍ୟ"
+      "other": "ଅନ୍ୟାନ୍ୟ",
+      "haldi": "ହଳଦୀ",
+      "mehendi": "ମେହେନ୍ଦି",
+      "sangeet": "ସଙ୍ଗୀତ",
+      "ring-ceremony": "ମୁଦି ବଦଳ",
+      "tilak": "ତିଳକ",
+      "roka": "ରୋକା",
+      "cocktail": "କକଟେଲ୍ ପାର୍ଟି",
+      "bachelorette": "ବ୍ୟାଚେଲର୍ ପାର୍ଟି",
+      "first-birthday": "ପ୍ରଥମ ଜନ୍ମଦିନ",
+      "milestone-birthday": "ଷଷ୍ଠିପୂର୍ତ୍ତି",
+      "kitty-party": "କିଟି ପାର୍ଟି",
+      "graduation": "ଦୀକ୍ଷାନ୍ତ",
+      "farewell": "ବିଦାୟ",
+      "reunion": "ପୁନର୍ମିଳନ",
+      "satyanarayan-katha": "ସତ୍ୟନାରାୟଣ ପୂଜା",
+      "diwali": "ଦୀପାବଳି",
+      "holi": "ହୋଲି",
+      "christmas": "ଖ୍ରୀଷ୍ଟମାସ",
+      "new-year": "ନବବର୍ଷ",
+      "raksha-bandhan": "ରକ୍ଷାବନ୍ଧନ",
+      "bhai-dooj": "ଭାଇ ଦୁତିଆ",
+      "eid": "ଈଦ୍",
+      "navratri": "ନବରାତ୍ରି",
+      "ganesh-chaturthi": "ଗଣେଶ ଚତୁର୍ଥୀ",
+      "lohri": "ଲୋହରି",
+      "sankranti": "ମକର ସଂକ୍ରାନ୍ତି",
+      "onam": "ଓଣମ୍",
+      "durga-puja": "ଦୁର୍ଗାପୂଜା",
+      "karva-chauth": "କରବା ଚୌଥ",
+      "janmashtami": "ଜନ୍ମାଷ୍ଟମୀ",
+      "gurpurab": "ଗୁରୁପର୍ବ",
+      "group-trip": "ଗ୍ରୁପ୍ ଟ୍ରିପ୍",
+      "family-trip": "ପାରିବାରିକ ଭ୍ରମଣ",
+      "holiday-greeting": "ଛୁଟି ଶୁଭେଚ୍ଛା"
     },
     "community": {
       "hindu-north": "ହିନ୍ଦୁ (ଉତ୍ତର)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} ପାଇଁ ପରାମର୍ଶିତ",
     "vsUseCard": "ମେଳ ଖାଉଥିବା କାର୍ଡ ମଧ୍ୟ ନିଅନ୍ତୁ",
     "vsChange": "ବଦଳାନ୍ତୁ",
-    "vsBody": "ଆପଣଙ୍କ ଭିଡିଓ ଓ ନିମନ୍ତ୍ରଣ ୱେବସାଇଟ୍ ଏହି ଡିଜାଇନରେ ହେବ। ଆପଣଙ୍କ କାର୍ଡ ଯେମିତି ଅଛି ସେମିତି ରହିବ।"
+    "vsBody": "ଆପଣଙ୍କ ଭିଡିଓ ଓ ନିମନ୍ତ୍ରଣ ୱେବସାଇଟ୍ ଏହି ଡିଜାଇନରେ ହେବ। ଆପଣଙ୍କ କାର୍ଡ ଯେମିତି ଅଛି ସେମିତି ରହିବ।",
+    "vsWebsiteOnly": "କେବଳ ୱେବସାଇଟ୍ · ଆପଣଙ୍କ ଭିଡିଓ {video} ରେ ହେବ",
+    "editDetails": "ବିବରଣୀ ବଦଳାନ୍ତୁ",
+    "newEvent": "ନୂଆ ଅନୁଷ୍ଠାନ",
+    "exit": "ବନ୍ଦ କରନ୍ତୁ",
+    "changeDesign": "ଡିଜାଇନ୍ ବଦଳାନ୍ତୁ",
+    "changeGone": "ସେହି ନିମନ୍ତ୍ରଣ ବିଲୋପ ହୋଇଛି। ନୂଆ କରିବାକୁ ପୁଣି ଟ୍ୟାପ୍ କରନ୍ତୁ।",
+    "targetLabel": "କେଉଁଥିରେ ଲାଗୁ କରିବେ",
+    "targetChange": "“{title}” ଅପଡେଟ୍ କରନ୍ତୁ",
+    "targetNew": "ନୂଆ ନିମନ୍ତ୍ରଣ",
+    "useThis": "ଏହା ବ୍ୟବହାର କରନ୍ତୁ",
+    "venueLater": "ସ୍ଥାନ ଏପର୍ଯ୍ୟନ୍ତ ସ୍ଥିର ହୋଇନାହିଁ",
+    "venueLaterPh": "ପରେ ଯୋଡ଼ନ୍ତୁ",
+    "grp": {
+      "weddings": "ବିବାହ",
+      "wedding-functions": "ବିବାହ ଉତ୍ସବ",
+      "celebrations": "ଉତ୍ସବ",
+      "baby-family": "ଶିଶୁ ଓ ପରିବାର",
+      "religious": "ପୂଜା ଓ ଧାର୍ମିକ",
+      "festivals": "ପର୍ବପର୍ବାଣି",
+      "trips": "ଭ୍ରମଣ ଓ ଛୁଟି",
+      "business": "ବ୍ୟବସାୟ"
+    },
+    "gMode": "ଆପଣ କ’ଣ ତିଆରି କରୁଛନ୍ତି?",
+    "gGreeting": "ଶୁଭେଚ୍ଛା କାର୍ଡ",
+    "gGreetingHint": "WhatsApp ରେ ପଠାଇବା ପାଇଁ ଶୁଭେଚ୍ଛା। ସ୍ଥାନ ବା RSVP ନାହିଁ।",
+    "gParty": "ପାର୍ଟି ନିମନ୍ତ୍ରଣ",
+    "gPartyHint": "ନିମନ୍ତ୍ରଣ କରନ୍ତୁ: ତାରିଖ, ସ୍ଥାନ, ମାନଚିତ୍ର ଓ RSVP।",
+    "gFrom": "କାହା ତରଫରୁ (ପରିବାର ବା ବ୍ୟବସାୟ)"
   },
   "picker": {
     "chooseDate": "ତାରିଖ ବାଛନ୍ତୁ",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ଫଟୋକୁ ଡିଜାଇନର ଦୁଇଟି ମୁଖ୍ୟ ରଙ୍ଗରେ ରଙ୍ଗାଏ",
     "Strength": "ଗାଢ଼ତା",
     "Show on": "ଏଠାରେ ଦେଖାନ୍ତୁ",
-    "Card image": "କାର୍ଡ ଇମେଜ୍"
+    "Card image": "କାର୍ଡ ଇମେଜ୍",
+    "Interactive": "ଇଣ୍ଟରାକ୍ଟିଭ୍",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp ରେ ସେୟାର କରିବା ପାଇଁ ତିଆରି ଏକ ଅନନ୍ୟ ନିମନ୍ତ୍ରଣ ୱେବସାଇଟ୍",
+    "RSVP, map and countdown built in": "RSVP, ମାନଚିତ୍ର ଓ କାଉଣ୍ଟଡାଉନ୍ ସହ",
+    "Website-only design: your card and video keep their own designs": "କେବଳ ୱେବସାଇଟ୍ ଡିଜାଇନ୍: ଆପଣଙ୍କ କାର୍ଡ ଓ ଭିଡିଓ ନିଜ ଡିଜାଇନରେ ରହିବ"
   }
 }

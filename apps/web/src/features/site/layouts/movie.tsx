@@ -4,7 +4,7 @@ import type { SiteDoc } from '@cardai/shared';
 import { Info, MapPin, Play, Plus, X } from 'lucide-react';
 import { useState } from 'react';
 import { youtubeEmbed } from '../sections';
-import { Avatar, daysUntil, mapHref, useLayoutData } from './common';
+import { Avatar, daysUntil, KitImg, mapHref, useKit, useLayoutData } from './common';
 
 /**
  * Premiere Night: the invitation as a streaming-show title page. The names are the title, the
@@ -14,6 +14,8 @@ import { Avatar, daysUntil, mapHref, useLayoutData } from './common';
 export function MovieLayout({ doc }: { doc: SiteDoc }) {
   const L = useLayoutData(doc);
   const { data, content: c, t, fmt, fns, photos, people, first } = L;
+  const k = useKit(doc, 'movie');
+  const backdrop = k.photo('backdrop');
   const [trailer, setTrailer] = useState(false);
   const year = first ? new Date(first.startsAt).getFullYear() : new Date().getFullYear();
   const days = daysUntil(first?.startsAt);
@@ -28,19 +30,14 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
     <section className="inv-movie bg-[#0B0B0F] text-[#F4F1EA]" aria-label={L.title}>
       {/* ---------------- Billboard ---------------- */}
       <header className="relative flex min-h-[100svh] flex-col justify-end overflow-hidden">
-        {photos[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element -- host photo
-          <img src={photos[0]} alt="" className="inv-movie-backdrop absolute inset-0 size-full object-cover" />
-        ) : (
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 70% 20%, #5A1418 0%, #0B0B0F 70%)' }} />
-        )}
+        <KitImg photo={backdrop} eager className="inv-movie-backdrop absolute inset-0 size-full" fallback={<div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 70% 20%, #5A1418 0%, #0B0B0F 70%)' }} />} />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0B0B0F] via-[#0B0B0F]/40 to-black/30" />
         <div className="absolute inset-y-0 left-0 w-2/3 bg-gradient-to-r from-[#0B0B0F]/80 to-transparent" />
 
         <div className="relative z-[2] mx-auto w-full max-w-5xl px-5 pb-28 sm:px-10">
           <p className="inv-enter flex items-center gap-2 text-sm font-bold uppercase tracking-[0.35em] text-[var(--inv-primary)]" style={{ '--delay': '200ms' } as React.CSSProperties}>
             <span className="inline-block h-4 w-1 bg-[var(--inv-primary)]" aria-hidden />
-            {t('A family original', 'एक पारिवारिक प्रस्तुति')}
+            {k.text('mv.tag')}
           </p>
           <h1 className="inv-display inv-enter mt-3 text-[clamp(3.4rem,15vw,8.5rem)] uppercase leading-[0.88] tracking-wide" style={{ '--delay': '400ms' } as React.CSSProperties}>
             {L.names.length > 1 ? (
@@ -54,7 +51,7 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
             )}
           </h1>
           <div className="inv-enter mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.95rem]" style={{ '--delay': '700ms' } as React.CSSProperties}>
-            <span className="font-bold text-[#46D369]">{t('100% Match', '100% मैच')}</span>
+            <span className="font-bold text-[#46D369]">{k.text('mv.match')}</span>
             <span>{year}</span>
             <span className="rounded-sm border border-white/50 px-1.5 text-xs">U</span>
             <span>
@@ -64,7 +61,7 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
           </div>
           {premiere && (
             <p className="inv-enter mt-3 text-lg font-semibold" style={{ '--delay': '850ms' } as React.CSSProperties}>
-              {t('Premieres', 'प्रीमियर')} {premiere}
+              {k.text('mv.premieres')} {premiere}
               {days > 0 && <span className="ml-2 inline-block whitespace-nowrap rounded bg-[var(--inv-primary)] px-2 py-0.5 text-sm text-white">{t(`in ${days} days`, `${days} दिन में`)}</span>}
             </p>
           )}
@@ -95,7 +92,7 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
 
       {/* ---------------- Episodes ---------------- */}
       <div id="episodes" className="mx-auto max-w-5xl px-5 pt-6 sm:px-10">
-        <h2 className="text-2xl font-bold">{t('Episodes', 'एपिसोड')}</h2>
+        <h2 className="text-2xl font-bold">{k.text('mv.episodes')}</h2>
         <p className="mt-1 text-sm opacity-70">
           {t('Season 1', 'सीज़न 1')} · {L.occasion}
         </p>
@@ -103,10 +100,9 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
           {fns.map((f, i) => (
             <li key={f.id} className="flex flex-col gap-3 py-5 sm:flex-row sm:items-center sm:gap-5">
               <div className="relative aspect-video w-full shrink-0 overflow-hidden rounded-md sm:w-56" style={{ background: `linear-gradient(135deg, #2A0E12, #0B0B0F)` }}>
-                {photos[(i + 1) % Math.max(1, photos.length)] && photos.length > 0 ? (
-                  // eslint-disable-next-line @next/next/no-img-element -- host photo
-                  <img src={photos[(i + 1) % photos.length]} alt="" loading="lazy" className="size-full object-cover opacity-80" />
-                ) : null}
+                {(i < 3 ? k.photo(`ep-${i + 1}`) : { src: photos[(i + 1) % Math.max(1, photos.length)], style: {} }).src && (
+                  <KitImg photo={i < 3 ? k.photo(`ep-${i + 1}`) : { src: photos[(i + 1) % photos.length], style: {} }} className="size-full opacity-80" />
+                )}
                 <span className="inv-display absolute bottom-1 left-3 text-6xl leading-none text-white/90 [text-shadow:0_2px_12px_rgba(0,0,0,0.6)]">{i + 1}</span>
                 <span className="absolute right-2 top-2 rounded bg-black/60 px-1.5 text-xs">{fmt.time.format(new Date(f.startsAt))}</span>
               </div>
@@ -136,7 +132,7 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
       {/* ---------------- Cast ---------------- */}
       {(people.length > 0 || c.familyLines.length > 0) && (
         <div id="cast" className="mx-auto max-w-5xl px-5 pt-10 sm:px-10">
-          <h2 className="text-2xl font-bold">{t('Cast', 'कलाकार')}</h2>
+          <h2 className="text-2xl font-bold">{k.text('mv.cast')}</h2>
           <ul className="-mx-5 mt-4 flex gap-5 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-10 sm:px-10">
             {people.map((p) => (
               <li key={p.name} className="flex w-28 shrink-0 flex-col items-center text-center">
@@ -158,7 +154,7 @@ export function MovieLayout({ doc }: { doc: SiteDoc }) {
       {/* ---------------- Behind the scenes ---------------- */}
       {L.gallery.length > 1 && (
         <div className="mx-auto max-w-5xl px-5 pt-10 sm:px-10">
-          <h2 className="text-2xl font-bold">{t('Behind the scenes', 'पर्दे के पीछे')}</h2>
+          <h2 className="text-2xl font-bold">{k.text('mv.bts')}</h2>
           <ul className="-mx-5 mt-4 flex gap-2 overflow-x-auto px-5 pb-2 [scrollbar-width:none] sm:-mx-10 sm:px-10">
             {L.gallery.slice(0, 12).map((src) => (
               <li key={src} className="aspect-[2/3] w-36 shrink-0 overflow-hidden rounded-md">

@@ -91,6 +91,8 @@ function TemplatesPanel({ event, data, close }: PanelProps) {
           { v: 'mine', label: 'Mine' },
           { v: 'wedding', label: 'Wedding' },
           { v: 'kids', label: 'Kids' },
+          { v: 'festival', label: 'Festivals' },
+          { v: 'travel', label: 'Travel' },
           { v: 'religious', label: 'Religious' },
           { v: 'business', label: 'Business' },
         ]}
@@ -275,6 +277,8 @@ const CATS: Array<{ v: StickerCategory | 'shapes'; label: string }> = [
   { v: 'wedding', label: 'Wedding' },
   { v: 'religious', label: 'Sacred' },
   { v: 'kids', label: 'Kids' },
+  { v: 'festival', label: 'Festivals' },
+  { v: 'travel', label: 'Travel' },
   { v: 'business', label: 'Party' },
   { v: 'ornament', label: 'Ornaments' },
   { v: 'shapes', label: 'Shapes' },

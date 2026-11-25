@@ -75,6 +75,8 @@ export function sectionAssetIds(doc: SiteDoc): string[] {
     if (s.type === 'familytree') for (const side of s.sides) ids.push(...side.members.map((m) => m.photoAssetId).filter((x): x is string => Boolean(x)));
   }
   if (doc.music?.assetId) ids.push(doc.music.assetId);
+  // Photos the host placed in a layout design's slots.
+  for (const p of Object.values(doc.custom?.photos ?? {})) if (p.assetId) ids.push(p.assetId);
   return ids;
 }
 

@@ -1,5 +1,6 @@
 import { and, asc, desc, eq, eventFunctions, eventMembers, events, guests, inArray, isNotNull, isNull, ne, or, rsvps, sql, users, type Database } from '@cardai/db';
 import {
+  applyDesign,
   defaultSiteDoc,
   getSiteDesign,
   eventSettingsSchema,
@@ -184,6 +185,15 @@ export class EventsService {
       }
       if (template.doc) switchedDesign = structuredClone(template.doc);
     }
+    // A video + website design picked for this invitation (the create flow's "change design"):
+    // the saved page keeps its sections and words and takes the new art; no page yet starts one.
+    const siteDesign = getSiteDesign(input.siteDesign);
+    const site = siteDesign
+      ? applyDesign(
+          event.site ?? defaultSiteDoc({ eventType: input.type ?? event.type, community: input.community ?? event.community, primaryNames: (input.content ?? event.content).primaryNames }),
+          siteDesign.id,
+        )
+      : undefined;
     if (input.slug && input.slug !== event.slug) {
       await this.entitlements.require(eventId, 'website_premium', 'A custom link is part of the Website plan');
       const [taken] = await this.db.select({ id: events.id }).from(events).where(eq(events.slug, input.slug));
@@ -204,6 +214,7 @@ export class EventsService {
           content: input.content,
           settings: input.settings ? mergeSettings(event.settings, input.settings) : undefined,
           ...(switchedDesign ? { design: switchedDesign } : {}),
+          ...(site ? { site } : {}),
           updatedAt: new Date(),
         })
         .where(eq(events.id, eventId));

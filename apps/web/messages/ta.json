@@ -679,14 +679,18 @@
       "wedding": "திருமணம் & நிகழ்ச்சிகள்",
       "kids": "பிறந்தநாள் & குழந்தை",
       "religious": "வீடு & ஆன்மீகம்",
-      "business": "வணிகம்"
+      "business": "வணிகம்",
+      "festival": "பண்டிகைகள்",
+      "travel": "பயணம் & விடுமுறை"
     },
     "cat": {
       "wedding": "திருமணங்கள்",
       "family": "குழந்தை & குடும்பம்",
       "religious": "பூஜை & சடங்குகள்",
       "celebration": "கொண்டாட்டங்கள்",
-      "business": "வணிகம்"
+      "business": "வணிகம்",
+      "festival": "பண்டிகைகள்",
+      "trip": "பயணம் & விடுமுறை"
     },
     "occ": {
       "wedding": "திருமணம்",
@@ -709,7 +713,41 @@
       "retirement": "பணி ஓய்வு",
       "shop-opening": "கடை / அலுவலகத் திறப்பு",
       "corporate": "நிறுவன நிகழ்வு",
-      "other": "மற்றவை"
+      "other": "மற்றவை",
+      "haldi": "மஞ்சள் நீராட்டு",
+      "mehendi": "மெஹந்தி",
+      "sangeet": "சங்கீத்",
+      "ring-ceremony": "மோதிரம் மாற்றுதல்",
+      "tilak": "திலகம்",
+      "roka": "ரோகா",
+      "cocktail": "காக்டெய்ல் விருந்து",
+      "bachelorette": "பேச்சுலர் பார்ட்டி",
+      "first-birthday": "முதல் பிறந்தநாள்",
+      "milestone-birthday": "சஷ்டியப்தபூர்த்தி",
+      "kitty-party": "கிட்டி பார்ட்டி",
+      "graduation": "பட்டமளிப்பு",
+      "farewell": "பிரியாவிடை",
+      "reunion": "மீள் சந்திப்பு",
+      "satyanarayan-katha": "சத்யநாராயண பூஜை",
+      "diwali": "தீபாவளி",
+      "holi": "ஹோலி",
+      "christmas": "கிறிஸ்துமஸ்",
+      "new-year": "புத்தாண்டு",
+      "raksha-bandhan": "ரக்ஷா பந்தன்",
+      "bhai-dooj": "பாய் தூஜ்",
+      "eid": "ஈத்",
+      "navratri": "நவராத்திரி",
+      "ganesh-chaturthi": "விநாயகர் சதுர்த்தி",
+      "lohri": "லோஹ்ரி",
+      "sankranti": "பொங்கல்",
+      "onam": "ஓணம்",
+      "durga-puja": "துர்கா பூஜை",
+      "karva-chauth": "கர்வா சௌத்",
+      "janmashtami": "கிருஷ்ண ஜெயந்தி",
+      "gurpurab": "குருபூரப்",
+      "group-trip": "குழு சுற்றுலா",
+      "family-trip": "குடும்பச் சுற்றுலா",
+      "holiday-greeting": "விடுமுறை வாழ்த்து"
     },
     "community": {
       "hindu-north": "இந்து (வடக்கு)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion}-க்குப் பரிந்துரைக்கப்பட்டது",
     "vsUseCard": "பொருந்தும் அட்டையையும் பயன்படுத்து",
     "vsChange": "மாற்று",
-    "vsBody": "உங்கள் வீடியோவும் அழைப்பிதழ் இணையதளமும் இந்த வடிவமைப்பில் இருக்கும். உங்கள் அட்டை அப்படியே இருக்கும்."
+    "vsBody": "உங்கள் வீடியோவும் அழைப்பிதழ் இணையதளமும் இந்த வடிவமைப்பில் இருக்கும். உங்கள் அட்டை அப்படியே இருக்கும்.",
+    "vsWebsiteOnly": "இணையதளம் மட்டும் · உங்கள் வீடியோ {video} வடிவமைப்பில்",
+    "editDetails": "விவரங்களை மாற்று",
+    "newEvent": "புதிய நிகழ்வு",
+    "exit": "மூடு",
+    "changeDesign": "வடிவமைப்பை மாற்று",
+    "changeGone": "அந்த அழைப்பிதழ் நீக்கப்பட்டது. புதியது செய்ய மீண்டும் தட்டவும்.",
+    "targetLabel": "எதில் பயன்படுத்த வேண்டும்",
+    "targetChange": "“{title}” புதுப்பி",
+    "targetNew": "புதிய அழைப்பிதழ்",
+    "useThis": "இதைப் பயன்படுத்து",
+    "venueLater": "இடம் இன்னும் முடிவாகவில்லை",
+    "venueLaterPh": "பிறகு சேர்க்கவும்",
+    "grp": {
+      "weddings": "திருமணம்",
+      "wedding-functions": "திருமணச் சடங்குகள்",
+      "celebrations": "கொண்டாட்டங்கள்",
+      "baby-family": "குழந்தை & குடும்பம்",
+      "religious": "பூஜை & சமயம்",
+      "festivals": "பண்டிகைகள்",
+      "trips": "பயணம் & விடுமுறை",
+      "business": "வணிகம்"
+    },
+    "gMode": "நீங்கள் என்ன உருவாக்குகிறீர்கள்?",
+    "gGreeting": "வாழ்த்து அட்டை",
+    "gGreetingHint": "WhatsApp-இல் அனுப்ப வாழ்த்து. இடம் அல்லது RSVP இல்லை.",
+    "gParty": "விருந்து அழைப்பு",
+    "gPartyHint": "அழைக்கவும்: தேதி, இடம், வரைபடம், RSVP.",
+    "gFrom": "யாரிடமிருந்து (குடும்பம் அல்லது நிறுவனம்)"
   },
   "picker": {
     "chooseDate": "தேதியைத் தேர்ந்தெடுங்கள்",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "புகைப்படத்தை வடிவமைப்பின் இரண்டு முக்கிய நிறங்களில் மாற்றும்",
     "Strength": "அடர்த்தி",
     "Show on": "இங்கே காட்டு",
-    "Card image": "அட்டைப் படம்"
+    "Card image": "அட்டைப் படம்",
+    "Interactive": "ஊடாடும்",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp-இல் பகிர்வதற்காக உருவான தனித்துவமான அழைப்பிதழ் இணையதளம்",
+    "RSVP, map and countdown built in": "RSVP, வரைபடம், கவுண்ட்டவுன் உள்ளே",
+    "Website-only design: your card and video keep their own designs": "இணையதளத்துக்கு மட்டுமான வடிவமைப்பு: உங்கள் அட்டையும் வீடியோவும் தங்கள் வடிவமைப்பிலேயே இருக்கும்"
   }
 }

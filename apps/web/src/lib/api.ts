@@ -52,6 +52,13 @@ export function startSessionKeeper(isSignedIn: () => boolean): () => void {
 }
 
 /**
+ * Sign-in steps whose 401 means "wrong code / not signed in", never "access token lapsed".
+ * Everything else under /auth (me, sessions, logout-all) is an ordinary signed-in call: a 401
+ * there renews the token first, so a returning user is not shown as signed out after 15 minutes.
+ */
+const NO_REFRESH = /^\/auth\/(refresh|logout$|otp\/|google|providers)/;
+
+/**
  * The raw Response for an API call (for blobs / downloads): same cookies and one transparent
  * session refresh on 401 as `api()`, without parsing the body.
  */
@@ -66,7 +73,7 @@ export async function apiFetch(path: string, init: RequestInit & { json?: unknow
     },
     body: json !== undefined ? JSON.stringify(json) : rest.body,
   });
-  if (res.status === 401 && !retried && !path.startsWith('/auth/')) {
+  if (res.status === 401 && !retried && !NO_REFRESH.test(path)) {
     // Retry even when our refresh lost: another tab may have just rotated the shared cookies.
     await refreshSession();
     return apiFetch(path, init, true);

@@ -679,14 +679,18 @@
       "wedding": "ಮದುವೆ ಮತ್ತು ಕಾರ್ಯಕ್ರಮಗಳು",
       "kids": "ಹುಟ್ಟುಹಬ್ಬ ಮತ್ತು ಮಗು",
       "religious": "ಗೃಹ ಮತ್ತು ಧಾರ್ಮಿಕ",
-      "business": "ವ್ಯಾಪಾರ"
+      "business": "ವ್ಯಾಪಾರ",
+      "festival": "ಹಬ್ಬಗಳು",
+      "travel": "ಪ್ರವಾಸ & ರಜೆ"
     },
     "cat": {
       "wedding": "ಮದುವೆಗಳು",
       "family": "ಮಗು ಮತ್ತು ಕುಟುಂಬ",
       "religious": "ಪೂಜೆ ಮತ್ತು ಸಂಸ್ಕಾರ",
       "celebration": "ಆಚರಣೆಗಳು",
-      "business": "ವ್ಯಾಪಾರ"
+      "business": "ವ್ಯಾಪಾರ",
+      "festival": "ಹಬ್ಬಗಳು",
+      "trip": "ಪ್ರವಾಸ & ರಜೆ"
     },
     "occ": {
       "wedding": "ವಿವಾಹ",
@@ -709,7 +713,41 @@
       "retirement": "ನಿವೃತ್ತಿ",
       "shop-opening": "ಅಂಗಡಿ / ಕಚೇರಿ ಉದ್ಘಾಟನೆ",
       "corporate": "ಕಾರ್ಪೊರೇಟ್ ಕಾರ್ಯಕ್ರಮ",
-      "other": "ಇತರೆ"
+      "other": "ಇತರೆ",
+      "haldi": "ಅರಿಶಿನ",
+      "mehendi": "ಮೆಹಂದಿ",
+      "sangeet": "ಸಂಗೀತ",
+      "ring-ceremony": "ಉಂಗುರ ಬದಲಾವಣೆ",
+      "tilak": "ತಿಲಕ",
+      "roka": "ರೋಕಾ",
+      "cocktail": "ಕಾಕ್‌ಟೇಲ್ ಪಾರ್ಟಿ",
+      "bachelorette": "ಬ್ಯಾಚುಲರ್ ಪಾರ್ಟಿ",
+      "first-birthday": "ಮೊದಲ ಹುಟ್ಟುಹಬ್ಬ",
+      "milestone-birthday": "ಷಷ್ಟ್ಯಬ್ದಿ",
+      "kitty-party": "ಕಿಟ್ಟಿ ಪಾರ್ಟಿ",
+      "graduation": "ಪದವಿ ಪ್ರದಾನ",
+      "farewell": "ಬೀಳ್ಕೊಡುಗೆ",
+      "reunion": "ಸ್ನೇಹ ಸಮ್ಮಿಲನ",
+      "satyanarayan-katha": "ಸತ್ಯನಾರಾಯಣ ಪೂಜೆ",
+      "diwali": "ದೀಪಾವಳಿ",
+      "holi": "ಹೋಳಿ",
+      "christmas": "ಕ್ರಿಸ್ಮಸ್",
+      "new-year": "ಹೊಸ ವರ್ಷ",
+      "raksha-bandhan": "ರಕ್ಷಾಬಂಧನ",
+      "bhai-dooj": "ಭಾಯಿ ದೂಜ್",
+      "eid": "ಈದ್",
+      "navratri": "ನವರಾತ್ರಿ",
+      "ganesh-chaturthi": "ಗಣೇಶ ಚತುರ್ಥಿ",
+      "lohri": "ಲೋಹ್ರಿ",
+      "sankranti": "ಸಂಕ್ರಾಂತಿ",
+      "onam": "ಓಣಂ",
+      "durga-puja": "ದುರ್ಗಾ ಪೂಜೆ",
+      "karva-chauth": "ಕರ್ವಾ ಚೌತ್",
+      "janmashtami": "ಜನ್ಮಾಷ್ಟಮಿ",
+      "gurpurab": "ಗುರುಪುರಬ್",
+      "group-trip": "ಗುಂಪು ಪ್ರವಾಸ",
+      "family-trip": "ಕುಟುಂಬ ಪ್ರವಾಸ",
+      "holiday-greeting": "ರಜಾದಿನಗಳ ಶುಭಾಶಯ"
     },
     "community": {
       "hindu-north": "ಹಿಂದೂ (ಉತ್ತರ)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} ಗಾಗಿ ಸೂಚಿಸಲಾಗಿದೆ",
     "vsUseCard": "ಹೊಂದುವ ಕಾರ್ಡ್ ಕೂಡ ಬಳಸಿ",
     "vsChange": "ಬದಲಿಸಿ",
-    "vsBody": "ನಿಮ್ಮ ವೀಡಿಯೊ ಮತ್ತು ಆಮಂತ್ರಣ ವೆಬ್‌ಸೈಟ್ ಈ ವಿನ್ಯಾಸದಲ್ಲಿರುತ್ತವೆ. ನಿಮ್ಮ ಕಾರ್ಡ್ ಹಾಗೆಯೇ ಇರುತ್ತದೆ."
+    "vsBody": "ನಿಮ್ಮ ವೀಡಿಯೊ ಮತ್ತು ಆಮಂತ್ರಣ ವೆಬ್‌ಸೈಟ್ ಈ ವಿನ್ಯಾಸದಲ್ಲಿರುತ್ತವೆ. ನಿಮ್ಮ ಕಾರ್ಡ್ ಹಾಗೆಯೇ ಇರುತ್ತದೆ.",
+    "vsWebsiteOnly": "ವೆಬ್‌ಸೈಟ್ ಮಾತ್ರ · ನಿಮ್ಮ ವೀಡಿಯೊ {video} ವಿನ್ಯಾಸದಲ್ಲಿ",
+    "editDetails": "ವಿವರ ಬದಲಿಸಿ",
+    "newEvent": "ಹೊಸ ಸಮಾರಂಭ",
+    "exit": "ಮುಚ್ಚಿ",
+    "changeDesign": "ವಿನ್ಯಾಸ ಬದಲಿಸಿ",
+    "changeGone": "ಆ ಆಹ್ವಾನವನ್ನು ಅಳಿಸಲಾಗಿದೆ. ಹೊಸದನ್ನು ಮಾಡಲು ಮತ್ತೆ ಟ್ಯಾಪ್ ಮಾಡಿ.",
+    "targetLabel": "ಯಾವುದಕ್ಕೆ ಅನ್ವಯಿಸಬೇಕು",
+    "targetChange": "“{title}” ನವೀಕರಿಸಿ",
+    "targetNew": "ಹೊಸ ಆಹ್ವಾನ",
+    "useThis": "ಇದನ್ನು ಬಳಸಿ",
+    "venueLater": "ಸ್ಥಳ ಇನ್ನೂ ನಿರ್ಧಾರವಾಗಿಲ್ಲ",
+    "venueLaterPh": "ನಂತರ ಸೇರಿಸಿ",
+    "grp": {
+      "weddings": "ಮದುವೆ",
+      "wedding-functions": "ಮದುವೆ ಶಾಸ್ತ್ರಗಳು",
+      "celebrations": "ಸಂಭ್ರಮಗಳು",
+      "baby-family": "ಮಗು & ಕುಟುಂಬ",
+      "religious": "ಪೂಜೆ & ಧಾರ್ಮಿಕ",
+      "festivals": "ಹಬ್ಬಗಳು",
+      "trips": "ಪ್ರವಾಸ & ರಜೆ",
+      "business": "ವ್ಯಾಪಾರ"
+    },
+    "gMode": "ನೀವು ಏನು ತಯಾರಿಸುತ್ತಿದ್ದೀರಿ?",
+    "gGreeting": "ಶುಭಾಶಯ ಕಾರ್ಡ್",
+    "gGreetingHint": "WhatsApp ನಲ್ಲಿ ಕಳುಹಿಸಲು ಶುಭಾಶಯ. ಸ್ಥಳ ಅಥವಾ RSVP ಇಲ್ಲ.",
+    "gParty": "ಪಾರ್ಟಿ ಆಹ್ವಾನ",
+    "gPartyHint": "ಆಹ್ವಾನಿಸಿ: ದಿನಾಂಕ, ಸ್ಥಳ, ನಕ್ಷೆ ಮತ್ತು RSVP.",
+    "gFrom": "ಯಾರಿಂದ (ಕುಟುಂಬ ಅಥವಾ ವ್ಯಾಪಾರ)"
   },
   "picker": {
     "chooseDate": "ದಿನಾಂಕ ಆರಿಸಿ",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ಫೋಟೋವನ್ನು ವಿನ್ಯಾಸದ ಎರಡು ಮುಖ್ಯ ಬಣ್ಣಗಳಲ್ಲಿ ಬದಲಿಸುತ್ತದೆ",
     "Strength": "ತೀವ್ರತೆ",
     "Show on": "ಇಲ್ಲಿ ತೋರಿಸಿ",
-    "Card image": "ಕಾರ್ಡ್ ಇಮೇಜ್"
+    "Card image": "ಕಾರ್ಡ್ ಇಮೇಜ್",
+    "Interactive": "ಸಂವಾದಾತ್ಮಕ",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp ನಲ್ಲಿ ಹಂಚಿಕೊಳ್ಳಲು ಮಾಡಿದ ವಿಶಿಷ್ಟ ಆಮಂತ್ರಣ ವೆಬ್‌ಸೈಟ್",
+    "RSVP, map and countdown built in": "RSVP, ನಕ್ಷೆ ಮತ್ತು ಕೌಂಟ್‌ಡೌನ್ ಒಳಗೊಂಡಿದೆ",
+    "Website-only design: your card and video keep their own designs": "ವೆಬ್‌ಸೈಟ್‌ಗೆ ಮಾತ್ರ ವಿನ್ಯಾಸ: ನಿಮ್ಮ ಕಾರ್ಡ್ ಮತ್ತು ವೀಡಿಯೊ ತಮ್ಮದೇ ವಿನ್ಯಾಸದಲ್ಲಿರುತ್ತವೆ"
   }
 }

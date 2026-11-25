@@ -1,5 +1,5 @@
 import { eq, inArray, mediaAssets, musicTracks } from '@cardai/db';
-import { BRAND, designTrackId, findBuiltinTemplate, getSiteDesign, photoBgFor, siteDocSchema, type EventContent, type PhotoBg } from '@cardai/shared';
+import { BRAND, designTrackId, findBuiltinTemplate, getSiteDesign, videoDesignFor, photoBgFor, siteDocSchema, type EventContent, type PhotoBg } from '@cardai/shared';
 import type { WorkerContext } from '../context.js';
 import { cornerQr } from './load-design.js';
 import { loadEventRows } from './load-props.js';
@@ -33,8 +33,8 @@ export async function loadSiteVideoProps(ctx: WorkerContext, eventId: string, op
   const parsed = event.site ? siteDocSchema.safeParse(event.site) : null;
   const doc = parsed?.success ? parsed.data : null;
   // No pack chosen yet: the one matching the card's design family (same name and art), else Burgundy Rose.
-  const cardPack = getSiteDesign(findBuiltinTemplate(event.templateId)?.design)?.id;
-  const designId = doc?.design ?? cardPack ?? 'rose-seal';
+  // Layout designs (chat, stories…) are website-only: the video uses a cinematic design.
+  const designId = videoDesignFor(doc?.design, event.type, event.community, findBuiltinTemplate(event.templateId)?.design ?? null);
   const design = getSiteDesign(designId);
 
   // Same order as the website: uploaded song → picked track → (auto) card track → design mood.

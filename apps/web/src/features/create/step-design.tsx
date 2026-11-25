@@ -1,10 +1,9 @@
 'use client';
 
 import { faithOf, getEventType, groupByFamily, templateFaithClash, templateSampleLanguage, type TemplateDefinition } from '@cardai/shared';
-import { clsx } from 'clsx';
 import { Check } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { FamilyTile } from '@/components/invite/family-tile';
 import { NoTemplates, TemplateSearchBar, useTemplateSearch } from '@/components/invite/template-search';
 import { Button } from '@/components/ui/button';
@@ -14,18 +13,15 @@ import { DraftPreview } from './draft-preview';
 import { useDraft } from './draft-store';
 import { VideoSitePick } from './video-site-pick';
 
-type Cat = 'all' | NonNullable<TemplateDefinition['category']>;
-
 /**
  * Pick a design, last: the details are already in, so the selected design is shown live with the
  * user's own names beside the grid (desktop) or in the dock (phones). Tiles stay pre-rendered for speed.
  */
-export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: boolean }) {
+export function StepDesign({ heading, onUse, creating, useLabel }: { heading?: ReactNode; onUse: () => void; creating?: boolean; useLabel: string }) {
   const d = useDraft();
   const t = useTranslations('create');
   const hi = useLocale() === 'hi';
   const { data: templates, isLoading } = useTemplates(d.type);
-  const [cat, setCat] = useState<Cat>('all');
   const [previewId, setPreviewId] = useState<string | null>(null);
   const previewing = previewId ? (templates?.find((x) => x.id === previewId) ?? findTemplate(previewId)) : undefined;
   const selected = findTemplate(d.templateId);
@@ -40,8 +36,9 @@ export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: 
       (templateFaithClash(vs[0]!.communities, faith) ? 10 : 0) + (vs[0]!.design ? 0 : 2) + (d.community && (vs[0]!.communities as string[]).includes(d.community) ? 0 : 1);
     return [...list].sort((a, b) => score(a.variants) - score(b.variants));
   }, [search.results, search.state.q, d.community, d.type]);
-  const cats = useMemo(() => ['all', ...new Set(families.map((f) => f.variants[0]!.category).filter(Boolean))] as Cat[], [families]);
-  const shown = families.filter((f) => cat === 'all' || f.variants[0]!.category === cat);
+  // No category tabs: the occasion already narrows the designs, and its categories ("Wedding &
+  // functions" on a baby shower) only added noise. Search and filters remain.
+  const shown = families;
   const ev = getEventType(d.type);
   // A design starts in its own sample language unless the user picked the card language.
   const previewLanguage = (x: TemplateDefinition) => (d.languageByUser ? d.language : templateSampleLanguage(x));
@@ -49,28 +46,8 @@ export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: 
   return (
     <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_340px] lg:gap-12">
       <div className="flex min-w-0 flex-col gap-6">
-        {/* The video + website design, kept small: most people pick the card and let it follow. */}
-        <VideoSitePick />
-        <div className="border border-ink/10 bg-ink/[0.02] p-4 sm:p-6">
-          <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
-          {cats.length > 2 && (
-            <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] sm:-mx-6 sm:px-6">
-              <div className="flex w-max gap-6 border-b border-ink/10" role="group" aria-label={t('category')}>
-                {cats.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    aria-pressed={cat === c}
-                    onClick={() => setCat(c)}
-                    className={clsx('-mb-px h-11 shrink-0 border-b text-sm transition-colors duration-200', cat === c ? 'border-ink text-ink' : 'border-transparent text-ink-soft hover:text-ink')}
-                  >
-                    {t(`designCat.${c}`)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        {heading}
+        <TemplateSearchBar state={search.state} onChange={search.setState} hi={hi} compact count={shown.length} />
 
         {!isLoading && <p className="font-mono text-xs text-ink-soft">{t('designsFor', { n: shown.length, occasion: t(`occ.${ev.id}`) })}</p>}
 
@@ -88,31 +65,47 @@ export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: 
         ) : (
           <ul className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-10 xl:grid-cols-4">
             {shown.map((f, i) => (
-              <FamilyTile key={f.id} name={f.name} variants={f.variants} selectedId={d.templateId} onPick={(x) => d.pickTemplate(x.id)} onPreview={(x) => setPreviewId(x.id)} priority={i < 4} />
+              <FamilyTile
+                key={f.id}
+                name={f.name}
+                variants={f.variants}
+                selectedId={d.templateId}
+                onPick={(x) => d.pickTemplate(x.id)}
+                onPreview={(x) => setPreviewId(x.id)}
+                onUse={(x) => {
+                  d.pickTemplate(x.id);
+                  onUse();
+                }}
+                useLabel={t('useThis')}
+                priority={i < 4}
+              />
             ))}
           </ul>
         )}
+        {/* Phones and tablets: the video + website design below the cards (desktop has it beside the preview). */}
+        <div className="lg:hidden">
+          <VideoSitePick />
+        </div>
       </div>
 
       {/* Your card on the selected design, with your names: the thing being chosen. */}
+      {/* Sized by the window height: the whole card and its Create button always fit on screen. */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 border border-ink/10 bg-ink/[0.02]">
-          <div className="border-b border-ink/10 px-5 py-4">
-            <p className="flex items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-wider text-gold">
-              <span className="size-1.5 animate-pulse rounded-full bg-gold" aria-hidden />
-              {t('yourCard')}
-            </p>
-            <p className="mt-1 truncate">{selected?.family?.name ?? selected?.name}</p>
+        <div className="sticky top-[5.5rem] flex flex-col gap-3">
+          <p className="flex items-center gap-2 text-sm text-ink-soft">
+            <span className="size-1.5 animate-pulse rounded-full bg-gold" aria-hidden />
+            {t('yourCard')}
+            <span className="truncate text-ink">· {selected?.family?.name ?? selected?.name}</span>
+          </p>
+          <div className="editor-stage rounded-[var(--radius-card)] border border-ink/10 p-5">
+            <DraftPreview key={d.templateId} className="mx-auto w-[min(100%,calc((100dvh-23rem)*0.5625))]" />
           </div>
-          <div className="editor-stage p-5">
-            <DraftPreview key={d.templateId} className="mx-auto max-w-[260px]" />
-          </div>
-          <div className="border-t border-ink/10 p-4">
-            <Button variant="solid" className="press h-12 w-full" onClick={onUse} loading={creating}>
-              <Check className="size-4" />
-              {t('create')}
-            </Button>
-          </div>
+          <Button variant="solid" className="press h-12 w-full" onClick={onUse} loading={creating}>
+            <Check className="size-4" />
+            {useLabel}
+          </Button>
+          {/* Kept small: most people pick the card and let the video + website follow it. */}
+          <VideoSitePick compact />
         </div>
       </aside>
 
@@ -131,7 +124,7 @@ export function StepDesign({ onUse, creating }: { onUse: () => void; creating?: 
               }}
             >
               <Check className="size-4" />
-              {t('useAndCreate')}
+              {useLabel}
             </Button>
           </div>
         )}

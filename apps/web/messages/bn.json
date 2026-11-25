@@ -679,14 +679,18 @@
       "wedding": "বিয়ে ও অনুষ্ঠান",
       "kids": "জন্মদিন ও শিশু",
       "religious": "গৃহ ও ধর্মীয়",
-      "business": "ব্যবসা"
+      "business": "ব্যবসা",
+      "festival": "উৎসব-পার্বণ",
+      "travel": "ভ্রমণ ও ছুটি"
     },
     "cat": {
       "wedding": "বিয়ে",
       "family": "শিশু ও পরিবার",
       "religious": "পূজা ও সংস্কার",
       "celebration": "উদযাপন",
-      "business": "ব্যবসা"
+      "business": "ব্যবসা",
+      "festival": "উৎসব-পার্বণ",
+      "trip": "ভ্রমণ ও ছুটি"
     },
     "occ": {
       "wedding": "শুভ বিবাহ",
@@ -709,7 +713,41 @@
       "retirement": "অবসর",
       "shop-opening": "দোকান / অফিস উদ্বোধন",
       "corporate": "কর্পোরেট অনুষ্ঠান",
-      "other": "অন্যান্য"
+      "other": "অন্যান্য",
+      "haldi": "গায়ে হলুদ",
+      "mehendi": "মেহেন্দি",
+      "sangeet": "সঙ্গীত",
+      "ring-ceremony": "আংটি বদল",
+      "tilak": "তিলক",
+      "roka": "রোকা",
+      "cocktail": "ককটেল পার্টি",
+      "bachelorette": "ব্যাচেলর পার্টি",
+      "first-birthday": "প্রথম জন্মদিন",
+      "milestone-birthday": "৫০/৬০তম জন্মদিন",
+      "kitty-party": "কিটি পার্টি",
+      "graduation": "সমাবর্তন",
+      "farewell": "বিদায়",
+      "reunion": "পুনর্মিলনী",
+      "satyanarayan-katha": "সত্যনারায়ণ পূজা",
+      "diwali": "দীপাবলি",
+      "holi": "দোল / হোলি",
+      "christmas": "বড়দিন",
+      "new-year": "নববর্ষ",
+      "raksha-bandhan": "রাখি বন্ধন",
+      "bhai-dooj": "ভাইফোঁটা",
+      "eid": "ঈদ",
+      "navratri": "নবরাত্রি",
+      "ganesh-chaturthi": "গণেশ চতুর্থী",
+      "lohri": "লোহরি",
+      "sankranti": "মকর সংক্রান্তি",
+      "onam": "ওনাম",
+      "durga-puja": "দুর্গাপূজা",
+      "karva-chauth": "করবা চৌথ",
+      "janmashtami": "জন্মাষ্টমী",
+      "gurpurab": "গুরুপরব",
+      "group-trip": "গ্রুপ ট্রিপ",
+      "family-trip": "পারিবারিক ভ্রমণ",
+      "holiday-greeting": "ছুটির শুভেচ্ছা"
     },
     "community": {
       "hindu-north": "হিন্দু (উত্তর)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion}-এর জন্য প্রস্তাবিত",
     "vsUseCard": "মানানসই কার্ডও নিন",
     "vsChange": "বদলান",
-    "vsBody": "আপনার ভিডিও আর আমন্ত্রণ ওয়েবসাইট এই ডিজাইনে হবে। আপনার কার্ড যেমন আছে তেমনই থাকবে।"
+    "vsBody": "আপনার ভিডিও আর আমন্ত্রণ ওয়েবসাইট এই ডিজাইনে হবে। আপনার কার্ড যেমন আছে তেমনই থাকবে।",
+    "vsWebsiteOnly": "শুধু ওয়েবসাইট · আপনার ভিডিও {video} ডিজাইনে",
+    "editDetails": "বিবরণ বদলান",
+    "newEvent": "নতুন অনুষ্ঠান",
+    "exit": "বন্ধ করুন",
+    "changeDesign": "ডিজাইন বদলান",
+    "changeGone": "সেই আমন্ত্রণটি মুছে ফেলা হয়েছে। নতুন বানাতে আবার ট্যাপ করুন।",
+    "targetLabel": "কোথায় প্রয়োগ করবেন",
+    "targetChange": "“{title}” আপডেট করুন",
+    "targetNew": "নতুন আমন্ত্রণ",
+    "useThis": "এটি নিন",
+    "venueLater": "স্থান এখনও ঠিক হয়নি",
+    "venueLaterPh": "পরে যোগ করুন",
+    "grp": {
+      "weddings": "বিয়ে",
+      "wedding-functions": "বিয়ের অনুষ্ঠান",
+      "celebrations": "উৎসব",
+      "baby-family": "শিশু ও পরিবার",
+      "religious": "পূজা ও ধর্মীয়",
+      "festivals": "উৎসব-পার্বণ",
+      "trips": "ভ্রমণ ও ছুটি",
+      "business": "ব্যবসা"
+    },
+    "gMode": "আপনি কী বানাচ্ছেন?",
+    "gGreeting": "শুভেচ্ছা কার্ড",
+    "gGreetingHint": "WhatsApp-এ পাঠানোর শুভেচ্ছা। স্থান বা RSVP নেই।",
+    "gParty": "পার্টির নিমন্ত্রণ",
+    "gPartyHint": "আমন্ত্রণ জানান: তারিখ, স্থান, ম্যাপ ও RSVP।",
+    "gFrom": "কার পক্ষ থেকে (পরিবার বা ব্যবসা)"
   },
   "picker": {
     "chooseDate": "তারিখ বেছে নিন",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ছবিকে ডিজাইনের দুটি প্রধান রঙে রাঙিয়ে দেয়",
     "Strength": "তীব্রতা",
     "Show on": "যেখানে দেখাবে",
-    "Card image": "কার্ডের ছবি"
+    "Card image": "কার্ডের ছবি",
+    "Interactive": "ইন্টারঅ্যাকটিভ",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp-এ শেয়ার করার জন্য তৈরি এক অনন্য আমন্ত্রণ ওয়েবসাইট",
+    "RSVP, map and countdown built in": "RSVP, ম্যাপ আর কাউন্টডাউন সহ",
+    "Website-only design: your card and video keep their own designs": "শুধু ওয়েবসাইটের ডিজাইন: আপনার কার্ড আর ভিডিও নিজেদের ডিজাইনেই থাকবে"
   }
 }

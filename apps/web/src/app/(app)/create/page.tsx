@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Suspense } from 'react';
-import { SiteHeader } from '@/components/layout/site-header';
 import { WizardSkeleton } from '@/components/ui/skeletons';
 import { CreateWizard } from '@/features/create/create-wizard';
 
@@ -14,13 +13,11 @@ export const metadata: Metadata = {
 
 export default function CreatePage() {
   return (
-    <>
-      <SiteHeader />
-      <main id="main" className="bg-ivory">
-        <Suspense fallback={<WizardSkeleton />}>
-          <CreateWizard />
-        </Suspense>
-      </main>
-    </>
+    // No site menu here: the wizard has its own focused bar (logo, steps, actions, close).
+    <main id="main" className="bg-ivory">
+      <Suspense fallback={<WizardSkeleton />}>
+        <CreateWizard />
+      </Suspense>
+    </main>
   );
 }

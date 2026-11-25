@@ -10,6 +10,7 @@ import { HeroPhotoBg } from './photo-bg';
 import { mapsUrl, useCountdown } from './utils';
 import { Letters, Reveal, useMotionLevel, useParallax, useScrollProgress } from './motion';
 import { RsvpForm } from './rsvp-form';
+import './layout-skins.css';
 import { VenueMap } from './venue-map';
 
 /**
@@ -22,6 +23,16 @@ const delay = (ms: number) => ({ '--delay': `${ms}ms` }) as CSSProperties;
 
 /** Section heading in the design's script font with a thin flourish. */
 export function ScriptHeading({ id, children }: { id: string; children: ReactNode }) {
+  const { design } = useSite();
+  // Layout designs (chat, boarding pass, newspaper…) style their section headings their own way.
+  if (design?.layout)
+    return (
+      <div className={`inv-lh inv-lh-${design.layout}`}>
+        <h2 id={id} className="inv-lh-title">
+          {children}
+        </h2>
+      </div>
+    );
   return (
     <div className="text-center">
       <h2 id={id} className="inv-script text-[clamp(2.4rem,9vw,3.6rem)] leading-tight text-[var(--inv-primary)]">

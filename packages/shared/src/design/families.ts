@@ -10,6 +10,8 @@ export const DESIGN_CATEGORIES = [
   { id: 'wedding', label: 'Wedding & functions' },
   { id: 'kids', label: 'Birthday & baby' },
   { id: 'religious', label: 'Home & religious' },
+  { id: 'festival', label: 'Festivals' },
+  { id: 'travel', label: 'Trips & holidays' },
   { id: 'business', label: 'Business & others' },
 ] as const;
 export type DesignCategory = (typeof DESIGN_CATEGORIES)[number]['id'];

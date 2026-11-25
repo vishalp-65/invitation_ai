@@ -1,0 +1,114 @@
+/* Playful openings: transform + opacity only. "Closed" is the idle loop; data-state=opening plays
+   the exit, then Opening unmounts the scene. Colours come from --op-* (opening.tsx). */
+
+.opp-stage { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.4rem; padding: 0 22px; }
+.opp-hint { display: inline-block; font-size: 0.74rem; letter-spacing: 0.3em; text-transform: uppercase; opacity: 0.85; animation: opp-pulse 1.8s ease-in-out infinite; }
+@keyframes opp-pulse { 50% { opacity: 0.35; } }
+.opp-exit { transition: opacity 0.45s ease, transform 0.6s cubic-bezier(0.6, 0, 0.3, 1); }
+.inv-opening[data-state='opening'] .opp-exit { opacity: 0; transform: translateY(-30px) scale(0.96); }
+.opp .inv-backdrop { position: absolute; inset: 0; z-index: -1; } /* behind the scene's (static) text */
+
+/* ---------- phone message ---------- */
+.opp-lock { background: radial-gradient(120% 70% at 50% 0%, var(--op-light), var(--op-deeper)); }
+.opp-lock-time { position: absolute; top: 14%; color: #fff; font: 300 clamp(3.5rem, 18vw, 5.5rem) / 1 var(--inv-body); letter-spacing: -0.02em; }
+.opp-note { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; width: min(92vw, 380px); padding: 14px 16px; border-radius: 22px; background: rgb(255 255 255 / 0.9); color: #111; text-align: left; box-shadow: 0 18px 40px -16px rgb(0 0 0 / 0.5); animation: opp-drop 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.25) 0.4s both; }
+.opp-note-icon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #25d366; color: #fff; font-weight: 700; font-size: 0.85rem; }
+.opp-note-body { display: flex; flex-direction: column; min-width: 0; font-size: 0.92rem; line-height: 1.25; }
+.opp-note-body b { font-size: 0.98rem; }
+.opp-note-body span { opacity: 0.75; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.opp-note-now { align-self: start; font-size: 0.72rem; opacity: 0.55; }
+.opp-swipe { position: absolute; bottom: 10%; color: #fff; }
+@keyframes opp-drop { from { opacity: 0; transform: translateY(-40px) scale(0.92); } }
+
+/* ---------- story ring ---------- */
+.opp-story-bg { background: #0b0b0b; }
+.opp-ring { position: relative; width: 168px; height: 168px; display: grid; place-items: center; }
+.opp-ring-spin { position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#f58529, #dd2a7b, #8134af, #f58529); animation: opp-spin 2.4s linear infinite; }
+.opp-ring-face { position: relative; display: grid; place-items: center; width: 152px; height: 152px; border-radius: 50%; border: 6px solid #0b0b0b; background: var(--op-p); color: #fff; font: 600 2.6rem var(--inv-display); }
+.opp-story-name { color: #fff; font-weight: 600; font-size: 1.15rem; }
+.opp-k-story .opp-hint { color: #fff; }
+.inv-opening[data-state='opening'] .opp-ring { transform: scale(6); opacity: 0; transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1), opacity 0.6s ease 0.4s; }
+@keyframes opp-spin { to { transform: rotate(1turn); } }
+
+/* ---------- boarding pass ---------- */
+.opp-sky { background: linear-gradient(180deg, #8fc6ec, #d8eefb); }
+.opp-pass { display: flex; width: min(94vw, 420px); border-radius: 18px; overflow: hidden; color: #1d2433; text-align: left; box-shadow: 0 22px 50px -18px rgb(0 0 0 / 0.45); animation: opp-slide-up 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.1) 0.2s both; }
+.opp-pass-main { flex: 1; background: #fff; padding: 18px 18px 16px; }
+.opp-pass-k { font-size: 0.68rem; letter-spacing: 0.3em; text-transform: uppercase; color: var(--op-p); font-weight: 700; }
+.opp-pass-names { margin-top: 6px; font: 1.6rem/1.1 var(--op-script, var(--inv-script)); }
+.opp-pass-row { margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.opp-pass-row span { display: flex; flex-direction: column; }
+.opp-pass-row i { font-style: normal; font-size: 0.62rem; letter-spacing: 0.2em; text-transform: uppercase; opacity: 0.55; }
+.opp-pass-row b { font-size: 1.15rem; }
+.opp-pass-date { margin-top: 10px; font-size: 0.85rem; letter-spacing: 0.15em; }
+.opp-pass-stub { width: 92px; background: var(--op-p); color: #fff; border-left: 3px dashed rgb(255 255 255 / 0.6); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; }
+.opp-barcode { width: 54px; height: 70px; background: repeating-linear-gradient(0deg, #fff 0 2px, transparent 2px 4px, #fff 4px 5px, transparent 5px 8px); }
+.inv-opening[data-state='opening'] .opp-pass-stub { transform: translateX(140%) rotate(18deg); opacity: 0; transition: transform 0.7s cubic-bezier(0.6, 0, 0.3, 1), opacity 0.5s ease 0.3s; }
+.inv-opening[data-state='opening'] .opp-pass-main { transform: translateY(-120vh); transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1) 0.5s; }
+@keyframes opp-slide-up { from { opacity: 0; transform: translateY(60px) rotate(-3deg); } }
+
+/* ---------- newspaper ---------- */
+.opp-desk { background: radial-gradient(circle at 50% 45%, #3a3a3a, #0d0d0d 75%); }
+.opp-paper { width: min(90vw, 380px); padding: 18px 18px 22px; background: #f1ece1; color: #1b1b1b; text-align: center; box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.7); animation: opp-spin-in 1.3s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.opp-paper-mast { font: 900 1.65rem/1 var(--inv-display); letter-spacing: 0.02em; }
+.opp-paper-rule { margin-top: 6px; padding: 4px 0; border-block: 2px solid #1b1b1b; font-size: 0.66rem; letter-spacing: 0.2em; text-transform: uppercase; }
+.opp-paper-head { margin-top: 12px; font: 700 clamp(1.8rem, 8vw, 2.4rem)/1.02 var(--inv-display); text-transform: uppercase; }
+.opp-paper-sub { margin-top: 6px; font-style: italic; font-size: 0.9rem; }
+.opp-paper-cols { margin-top: 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.opp-paper-cols i { height: 46px; background: repeating-linear-gradient(#1b1b1b33 0 2px, transparent 2px 7px); }
+.opp-paper-hint { color: #fff; }
+.inv-opening[data-state='opening'] .opp-paper { transform: scale(2.6); opacity: 0; transition: transform 0.9s cubic-bezier(0.6, 0, 0.3, 1), opacity 0.6s ease 0.35s; }
+@keyframes opp-spin-in { from { transform: rotate(-1080deg) scale(0.05); opacity: 0; } 40% { opacity: 1; } }
+
+/* ---------- vinyl ---------- */
+.opp-vinyl-bg { background: radial-gradient(circle at 50% 40%, var(--op-light), var(--op-deeper)); }
+.opp-record { position: relative; width: min(70vw, 260px); aspect-ratio: 1; }
+.opp-record-disc { position: absolute; inset: 0; border-radius: 50%; background: repeating-radial-gradient(circle, #111 0 2px, #1c1c1c 2px 4px); display: grid; place-items: center; animation: opp-spin 3.6s linear infinite; box-shadow: 0 20px 40px -14px rgb(0 0 0 / 0.7); }
+.opp-record-label { display: grid; place-items: center; width: 36%; aspect-ratio: 1; border-radius: 50%; background: var(--op-gold); color: var(--op-deeper); font: 700 1.2rem var(--inv-display); }
+.opp-needle { position: absolute; right: -6%; top: -4%; width: 10px; height: 58%; background: linear-gradient(#ddd, #888); border-radius: 6px; transform-origin: top center; transform: rotate(28deg); transition: transform 0.6s ease; }
+.opp-track { display: flex; flex-direction: column; color: #fff; }
+.opp-track b { font: 1.6rem var(--op-script, var(--inv-script)); }
+.opp-track span { font-size: 0.8rem; letter-spacing: 0.25em; text-transform: uppercase; opacity: 0.75; }
+.opp-k-vinyl .opp-hint { color: #fff; }
+.inv-opening[data-state='opening'] .opp-needle { transform: rotate(8deg); }
+.inv-opening[data-state='opening'] .opp-record-disc { animation-duration: 0.6s; }
+
+/* ---------- arcade ---------- */
+.opp-arcade-bg { background: #0a0820; background-image: linear-gradient(rgb(255 255 255 / 0.04) 1px, transparent 1px); background-size: 100% 4px; }
+.opp-arcade { color: #fff; text-align: center; font-family: 'Press Start 2P', ui-monospace, monospace; }
+.opp-arcade-k { font-size: 0.62rem; color: #7cf9ff; letter-spacing: 0.1em; }
+.opp-arcade-title { margin-top: 18px; font-size: clamp(1.1rem, 6vw, 1.6rem); line-height: 1.4; color: #ffd84a; text-shadow: 3px 3px 0 #e8336d; }
+.opp-arcade-start { margin-top: 28px; font-size: 0.78rem; animation: opp-blink 0.9s steps(2) infinite; }
+.opp-arcade-coin { margin-top: 18px; font-size: 0.55rem; opacity: 0.6; }
+.opp-pixels { position: absolute; inset: 0; background: conic-gradient(from 90deg at 50% 50%, #ffd84a 25%, #e8336d 0 50%, #7cf9ff 0 75%, #0a0820 0) 0 0 / 40px 40px; opacity: 0; transform: scale(0); }
+.inv-opening[data-state='opening'] .opp-pixels { opacity: 1; transform: scale(1.6); transition: transform 0.9s steps(6), opacity 0.2s; }
+@keyframes opp-blink { 50% { opacity: 0; } }
+
+/* ---------- menu card ---------- */
+.opp-cloth { background: repeating-linear-gradient(45deg, var(--op-deep) 0 14px, var(--op-deeper) 14px 28px); }
+.opp-menu { position: relative; width: min(78vw, 300px); aspect-ratio: 3 / 4.2; perspective: 1200px; }
+.opp-menu-inside { position: absolute; inset: 0; background: var(--op-paper); border-radius: 6px; }
+.opp-menu-cover { position: absolute; inset: 0; border-radius: 6px; background: var(--op-p); color: var(--op-gold-hi); border: 3px double var(--op-gold); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 18px; transform-origin: left center; transition: transform 1.1s cubic-bezier(0.6, 0, 0.3, 1); backface-visibility: hidden; }
+.opp-menu-k { font: 0.78rem var(--inv-display); letter-spacing: 0.5em; text-transform: uppercase; }
+.opp-menu-names { font: clamp(1.8rem, 9vw, 2.4rem)/1.05 var(--op-script, var(--inv-script)); text-align: center; }
+.opp-menu-date { font-size: 0.8rem; letter-spacing: 0.25em; }
+.opp-menu ~ .opp-exit { color: #fff; }
+.inv-opening[data-state='opening'] .opp-menu-cover { transform: rotateY(-165deg); }
+.inv-opening[data-state='opening'] .opp-menu { transform: scale(1.6); opacity: 0; transition: transform 0.8s ease 0.9s, opacity 0.5s ease 1.1s; }
+
+/* ---------- calendar ---------- */
+.opp-wall { background: linear-gradient(180deg, var(--op-ground), var(--op-paper)); }
+.opp-cal { position: relative; width: min(74vw, 280px); aspect-ratio: 1; }
+.opp-cal-rings { position: absolute; top: -10px; left: 15%; right: 15%; height: 22px; z-index: 5; background: radial-gradient(circle, #555 0 5px, transparent 6px) 0 0 / 25% 100% repeat-x; }
+.opp-cal-page { position: absolute; inset: 0; border-radius: 10px; background: #fff; color: var(--op-p); display: grid; place-items: center; font: 700 7rem var(--inv-display); box-shadow: 0 16px 30px -14px rgb(0 0 0 / 0.45); border-top: 26px solid var(--op-p); transform-origin: top center; }
+.opp-cal-day { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; padding: 12px; text-align: center; }
+.opp-cal-day b { font: 700 1.5rem var(--inv-display); letter-spacing: 0.1em; }
+.opp-cal-day span { font: 1.6rem/1.1 var(--op-script, var(--inv-script)); color: var(--op-ink); }
+.opp-cal ~ .opp-exit { color: var(--op-ink); }
+.inv-opening[data-state='opening'] .opp-cal-flip { animation: opp-flip 0.5s cubic-bezier(0.6, 0, 0.4, 1) both; }
+.inv-opening[data-state='opening'] .opp-cal { transform: scale(1.5); opacity: 0; transition: transform 0.7s ease 1.4s, opacity 0.5s ease 1.6s; }
+@keyframes opp-flip { to { transform: rotateX(-110deg) translateY(-30px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .opp *, .opp *::before { animation: none !important; transition: none !important; }
+}

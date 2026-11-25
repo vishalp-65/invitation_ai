@@ -90,6 +90,118 @@ export function LayoutPoster({ design, names = ['Abhishek', 'Kanika'] }: { desig
       </div>
     );
 
+  if (design.layout === 'boarding')
+    return (
+      <div className="absolute inset-0 flex flex-col items-center overflow-hidden" style={{ ...box, background: 'linear-gradient(180deg, #6fb2e6, #b9dcf6 60%, #EEF3F9)', fontFamily: body, color: '#18223A' }}>
+        <span className="mt-[7cqi] text-[3.4cqi] font-semibold uppercase tracking-[0.3em] text-white">✈ Celebration Airways</span>
+        <span className="mt-[4cqi] block h-[46cqi] w-[38cqi] rounded-[46%/36%] border-[3cqi] border-[#f4f6fa]" style={{ background: photo }} />
+        <span className="mt-[6cqi] w-[84%] overflow-hidden rounded-[3cqi] bg-white">
+          <span className="block px-[4cqi] py-[2cqi] text-[3cqi] font-bold uppercase tracking-widest text-white" style={{ background: design.palette.primary }}>Boarding pass</span>
+          <span className="flex items-center justify-between px-[4cqi] pt-[3cqi] text-[9cqi] font-bold leading-none">
+            HOM <span className="text-[5cqi]" style={{ color: design.palette.primary }}>✈</span> WED
+          </span>
+          <span className="block px-[4cqi] pb-[3cqi] pt-[2cqi] text-center text-[7cqi]" style={{ fontFamily: script, color: design.palette.primary }}>
+            {names[0]} &amp; {names[1]}
+          </span>
+          <span className="block h-[7cqi] border-t-[0.6cqi] border-dashed border-black/15 bg-[repeating-linear-gradient(90deg,#000_0_0.6cqi,transparent_0.6cqi_1.4cqi)] bg-[length:60%_60%] bg-center bg-no-repeat" />
+        </span>
+      </div>
+    );
+
+  if (design.layout === 'newspaper')
+    return (
+      <div className="absolute inset-0 overflow-hidden px-[5cqi] pt-[5cqi]" style={{ ...box, background: '#F1ECE1', fontFamily: body, color: '#1B1B1B' }}>
+        <span className="block text-center text-[9.5cqi] font-black leading-none" style={{ fontFamily: serif }}>The Celebration Times</span>
+        <span className="mt-[2cqi] block border-y-[0.5cqi] border-current py-[1cqi] text-center text-[2.6cqi] uppercase tracking-widest">Special edition · Price: your presence</span>
+        <span className="mt-[4cqi] block text-center text-[9cqi] font-bold uppercase leading-[0.95]" style={{ fontFamily: serif }}>
+          {names[0]} &amp; {names[1]}: wedding announced!
+        </span>
+        <span className="mt-[4cqi] block aspect-[16/10] w-full grayscale" style={{ background: photo }} />
+        <span className="mt-[3cqi] grid grid-cols-2 gap-[3cqi]">
+          {[0, 1].map((i) => (
+            <span key={i} className="block h-[30cqi] bg-[repeating-linear-gradient(#1b1b1b33_0_0.5cqi,transparent_0.5cqi_2cqi)]" />
+          ))}
+        </span>
+      </div>
+    );
+
+  if (design.layout === 'playlist')
+    return (
+      <div className="absolute inset-0 flex flex-col overflow-hidden px-[7cqi] pt-[8cqi] text-white" style={{ ...box, background: 'linear-gradient(180deg, #7a2a46, #121212 65%)', fontFamily: body }}>
+        <span className="text-[3cqi] uppercase tracking-[0.2em] opacity-80">Now playing</span>
+        <span className="mt-[5cqi] block aspect-square w-full rounded-[2cqi]" style={{ background: photo }} />
+        <span className="mt-[5cqi] text-[6.5cqi] font-bold leading-tight">Our celebration mix</span>
+        <span className="text-[4cqi] opacity-75">
+          {names[0]} &amp; {names[1]}
+        </span>
+        <span className="mt-[4cqi] block h-[0.8cqi] rounded-full bg-white/25">
+          <span className="block h-full w-[62%] rounded-full bg-white" />
+        </span>
+        <span className="mt-[4cqi] flex items-center justify-between text-[6cqi]">
+          ⇄ ⏮ <span className="grid size-[14cqi] place-items-center rounded-full bg-white text-[6cqi] text-black">▶</span> ⏭ ☰
+        </span>
+      </div>
+    );
+
+  if (design.layout === 'arcade')
+    return (
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-[5cqi] overflow-hidden text-center" style={{ ...box, background: '#0A0820', color: '#F2F2FF', fontFamily: '"Press Start 2P", monospace', backgroundImage: 'radial-gradient(#fff 1px, transparent 1.5px)', backgroundSize: '10cqi 10cqi' }}>
+        <span className="flex gap-[6cqi]">
+          {[0, 1].map((i) => (
+            <span key={i} className="block size-[22cqi]" style={{ background: photo, boxShadow: '0 0 0 1cqi #FFD84A, 0 0 0 2cqi #E8336D' }} />
+          ))}
+        </span>
+        <span className="px-[6cqi] text-[5.4cqi] leading-[1.5] text-[#FFD84A]" style={{ textShadow: '1cqi 1cqi 0 #E8336D' }}>
+          {names[0]} &amp; {names[1]}
+        </span>
+        <span className="text-[3.4cqi]">▶ PRESS START</span>
+        <span className="text-[2.6cqi] text-[#7CF9FF]">HI-SCORE 00040 ♥♥♥</span>
+      </div>
+    );
+
+  if (design.layout === 'menu')
+    return (
+      <div className="absolute inset-0 overflow-hidden p-[6cqi]" style={{ ...box, background: '#5E1A2B' }}>
+        <div className="flex size-full flex-col items-center px-[5cqi] pt-[6cqi] text-center" style={{ background: '#F7F1E6', color: '#2B1D16', border: '1cqi double #C9A45C', fontFamily: body }}>
+          <span className="text-[3cqi] uppercase tracking-[0.5em]" style={{ color: design.palette.primary }}>Menu</span>
+          <span className="mt-[2cqi] text-[10cqi] leading-tight" style={{ fontFamily: script, color: design.palette.primary }}>
+            {names[0]} &amp; {names[1]}
+          </span>
+          <span className="mt-[3cqi] block h-[26cqi] w-[22cqi] rounded-[50%]" style={{ background: photo, border: '0.8cqi double #C9A45C' }} />
+          {['Mehendi', 'Sangeet', 'Wedding'].map((c, i) => (
+            <span key={c} className="mt-[3cqi] block">
+              <span className="block text-[2.6cqi] uppercase tracking-[0.3em] opacity-60">Course {['I', 'II', 'III'][i]}</span>
+              <span className="block text-[6cqi] leading-none" style={{ fontFamily: script, color: design.palette.primary }}>
+                {c}
+              </span>
+            </span>
+          ))}
+        </div>
+      </div>
+    );
+
+  if (design.layout === 'calendar')
+    return (
+      <div className="absolute inset-0 flex flex-col items-center overflow-hidden px-[7cqi] pt-[8cqi]" style={{ ...box, background: '#FBF7F0', fontFamily: body, color: '#2A2A2A' }}>
+        <span className="w-full overflow-hidden rounded-[3cqi] bg-white shadow-md">
+          <span className="block aspect-[4/3]" style={{ background: photo }} />
+          <span className="block px-[4cqi] py-[2cqi] text-[6cqi] text-white" style={{ background: design.palette.primary, fontFamily: serif }}>
+            December 2026
+          </span>
+          <span className="grid grid-cols-7 gap-[1cqi] p-[3cqi] text-center text-[3.4cqi]">
+            {Array.from({ length: 21 }, (_, i) => (
+              <span key={i} className={i === 13 ? 'rounded-full font-bold' : ''} style={i === 13 ? { boxShadow: `0 0 0 0.6cqi ${design.palette.primary}`, color: design.palette.primary } : undefined}>
+                {i + 1}
+              </span>
+            ))}
+          </span>
+        </span>
+        <span className="-mt-[3cqi] w-[72%] rotate-[-3deg] bg-[#FFE680] p-[3cqi] text-[6cqi] leading-tight" style={{ fontFamily: script }}>
+          Mark your calendar ♡
+        </span>
+      </div>
+    );
+
   // Scrapbook: magazine cover over kraft paper.
   return (
     <div className="absolute inset-0 overflow-hidden" style={{ ...box, background: '#EFE3CF', fontFamily: body, color: '#2B2622' }}>

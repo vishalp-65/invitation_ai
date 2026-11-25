@@ -679,14 +679,18 @@
       "wedding": "લગ્ન અને પ્રસંગો",
       "kids": "જન્મદિવસ અને બાળક",
       "religious": "ઘર અને ધાર્મિક",
-      "business": "વ્યવસાય"
+      "business": "વ્યવસાય",
+      "festival": "તહેવાર",
+      "travel": "પ્રવાસ અને રજાઓ"
     },
     "cat": {
       "wedding": "લગ્ન",
       "family": "બાળક અને પરિવાર",
       "religious": "પૂજા અને સંસ્કાર",
       "celebration": "ઉજવણી",
-      "business": "વ્યવસાય"
+      "business": "વ્યવસાય",
+      "festival": "તહેવાર",
+      "trip": "પ્રવાસ અને રજાઓ"
     },
     "occ": {
       "wedding": "શુભ લગ્ન",
@@ -709,7 +713,41 @@
       "retirement": "નિવૃત્તિ",
       "shop-opening": "દુકાન / ઑફિસ ઉદ્ઘાટન",
       "corporate": "કૉર્પોરેટ કાર્યક્રમ",
-      "other": "અન્ય"
+      "other": "અન્ય",
+      "haldi": "પીઠી",
+      "mehendi": "મહેંદી",
+      "sangeet": "સંગીત",
+      "ring-ceremony": "સગાઈ વિધિ",
+      "tilak": "તિલક",
+      "roka": "રોકા",
+      "cocktail": "કોકટેલ પાર્ટી",
+      "bachelorette": "બેચલર પાર્ટી",
+      "first-birthday": "પહેલો જન્મદિવસ",
+      "milestone-birthday": "ષષ્ટિપૂર્તિ / ખાસ જન્મદિવસ",
+      "kitty-party": "કિટી પાર્ટી",
+      "graduation": "પદવીદાન",
+      "farewell": "વિદાય",
+      "reunion": "સ્નેહમિલન",
+      "satyanarayan-katha": "સત્યનારાયણ કથા",
+      "diwali": "દિવાળી",
+      "holi": "હોળી",
+      "christmas": "ક્રિસમસ",
+      "new-year": "નવું વર્ષ",
+      "raksha-bandhan": "રક્ષાબંધન",
+      "bhai-dooj": "ભાઈબીજ",
+      "eid": "ઈદ",
+      "navratri": "નવરાત્રી / ગરબા",
+      "ganesh-chaturthi": "ગણેશ ચતુર્થી",
+      "lohri": "લોહરી",
+      "sankranti": "ઉત્તરાયણ",
+      "onam": "ઓણમ",
+      "durga-puja": "દુર્ગા પૂજા",
+      "karva-chauth": "કરવા ચોથ",
+      "janmashtami": "જન્માષ્ટમી",
+      "gurpurab": "ગુરુપર્વ",
+      "group-trip": "ગ્રુપ ટ્રિપ",
+      "family-trip": "ફેમિલી ટ્રિપ",
+      "holiday-greeting": "રજાઓની શુભકામના"
     },
     "community": {
       "hindu-north": "હિંદુ (ઉત્તર)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} માટે સૂચવેલું",
     "vsUseCard": "મેળ ખાતું કાર્ડ પણ લો",
     "vsChange": "બદલો",
-    "vsBody": "તમારો વીડિયો અને આમંત્રણ વેબસાઇટ આ ડિઝાઇનમાં બનશે. તમારું કાર્ડ જેમ છે તેમ રહેશે."
+    "vsBody": "તમારો વીડિયો અને આમંત્રણ વેબસાઇટ આ ડિઝાઇનમાં બનશે. તમારું કાર્ડ જેમ છે તેમ રહેશે.",
+    "vsWebsiteOnly": "ફક્ત વેબસાઇટ · તમારો વીડિયો {video} માં બનશે",
+    "editDetails": "વિગતો બદલો",
+    "newEvent": "નવો પ્રસંગ",
+    "exit": "બંધ કરો",
+    "changeDesign": "ડિઝાઇન બદલો",
+    "changeGone": "તે આમંત્રણ કાઢી નાખવામાં આવ્યું હતું. નવું બનાવવા ફરી ટેપ કરો.",
+    "targetLabel": "શેના પર લાગુ કરવું",
+    "targetChange": "“{title}” અપડેટ કરો",
+    "targetNew": "નવું આમંત્રણ",
+    "useThis": "આ પસંદ કરો",
+    "venueLater": "સ્થળ હજી નક્કી નથી",
+    "venueLaterPh": "પછી ઉમેરો",
+    "grp": {
+      "weddings": "લગ્ન",
+      "wedding-functions": "લગ્નની વિધિઓ",
+      "celebrations": "ઉજવણી",
+      "baby-family": "બાળક અને પરિવાર",
+      "religious": "પૂજા અને ધાર્મિક",
+      "festivals": "તહેવાર",
+      "trips": "પ્રવાસ અને રજાઓ",
+      "business": "વ્યવસાય"
+    },
+    "gMode": "તમે શું બનાવી રહ્યા છો?",
+    "gGreeting": "શુભકામના કાર્ડ",
+    "gGreetingHint": "WhatsApp પર મોકલવા શુભકામના. સ્થળ કે RSVP નહીં.",
+    "gParty": "પાર્ટી આમંત્રણ",
+    "gPartyHint": "લોકોને બોલાવો: તારીખ, સ્થળ, નકશો અને RSVP.",
+    "gFrom": "કોના તરફથી (પરિવાર કે વ્યવસાય)"
   },
   "picker": {
     "chooseDate": "તારીખ પસંદ કરો",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ફોટોને ડિઝાઇનના બે મુખ્ય રંગોમાં રંગે છે",
     "Strength": "તીવ્રતા",
     "Show on": "અહીં બતાવો",
-    "Card image": "કાર્ડ ઇમેજ"
+    "Card image": "કાર્ડ ઇમેજ",
+    "Interactive": "ઇન્ટરેક્ટિવ",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "એક અનોખી આમંત્રણ વેબસાઇટ, WhatsApp પર શેર કરવા માટે બનેલી",
+    "RSVP, map and countdown built in": "RSVP, નકશો અને કાઉન્ટડાઉન સાથે",
+    "Website-only design: your card and video keep their own designs": "ફક્ત વેબસાઇટ ડિઝાઇન: તમારું કાર્ડ અને વીડિયો પોતાની ડિઝાઇનમાં રહેશે"
   }
 }

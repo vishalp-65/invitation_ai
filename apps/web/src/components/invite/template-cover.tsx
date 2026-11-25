@@ -38,16 +38,22 @@ export function TemplateCover({ id, name, coverPage, className, sizes = '160px',
     );
   }
   if (broken) return <div className={clsx('grid aspect-[9/16] w-full place-items-center bg-mist p-2 text-center text-xs text-ink-soft', className)}>{name}</div>;
+  // While the picture loads, a shimmer with the design's name (not an empty dark box).
   return (
-    <Image
-      src={`/showcase/${id}.jpg`}
-      alt={`${name} invitation design`}
-      width={432}
-      height={768}
-      sizes={sizes}
-      priority={priority}
-      onError={() => setBroken(true)}
-      className={clsx('skeleton aspect-[9/16] w-full object-cover', className)}
-    />
+    <div className="skeleton relative aspect-[9/16] w-full overflow-hidden !rounded-none">
+      <span className="absolute inset-0 grid place-items-center p-2 text-center text-xs text-ink-soft/70" aria-hidden>
+        {name}
+      </span>
+      <Image
+        src={`/showcase/${id}.jpg`}
+        alt={`${name} invitation design`}
+        width={432}
+        height={768}
+        sizes={sizes}
+        priority={priority}
+        onError={() => setBroken(true)}
+        className={clsx('relative aspect-[9/16] w-full object-cover', className)}
+      />
+    </div>
   );
 }

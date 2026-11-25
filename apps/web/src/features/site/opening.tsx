@@ -6,9 +6,13 @@ import { SceneLayer } from './lazy-art';
 import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { mix, rgba } from './theme';
 import './openings.css';
+import { PlayfulOpening } from './opening-playful';
 
 /** How long each scene plays after the tap before the page takes over (ms). */
-const DURATION: Record<SiteOpening, number> = { none: 0, envelope: 2500, doors: 2500, curtain: 2300, scroll: 2900, petals: 2100, seal: 2600, lanterns: 2600 };
+const DURATION: Record<SiteOpening, number> = {
+  none: 0, envelope: 2500, doors: 2500, curtain: 2300, scroll: 2900, petals: 2100, seal: 2600, lanterns: 2600,
+  notification: 1500, story: 1600, boarding: 2200, newspaper: 2000, vinyl: 2300, arcade: 1900, menu: 2100, calendar: 2400,
+};
 
 /**
  * Tap-to-open scene in front of the page. The tap is also the user gesture that lets music
@@ -369,7 +373,8 @@ export function Opening({
       break;
     }
     default:
-      scene = null;
+      // Playful openings (phone message, boarding pass, newspaper, vinyl, arcade, menu, calendar).
+      scene = <PlayfulOpening kind={kind} open={open} label={label} names={names} connector={connector} title={title} date={date ?? null} greeting={greeting} monogram={monogram} />;
   }
 
   return (

@@ -679,14 +679,18 @@
       "wedding": "लग्न व कार्यक्रम",
       "kids": "वाढदिवस व बाळ",
       "religious": "गृह व धार्मिक",
-      "business": "व्यवसाय"
+      "business": "व्यवसाय",
+      "festival": "सण",
+      "travel": "सहल व सुट्ट्या"
     },
     "cat": {
       "wedding": "लग्न",
       "family": "बाळ व कुटुंब",
       "religious": "पूजा व संस्कार",
       "celebration": "उत्सव",
-      "business": "व्यवसाय"
+      "business": "व्यवसाय",
+      "festival": "सण",
+      "trip": "सहल व सुट्ट्या"
     },
     "occ": {
       "wedding": "शुभविवाह",
@@ -709,7 +713,41 @@
       "retirement": "सेवानिवृत्ती",
       "shop-opening": "दुकान / कार्यालय उद्घाटन",
       "corporate": "कॉर्पोरेट कार्यक्रम",
-      "other": "इतर"
+      "other": "इतर",
+      "haldi": "हळद",
+      "mehendi": "मेहंदी",
+      "sangeet": "संगीत",
+      "ring-ceremony": "साखरपुडा",
+      "tilak": "टिळा",
+      "roka": "रोका",
+      "cocktail": "कॉकटेल पार्टी",
+      "bachelorette": "बॅचलर पार्टी",
+      "first-birthday": "पहिला वाढदिवस",
+      "milestone-birthday": "एकसष्टी / खास वाढदिवस",
+      "kitty-party": "किटी पार्टी",
+      "graduation": "पदवीदान",
+      "farewell": "निरोप",
+      "reunion": "स्नेहमेळावा",
+      "satyanarayan-katha": "सत्यनारायण पूजा",
+      "diwali": "दिवाळी",
+      "holi": "होळी",
+      "christmas": "नाताळ",
+      "new-year": "नववर्ष",
+      "raksha-bandhan": "रक्षाबंधन",
+      "bhai-dooj": "भाऊबीज",
+      "eid": "ईद",
+      "navratri": "नवरात्री / गरबा",
+      "ganesh-chaturthi": "गणेश चतुर्थी",
+      "lohri": "लोहडी",
+      "sankranti": "मकर संक्रांत",
+      "onam": "ओणम",
+      "durga-puja": "दुर्गा पूजा",
+      "karva-chauth": "करवा चौथ",
+      "janmashtami": "गोकुळाष्टमी",
+      "gurpurab": "गुरुपर्व",
+      "group-trip": "ग्रुप सहल",
+      "family-trip": "कुटुंब सहल",
+      "holiday-greeting": "सुट्टीच्या शुभेच्छा"
     },
     "community": {
       "hindu-north": "हिंदू (उत्तर)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} साठी सुचवलेले",
     "vsUseCard": "जुळणारे कार्डही घ्या",
     "vsChange": "बदला",
-    "vsBody": "तुमचा व्हिडिओ आणि निमंत्रण वेबसाइट या डिझाइनमध्ये बनतील. तुमचे कार्ड आहे तसेच राहील."
+    "vsBody": "तुमचा व्हिडिओ आणि निमंत्रण वेबसाइट या डिझाइनमध्ये बनतील. तुमचे कार्ड आहे तसेच राहील.",
+    "vsWebsiteOnly": "फक्त वेबसाइट · तुमचा व्हिडिओ {video} मध्ये बनेल",
+    "editDetails": "तपशील बदला",
+    "newEvent": "नवीन कार्यक्रम",
+    "exit": "बंद करा",
+    "changeDesign": "डिझाइन बदला",
+    "changeGone": "ते आमंत्रण हटवले गेले. नवीन बनवण्यासाठी पुन्हा टॅप करा.",
+    "targetLabel": "कशावर लागू करायचे",
+    "targetChange": "“{title}” अपडेट करा",
+    "targetNew": "नवीन आमंत्रण",
+    "useThis": "हे वापरा",
+    "venueLater": "ठिकाण अजून ठरले नाही",
+    "venueLaterPh": "नंतर जोडा",
+    "grp": {
+      "weddings": "लग्न",
+      "wedding-functions": "लग्नाचे विधी",
+      "celebrations": "उत्सव",
+      "baby-family": "बाळ आणि कुटुंब",
+      "religious": "पूजा व धार्मिक",
+      "festivals": "सण",
+      "trips": "सहल व सुट्ट्या",
+      "business": "व्यवसाय"
+    },
+    "gMode": "तुम्ही काय बनवत आहात?",
+    "gGreeting": "शुभेच्छा कार्ड",
+    "gGreetingHint": "WhatsApp वर पाठवण्यासाठी शुभेच्छा. ठिकाण किंवा RSVP नाही.",
+    "gParty": "पार्टी निमंत्रण",
+    "gPartyHint": "लोकांना बोलवा: तारीख, ठिकाण, नकाशा आणि RSVP.",
+    "gFrom": "कोणाकडून (कुटुंब किंवा व्यवसाय)"
   },
   "picker": {
     "chooseDate": "तारीख निवडा",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "फोटोला डिझाइनच्या दोन मुख्य रंगांत रंगवते",
     "Strength": "तीव्रता",
     "Show on": "इथे दाखवा",
-    "Card image": "कार्ड इमेज"
+    "Card image": "कार्ड इमेज",
+    "Interactive": "इंटरॅक्टिव्ह",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "एक वेगळी निमंत्रण वेबसाइट, WhatsApp वर शेअर करण्यासाठी बनवलेली",
+    "RSVP, map and countdown built in": "RSVP, नकाशा आणि काउंटडाउन सोबत",
+    "Website-only design: your card and video keep their own designs": "फक्त वेबसाइटचे डिझाइन: तुमचे कार्ड आणि व्हिडिओ आपापल्या डिझाइनमध्ये राहतील"
   }
 }

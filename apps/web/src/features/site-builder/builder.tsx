@@ -51,6 +51,7 @@ import { AiPanel, LivePanel, LookPanel, SharePanel } from './panels';
 import { PublishCard } from './publish-card';
 import { EventPhotos } from '@/features/event/event-photos';
 import { PhotoBgForEvent } from '@/features/event/photo-bg-settings';
+import { LayoutPanel } from './layout-panel';
 import { QrSettingsCard } from '@/features/event/qr-settings';
 import type { PreviewMessage } from './protocol';
 import { SectionEditor, type EditorCtx } from './section-editor';
@@ -327,6 +328,8 @@ export function SiteBuilder({ eventId }: { eventId: string }) {
           <EventPhotos event={event} compact onChange={() => void preview.refetch()} onUpgrade={onUpgrade} />
           <PhotoBgForEvent event={event} onChange={() => void preview.refetch()} />
           <LookPanel part="design" doc={doc} tier={tier} setDoc={setDoc} palette={{ primary: palette.primary, accent: palette.accent, background: palette.background }} eventType={event.type} community={event.community} cardDesign={cardTemplate?.design} ctx={ctx} />
+          {/* Layout designs (chat, boarding pass…): their own words, photos, colours and fonts. */}
+          <LayoutPanel doc={doc} setDoc={setDoc} ctx={ctx} language={event.language} photoUrls={previewData?.media.photos ?? []} />
           <Button onClick={() => setTab('content')} className="self-end">
             Next: content
           </Button>

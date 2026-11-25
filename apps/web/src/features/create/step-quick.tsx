@@ -16,6 +16,7 @@ import { defaultWording } from './default-wording';
 import { DraftPreview } from './draft-preview';
 import { emptyFunction, useDraft } from './draft-store';
 import { MapLinkField } from './map-link-field';
+import { findTemplate } from '@/lib/template-hooks';
 
 export { detailsProblem } from './validate';
 import { CheckBadge, FLAGGED, FunctionList, resolveScanField, ScanReview } from './scan/scan-review';
@@ -33,12 +34,13 @@ const TRADITION_CATEGORIES = new Set(['wedding', 'religious', 'family']);
  * Details, in short cards beside a live preview. Only names, date and venue are required;
  * everything else is edited on the card later. The design is picked after this, with these details on it.
  */
-export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRescan: () => void }) {
+export function StepQuick({ heading, showErrors, onRescan, footer }: { heading?: ReactNode; showErrors: boolean; onRescan: () => void; footer?: ReactNode }) {
   const d = useDraft();
   const t = useTranslations('create');
   const hi = useLocale() === 'hi';
   const ev = getEventType(d.type);
   const lang = getLanguage(d.language);
+  const template = findTemplate(d.templateId);
   const people = ev.primaryPeople;
   const fn = d.functions[0];
   const [converting, setConverting] = useState(false);
@@ -87,7 +89,7 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
     const s = useDraft.getState();
     // Default wording follows the names; hand-written or AI wording is kept.
     const content: EventContent = s.contentIsDefault
-      ? { ...defaultWording(s.type, s.language, names, s.hosts, s.community), primaryNames: names.filter(Boolean) }
+      ? { ...defaultWording(s.type, s.language, names, s.hosts, s.community, s.greeting), primaryNames: names.filter(Boolean) }
       : { ...s.content, primaryNames: names.filter(Boolean) };
     d.set({ names, content });
     resolveScanField('names');
@@ -133,7 +135,7 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
   }
 
   const namesDone = people === 0 || d.names.slice(0, people).every((n) => n.trim());
-  const whenDone = Boolean(fn?.date && fn.venueName.trim());
+  const whenDone = Boolean(fn?.date && (fn.venueLater || fn.venueName.trim()));
   const err = (missing: boolean) => (showErrors && missing ? t('required') : undefined);
   const nameLabel = (i: number) => (people === 2 ? (i === 0 ? t('firstName') : t('secondName')) : ev.category === 'family' || ev.id === 'birthday' ? t('whoseCelebration') : t('name'));
   const tradition = TRADITION_CATEGORIES.has(ev.category) && (
@@ -164,9 +166,10 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
 
   let n = 0;
   return (
-    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-14">
+    <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_380px] lg:gap-12">
       {dialog}
       <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
+        {heading}
         {scanned && <ScanReview hi={hi} onRescan={onRescan} />}
         {people > 0 && (
           <Section n={++n} done={namesDone} flag={check('names') || check('parentage')} icon={<Users className="size-4" />} title={people === 2 ? t('couple') : t('whoFor')} sub={t('asPrinted')}>
@@ -223,11 +226,21 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
                   {(id, desc) => <DatePicker id={id} aria-describedby={desc} aria-invalid={Boolean(err(!fn.date))} min={todayYmd()} value={fn.date} onChange={(v) => d.updateFunction(fn.key, { date: v })} />}
                 </Field>
                 <Field label={t('time')}>{(id) => <TimePicker id={id} value={fn.time} onChange={(v) => d.updateFunction(fn.key, { time: v })} />}</Field>
-                <Field label={t('venue')} error={err(!fn.venueName.trim())}>
+                <Field label={t('venue')} error={err(!fn.venueLater && !fn.venueName.trim())}>
                   {(id, desc) => (
                     <div className="relative">
                       <MapPin className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-ink-soft" aria-hidden />
-                      <Input id={id} aria-describedby={desc} aria-invalid={showErrors && !fn.venueName.trim()} className="pl-10" placeholder={t('venuePh')} value={fn.venueName} lang={d.language} onChange={(e) => d.updateFunction(fn.key, { venueName: e.target.value })} />
+                      <Input
+                        id={id}
+                        aria-describedby={desc}
+                        aria-invalid={showErrors && !fn.venueLater && !fn.venueName.trim()}
+                        className="pl-10"
+                        placeholder={fn.venueLater ? t('venueLaterPh') : t('venuePh')}
+                        value={fn.venueName}
+                        lang={d.language}
+                        // Typing a venue means it is decided after all.
+                        onChange={(e) => d.updateFunction(fn.key, { venueName: e.target.value, venueLater: false })}
+                      />
                     </div>
                   )}
                 </Field>
@@ -235,6 +248,11 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
                   {(id) => <Input id={id} value={fn.venueAddress} lang={d.language} placeholder={t('addressPh')} onChange={(e) => d.updateFunction(fn.key, { venueAddress: e.target.value })} />}
                 </Field>
                 <MapLinkField value={fn.mapUrl} onChange={(mapUrl) => d.updateFunction(fn.key, { mapUrl })} />
+                {/* Not booked yet: carry on without it (the card leaves the venue out; add it any time). */}
+                <label className="flex cursor-pointer items-center gap-2.5 self-start text-sm text-ink-soft sm:col-span-2">
+                  <input type="checkbox" className="size-4" checked={Boolean(fn.venueLater)} onChange={(e) => d.updateFunction(fn.key, { venueLater: e.target.checked, ...(e.target.checked ? { venueName: '', venueAddress: '', mapUrl: '' } : {}) })} />
+                  {t('venueLater')}
+                </label>
               </div>
               <FunctionChips names={suggestions} onAdd={addFunction} />
               {people === 0 && tradition && <div className="mt-4 sm:max-w-xs">{tradition}</div>}
@@ -253,7 +271,7 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
                   onChange={(e) => {
                     const s = useDraft.getState();
                     resolveScanField('hosts');
-                    d.set({ hosts: e.target.value, ...(s.contentIsDefault ? { content: { ...defaultWording(s.type, s.language, s.names, e.target.value, s.community), primaryNames: s.names.filter(Boolean) } } : {}) });
+                    d.set({ hosts: e.target.value, ...(s.contentIsDefault ? { content: { ...defaultWording(s.type, s.language, s.names, e.target.value, s.community, s.greeting), primaryNames: s.names.filter(Boolean) } } : {}) });
                   }}
                 />
               )}
@@ -284,21 +302,23 @@ export function StepQuick({ showErrors, onRescan }: { showErrors: boolean; onRes
             </span>
           </button>
         )}
+        {footer}
       </div>
 
-      {/* Live preview: sticky beside the form on desktop (phones get the thumbnail in the dock). */}
+      {/*
+        Live preview, sticky beside the form on desktop (phones get the thumbnail in the action bar).
+        Sized by the window height so the whole card is always in view, never cut by the edges.
+      */}
       <aside className="hidden lg:block">
-        <div className="sticky top-24 border border-ink/10 bg-ink/[0.02]">
-          <div className="border-b border-ink/10 px-5 py-4">
-            <p className="flex items-center gap-2 font-mono text-[0.6875rem] uppercase tracking-wider text-gold">
-              <span className="size-1.5 animate-pulse rounded-full bg-gold" aria-hidden />
-              {t('livePreview')}
-            </p>
-            <p className="mt-1 text-sm text-ink-soft">{t('livePreviewSub')}</p>
+        <div className="sticky top-[5.5rem]">
+          <div className="editor-stage rounded-[var(--radius-card)] border border-ink/10 p-5">
+            <DraftPreview className="mx-auto w-[min(100%,calc((100dvh-13rem)*0.5625))]" />
           </div>
-          <div className="editor-stage p-6">
-            <DraftPreview className="mx-auto max-w-[290px]" />
-          </div>
+          <p className="mt-3 flex items-center justify-center gap-2 text-sm text-ink-soft">
+            <span className="size-1.5 animate-pulse rounded-full bg-gold" aria-hidden />
+            {t('livePreview')}
+            {template && <span className="truncate text-ink">· {template.family?.name ?? template.name}</span>}
+          </p>
         </div>
       </aside>
     </div>

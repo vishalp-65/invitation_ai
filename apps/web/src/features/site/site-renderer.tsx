@@ -91,15 +91,22 @@ export function SiteRenderer({
     });
   }, [data.event.slug, guestToken, preview]);
 
+  // The host's own heading / handwriting fonts (layout builder), Latin script only.
+  const ownDisplay = latin ? doc.custom?.fonts?.display : undefined;
+  const ownScript = latin ? doc.custom?.fonts?.script : undefined;
   const fontsHref = useMemo(() => {
     const families: string[] =
       design && latin
         ? [design.fonts.script, design.fonts.serif, design.fonts.body]
         : [lang.fonts.display, lang.fonts.body, getLanguage(data.event.language).fonts.display];
-    return googleFontsHref(families);
-  }, [lang, data.event.language, design, latin]);
+    return googleFontsHref([...families, ...(ownDisplay ? [ownDisplay] : []), ...(ownScript ? [ownScript] : [])]);
+  }, [lang, data.event.language, design, latin, ownDisplay, ownScript]);
 
-  const vars = siteVars(data.template.theme, doc.look, lang.fonts, design, latin);
+  const vars = {
+    ...siteVars(data.template.theme, doc.look, lang.fonts, design, latin),
+    ...(ownDisplay ? { '--inv-display': `"${ownDisplay}", serif` } : {}),
+    ...(ownScript ? { '--inv-script': `"${ownScript}", cursive` } : {}),
+  } as React.CSSProperties;
   const ctxData = useMemo(() => ({ ...data, site: doc }), [data, doc]);
   const has = (t: SiteDoc['sections'][number]['type']) => doc.sections.some((s) => s.type === t && !s.hidden);
   const greeting = data.guest ? data.guest.salutation || data.guest.name : null;
@@ -117,6 +124,22 @@ export function SiteRenderer({
         if (e instanceof DOMException && e.name === 'NotSupportedError') setMusicBroken(true);
       });
   }
+
+  // Layouts with their own play button (Our Playlist) drive the page's music.
+  useEffect(() => {
+    const toggle = () => {
+      if (!audio.current) return;
+      if (playing) {
+        audio.current.pause();
+        setPlaying(false);
+      } else playMusic();
+    };
+    window.addEventListener('inv:music-toggle', toggle);
+    return () => window.removeEventListener('inv:music-toggle', toggle);
+  });
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('inv:music-state', { detail: playing }));
+  }, [playing]);
 
   async function share() {
     const url = data.shortUrl;
@@ -192,7 +215,7 @@ export function SiteRenderer({
               const index = band++;
               const b = design.bands[index % design.bands.length]!;
               return (
-                <div key={s.id} id={anchor} data-section={s.id} className="inv-band relative" style={bandVars(b)}>
+                <div key={s.id} id={anchor} data-section={s.id} data-skin={layout} className="inv-band relative" style={bandVars(doc.look.primary ? { ...b, primary: doc.look.primary } : b)}>
                   <div className="pointer-events-none absolute inset-x-0 top-0 z-[1] -translate-y-[calc(100%-1px)]">
                     <Divider kind={design.divider} color={b.bg} accent={b.primary} />
                   </div>

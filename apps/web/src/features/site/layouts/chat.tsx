@@ -3,7 +3,7 @@
 import type { SiteDoc } from '@cardai/shared';
 import { ArrowLeft, CheckCheck, MapPin, MoreVertical, Phone, Video } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
-import { Avatar, initialsOf, mapHref, useLayoutData, useSeen } from './common';
+import { Avatar, initialsOf, KitImg, mapHref, useKit, useLayoutData, useSeen, type KitPhotoValue } from './common';
 
 /**
  * Chat Story: the invitation as a messaging thread. Messages from the hosts type themselves in
@@ -13,7 +13,7 @@ import { Avatar, initialsOf, mapHref, useLayoutData, useSeen } from './common';
 
 type Msg =
   | { side: 'in' | 'out'; kind: 'text'; text: ReactNode }
-  | { side: 'in'; kind: 'photo'; src: string; caption?: string }
+  | { side: 'in'; kind: 'photo'; photo: KitPhotoValue; caption?: string }
   | { side: 'in'; kind: 'event'; index: number }
   | { side: 'in'; kind: 'rsvp' }
   | { kind: 'chip'; text: string };
@@ -59,7 +59,10 @@ function Bubble({ msg, i, children }: { msg: Exclude<Msg, { kind: 'chip' }>; i: 
 
 export function ChatLayout({ doc }: { doc: SiteDoc }) {
   const L = useLayoutData(doc);
-  const { content: c, t, fmt, fns, names, photos, greeting } = L;
+  const { content: c, t, fmt, fns, names, greeting } = L;
+  const k = useKit(doc, 'chat');
+  const first = k.photo('first');
+  const second = k.photo('second');
   const [status, setStatus] = useState<'online' | 'typing'>('typing');
   useEffect(() => {
     const id = setTimeout(() => setStatus('online'), 2600);
@@ -69,15 +72,15 @@ export function ChatLayout({ doc }: { doc: SiteDoc }) {
 
   const msgs: Msg[] = [
     { kind: 'chip', text: t('Today', 'आज') },
-    { side: 'in', kind: 'text', text: greeting ? `${t('Hi', 'नमस्ते')} ${greeting}! 👋` : t('Hi! 👋 We have some news…', 'नमस्ते! 👋 एक ख़ुशख़बरी है…') },
+    { side: 'in', kind: 'text', text: greeting ? `${t('Hi', 'नमस्ते')} ${greeting}! 👋` : k.text('chat.greet') },
     ...(c.invocation ? [{ side: 'in', kind: 'text', text: c.invocation } as Msg] : []),
     { side: 'in', kind: 'text', text: c.hostLine || c.headline || L.title },
-    ...(photos[0] ? [{ side: 'in', kind: 'photo', src: photos[0], caption: L.title } as Msg] : []),
-    { side: 'out', kind: 'text', text: t('Omg!! 😍 When and where?', 'वाह!! 😍 कब और कहाँ?') },
+    ...(first.src ? [{ side: 'in', kind: 'photo', photo: first, caption: L.title } as Msg] : []),
+    { side: 'out', kind: 'text', text: k.text('chat.ask') },
     ...fns.slice(0, 6).map((_, index) => ({ side: 'in', kind: 'event', index }) as Msg),
     ...(hasDress
       ? [
-          { side: 'out', kind: 'text', text: t('What should I wear? 👗', 'क्या पहनूँ? 👗') } as Msg,
+          { side: 'out', kind: 'text', text: k.text('chat.dress') } as Msg,
           {
             side: 'in',
             kind: 'text',
@@ -95,7 +98,7 @@ export function ChatLayout({ doc }: { doc: SiteDoc }) {
           } as Msg,
         ]
       : []),
-    ...(photos[1] ? [{ side: 'in', kind: 'photo', src: photos[1] } as Msg] : []),
+    ...(second.src && second.src !== first.src ? [{ side: 'in', kind: 'photo', photo: second } as Msg] : []),
     ...(c.message ? [{ side: 'in', kind: 'text', text: c.message } as Msg] : []),
     { side: 'in', kind: 'rsvp' },
     ...(c.familyLines.length ? [{ side: 'in', kind: 'text', text: <span className="whitespace-pre-line">{`${c.familyTitle ? `${c.familyTitle}\n` : ''}${c.familyLines.join('\n')}`}</span> } as Msg] : []),
@@ -107,10 +110,10 @@ export function ChatLayout({ doc }: { doc: SiteDoc }) {
       {/* Header bar */}
       <header className="sticky top-0 z-20 flex items-center gap-3 bg-[var(--inv-primary)] px-3 py-2.5 text-white">
         <ArrowLeft className="size-5 opacity-90" aria-hidden />
-        <Avatar src={photos[0]} name={names[0] ?? L.title} size={40} />
+        <Avatar src={k.photo('avatar').src} name={names[0] ?? L.title} size={40} />
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-[1.05rem] font-semibold leading-tight">{L.title}</h1>
-          <p className="truncate text-xs opacity-85">{status === 'typing' ? t('typing…', 'टाइप कर रहे हैं…') : `${L.occasion} · ${t('online', 'ऑनलाइन')}`}</p>
+          <p className="truncate text-xs opacity-85">{status === 'typing' ? t('typing…', 'टाइप कर रहे हैं…') : `${L.occasion} · ${k.text('chat.status')}`}</p>
         </div>
         <Video className="size-5 opacity-90" aria-hidden />
         <Phone className="size-5 opacity-90" aria-hidden />
@@ -131,8 +134,7 @@ export function ChatLayout({ doc }: { doc: SiteDoc }) {
           if (m.kind === 'photo')
             return (
               <Bubble key={i} msg={m} i={i}>
-                {/* eslint-disable-next-line @next/next/no-img-element -- host photo */}
-                <img src={m.src} alt="" loading="lazy" className="-mx-1.5 -mt-0.5 mb-1 aspect-[4/5] w-[min(68vw,300px)] rounded-xl object-cover" />
+                <KitImg photo={m.photo} className="-mx-1.5 -mt-0.5 mb-1 aspect-[4/5] w-[min(68vw,300px)] rounded-xl" />
                 {m.caption && <span className="block px-0.5 font-medium">{m.caption} ❤️</span>}
               </Bubble>
             );
@@ -162,15 +164,15 @@ export function ChatLayout({ doc }: { doc: SiteDoc }) {
             return (
               <div key={i} className="flex flex-col gap-1.5">
                 <Bubble msg={m} i={i}>
-                  {t('So… will you join us? 🥹', 'तो… आप आएँगे न? 🥹')}
+                  {k.text('chat.rsvp')}
                 </Bubble>
                 {/* Quick replies: both go to the RSVP form below. */}
                 <div className="flex flex-wrap justify-end gap-1.5">
                   <a href="#rsvp" className="rounded-full border border-[var(--inv-primary)] bg-white px-4 py-2 text-sm font-semibold text-[var(--inv-primary)]">
-                    {t("Yes, I'll be there 🎉", 'हाँ, ज़रूर आऊँगा 🎉')}
+                    {k.text('chat.yes')}
                   </a>
                   <a href="#rsvp" className="rounded-full border border-[#8696A0] bg-white px-4 py-2 text-sm text-[#54656F]">
-                    {t("Sorry, can't make it", 'माफ़ कीजिए, नहीं आ पाऊँगा')}
+                    {k.text('chat.no')}
                   </a>
                 </div>
               </div>

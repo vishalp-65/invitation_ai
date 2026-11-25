@@ -269,6 +269,8 @@ export const EVENT_LABELS: Record<string, string> = {
   template_view: 'Viewed a template',
   template_select: 'Picked a template',
   event_created: 'Created an invitation',
+  details_reused: 'Skipped details (already saved)',
+  design_changed: 'Changed an invitation’s design',
   editor_open: 'Opened the editor',
   render_download: 'Downloaded a card / video',
   site_published: 'Published a website',

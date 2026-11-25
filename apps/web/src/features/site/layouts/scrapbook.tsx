@@ -2,7 +2,7 @@
 
 import type { SiteDoc } from '@cardai/shared';
 import type { CSSProperties, ReactNode } from 'react';
-import { daysUntil, mapHref, useLayoutData, useSeen } from './common';
+import { daysUntil, KitImg, mapHref, useKit, useLayoutData, useSeen, type KitPhotoValue } from './common';
 
 /**
  * Scrapbook Diary: a glossy magazine cover (masthead, cover photo, cover lines, barcode), then
@@ -27,13 +27,14 @@ function Pin({ i, children, className = '' }: { i: number; children: ReactNode; 
   );
 }
 
-function Polaroid({ src, caption, i }: { src: string; caption: string; i: number }) {
+function Polaroid({ photo, caption, i }: { photo: KitPhotoValue; caption: string; i: number }) {
   return (
     <Pin i={i}>
       <Tape color={TAPES[i % TAPES.length]!} style={{ left: '50%', top: -12, transform: 'translateX(-50%) rotate(-4deg)' }} />
       <figure className="bg-[#FFFDF8] p-3 pb-12 shadow-[0_10px_25px_rgba(60,40,20,0.25)]">
-        {/* eslint-disable-next-line @next/next/no-img-element -- host photo */}
-        <img src={src} alt="" loading="lazy" className="aspect-square w-full object-cover" />
+        <div className="aspect-square w-full overflow-hidden">
+          <KitImg photo={photo} className="size-full" />
+        </div>
         <figcaption className="inv-script absolute inset-x-3 bottom-2 text-center text-3xl text-[#3A3330]">{caption}</figcaption>
       </figure>
     </Pin>
@@ -43,23 +44,19 @@ function Polaroid({ src, caption, i }: { src: string; caption: string; i: number
 export function ScrapbookLayout({ doc }: { doc: SiteDoc }) {
   const L = useLayoutData(doc);
   const { content: c, t, fmt, fns, photos, names, first, main, people } = L;
+  const k = useKit(doc, 'scrapbook');
   // Masthead: a short hashtag, else the occasion ("WEDDING", "BIRTHDAY"); long tags go in the cover lines.
   const tag = c.hashtag?.replace(/^#/, '') ?? '';
-  const masthead = (tag && tag.length <= 10 ? tag : L.occasion).toUpperCase();
+  const masthead = k.text('sb.masthead', tag && tag.length <= 10 ? tag : L.occasion).toUpperCase();
   const issue = first ? new Intl.DateTimeFormat('en-GB', { month: 'short', year: 'numeric' }).format(new Date(first.startsAt)).toUpperCase() : '';
   const days = daysUntil(first?.startsAt);
-  const captions = [names.join(' + ') || L.title, t('us ♡', 'हम ♡'), t('forever', 'हमेशा'), t('the family', 'परिवार')];
+  const captions = [k.text('sb.cap1', names.join(' + ') || L.title), k.text('sb.cap2'), k.text('sb.cap3'), k.text('sb.cap4')];
 
   return (
     <section className="inv-scrap text-[#2B2622]" aria-label={L.title}>
       {/* ---------------- Magazine cover ---------------- */}
       <header className="relative mx-auto flex min-h-[100svh] max-w-[620px] flex-col overflow-hidden bg-[#1A1410] text-white">
-        {photos[0] ? (
-          // eslint-disable-next-line @next/next/no-img-element -- host photo
-          <img src={photos[0]} alt="" className="absolute inset-0 size-full object-cover" />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_30%,#B8402B_0%,#2B1510_80%)]" />
-        )}
+        <KitImg photo={k.photo('cover')} eager className="absolute inset-0 size-full" fallback={<div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_50%_30%,#B8402B_0%,#2B1510_80%)]" />} />
         <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-transparent to-black/70" />
         <div className="relative z-[1] flex flex-1 flex-col px-5 pb-28 pt-6">
           <div className="flex items-start justify-between text-[0.7rem] font-bold uppercase tracking-[0.2em]">
@@ -71,7 +68,7 @@ export function ScrapbookLayout({ doc }: { doc: SiteDoc }) {
           {/* Masthead: the hashtag or the occasion, huge and tight. */}
           <h2 className="inv-display mt-1 break-words text-[clamp(3.2rem,17vw,7rem)] uppercase leading-[0.85] tracking-tight text-[var(--inv-accent)] [text-shadow:0_3px_20px_rgba(0,0,0,0.35)]">{masthead}</h2>
           <div className="mt-auto">
-            <p className="inline-block bg-[var(--inv-primary)] px-2 py-0.5 text-xs font-bold uppercase tracking-[0.25em] text-white">{t('Exclusive', 'एक्सक्लूसिव')}</p>
+            <p className="inline-block bg-[var(--inv-primary)] px-2 py-0.5 text-xs font-bold uppercase tracking-[0.25em] text-white">{k.text('sb.exclusive')}</p>
             <h1 className="inv-display text-[clamp(2.4rem,11vw,4.6rem)] leading-[0.95] [text-shadow:0_3px_24px_rgba(0,0,0,0.5)]">{L.title}</h1>
             <ul className="mt-4 flex flex-col gap-1.5 pr-24 text-[1.02rem] font-semibold [text-shadow:0_1px_10px_rgba(0,0,0,0.6)]">
               {tag.length > 10 && <li>✦ {c.hashtag}</li>}
@@ -83,7 +80,7 @@ export function ScrapbookLayout({ doc }: { doc: SiteDoc }) {
                   ✦ {t('Save the date', 'तारीख़ याद रखें')}: {fmt.date.format(new Date(first.startsAt))}
                 </li>
               )}
-              <li>✦ {t('Inside: the guest list (you’re on it)', 'अंदर: मेहमानों की सूची (आप भी हैं)')}</li>
+              <li>✦ {k.text('sb.line')}</li>
             </ul>
           </div>
           {/* Barcode + price, like a newsstand cover. */}
@@ -110,7 +107,7 @@ export function ScrapbookLayout({ doc }: { doc: SiteDoc }) {
         {photos.length > 0 && (
           <div className="mt-14 grid grid-cols-2 gap-x-5 gap-y-10">
             {photos.slice(0, 4).map((src, i) => (
-              <Polaroid key={src} src={src} caption={captions[i]!} i={i} />
+              <Polaroid key={i} photo={k.photo(`pol-${i + 1}`)} caption={captions[i]!} i={i} />
             ))}
           </div>
         )}
@@ -130,7 +127,7 @@ export function ScrapbookLayout({ doc }: { doc: SiteDoc }) {
         )}
 
         {/* Functions on torn notes. */}
-        <h2 className="inv-script mt-16 text-center text-5xl text-[var(--inv-primary)]">{t('The plan', 'कार्यक्रम')}</h2>
+        <h2 className="inv-script mt-16 text-center text-5xl text-[var(--inv-primary)]">{k.text('sb.plan')}</h2>
         <div className="mt-8 flex flex-col gap-9">
           {fns.map((f, i) => (
             <Pin key={f.id} i={i} className={i % 2 ? 'ml-auto w-[90%]' : 'w-[90%]'}>

@@ -17,6 +17,8 @@ export const TRACK_EVENTS = [
   'card_scanned', // read a photo of a printed card in /create
   'create_step', // reached a /create wizard step (props.step: occasion | details | design)
   'event_created',
+  'details_reused', // /create skipped the details form: saved draft or the latest invitation (props.from: draft | event)
+  'design_changed', // /create changed the design of an existing invitation instead of making a new one
   'editor_open',
   'render_download',
   'site_published',

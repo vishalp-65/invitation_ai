@@ -1,5 +1,7 @@
 import { getPhotoLook, type PhotoLookId } from '../art/looks.js';
 import { faithOf, type Faith } from '../constants/faith.js';
+import type { SiteOpening } from './schema.js';
+import { OCCASION_HEADLINERS } from '../design/families-occasions.js';
 
 /**
  * Cinematic website designs ("design packs"). One pack = painted scene + palette + fonts +
@@ -67,6 +69,47 @@ export const SITE_DESIGN_IDS = [
   'premiere',
   'chat-story',
   'scrapbook',
+  'boarding-pass',
+  'front-page',
+  'our-playlist',
+  'level-up',
+  'tasting-menu',
+  'big-day-calendar',
+  // Occasion packs (Nov 2026): same ids as each occasion's free card family.
+  'haldi-sunshine',
+  'mehendi-hands',
+  'sangeet-nights',
+  'ring-promise',
+  'tilak-kumkum',
+  'roka-shagun',
+  'cocktail-hour',
+  'bach-squad',
+  'one-tiny',
+  'golden-jubilee',
+  'kitty-high-tea',
+  'grad-capstone',
+  'farewell-wings',
+  'reunion-polaroid',
+  'katha-kalash',
+  'diwali-diya',
+  'holi-rang',
+  'xmas-joy',
+  'ny-countdown',
+  'rakhi-dhaga',
+  'bhaidooj-tika',
+  'eid-chand',
+  'garba-raas',
+  'ganpati-bappa',
+  'lohri-bonfire',
+  'patang-utsav',
+  'onam-pookalam',
+  'durga-dhak',
+  'karva-chand',
+  'krishna-flute',
+  'gurpurab-prakash',
+  'trip-wanderlust',
+  'family-voyage',
+  'holiday-postcard',
 ] as const;
 export type SiteDesignId = (typeof SITE_DESIGN_IDS)[number];
 
@@ -155,9 +198,9 @@ export type MusicMood = (typeof MUSIC_MOODS)[number];
 /**
  * Page structures beyond the scrolling invitation: tap-through stories with a profile page,
  * a streaming-show premiere, a chat that types itself, and a scrapbook with a magazine cover.
- * The website, the video and the matching card all follow the layout.
+ * Website only: the card and the video keep their own designs (see videoDesignFor).
  */
-export const SITE_LAYOUTS = ['stories', 'movie', 'chat', 'scrapbook'] as const;
+export const SITE_LAYOUTS = ['stories', 'movie', 'chat', 'scrapbook', 'boarding', 'newspaper', 'playlist', 'arcade', 'menu', 'calendar'] as const;
 export type SiteLayout = (typeof SITE_LAYOUTS)[number];
 
 export interface SiteDesign {
@@ -186,7 +229,7 @@ export interface SiteDesign {
   /** Latin-script fonts. Other scripts keep their language fonts. */
   fonts: { script: string; serif: string; body: string };
   /** `none`: the page opens straight away (stories and chat layouts start themselves). */
-  opening: 'seal' | 'lanterns' | 'doors' | 'curtain' | 'envelope' | 'petals' | 'scroll' | 'none';
+  opening: SiteOpening;
   ambient: AmbientKind;
   divider: DividerKind;
   marker: MarkerKind;
@@ -257,6 +300,75 @@ function layoutPack(
   };
 }
 
+/**
+ * Occasion packs (wedding functions, celebrations, festivals, trips): an existing painted scene in
+ * the occasion's own colours, ambient, opening and music. Scene colours are derived from the
+ * palette so every pack stays consistent. The id matches the occasion's free card family.
+ */
+function occasionPack(o: {
+  id: SiteDesignId;
+  name: string;
+  region: string;
+  faith: Faith | null;
+  kind: SceneKind;
+  night: boolean;
+  primary: string;
+  accent: string;
+  bg: string;
+  text: string;
+  ambient: AmbientKind;
+  opening: SiteOpening;
+  music: MusicMood;
+  fonts: SiteDesign['fonts'];
+  marker: MarkerKind;
+}): SiteDesign {
+  const lift = (c: string, k: number) => mixHex(c, '#FFFFFF', k);
+  const sink = (c: string, k: number) => mixHex(c, '#000000', k);
+  const alt = o.night ? lift(o.bg, 0.08) : mixHex(o.bg, o.accent, 0.12);
+  return {
+    id: o.id,
+    name: o.name,
+    blurb: `${o.region}: ${o.name.toLowerCase()} in its own colours, music and opening`,
+    region: o.region,
+    faith: o.faith,
+    isNew: true,
+    palette: { primary: o.primary, accent: o.accent, background: o.bg, surface: o.night ? alt : '#FFFFFF', text: o.text },
+    scene: {
+      kind: o.kind,
+      night: o.night,
+      style: 'modern',
+      ...(o.night ? { ink: lift(o.accent, 0.3) } : {}),
+      colors: {
+        skyTop: o.night ? mixHex(o.bg, o.primary, 0.22) : lift(o.bg, 0.5),
+        skyBottom: o.night ? o.bg : mixHex(o.bg, o.accent, 0.25),
+        glow: o.accent,
+        far: mixHex(o.primary, o.bg, 0.6),
+        mid: o.primary,
+        midShade: sink(o.primary, 0.25),
+        trim: o.accent,
+        near: o.night ? o.primary : lift(o.primary, 0.25),
+        bloom: [o.primary, o.accent, lift(o.primary, 0.5), o.night ? lift(o.accent, 0.3) : o.bg],
+        water: mixHex(o.bg, o.accent, 0.3),
+      },
+    },
+    bands: [paper(o.bg, o.text, o.primary), paper(alt, o.text, o.primary)],
+    fonts: o.fonts,
+    opening: o.opening,
+    ambient: o.ambient,
+    divider: 'scallop',
+    marker: o.marker,
+    music: o.music,
+    paint: {},
+  };
+}
+
+/** Hex colour a k of the way from `a` to `b`. */
+function mixHex(a: string, b: string, k: number): string {
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const [x, y] = [p(a), p(b)];
+  return `#${x.map((v, i) => Math.round(v + (y[i]! - v) * k).toString(16).padStart(2, '0')).join('')}`.toUpperCase();
+}
+
 export const SITE_DESIGNS: readonly SiteDesign[] = [
   // ---------------- Layout designs (Nov 2026): new page structures ----------------
   layoutPack({
@@ -264,7 +376,7 @@ export const SITE_DESIGNS: readonly SiteDesign[] = [
     name: 'Chat Story',
     blurb: 'Your invitation as a chat that types itself as guests scroll, RSVP as a reply',
     layout: 'chat',
-    opening: 'none',
+    opening: 'notification',
     music: 'acoustic',
     fonts: { script: 'Dancing Script', serif: 'DM Serif Display', body: 'Inter' },
     night: false,
@@ -279,7 +391,7 @@ export const SITE_DESIGNS: readonly SiteDesign[] = [
     name: 'Story Mode',
     blurb: 'Tap-through full-screen stories, then a profile page with highlights and a photo grid',
     layout: 'stories',
-    opening: 'none',
+    opening: 'story',
     music: 'piano',
     fonts: { script: 'Dancing Script', serif: 'DM Serif Display', body: 'DM Sans' },
     night: false,
@@ -288,6 +400,96 @@ export const SITE_DESIGNS: readonly SiteDesign[] = [
     bg: '#FFFFFF',
     alt: '#FAF5F8',
     ink: '#161616',
+  }),
+  layoutPack({
+    id: 'boarding-pass',
+    name: 'Boarding Pass',
+    blurb: 'A flight ticket to your celebration: boarding pass, itinerary of functions, gate and seat',
+    layout: 'boarding',
+    opening: 'boarding',
+    music: 'acoustic',
+    fonts: { script: 'Great Vibes', serif: 'Poppins', body: 'Inter' },
+    night: false,
+    primary: '#1F4E9C',
+    accent: '#F2B705',
+    bg: '#EEF3F9',
+    alt: '#FFFFFF',
+    ink: '#18223A',
+  }),
+  layoutPack({
+    id: 'front-page',
+    name: 'Front Page',
+    blurb: 'Your news on the front page of a classic newspaper: headline, photo, events calendar, classifieds',
+    layout: 'newspaper',
+    opening: 'newspaper',
+    music: 'piano',
+    fonts: { script: 'Pinyon Script', serif: 'Playfair Display', body: 'EB Garamond' },
+    night: false,
+    primary: '#1B1B1B',
+    accent: '#B3261E',
+    bg: '#F1ECE1',
+    alt: '#E8E1D2',
+    ink: '#1B1B1B',
+  }),
+  layoutPack({
+    id: 'our-playlist',
+    name: 'Our Playlist',
+    blurb: 'A music player: your photo as the album cover, functions as tracks, a lyric card and a vinyl opening',
+    layout: 'playlist',
+    opening: 'vinyl',
+    music: 'acoustic',
+    fonts: { script: 'Dancing Script', serif: 'Poppins', body: 'Inter' },
+    night: true,
+    primary: '#E8336D',
+    accent: '#FFB547',
+    bg: '#121212',
+    alt: '#1E1E1E',
+    ink: '#F5F5F5',
+  }),
+  layoutPack({
+    id: 'level-up',
+    name: 'Level Up',
+    blurb: 'An 8-bit game: Player 1 and Player 2, functions as levels on a map, press start to RSVP',
+    layout: 'arcade',
+    opening: 'arcade',
+    music: 'dhol',
+    fonts: { script: 'Press Start 2P', serif: 'Press Start 2P', body: 'Inter' },
+    night: true,
+    primary: '#E8336D',
+    accent: '#FFD84A',
+    bg: '#0A0820',
+    alt: '#151238',
+    ink: '#F2F2FF',
+  }),
+  layoutPack({
+    id: 'tasting-menu',
+    name: 'Tasting Menu',
+    blurb: "A fine-dining menu card: functions as courses, a chef's note and a bill paid in blessings",
+    layout: 'menu',
+    opening: 'menu',
+    music: 'strings',
+    fonts: { script: 'Pinyon Script', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' },
+    night: false,
+    primary: '#5E1A2B',
+    accent: '#C9A45C',
+    bg: '#F7F1E6',
+    alt: '#EFE6D4',
+    ink: '#2B1D16',
+  }),
+  layoutPack({
+    id: 'big-day-calendar',
+    name: 'The Big Day',
+    blurb: 'A wall calendar with your date circled, a sticky note, a live countdown and add-to-calendar',
+    layout: 'calendar',
+    opening: 'calendar',
+    music: 'piano',
+    fonts: { script: 'Caveat', serif: 'DM Serif Display', body: 'DM Sans' },
+    night: false,
+    primary: '#D9473B',
+    accent: '#F2C14E',
+    bg: '#FBF7F0',
+    alt: '#FFFFFF',
+    ink: '#2A2A2A',
   }),
   layoutPack({
     id: 'premiere',
@@ -1138,7 +1340,47 @@ export const SITE_DESIGNS: readonly SiteDesign[] = [
     music: 'flute',
     paint: {},
   },
+  // ---------------- Occasion packs (Nov 2026) ----------------
+  occasionPack({ id: 'haldi-sunshine', name: 'Haldi Sunshine', region: 'Haldi', faith: null, kind: 'haldi-marigold', night: false, primary: '#B5651D', accent: '#F2A900', bg: '#FFF6D6', text: '#4A2C0A', ambient: 'marigolds', opening: 'doors', music: 'dhol', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'marigold' }),
+  occasionPack({ id: 'mehendi-hands', name: 'Mehendi Hands', region: 'Mehendi', faith: null, kind: 'genda-toran', night: false, primary: '#2F6B3A', accent: '#C9973F', bg: '#EEF4E6', text: '#1E3A24', ambient: 'petals', opening: 'doors', music: 'sitar', fonts: { script: 'Alex Brush', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'leaf' }),
+  occasionPack({ id: 'sangeet-nights', name: 'Sangeet Nights', region: 'Sangeet', faith: null, kind: 'gold-party', night: true, primary: '#D4A63A', accent: '#F6E2A8', bg: '#120B1F', text: '#F6EBDD', ambient: 'fairylights', opening: 'curtain', music: 'dhol', fonts: { script: 'Monsieur La Doulaise', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'star' }),
+  occasionPack({ id: 'ring-promise', name: 'The Promise', region: 'Ring ceremony', faith: null, kind: 'moon-rings', night: true, primary: '#C9A45C', accent: '#F7E2A6', bg: '#1C1712', text: '#F6EBDD', ambient: 'stars', opening: 'seal', music: 'piano', fonts: { script: 'Pinyon Script', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'star' }),
+  occasionPack({ id: 'tilak-kumkum', name: 'Kumkum Tilak', region: 'Tilak', faith: 'hindu', kind: 'temple-court', night: false, primary: '#8E0F1F', accent: '#FFC857', bg: '#FFF3E0', text: '#3B0A10', ambient: 'marigolds', opening: 'doors', music: 'shehnai', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'diya' }),
+  occasionPack({ id: 'roka-shagun', name: 'Shagun', region: 'Roka', faith: null, kind: 'champa-frame', night: false, primary: '#C2543A', accent: '#E0A93B', bg: '#FFF1E8', text: '#45231A', ambient: 'petals', opening: 'seal', music: 'santoor', fonts: { script: 'Alex Brush', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'rose' }),
+  occasionPack({ id: 'cocktail-hour', name: 'Cocktail Hour', region: 'Cocktail', faith: null, kind: 'art-deco', night: true, primary: '#D4A63A', accent: '#F6E2A8', bg: '#0E0E10', text: '#F4F1EA', ambient: 'fireworks', opening: 'curtain', music: 'strings', fonts: { script: 'Great Vibes', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'bach-squad', name: 'Bride Squad', region: 'Bachelorette', faith: null, kind: 'balloon-party', night: false, primary: '#D6336C', accent: '#F2A900', bg: '#FFF0F6', text: '#3B1531', ambient: 'fairylights', opening: 'curtain', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'one-tiny', name: 'Turning One', region: 'First birthday', faith: null, kind: 'balloon-party', night: false, primary: '#2F6FA3', accent: '#E58FAB', bg: '#EAF4FB', text: '#1D3550', ambient: 'fairylights', opening: 'curtain', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'golden-jubilee', name: 'Golden Jubilee', region: 'Milestone birthday', faith: null, kind: 'gold-party', night: true, primary: '#D4AF37', accent: '#F5E6B3', bg: '#0E0E10', text: '#F4F1EA', ambient: 'fireworks', opening: 'curtain', music: 'piano', fonts: { script: 'Pinyon Script', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'star' }),
+  occasionPack({ id: 'kitty-high-tea', name: 'High Tea', region: 'Kitty party', faith: null, kind: 'vintage-bloom', night: false, primary: '#2C8C6E', accent: '#F08A5D', bg: '#EAF8F3', text: '#173A2F', ambient: 'petals', opening: 'envelope', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'rose' }),
+  occasionPack({ id: 'grad-capstone', name: 'Capstone', region: 'Graduation', faith: null, kind: 'art-deco', night: true, primary: '#C8A45D', accent: '#E7D3A4', bg: '#0B1A33', text: '#F2F4F8', ambient: 'fireworks', opening: 'curtain', music: 'strings', fonts: { script: 'Great Vibes', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'farewell-wings', name: 'New Wings', region: 'Farewell', faith: null, kind: 'mountains', night: false, primary: '#3F5577', accent: '#B49A62', bg: '#EEF2F7', text: '#25324A', ambient: 'butterflies', opening: 'envelope', music: 'piano', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'leaf' }),
+  occasionPack({ id: 'reunion-polaroid', name: 'Old Friends', region: 'Reunion', faith: null, kind: 'riverside', night: false, primary: '#5A1E0E', accent: '#E8B931', bg: '#F6EDD8', text: '#3A1A0A', ambient: 'fairylights', opening: 'envelope', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'katha-kalash', name: 'Katha Kalash', region: 'Satyanarayan katha', faith: 'hindu', kind: 'temple-court', night: false, primary: '#8C1C13', accent: '#FFB627', bg: '#FFF7E6', text: '#3A1206', ambient: 'marigolds', opening: 'doors', music: 'flute', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'diya' }),
+  occasionPack({ id: 'diwali-diya', name: 'Diya Lights', region: 'Diwali', faith: 'hindu', kind: 'jharokha-night', night: true, primary: '#E9B949', accent: '#FFE29A', bg: '#1A0F24', text: '#FFF6E5', ambient: 'lanterns', opening: 'lanterns', music: 'sitar', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'diya' }),
+  occasionPack({ id: 'holi-rang', name: 'Rang Barse', region: 'Holi', faith: 'hindu', kind: 'bloom-meadow', night: false, primary: '#D6336C', accent: '#F2A900', bg: '#FFFBF2', text: '#3B1531', ambient: 'petals', opening: 'petals', music: 'dhol', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'marigold' }),
+  occasionPack({ id: 'xmas-joy', name: 'Christmas Joy', region: 'Christmas', faith: 'christian', kind: 'mountains', night: true, primary: '#C62828', accent: '#E8B84A', bg: '#0F2A1C', text: '#F4F1EA', ambient: 'stars', opening: 'envelope', music: 'piano', fonts: { script: 'Great Vibes', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'ny-countdown', name: 'Countdown', region: 'New Year', faith: null, kind: 'art-deco', night: true, primary: '#D4AF37', accent: '#F06292', bg: '#0E0E10', text: '#F4F1EA', ambient: 'fireworks', opening: 'curtain', music: 'strings', fonts: { script: 'Great Vibes', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'rakhi-dhaga', name: 'Pyara Dhaga', region: 'Raksha Bandhan', faith: 'hindu', kind: 'champa-frame', night: false, primary: '#C2543A', accent: '#E8B84A', bg: '#FFF1E8', text: '#45231A', ambient: 'petals', opening: 'seal', music: 'santoor', fonts: { script: 'Alex Brush', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'rose' }),
+  occasionPack({ id: 'bhaidooj-tika', name: 'Tika', region: 'Bhai Dooj', faith: 'hindu', kind: 'genda-toran', night: false, primary: '#8C1C13', accent: '#FFB627', bg: '#FFF7E6', text: '#3A1206', ambient: 'marigolds', opening: 'doors', music: 'shehnai', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'diya' }),
+  occasionPack({ id: 'eid-chand', name: 'Chand Raat', region: 'Eid', faith: 'muslim', kind: 'mughal-garden', night: true, primary: '#D4AF37', accent: '#E9D8A6', bg: '#0D3B2E', text: '#F3EBD8', ambient: 'lanterns', opening: 'lanterns', music: 'qawwali', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'lantern' }),
+  occasionPack({ id: 'garba-raas', name: 'Garba Raas', region: 'Navratri', faith: 'hindu', kind: 'marigold-court', night: true, primary: '#E8336D', accent: '#FFC93C', bg: '#2A0F2E', text: '#FFF3E0', ambient: 'fireworks', opening: 'doors', music: 'dhol', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'marigold' }),
+  occasionPack({ id: 'ganpati-bappa', name: 'Ganpati Bappa', region: 'Ganesh Chaturthi', faith: 'hindu', kind: 'temple-court', night: false, primary: '#C2410C', accent: '#FFC93C', bg: '#FFF4E6', text: '#3A1206', ambient: 'marigolds', opening: 'doors', music: 'shehnai', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'marigold' }),
+  occasionPack({ id: 'lohri-bonfire', name: 'Lohri Di Raat', region: 'Lohri', faith: null, kind: 'haveli', night: true, primary: '#F4511E', accent: '#FFCA28', bg: '#1A0E12', text: '#FFF3E0', ambient: 'fireflies', opening: 'lanterns', music: 'dhol', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'patang-utsav', name: 'Patang Utsav', region: 'Sankranti', faith: 'hindu', kind: 'riverside', night: false, primary: '#1E88E5', accent: '#FDD835', bg: '#E7F5FF', text: '#102A43', ambient: 'butterflies', opening: 'petals', music: 'flute', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'onam-pookalam', name: 'Pookalam', region: 'Onam', faith: null, kind: 'backwaters', night: false, primary: '#B5891E', accent: '#C62828', bg: '#FBF5EA', text: '#3B2A1A', ambient: 'petals', opening: 'petals', music: 'flute', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'lotus' }),
+  occasionPack({ id: 'durga-dhak', name: 'Dhak & Shankh', region: 'Durga Puja', faith: 'hindu', kind: 'temple-court', night: true, primary: '#C62828', accent: '#E8B84A', bg: '#2A0808', text: '#FFF1D6', ambient: 'lanterns', opening: 'doors', music: 'shehnai', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'lotus' }),
+  occasionPack({ id: 'karva-chand', name: 'Chand Dekh', region: 'Karva Chauth', faith: 'hindu', kind: 'moon-rings', night: true, primary: '#F8D57E', accent: '#C9973F', bg: '#0B1A33', text: '#FBEFD9', ambient: 'stars', opening: 'seal', music: 'santoor', fonts: { script: 'Pinyon Script', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'star' }),
+  occasionPack({ id: 'krishna-flute', name: 'Bansuri', region: 'Janmashtami', faith: 'hindu', kind: 'lotus-pond', night: true, primary: '#E8B84A', accent: '#4FC3F7', bg: '#0B1F3A', text: '#F2F4F8', ambient: 'fireflies', opening: 'lanterns', music: 'flute', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'lotus' }),
+  occasionPack({ id: 'gurpurab-prakash', name: 'Prakash Purab', region: 'Gurpurab', faith: 'sikh', kind: 'lake-palace', night: true, primary: '#F2A900', accent: '#FFE29A', bg: '#0B1A33', text: '#FFF6E5', ambient: 'lanterns', opening: 'lanterns', music: 'ambient', fonts: { script: 'Great Vibes', serif: 'Cormorant Garamond', body: 'Cormorant Garamond' }, marker: 'diya' }),
+  occasionPack({ id: 'trip-wanderlust', name: 'Wanderlust', region: 'Trip', faith: null, kind: 'beach-sunset', night: false, primary: '#E07A5F', accent: '#81B29A', bg: '#FFF1E8', text: '#3D1A14', ambient: 'butterflies', opening: 'envelope', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
+  occasionPack({ id: 'family-voyage', name: 'Family Voyage', region: 'Family trip', faith: null, kind: 'mountains', night: false, primary: '#2C8C6E', accent: '#F2A900', bg: '#EAF8F3', text: '#173A2F', ambient: 'butterflies', opening: 'envelope', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'leaf' }),
+  occasionPack({ id: 'holiday-postcard', name: 'Wish You Were Here', region: 'Holidays', faith: null, kind: 'beach-sunset', night: false, primary: '#2F7FA8', accent: '#F08A5D', bg: '#E6F4FC', text: '#163444', ambient: 'butterflies', opening: 'envelope', music: 'acoustic', fonts: { script: 'Dancing Script', serif: 'Playfair Display', body: 'Poppins' }, marker: 'star' }),
 ];
+
+/** Packs made for one occasion (the free card family of each new occasion shares its id). */
+let occasionPacks: Set<string> | null = null;
+// Built on first use: the design and site modules import each other (no init-order surprises).
+const isOccasionPack = (id: string) => (occasionPacks ??= new Set(Object.values(OCCASION_HEADLINERS))).has(id);
 
 export function getSiteDesign(id: string | null | undefined): SiteDesign | null {
   if (!id) return null;
@@ -1151,7 +1393,10 @@ export function getSiteDesign(id: string | null | undefined): SiteDesign | null 
  */
 export function designsFor(eventType: string, community?: string | null, cardDesign?: string | null): SiteDesign[] {
   const faith = faithOf(eventType, community);
-  const rank = (d: SiteDesign) => (cardDesign && d.id === cardDesign ? -1 : d.faith === faith ? 0 : d.faith === null ? 1 : 2);
+  const own = OCCASION_HEADLINERS[eventType];
+  // Occasion packs (Diwali, Haldi, trips…) lead for their own occasion and trail for every other.
+  const rank = (d: SiteDesign) =>
+    cardDesign && d.id === cardDesign ? -2 : d.id === own ? -1 : (d.faith === faith ? 0 : d.faith === null ? 1 : 2) + (isOccasionPack(d.id) ? 3 : 0);
   return SITE_DESIGNS.filter((d) => !isRetiredDesign(d.id)).sort((a, b) => rank(a) - rank(b));
 }
 
@@ -1161,7 +1406,17 @@ export const isRetiredDesign = (id: string | null | undefined) => RETIRED_SITE_D
 
 /** Every page has a design now (the plain "classic" look is gone): the best one for this event. */
 export function defaultDesignFor(eventType: string, community?: string | null, cardDesign?: string | null): SiteDesignId {
-  return designsFor(eventType, community, cardDesign)[0]!.id;
+  // Layout designs (chat, stories…) are website-only picks, never the automatic default.
+  return designsFor(eventType, community, cardDesign).find((d) => !d.layout)!.id;
+}
+
+/**
+ * Design the video is made from. Layout designs are website-only: their video uses the
+ * card's matching cinematic design, else the occasion's default.
+ */
+export function videoDesignFor(siteDesign: string | null | undefined, eventType: string, community?: string | null, cardDesign?: string | null): SiteDesignId {
+  const d = getSiteDesign(siteDesign);
+  return d && !d.layout ? d.id : defaultDesignFor(eventType, community, cardDesign);
 }
 
 /** Cover text colour over the design's scene. */

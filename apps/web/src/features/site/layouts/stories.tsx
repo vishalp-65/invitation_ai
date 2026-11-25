@@ -3,7 +3,7 @@
 import type { SiteDoc } from '@cardai/shared';
 import { ChevronDown, Grid3x3, Heart, MapPin, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
-import { Avatar, daysUntil, mapHref, useLayoutData } from './common';
+import { Avatar, daysUntil, KitImg, mapHref, useKit, useLayoutData, type KitPhotoValue } from './common';
 
 /**
  * Story Mode: full-screen tap-through stories (tap right = next, left = back, hold = pause),
@@ -26,7 +26,7 @@ const RING = 'conic-gradient(from 210deg, #F58529, #DD2A7B, #8134AF, #F58529)';
 interface Story {
   id: string;
   bg: string;
-  photo?: string;
+  photo?: KitPhotoValue;
   body: ReactNode;
 }
 
@@ -41,6 +41,7 @@ function Sticker({ children, style, className = '' }: { children: ReactNode; sty
 export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean }) {
   const L = useLayoutData(doc);
   const { content: c, t, fmt, fns, photos, people, names, first } = L;
+  const k = useKit(doc, 'stories');
   const days = daysUntil(first?.startsAt);
   const date = (iso: string) => fmt.date.format(new Date(iso));
 
@@ -48,10 +49,10 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
     {
       id: 'cover',
       bg: GRADIENTS[0]!,
-      photo: photos[0],
+      photo: k.photo('cover'),
       body: (
         <div className="flex h-full flex-col items-center justify-end pb-[16svh] text-center">
-          <Sticker className="mb-4 -rotate-3 font-bold uppercase tracking-wider">✨ {t('Save the date', 'तारीख़ याद रखें')}</Sticker>
+          <Sticker className="mb-4 -rotate-3 font-bold uppercase tracking-wider">✨ {k.text('st.sticker')}</Sticker>
           <h2 className="inv-script text-[clamp(3rem,15vw,5.5rem)] leading-[1.02] text-white [text-shadow:0_4px_30px_rgba(0,0,0,0.45)]">{L.title}</h2>
           {first && <Sticker className="mt-5 rotate-2 text-lg font-semibold">📅 {date(first.startsAt)}</Sticker>}
           {c.hashtag && <p className="mt-4 text-lg font-semibold text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.5)]">{c.hashtag}</p>}
@@ -72,7 +73,7 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
     ...fns.slice(0, 5).map<Story>((f, i) => ({
       id: `fn-${f.id}`,
       bg: GRADIENTS[(i + 2) % GRADIENTS.length]!,
-      photo: photos[i + 1],
+      photo: i < 3 ? k.photo(`fn-${i + 1}`) : photos[i + 1] ? { src: photos[i + 1], style: {} } : undefined,
       body: (
         <div className="flex h-full flex-col items-center justify-center text-center text-white">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] opacity-90">
@@ -99,7 +100,7 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
             bg: GRADIENTS[4]!,
             body: (
               <div className="flex h-full flex-col items-center justify-center text-center text-white">
-                <p className="text-sm font-semibold uppercase tracking-[0.3em]">{t('Meet', 'मिलिए')}</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.3em]">{k.text('st.meet')}</p>
                 <div className="mt-6 flex flex-wrap justify-center gap-6">
                   {people.slice(0, 4).map((p) => (
                     <div key={p.name} className="flex flex-col items-center">
@@ -119,12 +120,12 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
     {
       id: 'countdown',
       bg: GRADIENTS[5]!,
-      photo: photos[2] ?? photos[0],
+      photo: k.photo('countdown'),
       body: (
         <div className="flex h-full flex-col items-center justify-center text-center">
           {/* Countdown sticker */}
           <div className="w-[min(80vw,320px)] rounded-2xl bg-white/95 p-5 text-[#111] shadow-xl">
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8134AF]">{t('Countdown', 'उलटी गिनती')}</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-[#8134AF]">{k.text('st.countdown')}</p>
             <p className="mt-1 text-lg font-semibold">{L.occasion}</p>
             <p className="mt-3 bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] bg-clip-text text-6xl font-black text-transparent">{days}</p>
             <p className="text-sm text-[#555]">{t('days to go', 'दिन बाकी')}</p>
@@ -139,12 +140,12 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
         <div className="flex h-full flex-col items-center justify-center text-center">
           {/* Poll sticker: both answers open the RSVP form. */}
           <div className="w-[min(82vw,330px)] rounded-2xl bg-white p-5 text-[#111] shadow-xl">
-            <p className="text-xl font-bold">{t('Will you come? 🥹', 'आप आएँगे? 🥹')}</p>
+            <p className="text-xl font-bold">{k.text('st.poll')}</p>
             <a href="#rsvp" data-tap-through="no" className="mt-4 block rounded-xl bg-gradient-to-r from-[#F58529] via-[#DD2A7B] to-[#8134AF] py-3 text-lg font-bold text-white">
-              {t('Yes! 🎉', 'हाँ! 🎉')}
+              {k.text('st.yes')}
             </a>
             <a href="#rsvp" data-tap-through="no" className="mt-2 block rounded-xl bg-[#EFEFEF] py-3 text-lg font-semibold">
-              {t("Can't make it", 'नहीं आ पाऊँगा')}
+              {k.text('st.no')}
             </a>
           </div>
         </div>
@@ -197,11 +198,8 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
         }}
       >
         <div className="absolute inset-0 mx-auto max-w-[520px] overflow-hidden" style={{ background: story.bg }}>
-          {story.photo && (
-            // eslint-disable-next-line @next/next/no-img-element -- host photo
-            <img key={story.id} src={story.photo} alt="" className="inv-story-photo absolute inset-0 size-full object-cover" />
-          )}
-          {story.photo && <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/55" />}
+          {story.photo?.src && <KitImg key={story.id} photo={story.photo} className="inv-story-photo absolute inset-0 size-full" eager />}
+          {story.photo?.src && <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/10 to-black/55" />}
 
           {/* Progress bars */}
           <div className="absolute inset-x-2 top-2 z-10 flex gap-1">
@@ -241,7 +239,7 @@ export function StoriesLayout({ doc, started }: { doc: SiteDoc; started: boolean
           {/* Reply bar, like a story: goes to the wishes / RSVP. */}
           <div className="absolute inset-x-3 bottom-[calc(var(--inv-dock)+84px)] z-10 flex items-center gap-3 text-white">
             <a href="#rsvp" data-tap-through="no" className="flex h-11 flex-1 items-center rounded-full border border-white/70 px-4 text-sm">
-              {t('Reply with your RSVP…', 'RSVP भेजें…')}
+              {k.text('st.reply')}
             </a>
             <Heart className="size-7" aria-hidden />
             <Send className="size-7" aria-hidden />

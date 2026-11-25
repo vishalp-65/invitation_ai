@@ -156,38 +156,6 @@ const RAW_TYPE_SETS = {
     small: r('EB Garamond', 27, { tone: 'muted', lh: 1.4, indic: 'body' }),
     big: r('EB Garamond', 104, { tone: 'accent', indic: 'display' }),
   },
-  /** Streaming-show title card: Bebas Neue caps, Inter body, a script joining word. */
-  cinema: {
-    invocation: r('Inter', 22, { upper: true, ls: 0.4, tone: 'accent', indic: 'body' }),
-    eyebrow: r('Bebas Neue', 44, { upper: true, ls: 0.3, tone: 'accent', indic: 'display' }),
-    headline: r('Bebas Neue', 52, { upper: true, ls: 0.2, tone: 'ink', indic: 'display' }),
-    names: r('Bebas Neue', 176, { upper: true, tone: 'ink', lh: 0.9, indic: 'display' }),
-    name: r('Bebas Neue', 210, { upper: true, tone: 'ink', lh: 0.9, indic: 'display' }),
-    connector: r('Great Vibes', 70, { tone: 'muted', indic: 'body' }),
-    detail: r('Inter', 24, { tone: 'muted', lh: 1.5, indic: 'body' }),
-    host: r('Inter', 29, { tone: 'ink', lh: 1.5, indic: 'body' }),
-    body: r('Inter', 27, { tone: 'ink', lh: 1.55, indic: 'body' }),
-    date: r('Bebas Neue', 56, { upper: true, ls: 0.18, tone: 'ink', indic: 'display' }),
-    venue: r('Inter', 27, { tone: 'ink', weight: 600, upper: true, ls: 0.12, lh: 1.5, indic: 'body' }),
-    small: r('Inter', 23, { tone: 'muted', lh: 1.5, indic: 'body' }),
-    big: r('Bebas Neue', 150, { tone: 'accent', indic: 'display' }),
-  },
-  /** Scrapbook diary: Caveat handwriting, Abril Fatface headings, typewriter notes. */
-  diary: {
-    invocation: r('Special Elite', 22, { tone: 'muted', indic: 'body' }),
-    eyebrow: r('Special Elite', 26, { upper: true, ls: 0.2, tone: 'accent', indic: 'body' }),
-    headline: r('Abril Fatface', 50, { tone: 'ink', indic: 'display' }),
-    names: r('Caveat', 156, { tone: 'accent', lh: 1, indic: 'display' }),
-    name: r('Caveat', 186, { tone: 'accent', lh: 1, indic: 'display' }),
-    connector: r('Caveat', 72, { tone: 'ink', indic: 'body' }),
-    detail: r('Special Elite', 22, { tone: 'muted', lh: 1.5, indic: 'body' }),
-    host: r('Caveat', 46, { tone: 'ink', lh: 1.2, indic: 'body' }),
-    body: r('Special Elite', 25, { tone: 'ink', lh: 1.5, indic: 'body' }),
-    date: r('Abril Fatface', 48, { tone: 'ink', indic: 'display' }),
-    venue: r('Special Elite', 26, { tone: 'ink', lh: 1.45, indic: 'body' }),
-    small: r('Special Elite', 21, { tone: 'muted', lh: 1.5, indic: 'body' }),
-    big: r('Abril Fatface', 120, { tone: 'accent', indic: 'display' }),
-  },
   /** Editorial modern: Bodoni names, Montserrat spaced caps. */
   modern: {
     invocation: r('Montserrat', 22, { upper: true, ls: 0.4, tone: 'accent', indic: 'body' }),
@@ -457,8 +425,6 @@ export const DEVA_PAIRS: Record<TypeSetKey, { script: string; display: string; b
   sage: { script: 'Arya', display: 'Poppins', body: 'Poppins' },
   party: { script: 'Arya', display: 'Rozha One', body: 'Sura' },
   gala: { script: 'Amita', display: 'Kurale', body: 'Sura' },
-  cinema: { script: 'Rozha One', display: 'Rajdhani', body: 'Khula' },
-  diary: { script: 'Kalam', display: 'Khula', body: 'Khula' },
 };
 
 const SCRIPT_ROLES = new Set<Role>(['names', 'name', 'connector']);

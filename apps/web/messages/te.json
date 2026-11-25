@@ -679,14 +679,18 @@
       "wedding": "పెళ్లి & కార్యక్రమాలు",
       "kids": "పుట్టినరోజు & శిశువు",
       "religious": "గృహ & ఆధ్యాత్మిక",
-      "business": "వ్యాపారం"
+      "business": "వ్యాపారం",
+      "festival": "పండుగలు",
+      "travel": "యాత్రలు & సెలవులు"
     },
     "cat": {
       "wedding": "పెళ్లిళ్లు",
       "family": "శిశువు & కుటుంబం",
       "religious": "పూజ & సంస్కారాలు",
       "celebration": "వేడుకలు",
-      "business": "వ్యాపారం"
+      "business": "వ్యాపారం",
+      "festival": "పండుగలు",
+      "trip": "యాత్రలు & సెలవులు"
     },
     "occ": {
       "wedding": "వివాహం",
@@ -709,7 +713,41 @@
       "retirement": "పదవీ విరమణ",
       "shop-opening": "షాప్ / ఆఫీస్ ప్రారంభోత్సవం",
       "corporate": "కార్పొరేట్ కార్యక్రమం",
-      "other": "ఇతర"
+      "other": "ఇతర",
+      "haldi": "పసుపు",
+      "mehendi": "మెహందీ",
+      "sangeet": "సంగీత్",
+      "ring-ceremony": "ఉంగరాల వేడుక",
+      "tilak": "తిలకం",
+      "roka": "రోకా",
+      "cocktail": "కాక్‌టెయిల్ పార్టీ",
+      "bachelorette": "బ్యాచిలర్ పార్టీ",
+      "first-birthday": "మొదటి పుట్టినరోజు",
+      "milestone-birthday": "షష్టిపూర్తి",
+      "kitty-party": "కిట్టీ పార్టీ",
+      "graduation": "స్నాతకోత్సవం",
+      "farewell": "వీడ్కోలు",
+      "reunion": "పునఃకలయిక",
+      "satyanarayan-katha": "సత్యనారాయణ వ్రతం",
+      "diwali": "దీపావళి",
+      "holi": "హోలీ",
+      "christmas": "క్రిస్మస్",
+      "new-year": "నూతన సంవత్సరం",
+      "raksha-bandhan": "రక్షాబంధన్",
+      "bhai-dooj": "భాయ్ దూజ్",
+      "eid": "ఈద్",
+      "navratri": "నవరాత్రి",
+      "ganesh-chaturthi": "వినాయక చవితి",
+      "lohri": "లోహ్రీ",
+      "sankranti": "సంక్రాంతి",
+      "onam": "ఓణం",
+      "durga-puja": "దుర్గా పూజ",
+      "karva-chauth": "కర్వా చౌత్",
+      "janmashtami": "కృష్ణాష్టమి",
+      "gurpurab": "గురుపురబ్",
+      "group-trip": "గ్రూప్ ట్రిప్",
+      "family-trip": "కుటుంబ విహారం",
+      "holiday-greeting": "సెలవుల శుభాకాంక్షలు"
     },
     "community": {
       "hindu-north": "హిందూ (ఉత్తర)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} కోసం సూచించినది",
     "vsUseCard": "సరిపోయే కార్డ్ కూడా వాడండి",
     "vsChange": "మార్చు",
-    "vsBody": "మీ వీడియో మరియు ఆహ్వాన వెబ్‌సైట్ ఈ డిజైన్‌లో ఉంటాయి. మీ కార్డ్ అలాగే ఉంటుంది."
+    "vsBody": "మీ వీడియో మరియు ఆహ్వాన వెబ్‌సైట్ ఈ డిజైన్‌లో ఉంటాయి. మీ కార్డ్ అలాగే ఉంటుంది.",
+    "vsWebsiteOnly": "వెబ్‌సైట్ మాత్రమే · మీ వీడియో {video} డిజైన్‌లో",
+    "editDetails": "వివరాలు మార్చండి",
+    "newEvent": "కొత్త వేడుక",
+    "exit": "మూసివేయి",
+    "changeDesign": "డిజైన్ మార్చండి",
+    "changeGone": "ఆ ఆహ్వానం తొలగించబడింది. కొత్తది చేయడానికి మళ్లీ నొక్కండి.",
+    "targetLabel": "దేనికి వర్తింపజేయాలి",
+    "targetChange": "“{title}” అప్‌డేట్ చేయండి",
+    "targetNew": "కొత్త ఆహ్వానం",
+    "useThis": "ఇది వాడండి",
+    "venueLater": "వేదిక ఇంకా నిర్ణయించలేదు",
+    "venueLaterPh": "తర్వాత జోడించండి",
+    "grp": {
+      "weddings": "వివాహాలు",
+      "wedding-functions": "పెళ్లి వేడుకలు",
+      "celebrations": "వేడుకలు",
+      "baby-family": "శిశువు & కుటుంబం",
+      "religious": "పూజ & ధార్మికం",
+      "festivals": "పండుగలు",
+      "trips": "యాత్రలు & సెలవులు",
+      "business": "వ్యాపారం"
+    },
+    "gMode": "మీరు ఏమి తయారు చేస్తున్నారు?",
+    "gGreeting": "శుభాకాంక్షల కార్డ్",
+    "gGreetingHint": "WhatsAppలో పంపడానికి శుభాకాంక్ష. వేదిక లేదా RSVP లేదు.",
+    "gParty": "పార్టీ ఆహ్వానం",
+    "gPartyHint": "ఆహ్వానించండి: తేదీ, వేదిక, మ్యాప్, RSVP.",
+    "gFrom": "ఎవరి నుండి (కుటుంబం లేదా వ్యాపారం)"
   },
   "picker": {
     "chooseDate": "తేదీ ఎంచుకోండి",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ఫోటోను డిజైన్ యొక్క రెండు ముఖ్య రంగుల్లోకి మారుస్తుంది",
     "Strength": "తీవ్రత",
     "Show on": "ఇక్కడ చూపించు",
-    "Card image": "కార్డ్ ఇమేజ్"
+    "Card image": "కార్డ్ ఇమేజ్",
+    "Interactive": "ఇంటరాక్టివ్",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsAppలో పంచుకోవడానికి తయారైన ప్రత్యేకమైన ఆహ్వాన వెబ్‌సైట్",
+    "RSVP, map and countdown built in": "RSVP, మ్యాప్, కౌంట్‌డౌన్ లోపలే",
+    "Website-only design: your card and video keep their own designs": "వెబ్‌సైట్ కోసం మాత్రమే డిజైన్: మీ కార్డ్, వీడియో వాటి సొంత డిజైన్‌లోనే ఉంటాయి"
   }
 }

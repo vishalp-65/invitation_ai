@@ -679,14 +679,18 @@
       "wedding": "شادی اور تقریبات",
       "kids": "سالگرہ اور بچہ",
       "religious": "گھر اور مذہبی",
-      "business": "کاروبار"
+      "business": "کاروبار",
+      "festival": "تہوار",
+      "travel": "سفر اور چھٹیاں"
     },
     "cat": {
       "wedding": "شادیاں",
       "family": "بچہ اور خاندان",
       "religious": "پوجا اور رسومات",
       "celebration": "جشن",
-      "business": "کاروبار"
+      "business": "کاروبار",
+      "festival": "تہوار",
+      "trip": "سفر اور چھٹیاں"
     },
     "occ": {
       "wedding": "شادی",
@@ -709,7 +713,41 @@
       "retirement": "ریٹائرمنٹ",
       "shop-opening": "دکان / دفتر کا افتتاح",
       "corporate": "کارپوریٹ تقریب",
-      "other": "دیگر"
+      "other": "دیگر",
+      "haldi": "ہلدی",
+      "mehendi": "مہندی",
+      "sangeet": "سنگیت",
+      "ring-ceremony": "انگوٹھی کی رسم",
+      "tilak": "تلک",
+      "roka": "روکا",
+      "cocktail": "کاک ٹیل پارٹی",
+      "bachelorette": "بیچلر پارٹی",
+      "first-birthday": "پہلی سالگرہ",
+      "milestone-birthday": "پچاسویں / ساٹھویں سالگرہ",
+      "kitty-party": "کٹی پارٹی",
+      "graduation": "گریجویشن",
+      "farewell": "الوداع",
+      "reunion": "ری یونین",
+      "satyanarayan-katha": "ستیہ نارائن کتھا",
+      "diwali": "دیوالی",
+      "holi": "ہولی",
+      "christmas": "کرسمس",
+      "new-year": "نیا سال",
+      "raksha-bandhan": "رکشا بندھن",
+      "bhai-dooj": "بھائی دوج",
+      "eid": "عید",
+      "navratri": "نوراتری / گربا",
+      "ganesh-chaturthi": "گنیش چترتھی",
+      "lohri": "لوہڑی",
+      "sankranti": "سنکرانتی / پونگل",
+      "onam": "اونم",
+      "durga-puja": "درگا پوجا",
+      "karva-chauth": "کروا چوتھ",
+      "janmashtami": "جنم اشٹمی",
+      "gurpurab": "گرپورب",
+      "group-trip": "گروپ ٹرپ",
+      "family-trip": "فیملی ٹرپ",
+      "holiday-greeting": "چھٹیوں کی مبارکباد"
     },
     "community": {
       "hindu-north": "ہندو (شمالی)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion} کے لیے تجویز کردہ",
     "vsUseCard": "ملتا جلتا کارڈ بھی لیں",
     "vsChange": "بدلیں",
-    "vsBody": "آپ کی ویڈیو اور دعوتی ویب سائٹ اسی ڈیزائن میں بنیں گی۔ آپ کا کارڈ جیسا ہے ویسا رہے گا۔"
+    "vsBody": "آپ کی ویڈیو اور دعوتی ویب سائٹ اسی ڈیزائن میں بنیں گی۔ آپ کا کارڈ جیسا ہے ویسا رہے گا۔",
+    "vsWebsiteOnly": "صرف ویب سائٹ · آپ کی ویڈیو {video} میں بنے گی",
+    "editDetails": "تفصیلات بدلیں",
+    "newEvent": "نئی تقریب",
+    "exit": "بند کریں",
+    "changeDesign": "ڈیزائن بدلیں",
+    "changeGone": "وہ دعوت نامہ حذف کر دیا گیا۔ نیا بنانے کے لیے دوبارہ ٹیپ کریں۔",
+    "targetLabel": "کس پر لاگو کریں",
+    "targetChange": "“{title}” اپ ڈیٹ کریں",
+    "targetNew": "نیا دعوت نامہ",
+    "useThis": "یہ استعمال کریں",
+    "venueLater": "جگہ ابھی طے نہیں",
+    "venueLaterPh": "بعد میں شامل کریں",
+    "grp": {
+      "weddings": "شادی",
+      "wedding-functions": "شادی کی رسمیں",
+      "celebrations": "جشن",
+      "baby-family": "بچے اور خاندان",
+      "religious": "پوجا اور مذہبی",
+      "festivals": "تہوار",
+      "trips": "سفر اور چھٹیاں",
+      "business": "کاروبار"
+    },
+    "gMode": "آپ کیا بنا رہے ہیں؟",
+    "gGreeting": "مبارکباد کارڈ",
+    "gGreetingHint": "WhatsApp پر بھیجنے کے لیے مبارکباد۔ جگہ یا RSVP نہیں۔",
+    "gParty": "پارٹی دعوت",
+    "gPartyHint": "دعوت دیں: تاریخ، جگہ، نقشہ اور RSVP۔",
+    "gFrom": "کس کی طرف سے (خاندان یا کاروبار)"
   },
   "picker": {
     "chooseDate": "تاریخ چنیں",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "تصویر کو ڈیزائن کے دو اہم رنگوں میں رنگ دیتا ہے",
     "Strength": "گہرائی",
     "Show on": "یہاں دکھائیں",
-    "Card image": "کارڈ تصویر"
+    "Card image": "کارڈ تصویر",
+    "Interactive": "انٹرایکٹو",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp پر شیئر کرنے کے لیے بنی ایک منفرد دعوتی ویب سائٹ",
+    "RSVP, map and countdown built in": "RSVP، نقشہ اور الٹی گنتی شامل",
+    "Website-only design: your card and video keep their own designs": "صرف ویب سائٹ کا ڈیزائن: آپ کا کارڈ اور ویڈیو اپنے ڈیزائن میں رہیں گے"
   }
 }

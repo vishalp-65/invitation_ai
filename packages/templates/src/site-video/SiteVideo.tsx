@@ -4,7 +4,6 @@ import { useEffect, useState, type CSSProperties, type ReactNode } from 'react';
 import { AbsoluteFill, Audio, continueRender, delayRender, Easing, Img, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { loadFamily } from '../fonts';
 import { planPhotoStory, PhotoStory } from './PhotoStory';
-import { LayoutVideo, planLayoutVideo } from './LayoutVideo';
 import { Ambient, Divider, Marker, SceneLayer, SceneStill, VintageCar, WaxSeal, type ImgLike } from '../scenes';
 import { BrandOutro } from '../components/BrandOutro';
 
@@ -50,8 +49,6 @@ export interface SiteVideoProps {
 
 /** Length of the video for these props (photo storybook for painted photo designs). */
 export function siteVideoFrames(props: Pick<SiteVideoProps, 'designId' | 'functions' | 'style'>, fps: number): number {
-  const layout = getSiteDesign(props.designId)?.layout;
-  if (layout) return planLayoutVideo(layout, props.functions.length, fps).durationInFrames;
   return getSiteDesign(props.designId)?.look ? planPhotoStory(props.functions.length, fps).durationInFrames : planSiteVideo(props.functions.length, fps, props.style ?? 'cinematic').durationInFrames;
 }
 
@@ -281,42 +278,15 @@ export function SiteVideo(props: SiteVideoProps) {
   setArtOrigin(props.artOrigin);
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
-  const d = getSiteDesign(props.designId) ?? getSiteDesign('rose-seal')!;
+  // Layout designs are website-only (the worker passes a cinematic design; this is a safety net).
+  const picked = getSiteDesign(props.designId);
+  const d = picked && !picked.layout ? picked : getSiteDesign('rose-seal')!;
   const lang = getLanguage(props.language);
   const latin = lang.script === 'Latn';
   const scriptFont = latin ? d.fonts.script : lang.fonts.display;
   const serifFont = latin ? d.fonts.serif : lang.fonts.display;
   const bodyFont = latin ? d.fonts.body : lang.fonts.body;
   useFonts([...new Set([scriptFont, serifFont, bodyFont])]);
-
-  // Layout designs (stories, premiere, chat, scrapbook) play their own video.
-  if (d.layout) {
-    return (
-      <AbsoluteFill>
-        <LayoutVideo
-          design={d}
-          layout={d.layout}
-          language={props.language}
-          timezone={props.timezone}
-          content={props.content}
-          functions={props.functions}
-          photos={props.photos ?? []}
-          link={props.link}
-          eventType={props.eventType}
-          scriptFont={scriptFont}
-          serifFont={serifFont}
-          bodyFont={bodyFont}
-        />
-        {props.watermark && (
-          <AbsoluteFill style={{ justifyContent: 'flex-end', alignItems: 'center', paddingBottom: 40, pointerEvents: 'none' }}>
-            <div style={{ padding: '12px 32px', borderRadius: 999, background: 'rgba(0,0,0,0.45)', color: '#fff', fontFamily: 'sans-serif', fontSize: 32 }}>{props.watermarkText}</div>
-          </AbsoluteFill>
-        )}
-        {props.watermark && <BrandOutro />}
-        {props.musicUrl && <Audio src={props.musicUrl} volume={(f) => interpolate(f, [0, fps, durationInFrames - fps * 1.5, durationInFrames], [0, 0.8, 0.8, 0], clamp)} />}
-      </AbsoluteFill>
-    );
-  }
 
   // Painted photo designs play the photo storybook (same paper, art and fonts as the website).
   if (d.look) {

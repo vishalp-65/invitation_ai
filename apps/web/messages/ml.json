@@ -679,14 +679,18 @@
       "wedding": "വിവാഹവും ചടങ്ങുകളും",
       "kids": "ജന്മദിനവും കുഞ്ഞും",
       "religious": "ഗൃഹവും ആത്മീയവും",
-      "business": "ബിസിനസ്"
+      "business": "ബിസിനസ്",
+      "festival": "ഉത്സവങ്ങൾ",
+      "travel": "യാത്രയും അവധിയും"
     },
     "cat": {
       "wedding": "വിവാഹങ്ങൾ",
       "family": "കുഞ്ഞും കുടുംബവും",
       "religious": "പൂജയും സംസ്കാരങ്ങളും",
       "celebration": "ആഘോഷങ്ങൾ",
-      "business": "ബിസിനസ്"
+      "business": "ബിസിനസ്",
+      "festival": "ഉത്സവങ്ങൾ",
+      "trip": "യാത്രയും അവധിയും"
     },
     "occ": {
       "wedding": "വിവാഹം",
@@ -709,7 +713,41 @@
       "retirement": "വിരമിക്കൽ",
       "shop-opening": "കട / ഓഫീസ് ഉദ്ഘാടനം",
       "corporate": "കോർപ്പറേറ്റ് പരിപാടി",
-      "other": "മറ്റുള്ളവ"
+      "other": "മറ്റുള്ളവ",
+      "haldi": "ഹൽദി",
+      "mehendi": "മൈലാഞ്ചി",
+      "sangeet": "സംഗീത്",
+      "ring-ceremony": "മോതിരംമാറ്റം",
+      "tilak": "തിലകം",
+      "roka": "റോക്ക",
+      "cocktail": "കോക്ക്ടെയിൽ പാർട്ടി",
+      "bachelorette": "ബാച്ചിലർ പാർട്ടി",
+      "first-birthday": "ഒന്നാം ജന്മദിനം",
+      "milestone-birthday": "ഷഷ്ടിപൂർത്തി",
+      "kitty-party": "കിറ്റി പാർട്ടി",
+      "graduation": "ബിരുദദാനം",
+      "farewell": "യാത്രയയപ്പ്",
+      "reunion": "പുനഃസമാഗമം",
+      "satyanarayan-katha": "സത്യനാരായണ പൂജ",
+      "diwali": "ദീപാവലി",
+      "holi": "ഹോളി",
+      "christmas": "ക്രിസ്മസ്",
+      "new-year": "പുതുവത്സരം",
+      "raksha-bandhan": "രക്ഷാബന്ധൻ",
+      "bhai-dooj": "ഭായ് ദൂജ്",
+      "eid": "ഈദ്",
+      "navratri": "നവരാത്രി",
+      "ganesh-chaturthi": "വിനായക ചതുർത്ഥി",
+      "lohri": "ലോഹ്രി",
+      "sankranti": "മകരസംക്രാന്തി",
+      "onam": "ഓണം",
+      "durga-puja": "ദുർഗാ പൂജ",
+      "karva-chauth": "കർവാ ചൗത്ത്",
+      "janmashtami": "അഷ്ടമിരോഹിണി",
+      "gurpurab": "ഗുരുപുരബ്",
+      "group-trip": "ഗ്രൂപ്പ് യാത്ര",
+      "family-trip": "കുടുംബ യാത്ര",
+      "holiday-greeting": "അവധിക്കാല ആശംസ"
     },
     "community": {
       "hindu-north": "ഹിന്ദു (ഉത്തരം)",
@@ -745,7 +783,35 @@
     "vsSuggested": "{occasion}-ന് നിർദ്ദേശിച്ചത്",
     "vsUseCard": "യോജിക്കുന്ന കാർഡും ഉപയോഗിക്കുക",
     "vsChange": "മാറ്റുക",
-    "vsBody": "നിങ്ങളുടെ വീഡിയോയും ക്ഷണ വെബ്സൈറ്റും ഈ ഡിസൈനിലായിരിക്കും. നിങ്ങളുടെ കാർഡ് അതുപോലെ തുടരും."
+    "vsBody": "നിങ്ങളുടെ വീഡിയോയും ക്ഷണ വെബ്സൈറ്റും ഈ ഡിസൈനിലായിരിക്കും. നിങ്ങളുടെ കാർഡ് അതുപോലെ തുടരും.",
+    "vsWebsiteOnly": "വെബ്സൈറ്റ് മാത്രം · നിങ്ങളുടെ വീഡിയോ {video} ഡിസൈനിൽ",
+    "editDetails": "വിവരങ്ങൾ മാറ്റുക",
+    "newEvent": "പുതിയ ചടങ്ങ്",
+    "exit": "അടയ്ക്കുക",
+    "changeDesign": "ഡിസൈൻ മാറ്റുക",
+    "changeGone": "ആ ക്ഷണം ഇല്ലാതാക്കി. പുതിയത് ഉണ്ടാക്കാൻ വീണ്ടും ടാപ്പ് ചെയ്യുക.",
+    "targetLabel": "എവിടെ ബാധകമാക്കണം",
+    "targetChange": "“{title}” പുതുക്കുക",
+    "targetNew": "പുതിയ ക്ഷണം",
+    "useThis": "ഇത് ഉപയോഗിക്കുക",
+    "venueLater": "വേദി ഇനിയും തീരുമാനിച്ചിട്ടില്ല",
+    "venueLaterPh": "പിന്നീട് ചേർക്കുക",
+    "grp": {
+      "weddings": "വിവാഹം",
+      "wedding-functions": "വിവാഹ ചടങ്ങുകൾ",
+      "celebrations": "ആഘോഷങ്ങൾ",
+      "baby-family": "കുഞ്ഞും കുടുംബവും",
+      "religious": "പൂജയും മതപരവും",
+      "festivals": "ഉത്സവങ്ങൾ",
+      "trips": "യാത്രയും അവധിയും",
+      "business": "ബിസിനസ്"
+    },
+    "gMode": "നിങ്ങൾ എന്താണ് ഉണ്ടാക്കുന്നത്?",
+    "gGreeting": "ആശംസാ കാർഡ്",
+    "gGreetingHint": "WhatsApp-ൽ അയയ്ക്കാൻ ആശംസ. സ്ഥലമോ RSVP-യോ ഇല്ല.",
+    "gParty": "പാർട്ടി ക്ഷണം",
+    "gPartyHint": "ക്ഷണിക്കൂ: തീയതി, സ്ഥലം, മാപ്പ്, RSVP.",
+    "gFrom": "ആരിൽ നിന്ന് (കുടുംബം അല്ലെങ്കിൽ സ്ഥാപനം)"
   },
   "picker": {
     "chooseDate": "തീയതി തിരഞ്ഞെടുക്കുക",
@@ -1547,6 +1613,10 @@
     "Recolours the photo in the two main colours of the design": "ഫോട്ടോയെ ഡിസൈനിന്റെ രണ്ട് പ്രധാന നിറങ്ങളിലാക്കുന്നു",
     "Strength": "തീവ്രത",
     "Show on": "ഇവിടെ കാണിക്കുക",
-    "Card image": "കാർഡ് ചിത്രം"
+    "Card image": "കാർഡ് ചിത്രം",
+    "Interactive": "ഇന്ററാക്ടീവ്",
+    "A one-of-a-kind invitation website, made to be shared on WhatsApp": "WhatsApp-ൽ പങ്കിടാൻ ഒരുക്കിയ വേറിട്ട ക്ഷണ വെബ്സൈറ്റ്",
+    "RSVP, map and countdown built in": "RSVP, മാപ്പ്, കൗണ്ട്ഡൗൺ ഉൾപ്പെടെ",
+    "Website-only design: your card and video keep their own designs": "വെബ്സൈറ്റിന് മാത്രമുള്ള ഡിസൈൻ: നിങ്ങളുടെ കാർഡും വീഡിയോയും സ്വന്തം ഡിസൈനിൽ തുടരും"
   }
 }

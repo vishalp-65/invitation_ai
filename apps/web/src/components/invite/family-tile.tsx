@@ -3,7 +3,6 @@
 import { sampleInviteProps, type TemplateDefinition } from '@cardai/shared';
 import { clsx } from 'clsx';
 import { ArrowRight, Check, Crown, Eye, Film } from 'lucide-react';
-import Image from 'next/image';
 import { coverOf, TemplateCover } from './template-cover';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
@@ -23,6 +22,9 @@ interface Props {
   priority?: boolean;
   /** Show a "Preview" button over the art (wizard). */
   onPreview?: (t: TemplateDefinition) => void;
+  /** Wizard: a hover "use this design" button that picks and finishes in one tap. */
+  onUse?: (t: TemplateDefinition) => void;
+  useLabel?: string;
   /** Gallery: clicking the art opens a preview; `href` becomes a hover "Use this design" button. */
   onOpen?: (t: TemplateDefinition) => void;
   /** Show colourway count and Free/Premium under the name. */
@@ -34,7 +36,7 @@ interface Props {
  * One design family: a pre-rendered thumbnail (fast, CDN-cached) + colourway swatches.
  * Marketplace designs have no pre-render, so they fall back to a lazy live thumbnail.
  */
-export function FamilyTile({ name, variants, href, onPick, selectedId, priority, onPreview, onOpen, meta, hi }: Props) {
+export function FamilyTile({ name, variants, href, onPick, selectedId, priority, onPreview, onUse, useLabel, onOpen, meta, hi }: Props) {
   const selectedIdx = variants.findIndex((v) => v.id === selectedId);
   const [active, setActive] = useState(selectedIdx >= 0 ? selectedIdx : 0);
   useEffect(() => {
@@ -59,14 +61,12 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
       ) : t.doc ? (
         <TemplateCover id={t.id} name={t.name} coverPage={coverOf(t.doc)} />
       ) : (
-        <Image
-          src={`/showcase/${t.id}.jpg`}
-          alt={`${t.name} invitation design`}
-          width={432}
-          height={768}
+        <TemplateCover
+          id={t.id}
+          name={t.name}
           sizes="(max-width: 640px) 46vw, (max-width: 1024px) 30vw, 240px"
-          className="skeleton aspect-[9/16] w-full object-cover transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]"
           priority={priority}
+          className="transition-transform duration-700 ease-[var(--ease-out-quint)] group-hover:scale-[1.03]"
         />
       )}
       {t.premium && (
@@ -123,6 +123,19 @@ export function FamilyTile({ name, variants, href, onPick, selectedId, priority,
             {hi ? 'यह डिज़ाइन चुनें' : 'Use this design'}
             <ArrowRight className="size-4" aria-hidden />
           </Link>
+        )}
+        {onUse && (
+          <button
+            type="button"
+            onClick={() => {
+              track('template_select', { templateId: t.id, props: { oneTap: true } });
+              onUse(t);
+            }}
+            className="absolute bottom-2.5 left-2.5 hidden h-9 items-center gap-1.5 rounded-full bg-primary px-3.5 text-xs font-medium text-on-primary transition-[opacity,transform] duration-200 hover:bg-primary-hover focus-visible:opacity-100 lg:inline-flex lg:translate-y-1 lg:opacity-0 lg:group-hover/tile:translate-y-0 lg:group-hover/tile:opacity-100"
+          >
+            {useLabel}
+            <ArrowRight className="size-3.5" aria-hidden />
+          </button>
         )}
         {onPreview && (
           <button

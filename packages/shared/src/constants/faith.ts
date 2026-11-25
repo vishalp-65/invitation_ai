@@ -23,6 +23,21 @@ const EVENT_FAITH: Record<string, Faith> = {
   upanayana: 'hindu',
   mundan: 'hindu',
   annaprashan: 'hindu',
+  'satyanarayan-katha': 'hindu',
+  // Festivals of one faith (marks follow the festival, whatever the family's tradition).
+  diwali: 'hindu',
+  holi: 'hindu',
+  navratri: 'hindu',
+  'ganesh-chaturthi': 'hindu',
+  'durga-puja': 'hindu',
+  'karva-chauth': 'hindu',
+  janmashtami: 'hindu',
+  'raksha-bandhan': 'hindu',
+  'bhai-dooj': 'hindu',
+  sankranti: 'hindu',
+  christmas: 'christian',
+  eid: 'muslim',
+  gurpurab: 'sikh',
 };
 
 const COMMUNITY_FAITH: Record<Community, Faith> = {
@@ -42,7 +57,7 @@ const COMMUNITY_FAITH: Record<Community, Faith> = {
 };
 
 /** Occasions that carry no blessing, whatever the family's faith. */
-const NON_RITUAL_EVENTS = new Set(['birthday', 'corporate', 'retirement', 'other']);
+const NON_RITUAL_EVENTS = new Set(['birthday', 'corporate', 'retirement', 'other', 'cocktail', 'bachelorette', 'first-birthday', 'milestone-birthday', 'kitty-party', 'graduation', 'farewell', 'reunion', 'new-year', 'lohri', 'onam', 'group-trip', 'family-trip', 'holiday-greeting']);
 
 /**
  * Faith for an event. A faith's own ceremony (Nikah, Anand Karaj…) wins; then the tradition the

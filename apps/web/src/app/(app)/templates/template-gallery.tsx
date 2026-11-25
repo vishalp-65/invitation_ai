@@ -31,7 +31,7 @@ const OCCASIONS: Array<EventTypeId | 'all'> = [
 type Price = 'all' | 'free' | 'premium';
 /** What the visitor wants to make. Cards and cinematic designs are two catalogs; video and website share one. */
 type Format = 'card' | SiteFormat;
-type Look = 'all' | 'painted' | 'modern';
+type Look = 'all' | 'painted' | 'modern' | 'interactive';
 const FORMATS = ['card', 'video', 'website'] as const;
 type Sort = 'recommended' | 'popular' | 'free' | 'az';
 type Family = { id: string; name: string; variants: TemplateDefinition[] };
@@ -80,12 +80,13 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
   const [previewId, setPreviewId] = useState<string | null>(() => params.get('design'));
   const [sheetOpen, setSheetOpen] = useState(false);
   const [format, setFormatState] = useState<Format>(() => pick(params.get('format'), FORMATS, 'card'));
-  const [look, setLook] = useState<Look>(() => pick(params.get('look'), ['all', 'painted', 'modern'] as const, 'all'));
+  const [look, setLook] = useState<Look>(() => pick(params.get('look'), ['all', 'painted', 'modern', 'interactive'] as const, 'all'));
   const L = useL();
   const siteMode = format !== 'card';
   // Ids differ between the catalogs, so an open preview closes when the catalog changes.
   const setFormat = (f: Format) => {
     if ((f === 'card') !== (format === 'card')) setPreviewId(null);
+    if (f !== 'website' && look === 'interactive') setLook('all');
     setFormatState(f);
   };
   const eventType = occasion === 'all' ? undefined : occasion;
@@ -131,9 +132,11 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
       (d) =>
         words.every((w) => siteDesignText(d).includes(w)) &&
         (price === 'all' || (price === 'premium') === isPremiumSiteDesign(d.id)) &&
-        (look === 'all' || (d.scene.style ?? 'painted') === look),
+        (look === 'interactive' ? Boolean(d.layout) : look === 'all' || (d.scene.style ?? 'painted') === look) &&
+        // Layout designs (chat, stories…) are website-only.
+        (format === 'website' || !d.layout),
     );
-  }, [siteMode, eventType, visibility, state.q, price, look]);
+  }, [siteMode, eventType, visibility, state.q, price, look, format]);
   const previewSite = siteMode ? getSiteDesign(previewId) : null;
   const siteHref = (d: SiteDesign) => `/create?type=${occasion === 'all' ? occasionForSiteDesign(d) : occasion}&site=${d.id}`;
   const hrefFor = (t: TemplateDefinition) => (occasion === 'all' ? designHref(t) : `/create?type=${occasion}&template=${t.id}`);
@@ -148,7 +151,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
   };
   const shownCount = siteMode ? siteDesigns.length : families.length;
 
-  const panel = <FilterPanel state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} site={siteMode} look={look} onLook={setLook} />;
+  const panel = <FilterPanel state={state} onChange={setState} price={price} onPrice={setPrice} hi={hi} site={siteMode} website={format === 'website'} look={look} onLook={setLook} />;
   const formatHint = {
     card: L('Every card also makes a video and a website. Pick the card here.'),
     video: L('An animated 9:16 video for WhatsApp. The same design becomes your invitation website.'),
@@ -158,7 +161,7 @@ export function TemplateGallery({ inApp = false, initial }: { inApp?: boolean; i
   return (
     <>
       {/* What to make: the card catalog, or the cinematic designs as a video or a website. */}
-      <div className="mt-10">
+      <div className={inApp ? 'mt-6' : 'mt-10'}>
         <div className="grid max-w-md grid-cols-3 border border-ink/15" role="tablist" aria-label={L('What are you making?')}>
           {(
             [
@@ -378,6 +381,7 @@ function FilterPanel({
   onPrice,
   hi,
   site = false,
+  website = false,
   look = 'all',
   onLook,
 }: {
@@ -388,6 +392,8 @@ function FilterPanel({
   hi: boolean;
   /** Video / website designs: price and look only (colour, style and tradition are card filters). */
   site?: boolean;
+  /** Website mode also lists the interactive (website-only) layouts. */
+  website?: boolean;
   look?: Look;
   onLook?: (l: Look) => void;
 }) {
@@ -427,8 +433,10 @@ function FilterPanel({
                 ['all', L('All')],
                 ['painted', L('Painted')],
                 ['modern', L('Modern')],
+                // Website-only layouts: chat, stories, boarding pass, newspaper…
+                ['interactive', L('Interactive')],
               ] as const
-            ).map(([id, label]) => (
+            ).filter(([id]) => website || id !== 'interactive').map(([id, label]) => (
               <button
                 key={id}
                 type="button"

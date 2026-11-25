@@ -161,12 +161,15 @@ export class AdminAnalyticsService {
       select
         count(distinct visitor_id) filter (where name = 'page_view') as visited,
         count(distinct visitor_id) filter (where name = 'template_view') as "viewedTemplate",
-        count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'occasion') as "startedCreate",
+        -- Any step: gallery links and saved details now open the wizard past the occasion step.
+        count(distinct visitor_id) filter (where name = 'create_step') as "startedCreate",
+        count(distinct visitor_id) filter (where name = 'details_reused') as "reusedDetails",
         count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'details') as "reachedDetails",
         count(distinct visitor_id) filter (where name = 'create_step' and props->>'step' = 'design') as "reachedDesign",
         count(distinct visitor_id) filter (where name in ('signup_start', 'otp_requested')) as "startedSignup",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'signup') as "signedUp",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'event_created') as "createdInvite",
+        count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'design_changed') as "changedDesign",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'checkout_start') as "startedCheckout",
         count(distinct coalesce(user_id::text, visitor_id)) filter (where name = 'purchase') as "paid"
       from analytics_events where created_at >= ${from}`);
@@ -175,10 +178,12 @@ export class AdminAnalyticsService {
       ['viewedTemplate', 'Viewed a template'],
       ['startedCreate', 'Opened the create wizard'],
       ['reachedDetails', 'Reached details'],
+      ['reusedDetails', 'Skipped details (already saved)'],
       ['reachedDesign', 'Reached design'],
       ['startedSignup', 'Opened sign-up'],
       ['signedUp', 'Signed up'],
       ['createdInvite', 'Created an invitation'],
+      ['changedDesign', 'Changed an invitation’s design'],
       ['startedCheckout', 'Started checkout'],
       ['paid', 'Paid'],
     ];

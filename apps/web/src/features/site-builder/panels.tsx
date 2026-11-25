@@ -62,6 +62,14 @@ const LABEL: Record<string, string> = {
   petals: 'Petal burst',
   seal: 'Wax seal',
   lanterns: 'Sky lanterns',
+  notification: 'Phone message',
+  story: 'Story ring',
+  boarding: 'Boarding pass',
+  newspaper: 'Spinning newspaper',
+  vinyl: 'Vinyl record',
+  arcade: 'Press start',
+  menu: 'Menu card',
+  calendar: 'Calendar flip',
   auto: 'Auto',
   couple: 'Couple',
   ganesha: 'Ganesha',
@@ -395,7 +403,7 @@ export function LookPanel({
         <>
           <Group
             title="Opening"
-            hint="What guests see first: tap to open. Wax seal, palace doors, envelope, royal scroll, curtain, bloom or sky lanterns. The tap also starts your music."
+            hint="What guests see first: tap to open. Classic (wax seal, palace doors, envelope, scroll, curtain, petals, lanterns) or playful (a phone message, a boarding pass, a spinning newspaper, a vinyl record, an arcade start screen…). The tap also starts your music."
           >
             <div className="flex flex-wrap gap-2">
               {SITE_OPENINGS.map((o) => (

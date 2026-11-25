@@ -1,4 +1,4 @@
-import { eq, renders, type RenderOutput } from '@cardai/db';
+import { and, eq, inArray, renders, type RenderOutput } from '@cardai/db';
 import { COMPOSITION_IDS, DESIGN_PRINT, RENDER_QUALITY, VIDEO, type RenderJobData } from '@cardai/shared';
 import { renderMedia, renderStill, selectComposition } from '@remotion/renderer';
 import type { Job } from 'bullmq';
@@ -142,6 +142,21 @@ export function createRenderProcessor(ctx: WorkerContext, remotion: RemotionRunt
       await rm(dir, { recursive: true, force: true });
     }
   };
+}
+
+/**
+ * Marks the row of a permanently failed job as failed. The processor already does this for its own
+ * errors (then nothing matches here); it never runs for a job that stalled too often, which would
+ * otherwise stay "processing" forever.
+ */
+export async function settleFailedRender(ctx: WorkerContext, job: Job<RenderJobData>): Promise<void> {
+  if ((await job.getState()) !== 'failed') return; // a retry is still to come
+  const [row] = await ctx.db
+    .update(renders)
+    .set({ status: 'failed', error: 'Rendering failed. Please try again.' })
+    .where(and(eq(renders.id, job.data.renderId), inArray(renders.status, ['queued', 'processing'])))
+    .returning({ id: renders.id });
+  if (row) await ctx.notifications.add('render.failed', { kind: 'render.failed', renderId: row.id });
 }
 
 /** Bitrate budget that keeps the MP4 under WhatsApp's forwarding limit regardless of length. */

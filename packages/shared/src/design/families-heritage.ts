@@ -6,7 +6,7 @@ import type { DesignElement } from './schema.js';
 import { ATELIER_FAMILIES } from './families-atelier.js';
 import { CELEBRATION_FAMILIES } from './families-celebration.js';
 import { PAINTED_FAMILIES } from './families-painted.js';
-import { LAYOUT_FAMILIES } from './families-layout.js';
+import { OCCASION_FAMILIES } from './families-occasions.js';
 
 /**
  * "Heritage & Florals" collection (Nov 2026): multi-page, Canva-style invitations —
@@ -479,4 +479,4 @@ export const HERITAGE_FAMILIES: DesignFamily[] = [
 ];
 
 /** Every layered family: newest collections first (Atelier, Celebration, Heritage, then the first set). */
-export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...PAINTED_FAMILIES, ...LAYOUT_FAMILIES, ...ATELIER_FAMILIES, ...CELEBRATION_FAMILIES, ...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];
+export const ALL_DESIGN_FAMILIES: DesignFamily[] = [...PAINTED_FAMILIES, ...OCCASION_FAMILIES, ...ATELIER_FAMILIES, ...CELEBRATION_FAMILIES, ...HERITAGE_FAMILIES, ...DESIGN_FAMILIES];

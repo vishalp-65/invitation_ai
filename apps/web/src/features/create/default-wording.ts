@@ -23,7 +23,7 @@ const FAITH_WEDDING: Partial<Record<Faith, EventTypeId>> = { muslim: 'nikah', si
  * The blessing line follows the family's faith (occasion + tradition): Ganesha for Hindu families,
  * Bismillah for a Nikah or a Muslim family, Ik Onkar for Sikh, Namokar for Jain, none for parties.
  */
-export function defaultWording(type: EventTypeId, language: LanguageCode, names: string[], hosts: string, community?: Community): EventContent {
+export function defaultWording(type: EventTypeId, language: LanguageCode, names: string[], hosts: string, community?: Community, greeting = false): EventContent {
   const faith = faithOf(type, community);
   // A "wedding" for a Muslim, Sikh or Christian family is titled as their own ceremony, not "Shubh Vivah".
   const titleType: EventTypeId = type === 'wedding' ? (FAITH_WEDDING[faith] ?? type) : type;
@@ -33,6 +33,20 @@ export function defaultWording(type: EventTypeId, language: LanguageCode, names:
   const wedding = ev.category === 'wedding';
   const invocation = invocationFor({ eventType: type, faith, language, community });
 
+  // Greeting cards (Diwali wishes, holiday greetings): a wish from the family, not an invitation.
+  if (greeting)
+    return {
+      invocation,
+      headline: eventTitle(titleType, language),
+      hostLine: hosts ? L.greetFrom(hosts) : L.greetPlain,
+      primaryNames: n.slice(0, 2),
+      primaryDetails: [],
+      connector: n.length === 2 ? L.and : undefined,
+      message: L.greet,
+      familyTitle: '',
+      familyLines: [],
+      closing: L.greetPlain,
+    };
   return {
     invocation,
     headline: eventTitle(titleType, language),
@@ -55,10 +69,11 @@ const STOCK_FIELDS = ['invocation', 'headline', 'hostLine', 'connector', 'messag
  */
 export function rewordForLanguage(
   content: EventContent,
-  opts: { type: EventTypeId; language: LanguageCode; names: string[]; hosts: string; community?: Community },
+  opts: { type: EventTypeId; language: LanguageCode; names: string[]; hosts: string; community?: Community; greeting?: boolean },
 ): EventContent {
-  const next = defaultWording(opts.type, opts.language, opts.names, opts.hosts, opts.community);
-  const all = LANGUAGES.map((l) => defaultWording(opts.type, l.code, opts.names, opts.hosts, opts.community));
+  const next = defaultWording(opts.type, opts.language, opts.names, opts.hosts, opts.community, opts.greeting);
+  // Our lines in any language, greeting or invitation, count as ready-made (safe to swap).
+  const all = LANGUAGES.flatMap((l) => [false, true].map((g) => defaultWording(opts.type, l.code, opts.names, opts.hosts, opts.community, g)));
   const out: EventContent = { ...content };
   for (const f of STOCK_FIELDS) {
     const cur = content[f];

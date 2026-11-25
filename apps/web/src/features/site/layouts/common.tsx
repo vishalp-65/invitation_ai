@@ -1,6 +1,7 @@
 'use client';
 
-import { getEventType, type EventFunctionDto, type SiteDoc } from '@cardai/shared';
+import { getEventType, type EventFunctionDto, type SiteDoc, type SiteLayout } from '@cardai/shared';
+import { LAYOUT_KITS } from './kit';
 import { useEffect, useRef, useState } from 'react';
 import { safeHref, useSite } from '../context';
 
@@ -74,4 +75,44 @@ export function Avatar({ src, name, size, className = '', style }: { src?: strin
       {[...name][0] ?? '♡'}
     </span>
   );
+}
+
+export interface KitPhotoValue {
+  src?: string;
+  /** Focus point + zoom the host set in the builder. */
+  style: React.CSSProperties;
+}
+
+/**
+ * A layout's editable words and photo slots: the host's own (doc.custom) or the layout's
+ * defaults (kit.ts). `text(key, fallback)` uses `fallback` when the default is empty
+ * (e.g. "the occasion"); `photo(slot)` falls back to the invitation's photos in order.
+ */
+export function useKit(doc: SiteDoc, layout: SiteLayout) {
+  const { t, asset, data } = useSite();
+  const kit = LAYOUT_KITS[layout];
+  const custom = doc.custom;
+  const text = (key: string, fallback = ''): string => {
+    const own = custom?.text?.[key]?.trim();
+    if (own) return own;
+    const d = kit.text.find((x) => x.key === key);
+    return (d ? t(d.en, d.hi) : '') || fallback;
+  };
+  const photo = (key: string): KitPhotoValue => {
+    const slot = kit.photos.find((x) => x.key === key);
+    const c = custom?.photos?.[key];
+    const src = asset(c?.assetId) ?? data.media.photos[slot?.from ?? 0] ?? data.media.photos[0];
+    const fx = c?.fx ?? 50;
+    const fy = c?.fy ?? 50;
+    const zoom = c?.zoom ?? 1;
+    return { src, style: { objectPosition: `${fx}% ${fy}%`, ...(zoom > 1 ? { transform: `scale(${zoom})`, transformOrigin: `${fx}% ${fy}%` } : {}) } };
+  };
+  return { text, photo };
+}
+
+/** An <img> for a kit photo slot (cover-fit, the host's focus point and zoom), or `fallback`. */
+export function KitImg({ photo, className = '', alt = '', fallback = null, eager = false }: { photo: KitPhotoValue; className?: string; alt?: string; fallback?: React.ReactNode; eager?: boolean }) {
+  if (!photo.src) return <>{fallback}</>;
+  // eslint-disable-next-line @next/next/no-img-element -- host photos on our storage
+  return <img src={photo.src} alt={alt} loading={eager ? 'eager' : 'lazy'} decoding="async" className={`object-cover ${className}`} style={photo.style} />;
 }

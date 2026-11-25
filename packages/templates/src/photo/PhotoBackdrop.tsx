@@ -1,5 +1,6 @@
 import { artSrc, PAINTED_MASKS, photoBgBox, type PhotoBg, type PhotoBgFade, type PhotoBgShape } from '@cardai/shared';
 import type { ComponentType, CSSProperties, ImgHTMLAttributes } from 'react';
+import { photoCrossOrigin } from './cors';
 
 /**
  * The host's photo behind a design (card cover, website hero, video opening): placed on a 3×3
@@ -89,7 +90,7 @@ export function PhotoBackdrop({
       <I
         src={src}
         alt=""
-        crossOrigin="anonymous"
+        crossOrigin={photoCrossOrigin()}
         style={{
           width: '100%',
           height: '100%',

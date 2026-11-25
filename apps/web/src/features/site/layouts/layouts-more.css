@@ -1,0 +1,65 @@
+/* Layout designs added in Nov 2026 (boarding pass, front page, playlist, arcade, menu, calendar)
+   and every layout's lower sections (headings + cards). Transform / opacity animations only. */
+
+/* ---------- Boarding Pass ---------- */
+.inv-bp-sky { background: linear-gradient(180deg, #6fb2e6 0%, #b9dcf6 55%, var(--inv-bg) 100%); }
+.inv-bp-window { position: relative; width: min(62vw, 250px); aspect-ratio: 3 / 4; border-radius: 46% / 36%; overflow: hidden; border: 14px solid #f4f6fa; box-shadow: inset 0 0 0 3px #d5dbe5, 0 18px 40px -18px rgb(0 0 0 / 0.45); }
+.inv-bp-shade { position: absolute; inset: 0; background: linear-gradient(180deg, rgb(255 255 255 / 0.25), transparent 30%); }
+.inv-bp-clouds { background: radial-gradient(circle at 30% 70%, #fff 0 18%, transparent 19%), radial-gradient(circle at 60% 60%, #fff 0 22%, transparent 23%), linear-gradient(#7fc0ee, #d9efff); }
+.inv-bp-pass { background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 22px 50px -24px rgb(16 32 64 / 0.55); }
+.inv-bp-print { animation: inv-bp-print 0.9s cubic-bezier(0.2, 0.9, 0.3, 1) both; }
+@keyframes inv-bp-print { from { clip-path: inset(0 0 100% 0); transform: translateY(-14px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+.inv-bp-plane { animation: inv-bp-fly 3.4s ease-in-out infinite; }
+@keyframes inv-bp-fly { 0% { left: 0; } 100% { left: calc(100% - 1.5rem); } }
+.inv-bp-stub { border-top: 2px dashed rgb(31 78 156 / 0.3); background: #f7f9fc; }
+.inv-bp-seg { border-left: 4px solid var(--inv-primary); }
+
+/* ---------- Front Page ---------- */
+.inv-np-in > * { animation: inv-np-in 0.7s ease both; }
+.inv-np-in > *:nth-child(2) { animation-delay: 0.08s; }
+.inv-np-in > *:nth-child(4) { animation-delay: 0.16s; }
+.inv-np-in > *:nth-child(5) { animation-delay: 0.24s; }
+@keyframes inv-np-in { from { opacity: 0; transform: translateY(10px); } }
+.inv-np-photo img { filter: grayscale(0.25) contrast(1.05); }
+.inv-np-dropcap::first-letter { float: left; font-family: var(--inv-display); font-size: 3.6em; line-height: 0.8; padding: 0.06em 0.08em 0 0; font-weight: 700; }
+.inv-np-classified { background: repeating-linear-gradient(0deg, transparent 0 22px, rgb(0 0 0 / 0.04) 22px 23px); }
+
+/* ---------- Our Playlist ---------- */
+.inv-pl-blur { filter: blur(40px) saturate(1.4); transform: scale(1.3); }
+.inv-pl-cover { box-shadow: 0 30px 60px -20px rgb(0 0 0 / 0.8); transition: transform 0.4s ease; }
+.inv-pl-beat { animation: inv-pl-beat 0.9s ease-in-out infinite; }
+@keyframes inv-pl-beat { 50% { transform: scale(1.025); } }
+.inv-pl-progress { transition: width 1.2s ease; }
+
+/* ---------- Level Up ---------- */
+.inv-pixel { font-family: 'Press Start 2P', ui-monospace, monospace; letter-spacing: 0.02em; }
+.inv-ar-stars { background-image: radial-gradient(#fff 1px, transparent 1.5px), radial-gradient(#7cf9ff 1px, transparent 1.5px); background-size: 46px 46px, 73px 73px; background-position: 0 0, 20px 30px; opacity: 0.35; animation: inv-ar-scroll 30s linear infinite; }
+@keyframes inv-ar-scroll { to { background-position: 0 460px, 20px 760px; } }
+.inv-ar-frame { box-shadow: 0 0 0 4px #ffd84a, 0 0 0 8px #e8336d, 8px 8px 0 8px #000; }
+.inv-ar-blink { animation: inv-ar-blink 0.9s steps(2) infinite; }
+@keyframes inv-ar-blink { 50% { opacity: 0; } }
+.inv-ar-path { background: repeating-linear-gradient(180deg, #7cf9ff 0 8px, transparent 8px 16px); }
+.inv-ar-node { box-shadow: 0 0 0 3px #0a0820, 0 0 0 6px currentColor; font-family: 'Press Start 2P', monospace; }
+.inv-ar-card { background: #151238; box-shadow: 0 0 0 3px #f2f2ff, 6px 6px 0 3px #e8336d; }
+.inv-ar-pop { animation: inv-ar-pop 0.45s steps(4) both; }
+@keyframes inv-ar-pop { from { opacity: 0; transform: scale(0.6); } }
+
+/* ---------- Tasting Menu ---------- */
+.inv-mn-card { background: var(--inv-bg); border: 3px double var(--inv-accent); outline: 1px solid var(--inv-accent); outline-offset: 6px; }
+.inv-mn-in { animation: inv-mn-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes inv-mn-in { from { opacity: 0; transform: translateY(18px) scale(0.98); } }
+.inv-mn-rule { height: 14px; background: radial-gradient(circle, var(--inv-accent) 0 3px, transparent 4px) center / 14px 14px no-repeat, linear-gradient(var(--inv-accent), var(--inv-accent)) left center / 42% 1px no-repeat, linear-gradient(var(--inv-accent), var(--inv-accent)) right center / 42% 1px no-repeat; }
+.inv-mn-receipt { background: #fffdf6; color: #2b1d16; border-block: 2px dashed rgb(43 29 22 / 0.35); }
+
+/* ---------- The Big Day ---------- */
+.inv-cl-page { box-shadow: 0 24px 50px -26px rgb(0 0 0 / 0.45); }
+.inv-cl-rings { background: radial-gradient(circle, #6b6b6b 0 5px, transparent 6px) 0 50% / 12.5% 100% repeat-x; }
+.inv-cl-circle path { stroke-dasharray: 160; stroke-dashoffset: 160; }
+.inv-cl-circle.is-drawn path { animation: inv-cl-draw 1s 0.3s ease-out forwards; }
+@keyframes inv-cl-draw { to { stroke-dashoffset: 0; } }
+.inv-cl-sticky { position: relative; z-index: 3; background: #ffe680; color: #3a3220; box-shadow: 0 14px 24px -16px rgb(0 0 0 / 0.5); }
+.inv-cl-tear { border-bottom: 2px dashed rgb(0 0 0 / 0.12); }
+
+.inv-motion-off .inv-bp-print, .inv-motion-off .inv-np-in > *, .inv-motion-off .inv-pl-beat, .inv-motion-off .inv-ar-stars,
+.inv-motion-off .inv-ar-pop, .inv-motion-off .inv-mn-in, .inv-motion-off .inv-bp-plane { animation: none; }
+.inv-motion-off .inv-cl-circle path { stroke-dashoffset: 0; animation: none; }

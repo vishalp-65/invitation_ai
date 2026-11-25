@@ -10,7 +10,7 @@ export function detailsProblem(d: Pick<Draft, 'type' | 'names' | 'functions'>): 
   if (d.names.slice(0, people).some((n) => !n.trim())) return people === 2 ? 'errNames' : 'errName';
   if (d.functions.length > 1 && d.functions.some((f) => !f.name.trim())) return 'errFnName';
   if (d.functions.some((f) => !f.date)) return 'errDate';
-  if (d.functions.some((f) => !f.venueName.trim())) return 'errVenue';
+  if (d.functions.some((f) => !f.venueLater && !f.venueName.trim())) return 'errVenue';
   if (d.functions.some((f) => f.mapUrl && !isMapUrl(f.mapUrl))) return 'errMap';
   return null;
 }

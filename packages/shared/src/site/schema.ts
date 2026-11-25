@@ -65,7 +65,11 @@ export const SITE_CHARACTERS = [
 export type SiteCharacter = (typeof SITE_CHARACTERS)[number];
 
 /** Tap-to-open scene shown before the page. */
-export const SITE_OPENINGS = ['none', 'envelope', 'doors', 'curtain', 'scroll', 'petals', 'seal', 'lanterns'] as const;
+export const SITE_OPENINGS = [
+  'none', 'envelope', 'doors', 'curtain', 'scroll', 'petals', 'seal', 'lanterns',
+  // Playful openings (Nov 2026), made for the layout designs but open to every page.
+  'notification', 'story', 'boarding', 'newspaper', 'vinyl', 'arcade', 'menu', 'calendar',
+] as const;
 export type SiteOpening = (typeof SITE_OPENINGS)[number];
 
 /** Video invite made from the design: full film, 15-second save-the-date reel, or page-turn storybook. */
@@ -258,6 +262,28 @@ export const siteDocSchema = z.object({
    * next, the live stream, and a "share your photos" button for the photo wall.
    */
   live: z.object({ enabled: z.boolean().default(true) }).default({ enabled: true }),
+  /**
+   * Host's changes to a layout design (chat, stories, boarding pass…): its own words (keys from
+   * the layout's text list), which photo goes in each slot with its focus point and zoom, and
+   * the heading / handwriting fonts. Empty = the layout's defaults.
+   */
+  custom: z
+    .object({
+      text: z.record(z.string().regex(/^[a-z0-9.]{2,40}$/), text(400)).default({}),
+      photos: z
+        .record(
+          z.string().regex(/^[a-z0-9-]{2,24}$/),
+          z.object({
+            assetId: z.uuid().optional(),
+            fx: z.number().min(0).max(100).default(50),
+            fy: z.number().min(0).max(100).default(50),
+            zoom: z.number().min(1).max(3).default(1),
+          }),
+        )
+        .default({}),
+      fonts: z.object({ display: text(60).optional(), script: text(60).optional() }).default({}),
+    })
+    .default({ text: {}, photos: {}, fonts: {} }),
   /** Royale: second language the guest can switch to. */
   alt: z
     .object({

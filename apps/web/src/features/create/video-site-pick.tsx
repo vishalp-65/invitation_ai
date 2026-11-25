@@ -1,6 +1,7 @@
 'use client';
 
-import { defaultDesignFor, getSiteDesign, visibleDesigns, type SiteDesign } from '@cardai/shared';
+import { defaultDesignFor, getSiteDesign, videoDesignFor, visibleDesigns, type SiteDesign } from '@cardai/shared';
+import { clsx } from 'clsx';
 import { Film, Globe } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -16,7 +17,7 @@ import { useDraft } from './draft-store';
  * The design step's second choice: which design the video and website use. Shows what they get
  * now (the user's pick, the card's matching art, or the occasion's suggestion) and lets them change it.
  */
-export function VideoSitePick() {
+export function VideoSitePick({ compact }: { compact?: boolean } = {}) {
   const d = useDraft();
   const t = useTranslations('create');
   const visibility = useDesignVisibility();
@@ -27,8 +28,19 @@ export function VideoSitePick() {
   const picked = getSiteDesign(d.siteDesign);
   const matched = siteDesignOfCard(card);
   const current: SiteDesign | null = picked ?? matched ?? getSiteDesign(defaultDesignFor(d.type, d.community, card?.design));
-  const why = picked ? (matched?.id === picked.id ? t('vsMatches') : t('vsPicked')) : matched ? t('vsMatches') : t('vsSuggested', { occasion: t(`occ.${d.type}`) });
-  const designs = useMemo(() => visibleDesigns(siteDesignsForOccasion(d.type, d.community), visibility, 'picker'), [d.type, d.community, visibility]);
+  // A layout design (chat, boarding pass…) picked in the gallery is website-only.
+  const videoDesign = current?.layout ? getSiteDesign(videoDesignFor(current.id, d.type, d.community, card?.design)) : null;
+  const why = videoDesign
+    ? t('vsWebsiteOnly', { video: videoDesign.name })
+    : picked
+      ? matched?.id === picked.id
+        ? t('vsMatches')
+        : t('vsPicked')
+      : matched
+        ? t('vsMatches')
+        : t('vsSuggested', { occasion: t(`occ.${d.type}`) });
+  // Designs that make both a video and a website (layout designs are website-only).
+  const designs = useMemo(() => visibleDesigns(siteDesignsForOccasion(d.type, d.community), visibility, 'picker').filter((x) => !x.layout), [d.type, d.community, visibility]);
   // The card in the same art as the picked video design, when it isn't the card already.
   const matchingCard = picked && card?.design !== picked.id ? cardForSiteDesign(picked.id, d.type) : undefined;
   const choose = (x: SiteDesign) => {
@@ -39,9 +51,9 @@ export function VideoSitePick() {
 
   if (!current) return null;
   return (
-    <div className="flex items-center gap-4 border border-ink/10 bg-ink/[0.02] p-3 sm:p-4">
+    <div className={clsx('flex items-center border border-ink/10 bg-ink/[0.02]', compact ? 'gap-3 rounded-[var(--radius-card)] p-2.5' : 'gap-4 p-3 sm:p-4')}>
       <SiteDesignFonts designs={[current]} />
-      <div className="relative aspect-[9/16] w-12 shrink-0 overflow-hidden border border-ink/10 sm:w-14" aria-hidden>
+      <div className={clsx('relative aspect-[9/16] shrink-0 overflow-hidden border border-ink/10', compact ? 'w-9' : 'w-12 sm:w-14')} aria-hidden>
         <DesignPoster design={current} still />
       </div>
       <div className="min-w-0 flex-1">
@@ -50,8 +62,8 @@ export function VideoSitePick() {
           <Globe className="size-3" aria-hidden />
           {t('vsTitle')}
         </p>
-        <p className="mt-0.5 truncate">{current.name}</p>
-        <p className="truncate text-sm text-ink-soft">{why}</p>
+        <p className={clsx('mt-0.5 truncate', compact && 'text-sm')} title={compact ? why : undefined}>{current.name}</p>
+        {!compact && <p className="truncate text-sm text-ink-soft">{why}</p>}
         {matchingCard && (
           <button type="button" onClick={() => d.pickSiteDesign(picked!.id, true)} className="mt-1 text-sm text-primary underline-offset-4 hover:underline">
             {t('vsUseCard')}

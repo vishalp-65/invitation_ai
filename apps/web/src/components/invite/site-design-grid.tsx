@@ -160,6 +160,9 @@ export function SiteDesignPreview({
   const L = useL();
   const card = design ? cardForSiteDesign(design.id, eventType) : undefined;
   const premium = design ? isPremiumSiteDesign(design.id) : false;
+  // Layout designs (chat, stories, boarding pass…) are website-only: no video tab.
+  const websiteOnly = Boolean(design?.layout);
+  const shown: SiteFormat = websiteOnly ? 'website' : format;
   const ctaClass =
     'press inline-flex h-12 w-full items-center justify-center gap-2 rounded-[var(--radius-control)] bg-primary font-medium text-on-primary transition-colors hover:bg-primary-hover';
   const cta = design && (
@@ -186,6 +189,7 @@ export function SiteDesignPreview({
           <SiteDesignFonts designs={[design]} />
           <div className="grid gap-6 sm:grid-cols-[auto_minmax(0,1fr)] sm:gap-8">
             <div className="mx-auto w-full max-w-[340px] sm:w-[min(340px,max(12rem,calc((100dvh-20rem)*0.5625)))]">
+              {!websiteOnly && (
               <div className="mb-3 grid grid-cols-2 border border-ink/15" role="tablist" aria-label={L('Show as')}>
                 {(
                   [
@@ -209,8 +213,9 @@ export function SiteDesignPreview({
                   </button>
                 ))}
               </div>
+              )}
               <div className="relative aspect-[9/16] overflow-hidden rounded-xl border border-ink/10 bg-ink/[0.04]">
-                {format === 'video' ? (
+                {shown === 'video' ? (
                   <DesignPoster key={design.id} design={design} />
                 ) : (
                   // The real sample site at phone width, so its mobile layout is what guests get.
@@ -224,7 +229,7 @@ export function SiteDesignPreview({
                 )}
               </div>
               <p className="mt-2 text-center text-xs text-ink-soft">
-                {format === 'video' ? L('The opening of your video. Yours plays with music and your details.') : L('Scroll to see the whole website.')}
+                {shown === 'video' ? L('The opening of your video. Yours plays with music and your details.') : L('Scroll to see the whole website.')}
               </p>
             </div>
 
@@ -239,8 +244,9 @@ export function SiteDesignPreview({
               <p className="mt-4 text-ink-soft">{design.blurb}</p>
               <ul className="mt-6 flex flex-col gap-2 text-[0.95rem]">
                 {[
-                  L('A 9:16 video under 16 MB that plays crisp on WhatsApp'),
-                  L('The same design as your invitation website, with RSVP, map and countdown'),
+                  ...(websiteOnly
+                    ? [L('A one-of-a-kind invitation website, made to be shared on WhatsApp'), L('RSVP, map and countdown built in'), L('Website-only design: your card and video keep their own designs')]
+                    : [L('A 9:16 video under 16 MB that plays crisp on WhatsApp'), L('The same design as your invitation website, with RSVP, map and countdown')]),
                   card ? L('Matching image card: {name}', { name: card.family?.name ?? card.name }) : L('Goes with any image card design'),
                   ...(premium ? [L('Premium design: part of the Website plan')] : []),
                 ].map((line) => (

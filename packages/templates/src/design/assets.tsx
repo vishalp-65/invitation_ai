@@ -5,6 +5,7 @@ import { DiyaArt, MandalaWatermark } from '../art/Diya';
 import { Cluster, FloralCorners } from '../art/Florals';
 import { Ganesha } from '../art/Ganesha';
 import { Balloons, BabyMoon, Cake, Cradle } from '../art/Kids';
+import { Bonfire, Champagne, Cocktail, ColorBurst, Dandiya, Fireworks, Flute, GradCap, HennaHand, Kite, Palm, PongalPot, Rakhi, Shankh, Snowflake, Suitcase, Thali, XmasTree } from './festive-art';
 import { Arch, Border, Clouds, Confetti, Corner, Divider, Gift, Lantern, Rainbow, Ribbon, Rings, Skyline, Sprig, Stars, Sunburst, Wreath } from '../art/Ornaments';
 import { Bandhanwar, Bells, DiyaRow, Doves, Elephant, House, Kalash, LotusBloom, Peacock, Rangoli } from '../art/Sacred';
 import { ArchPanel, Bow, Chhatri, Filigree, FnIcon, GendaLadi, GeoFrame, GoldRing, PalaceArch } from '../art/Architecture';
@@ -25,7 +26,7 @@ export interface AssetRenderProps {
   t: number;
 }
 
-export type StickerCategory = 'wedding' | 'kids' | 'religious' | 'business' | 'ornament';
+export type StickerCategory = 'wedding' | 'kids' | 'religious' | 'festival' | 'travel' | 'business' | 'ornament';
 
 export interface AssetDef {
   label: string;
@@ -169,6 +170,25 @@ export const ASSETS: Record<string, AssetDef> = {
   bow: { label: 'Satin bow', colors: ['#B9BEC6', '#8D939C'], aspect: 0.2, render: (p) => <Bow {...p} /> },
   chhatri: { label: 'Royal umbrella', colors: ['#C2185B', '#1B4F9C', '#E9B949'], aspect: 0.8, motion: 'sway', render: (p) => <Chhatri {...p} /> },
   'genda-ladi': { label: 'Marigold strings', colors: ['#F28C0F', '#FFC93C', '#2F7D32'], aspect: 0.35, motion: 'sway', render: (p) => <GendaLadi {...p} /> },
+  // Festival, celebration and travel art (festive-art.tsx).
+  'xmas-tree': { label: 'Christmas tree', colors: ['#2E7D4F', '#E8B84A', '#C62828'], aspect: 200 / 260, motion: 'twinkle', render: (p) => <XmasTree {...p} /> },
+  rakhi: { label: 'Rakhi', colors: ['#C62828', '#E8B84A', '#E65100'], aspect: 300 / 140, motion: 'float', render: (p) => <Rakhi {...p} /> },
+  'color-burst': { label: 'Holi colours', colors: ['#E91E63', '#FFC107', '#4CAF50', '#2196F3'], aspect: 1, render: (p) => <ColorBurst {...p} /> },
+  fireworks: { label: 'Fireworks', colors: ['#F4C542', '#F06292', '#FFFFFF'], aspect: 320 / 260, motion: 'twinkle', render: (p) => <Fireworks {...p} /> },
+  kite: { label: 'Kite', colors: ['#E53935', '#FDD835', '#5D4037'], aspect: 200 / 300, motion: 'sway', render: (p) => <Kite {...p} /> },
+  dandiya: { label: 'Dandiya & garba', colors: ['#C2185B', '#FBC02D', '#E65100'], aspect: 260 / 240, motion: 'sway', render: (p) => <Dandiya {...p} /> },
+  bonfire: { label: 'Bonfire', colors: ['#F4511E', '#FFCA28', '#6D4C41'], aspect: 1, motion: 'flicker', render: (p) => <Bonfire {...p} /> },
+  'pongal-pot': { label: 'Pongal pot', colors: ['#B5651D', '#E8B84A', '#558B2F'], aspect: 1, render: (p) => <PongalPot {...p} /> },
+  shankh: { label: 'Conch', colors: ['#FFF8EC', '#C9973F'], aspect: 260 / 180, motion: 'float', render: (p) => <Shankh {...p} /> },
+  flute: { label: 'Flute & peacock feather', colors: ['#C9973F', '#1565C0', '#2E7D32'], aspect: 320 / 200, motion: 'float', render: (p) => <Flute {...p} /> },
+  'grad-cap': { label: 'Graduation cap', colors: ['#1F2937', '#E8B84A'], aspect: 260 / 200, motion: 'float', render: (p) => <GradCap {...p} /> },
+  suitcase: { label: 'Suitcase', colors: ['#E07A5F', '#81B29A'], aspect: 220 / 240, render: (p) => <Suitcase {...p} /> },
+  palm: { label: 'Palm tree', colors: ['#2E8B57', '#8B5A2B', '#F4D9A6'], aspect: 240 / 280, motion: 'sway', render: (p) => <Palm {...p} /> },
+  cocktail: { label: 'Cocktails', colors: ['#E85D75', '#7CB342'], aspect: 260 / 240, render: (p) => <Cocktail {...p} /> },
+  snowflake: { label: 'Snowflake', colors: ['#FFFFFF'], aspect: 1, motion: 'twinkle', render: (p) => <Snowflake {...p} /> },
+  thali: { label: 'Puja thali', colors: ['#C9973F', '#FFB300', '#C62828'], aspect: 280 / 180, motion: 'flicker', render: (p) => <Thali {...p} /> },
+  'henna-hand': { label: 'Mehendi hand', colors: ['#8D3B1F', '#F3D2B3'], aspect: 200 / 280, render: (p) => <HennaHand {...p} /> },
+  champagne: { label: 'Champagne', colors: ['#2E5D3A', '#E8B84A', '#FFF3C4'], aspect: 200 / 300, motion: 'float', render: (p) => <Champagne {...p} /> },
   'fn-icon': { label: 'Function icon', colors: ['#C9973F', '#F4D58D'], aspect: 1, motion: 'float', render: (p) => <FnIcon {...p} /> },
   'bloom-corner': { label: 'Watercolour bouquet', colors: ['#B58FD1', '#6A4C93', '#7A9A6B', '#E9C46A'], aspect: 1, motion: 'sway', render: (p) => <BloomCorner {...p} /> },
   greenery: { label: 'Greenery', colors: ['#6E8B5A', '#3F5A35'], aspect: 1, motion: 'sway', render: (p) => <Greenery {...p} /> },
@@ -297,6 +317,29 @@ export const STICKERS: Sticker[] = [
   { id: 'chhatri', asset: 'chhatri', label: 'Royal umbrella', category: 'wedding', w: 260 },
   { id: 'genda-ladi', asset: 'genda-ladi', label: 'Marigold strings', category: 'wedding', opts: { count: 3 }, w: 240 },
   ...(['haldi', 'mehendi', 'sangeet', 'baraat', 'wedding', 'pheras', 'reception', 'rings', 'puja', 'nikah', 'cake', 'dinner', 'flower'] as const).map((icon) => ({ id: `fn-icon-${icon}`, asset: 'fn-icon', label: `${icon[0]!.toUpperCase()}${icon.slice(1)} icon`, category: 'wedding' as const, opts: { icon }, w: 150 })),
+  // Festivals and travel.
+  ...(
+    [
+      ['xmas-tree', 'Christmas tree', 'festival', 260],
+      ['rakhi', 'Rakhi', 'festival', 360],
+      ['color-burst', 'Holi colours', 'festival', 420],
+      ['fireworks', 'Fireworks', 'festival', 420],
+      ['kite', 'Kite', 'festival', 220],
+      ['dandiya', 'Dandiya & garba', 'festival', 300],
+      ['bonfire', 'Bonfire', 'festival', 280],
+      ['pongal-pot', 'Pongal pot', 'festival', 280],
+      ['shankh', 'Conch', 'festival', 260],
+      ['flute', 'Flute & peacock feather', 'festival', 340],
+      ['thali', 'Puja thali', 'festival', 300],
+      ['snowflake', 'Snowflake', 'festival', 160],
+      ['champagne', 'Champagne', 'festival', 200],
+      ['cocktail', 'Cocktails', 'kids', 260],
+      ['grad-cap', 'Graduation cap', 'kids', 260],
+      ['henna-hand', 'Mehendi hand', 'wedding', 220],
+      ['suitcase', 'Suitcase', 'travel', 240],
+      ['palm', 'Palm tree', 'travel', 280],
+    ] as const
+  ).map(([asset, label, category, w]) => ({ id: asset, asset, label, category, w })),
   ...(['peony', 'rose', 'hydrangea', 'tulip', 'daisy', 'mixed'] as const).map((kind) => ({ id: `bloom-${kind}`, asset: 'bloom-corner', label: `Watercolour ${kind}`, category: 'wedding' as const, opts: { kind }, w: 420 })),
   ...(['eucalyptus', 'olive', 'fern', 'mixed'] as const).map((kind) => ({ id: `greenery-${kind}`, asset: 'greenery', label: `${kind[0]!.toUpperCase()}${kind.slice(1)} greenery`, category: 'ornament' as const, opts: { kind }, w: 420 })),
   ...(['poppy', 'lily', 'rose', 'wild'] as const).map((kind) => ({ id: `line-${kind}`, asset: 'line-flower', label: `Line-art ${kind === 'wild' ? 'wildflowers' : kind}`, category: 'ornament' as const, opts: { kind }, w: 360 })),

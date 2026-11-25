@@ -22,6 +22,7 @@ import { Pattern } from '../components/Pattern';
 import { withAlpha } from '../utils/color';
 import { ASSETS } from './assets';
 import { elementMotion } from './motion';
+import { photoCrossOrigin } from '../photo/cors';
 import { PhotoBackdrop, photoTones } from '../photo/PhotoBackdrop';
 
 /** Lets Remotion hold a frame until text has been measured (stills/video). No-op in the browser. */
@@ -323,7 +324,7 @@ function ImageLayer({ el, data, placeholders }: { el: ImageElement; data: Design
       <img
         src={src}
         alt=""
-        crossOrigin="anonymous"
+        crossOrigin={photoCrossOrigin()}
         style={{
           width: '100%',
           height: '100%',
@@ -424,7 +425,7 @@ export const DesignPage = memo(function DesignPage({ page, data, width, t, hidde
           <img
             src={resolveArtUrl(bg.image)}
             alt=""
-            crossOrigin="anonymous"
+            crossOrigin={photoCrossOrigin()}
             style={{
               position: 'absolute',
               inset: 0,
