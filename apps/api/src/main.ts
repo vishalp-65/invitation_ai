@@ -16,7 +16,7 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      // With CLIENT_IP_SECRET, only the host's nginx and Docker's bridge are trusted hops, so a
+      // With CLIENT_IP_SECRET, only the host's nginx  and Docker's bridge are trusted hops, so a
       // client-sent X-Forwarded-For is ignored; browser traffic carries a signed IP instead.
       trustProxy: env.CLIENT_IP_SECRET ? ['loopback', 'uniquelocal'] : true,
       // 1 MB by default; the few routes that take documents or photos are raised in the onRoute hook below.
